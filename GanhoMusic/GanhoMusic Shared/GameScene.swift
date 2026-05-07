@@ -12,6 +12,7 @@
 //  Phase 2-6 · 수간호사 적 NPC 1마리 + 직선 추적 AI + 접촉 시 즉시 게임오버
 //  Phase 2-7 · F 투사체 발사 루프 + F 피격 시 게임오버 + 벽 닿으면 소멸
 //  Phase 2-10 · spawn / fire 9 메서드를 SpawnSystem으로 분리 (순수 리팩터, 기능 변화 0)
+//  Phase 2-11 · didBegin / handleProjectileContact / handleNoteContact를 ContactRouter로 분리 (순수 리팩터)
 //
 
 import SpriteKit
@@ -19,8 +20,8 @@ import SpriteKit
 /// 게임 메인 씬. Phase 1-3 시점에는 PlayerNode(worldNode 자식)와
 /// DPadNode(cameraNode 자식)로 사용자 입력 → 캐릭터 이동 → 카메라 추종 골격을 완성한다.
 /// 맵 경계/물리/HUD/스폰은 후속 Phase에서 추가.
-/// Phase 2-3 — SKPhysicsContactDelegate 채택 (player↔note contact 알림 수신).
-class GameScene: SKScene, SKPhysicsContactDelegate {
+/// Phase 2-11 — 충돌 분기는 ContactRouter가 담당. GameScene은 콜백 등록만.
+class GameScene: SKScene {
 
     // MARK: - Properties
     private var gameState: GameState = .waiting
@@ -39,7 +40,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
 
     // 시스템
-    private let spawnSystem = SpawnSystem()   // Phase 2-10 — spawn 책임 분리
+    private let spawnSystem = SpawnSystem()       // Phase 2-10 — spawn 책임 분리
+    private let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
 
     // MARK: - Factory
     class func newGameScene() -> GameScene {
@@ -58,7 +60,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
-        physicsWorld.contactDelegate = self   // Phase 2-3 — didBegin 알림 수신
+        configureContactRouter()                       // Phase 2-11 — 콜백 4개 등록
+        physicsWorld.contactDelegate = contactRouter   // Phase 2-11 — 분기는 ContactRouter가 담당
         // Phase 2-10 — spawn / fire 두 루프를 SpawnSystem으로 위임. 진행률 closure로 공급.
         spawnSystem.start(
             scene: self,
@@ -279,64 +282,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         hud.update(score: score, remainingTime: remainingTime, combo: combo)
     }
 
-    // MARK: - Contact
-    /// 충돌 알림 디스패처. 우선순위: enemy → projectile → note.
-    /// 노드 즉시 제거 금지 룰 — `.run(.removeFromParent())`로 액션 위임.
-    func didBegin(_ contact: SKPhysicsContact) {
-        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-
-        // (A) Phase 2-6 — enemy 분기 우선. enemy 비트가 있으면 즉시 게임오버.
-        if categories & PhysicsCategory.enemy != 0 {
-            endGame()
-            return
+    // MARK: - Contact Router
+    /// ContactRouter의 4개 콜백을 등록. didMove 안에서 1회 호출.
+    /// 콤보/점수 로직은 onNoteCollected 콜백 안에 *그대로 인라인* — Phase 2-12에서 ScoreSystem으로 분리 예정.
+    /// onProjectileHitWall은 self 미사용 — [weak self] 불필요.
+    private func configureContactRouter() {
+        contactRouter.onEnemyHit = { [weak self] in
+            self?.endGame()
         }
-        // (B) Phase 2-7 — projectile 분기. player 피격 시 endGame, wall 시 소멸.
-        if categories & PhysicsCategory.projectile != 0 {
-            handleProjectileContact(contact)
-            return
+        contactRouter.onProjectileHitPlayer = { [weak self] in
+            self?.endGame()
         }
-        // (C) 기존 2-3/2-5 — note 분기.
-        if categories & PhysicsCategory.note != 0 {
-            handleNoteContact(contact)
+        contactRouter.onProjectileHitWall = { node in
+            node.run(.removeFromParent())
         }
-    }
-
-    /// Phase 2-7 — F 투사체 충돌 처리. player와 충돌 시 endGame, wall 시 즉시 소멸.
-    private func handleProjectileContact(_ contact: SKPhysicsContact) {
-        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-        if categories & PhysicsCategory.player != 0 {
-            endGame()
-            return
+        contactRouter.onNoteCollected = { [weak self] note in
+            guard let self = self else { return }
+            let now = self.lastUpdateTime
+            let isInWindow = self.combo > 0 && now - self.lastCollectAt < GameConfig.comboWindow
+            self.combo = isInWindow ? self.combo + 1 : 1
+            self.score += self.combo >= GameConfig.comboBonusThreshold
+                ? GameConfig.scorePerNoteCombo
+                : GameConfig.scorePerNote
+            self.lastCollectAt = now
+            note.run(.removeFromParent())
         }
-        if categories & PhysicsCategory.wall != 0 {
-            let projectileBody = contact.bodyA.categoryBitMask == PhysicsCategory.projectile
-                ? contact.bodyA
-                : contact.bodyB
-            projectileBody.node?.run(.removeFromParent())
-        }
-    }
-
-    /// 기존 2-3/2-5 — note 분기 본문을 그대로 이전. 한 글자도 변경 없이 함수만 분리.
-    private func handleNoteContact(_ contact: SKPhysicsContact) {
-        let bodyA = contact.bodyA
-        let bodyB = contact.bodyB
-        let noteBody: SKPhysicsBody?
-        if bodyA.categoryBitMask == PhysicsCategory.note {
-            noteBody = bodyA
-        } else if bodyB.categoryBitMask == PhysicsCategory.note {
-            noteBody = bodyB
-        } else {
-            noteBody = nil
-        }
-        guard let note = noteBody?.node else { return }
-        let now = lastUpdateTime
-        let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
-        combo = isInWindow ? combo + 1 : 1
-        score += combo >= GameConfig.comboBonusThreshold
-            ? GameConfig.scorePerNoteCombo
-            : GameConfig.scorePerNote
-        lastCollectAt = now
-        note.run(.removeFromParent())
     }
 
     // MARK: - End
