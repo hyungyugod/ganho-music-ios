@@ -13,6 +13,7 @@
 //  Phase 2-7 · F 투사체 발사 루프 + F 피격 시 게임오버 + 벽 닿으면 소멸
 //  Phase 2-10 · spawn / fire 9 메서드를 SpawnSystem으로 분리 (순수 리팩터, 기능 변화 0)
 //  Phase 2-11 · didBegin / handleProjectileContact / handleNoteContact를 ContactRouter로 분리 (순수 리팩터)
+//  Phase 2-12 · score / combo / lastCollectAt + 콤보 갱신 로직을 ScoreSystem으로 분리 (순수 리팩터)
 //
 
 import SpriteKit
@@ -26,11 +27,8 @@ class GameScene: SKScene {
     // MARK: - Properties
     private var gameState: GameState = .waiting
     private var lastUpdateTime: TimeInterval = 0
-    private var score: Int = 0   // Phase 2-3 — 내부 카운트, Phase 2-4부터 HUD에 표시
     private let hud = HUDNode()                                         // Phase 2-4 — cameraNode 자식
     private var remainingTime: TimeInterval = GameConfig.gameDuration   // Phase 2-4 — 45초 카운트다운
-    private var combo: Int = 0
-    private var lastCollectAt: TimeInterval = 0   // 0 = "아직 수집 0건". combo > 0 가드와 함께 사용.
 
     // 노드 트리
     private let worldNode  = SKNode()
@@ -42,6 +40,7 @@ class GameScene: SKScene {
     // 시스템
     private let spawnSystem = SpawnSystem()       // Phase 2-10 — spawn 책임 분리
     private let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
+    private let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
 
     // MARK: - Factory
     class func newGameScene() -> GameScene {
@@ -258,10 +257,8 @@ class GameScene: SKScene {
             return
         }
 
-        // Phase 2-5 — 콤보 윈도우 만료 검사
-        if combo > 0, currentTime - lastCollectAt > GameConfig.comboWindow {
-            combo = 0
-        }
+        // Phase 2-5 — 콤보 윈도우 만료 검사 (Phase 2-12: ScoreSystem에 위임)
+        scoreSystem.tickComboExpiry(currentTime: currentTime)
 
         // 1) D-Pad 입력을 PlayerNode로 위임 (DPadNode → PlayerNode 직접 참조 금지 → GameScene 경유)
         player.currentDirection = dpad.currentDirection
@@ -278,13 +275,13 @@ class GameScene: SKScene {
         let curveT = CGFloat(1.0 - remainingTime / GameConfig.gameDuration)
         enemy.update(deltaTime: dt, targetPosition: player.position, speedT: curveT)
 
-        // 5) HUD 라벨 갱신 (Phase 2-4)
-        hud.update(score: score, remainingTime: remainingTime, combo: combo)
+        // 5) HUD 라벨 갱신 (Phase 2-4) — Phase 2-12: ScoreSystem에서 값 조회
+        hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
     }
 
     // MARK: - Contact Router
     /// ContactRouter의 4개 콜백을 등록. didMove 안에서 1회 호출.
-    /// 콤보/점수 로직은 onNoteCollected 콜백 안에 *그대로 인라인* — Phase 2-12에서 ScoreSystem으로 분리 예정.
+    /// Phase 2-12 — onNoteCollected의 콤보/점수 로직은 ScoreSystem.recordNoteHit으로 위임.
     /// onProjectileHitWall은 self 미사용 — [weak self] 불필요.
     private func configureContactRouter() {
         contactRouter.onEnemyHit = { [weak self] in
@@ -298,13 +295,7 @@ class GameScene: SKScene {
         }
         contactRouter.onNoteCollected = { [weak self] note in
             guard let self = self else { return }
-            let now = self.lastUpdateTime
-            let isInWindow = self.combo > 0 && now - self.lastCollectAt < GameConfig.comboWindow
-            self.combo = isInWindow ? self.combo + 1 : 1
-            self.score += self.combo >= GameConfig.comboBonusThreshold
-                ? GameConfig.scorePerNoteCombo
-                : GameConfig.scorePerNote
-            self.lastCollectAt = now
+            self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             note.run(.removeFromParent())
         }
     }
@@ -319,6 +310,6 @@ class GameScene: SKScene {
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero   // Phase 2-6 — 관성 정지
-        hud.update(score: score, remainingTime: 0, combo: 0)
+        hud.update(score: scoreSystem.score, remainingTime: 0, combo: 0)
     }
 }

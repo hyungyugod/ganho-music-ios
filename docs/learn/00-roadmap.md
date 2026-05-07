@@ -201,6 +201,7 @@ Scenes → Systems → Repositories → (외부)
 | **2-9** | F 발사 주기 시간 보간 (3.5→2.0초 재귀 SKAction) | [15-phase2-9-fire-interval-curve.md](15-phase2-9-fire-interval-curve.md) | ✅ 합격 (10.0/10) |
 | **2-10** | SpawnSystem 분리 (리팩터, GameScene 446→354줄) | [16-phase2-10-spawn-system.md](16-phase2-10-spawn-system.md) | ✅ 합격 (9.65/10) |
 | **2-11** | ContactRouter 분리 (콜백 패턴, GameScene 354→324줄) | [17-phase2-11-contact-router.md](17-phase2-11-contact-router.md) | ✅ 합격 (10.0/10) |
+| **2-12** | ScoreSystem 분리 (private(set), GameScene 324→315줄) — 🎉 **리팩터 종결** | [18-phase2-12-score-system.md](18-phase2-12-score-system.md) | ✅ 합격 (9.675/10) |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

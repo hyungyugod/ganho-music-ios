@@ -1,23 +1,23 @@
-# Phase 2-11 — ContactRouter 분리 (리팩터)
+# Phase 2-12 — ScoreSystem 분리 (리팩터)
 
 ## 개요
-GameScene의 `didBegin` / `handleProjectileContact` / `handleNoteContact`를 **ContactRouter.swift**로 이전.
-콜백 4개로 효과는 GameScene에 위임. **기능 변화 0**.
+GameScene의 score / combo / lastCollectAt 멤버 + 콤보 갱신 로직을 **ScoreSystem.swift**로 이전.
+GameScene은 ScoreSystem 메서드를 *호출*만. **기능 변화 0**.
 
 ## 변경 유형
-**리팩터** — 충돌 분기 책임 분리, 게임 동작 변화 0.
+**리팩터** — 점수/콤보 책임 분리, 게임 동작 변화 0.
 
 ## Sprint 범위 계약
 
 ### 허용 (IN)
-- 신설 1 파일: `Systems/ContactRouter.swift`
+- 신설 1 파일: `Systems/ScoreSystem.swift`
 - 수정 1 파일: `GanhoMusic Shared/GameScene.swift`
-- pbxproj 1건: ContactRouter.swift 등록
+- pbxproj 1건: ScoreSystem.swift 등록
 
 ### 금지 (OUT)
 - 기능 변화 0
-- 콤보/점수 상태 분리 → 다음 sprint(2-12 ScoreSystem)
-- 다른 노드 / Config / iOS 3 파일 / SpawnSystem 변경 0
+- HUDNode 시그니처 변경 0
+- 다른 Systems / Nodes / Config / iOS 3 파일 변경 0
 
 ## 변경 범위
 
@@ -25,160 +25,140 @@ GameScene의 `didBegin` / `handleProjectileContact` / `handleNoteContact`를 **C
 
 ```swift
 //
-//  ContactRouter.swift
+//  ScoreSystem.swift
 //  GanhoMusic Shared
 //
-//  Phase 2-11 · 충돌 처리 분기를 GameScene에서 분리
+//  Phase 2-12 · 점수 / 콤보 상태 + 갱신 로직 분리
 //
 
-import SpriteKit
+import Foundation
 
-/// SpriteKit 물리 충돌 알림(SKPhysicsContactDelegate)을 받아 카테고리별로 분기.
-/// 효과는 콜백으로 위임 — GameScene 직접 모름. 결합도 ↓.
-/// NSObject 상속 필수 (SKPhysicsContactDelegate가 Obj-C 프로토콜).
-final class ContactRouter: NSObject, SKPhysicsContactDelegate {
+/// 점수와 콤보 상태를 관리하는 시스템.
+/// 외부(GameScene)는 read-only로 score/combo 조회 + 메서드로 상태 변경.
+final class ScoreSystem {
 
-    // MARK: - Callbacks
-    /// player ↔ enemy 접촉 시.
-    var onEnemyHit: () -> Void = {}
-    /// player ↔ projectile 접촉 시.
-    var onProjectileHitPlayer: () -> Void = {}
-    /// projectile ↔ wall 접촉 시. 인자: 제거할 projectile 노드.
-    var onProjectileHitWall: (SKNode) -> Void = { _ in }
-    /// player ↔ note 접촉 시. 인자: 제거할 note 노드.
-    var onNoteCollected: (SKNode) -> Void = { _ in }
+    // MARK: - State (read-only 외부 노출)
+    /// 현재 점수 (음표 수집 누적).
+    private(set) var score: Int = 0
+    /// 현재 콤보 (연속 수집 카운트).
+    private(set) var combo: Int = 0
+    /// 마지막 수집 시각. 콤보 윈도우 만료 검사에 사용. 0 = "아직 수집 0건".
+    private var lastCollectAt: TimeInterval = 0
 
-    // MARK: - SKPhysicsContactDelegate
-    func didBegin(_ contact: SKPhysicsContact) {
-        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+    // MARK: - Mutations
+    /// 음표 1개 수집을 기록. 콤보 윈도우 검사 + 콤보 갱신 + 점수 가산.
+    /// - Parameter now: 현재 게임 시각 (보통 lastUpdateTime).
+    func recordNoteHit(at now: TimeInterval) {
+        let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
+        combo = isInWindow ? combo + 1 : 1
+        score += combo >= GameConfig.comboBonusThreshold
+            ? GameConfig.scorePerNoteCombo
+            : GameConfig.scorePerNote
+        lastCollectAt = now
+    }
 
-        if categories & PhysicsCategory.enemy != 0 {
-            onEnemyHit()
-            return
-        }
-        if categories & PhysicsCategory.projectile != 0 {
-            handleProjectileContact(contact)
-            return
-        }
-        if categories & PhysicsCategory.note != 0 {
-            handleNoteContact(contact)
+    /// 콤보 윈도우 만료 검사. update 안에서 매 프레임 호출.
+    /// - Parameter currentTime: 현재 SpriteKit 시각.
+    func tickComboExpiry(currentTime: TimeInterval) {
+        if combo > 0, currentTime - lastCollectAt > GameConfig.comboWindow {
+            combo = 0
         }
     }
 
-    // MARK: - Private
-    private func handleProjectileContact(_ contact: SKPhysicsContact) {
-        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-        if categories & PhysicsCategory.player != 0 {
-            onProjectileHitPlayer()
-            return
-        }
-        if categories & PhysicsCategory.wall != 0 {
-            let projectileBody = contact.bodyA.categoryBitMask == PhysicsCategory.projectile
-                ? contact.bodyA
-                : contact.bodyB
-            guard let node = projectileBody.node else { return }
-            onProjectileHitWall(node)
-        }
-    }
-
-    private func handleNoteContact(_ contact: SKPhysicsContact) {
-        let bodyA = contact.bodyA
-        let bodyB = contact.bodyB
-        let noteBody: SKPhysicsBody?
-        if bodyA.categoryBitMask == PhysicsCategory.note {
-            noteBody = bodyA
-        } else if bodyB.categoryBitMask == PhysicsCategory.note {
-            noteBody = bodyB
-        } else {
-            noteBody = nil
-        }
-        guard let node = noteBody?.node else { return }
-        onNoteCollected(node)
+    /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).
+    func reset() {
+        score = 0
+        combo = 0
+        lastCollectAt = 0
     }
 }
 ```
 
 ### GameScene 변경
 
-#### 1. 클래스 선언 — `SKPhysicsContactDelegate` 채택 제거
+#### 1. 멤버 제거 + 추가
 ```swift
-// 기존
-class GameScene: SKScene, SKPhysicsContactDelegate {
+// 제거 (3 멤버):
+private var score: Int = 0
+private var combo: Int = 0
+private var lastCollectAt: TimeInterval = 0
 
-// 변경 후
-class GameScene: SKScene {
+// 추가:
+private let scoreSystem = ScoreSystem()
 ```
 
-#### 2. 멤버 추가
+#### 2. update 안 콤보 만료 검사 변경
 ```swift
-// 노드 트리 다음
-private let spawnSystem = SpawnSystem()       // (2-10 그대로)
-private let contactRouter = ContactRouter()   // Phase 2-11
+// 기존 (2-11):
+if combo > 0, currentTime - lastCollectAt > GameConfig.comboWindow {
+    combo = 0
+}
+
+// 변경 후 (2-12):
+scoreSystem.tickComboExpiry(currentTime: currentTime)
 ```
 
-#### 3. didMove 변경
+#### 3. update 안 HUD 갱신 변경
 ```swift
 // 기존:
-physicsWorld.contactDelegate = self   // Phase 2-3
+hud.update(score: score, remainingTime: remainingTime, combo: combo)
 
 // 변경 후:
-configureContactRouter()              // 콜백 등록
-physicsWorld.contactDelegate = contactRouter
+hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
 ```
 
-#### 4. configureContactRouter 신설
+#### 4. configureContactRouter의 onNoteCollected 콜백 변경
 ```swift
-/// ContactRouter의 4개 콜백을 등록. didMove 안에서 1회 호출.
-/// 콤보/점수 로직은 onNoteCollected 콜백 안에 *그대로 인라인* — Phase 2-12에서 분리 예정.
-private func configureContactRouter() {
-    contactRouter.onEnemyHit = { [weak self] in
-        self?.endGame()
-    }
-    contactRouter.onProjectileHitPlayer = { [weak self] in
-        self?.endGame()
-    }
-    contactRouter.onProjectileHitWall = { node in
-        node.run(.removeFromParent())
-    }
-    contactRouter.onNoteCollected = { [weak self] note in
-        guard let self = self else { return }
-        let now = self.lastUpdateTime
-        let isInWindow = self.combo > 0 && now - self.lastCollectAt < GameConfig.comboWindow
-        self.combo = isInWindow ? self.combo + 1 : 1
-        self.score += self.combo >= GameConfig.comboBonusThreshold
-            ? GameConfig.scorePerNoteCombo
-            : GameConfig.scorePerNote
-        self.lastCollectAt = now
-        note.run(.removeFromParent())
-    }
+// 기존 (2-11):
+contactRouter.onNoteCollected = { [weak self] note in
+    guard let self = self else { return }
+    let now = self.lastUpdateTime
+    let isInWindow = self.combo > 0 && now - self.lastCollectAt < GameConfig.comboWindow
+    self.combo = isInWindow ? self.combo + 1 : 1
+    self.score += self.combo >= GameConfig.comboBonusThreshold
+        ? GameConfig.scorePerNoteCombo
+        : GameConfig.scorePerNote
+    self.lastCollectAt = now
+    note.run(.removeFromParent())
+}
+
+// 변경 후 (2-12):
+contactRouter.onNoteCollected = { [weak self] note in
+    guard let self = self else { return }
+    self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
+    note.run(.removeFromParent())
 }
 ```
 
-#### 5. 3개 메서드 *제거*
-- `func didBegin(_ contact: SKPhysicsContact)` 통째로 제거
-- `private func handleProjectileContact(_ contact: SKPhysicsContact)` 제거
-- `private func handleNoteContact(_ contact: SKPhysicsContact)` 제거
+#### 5. endGame 안 HUD 호출 변경
+```swift
+// 기존:
+hud.update(score: score, remainingTime: 0, combo: 0)
 
-`// MARK: - Contact` 섹션 제거.
+// 변경 후:
+hud.update(score: scoreSystem.score, remainingTime: 0, combo: 0)
+```
+- **`combo: 0` 인자는 *그대로 유지***. endGame은 *시각 강제 0* 의도. scoreSystem.combo는 *진짜 상태*는 보존, 표시만 0.
 
 ## 준수 룰
 
 | # | 룰 | 검증 |
 |---|---|---|
-| 1 | ContactRouter.swift 신설 + final class + NSObject + SKPhysicsContactDelegate | grep |
-| 2 | 콜백 4개 (onEnemyHit / onProjectileHitPlayer / onProjectileHitWall / onNoteCollected) | grep |
-| 3 | didBegin 본문 — 분기 우선순위 enemy → projectile → note | diff |
-| 4 | handleProjectileContact / handleNoteContact 본문 — 기존 GameScene과 동등 | diff |
-| 5 | GameScene에서 SKPhysicsContactDelegate 채택 *제거* | grep |
-| 6 | GameScene에서 didBegin / handleProjectileContact / handleNoteContact *제거* | grep 0건 |
-| 7 | configureContactRouter 신설 + didMove에서 호출 1건 | grep |
-| 8 | physicsWorld.contactDelegate = contactRouter | grep |
-| 9 | 콜백 등록 4건 + [weak self] 캡처 (3건 — onProjectileHitWall은 self 미사용이라 제외) | grep |
-| 10 | 콤보/점수 로직 onNoteCollected 안에 *기존 그대로* (lastUpdateTime, combo, lastCollectAt, scorePerNote/Combo, comboBonusThreshold, comboWindow) | diff |
-| 11 | 매직 넘버 0건 | grep |
-| 12 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | grep |
-| 13 | pbxproj ContactRouter 등록 4지점 | grep |
-| 14 | BUILD SUCCEEDED | xcodebuild |
+| 1 | ScoreSystem.swift 신설 + final class | grep |
+| 2 | private(set) score / combo + private lastCollectAt | grep |
+| 3 | recordNoteHit(at:) 메서드 | grep |
+| 4 | tickComboExpiry(currentTime:) 메서드 | grep |
+| 5 | reset() 메서드 | grep |
+| 6 | GameScene에서 score / combo / lastCollectAt 멤버 *제거* | grep 0건 |
+| 7 | GameScene에 `private let scoreSystem = ScoreSystem()` 추가 | grep |
+| 8 | update에서 scoreSystem.tickComboExpiry 호출 1건 | grep |
+| 9 | onNoteCollected 콜백 본문이 *3줄로 단순화* (recordNoteHit + note.run) | diff |
+| 10 | hud.update 호출 시 scoreSystem.score / scoreSystem.combo 사용 | grep |
+| 11 | endGame의 hud.update에 `combo: 0` 인자 *그대로* | diff |
+| 12 | 매직 넘버 0건 | grep |
+| 13 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | grep |
+| 14 | pbxproj ScoreSystem 등록 4지점 | grep |
+| 15 | BUILD SUCCEEDED | xcodebuild |
 
 ## 회귀 보존
 
@@ -186,23 +166,23 @@ private func configureContactRouter() {
 |---|---|
 | Config 4 파일 | 0 |
 | Nodes 6 파일 | 0 |
-| Systems/SpawnSystem.swift | 0 |
+| Systems/SpawnSystem.swift / ContactRouter.swift | 0 |
 | iOS 3 파일 | 0 |
-| GameScene 의 setup* / didChangeSize / update / endGame | 0 |
+| GameScene 의 setup* / didChangeSize / endGame (HUD 라인 외 그대로) | 0 |
 | HUDNode `update(score:remainingTime:combo:)` 시그니처 | 0 |
-| 콤보/점수 멤버 (combo / score / lastCollectAt) | 0 (위치 그대로, 다음 sprint에서 ScoreSystem으로 이전) |
+| 콤보 산식 / 점수 산식 (모두 ScoreSystem.recordNoteHit으로 *그대로 이전*) | 0 |
 
 ## 기능 동등성
 
-리팩터 전(2-10) vs 후(2-11):
-- enemy 접촉 → endGame
-- F ↔ player → endGame
-- F ↔ wall → projectile 제거
-- note 수집 → 콤보/점수 갱신 + note 제거
-- physicsWorld.contactDelegate가 *어떤 객체*든, didBegin 호출 결과가 동일
+리팩터 전(2-11) vs 후(2-12):
+- 음표 수집 → 콤보 갱신 + 점수 가산: ScoreSystem.recordNoteHit이 *기존 산식 그대로* 수행
+- 콤보 윈도우 만료: ScoreSystem.tickComboExpiry가 *기존 가드 그대로* 수행
+- HUD 표시: scoreSystem.score / scoreSystem.combo로 *값만 다른 출처*, 결과 동일
+- endGame combo: 0 표시: 기존 그대로 (실제 콤보 상태는 *보존*, 표시만 0)
 
 ## 주의사항
-- ContactRouter는 NSObject 상속 필수 (Obj-C 프로토콜 채택)
-- 콜백 변수에 함수 저장 — 매번 새 클로저 할당 시 메모리 누수 가능. didMove에서 1회만 등록.
-- 등록 안 된 콜백은 빈 함수 `{}` 또는 `{ _ in }` 기본값이라 크래시 없음
-- `[weak self]` 누락 시 GameScene이 ContactRouter에 의해 영원히 살아있음 — retain cycle
+
+- ScoreSystem 멤버는 `private(set)` — GameScene에서 *읽기만*. 변경은 메서드 통해서만.
+- recordNoteHit은 *지금 시각*을 인자로 받음 — 시간 출처 분리 (테스트 용이).
+- reset()은 본 sprint *호출 안 함*. Phase 3 게임 재시작에서 사용 예정.
+- HUD endGame combo: 0은 *의도된 시각 표시* — scoreSystem.combo와 *별개* 처리.

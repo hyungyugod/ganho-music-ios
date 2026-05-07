@@ -1,53 +1,69 @@
-# 자체 점검 — Phase 2-11 ContactRouter 분리
+# 자체 점검 — Phase 2-12 ScoreSystem 분리
 
-## SPEC §"준수 룰" 14개 PASS/FAIL
+전략: Case A (1회차) — SPEC 본문 그대로 적용. 리팩터 sprint, 기능 변화 0.
 
-| # | 룰 | 결과 | 검증 |
-|---|---|---|---|
-| 1 | ContactRouter.swift 신설 + final class + NSObject + SKPhysicsContactDelegate | PASS | `Systems/ContactRouter.swift:13` `final class ContactRouter: NSObject, SKPhysicsContactDelegate` |
-| 2 | 콜백 4개 (onEnemyHit / onProjectileHitPlayer / onProjectileHitWall / onNoteCollected) | PASS | ContactRouter.swift:17/19/21/23 — 4개 모두 존재, 기본값 `{}` 또는 `{ _ in }` |
-| 3 | didBegin 분기 우선순위 enemy → projectile → note | PASS | ContactRouter.swift:26~39 — SPEC 본문과 동일 |
-| 4 | handleProjectileContact / handleNoteContact 본문 — 기존 GameScene과 동등 | PASS | ContactRouter.swift:42~70 — SPEC 본문 그대로 (note 추출 + projectile 분기 로직 동일) |
-| 5 | GameScene에서 SKPhysicsContactDelegate 채택 *제거* | PASS | `grep SKPhysicsContactDelegate GameScene.swift` → 0건 |
-| 6 | GameScene에서 didBegin / handleProjectileContact / handleNoteContact *제거* | PASS | `grep -E "func didBegin\|func handleProjectileContact\|func handleNoteContact" GameScene.swift` → 0건 |
-| 7 | configureContactRouter 신설 + didMove에서 호출 1건 | PASS | GameScene.swift:63 호출 + 289 정의 |
-| 8 | physicsWorld.contactDelegate = contactRouter | PASS | GameScene.swift:64 |
-| 9 | 콜백 등록 4건 + [weak self] 캡처 (3건 — onProjectileHitWall은 self 미사용) | PASS | GameScene.swift:290/293/299 = 3건 [weak self], onProjectileHitWall(296)은 node만 사용 |
-| 10 | 콤보/점수 로직 onNoteCollected 안에 *기존 그대로* | PASS | GameScene.swift:299~309 — lastUpdateTime / combo / lastCollectAt / comboWindow / comboBonusThreshold / scorePerNote / scorePerNoteCombo 모두 보존, 기존 `now`/`isInWindow` 식별자 동일 |
-| 11 | 매직 넘버 0건 | PASS | ContactRouter는 `!= 0` 비트마스크 비교만 (PhysicsCategory.* 사용), GameScene 신설 부분도 GameConfig.* 만 사용 |
-| 12 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | PASS | grep 결과: ContactRouter.swift는 `!= 0`만 매치 (force-unwrap 아님), GameScene 신설 부분 0건. `guard let node = projectileBody.node` / `guard let node = noteBody?.node` / `guard let self = self`로 모두 안전 처리 |
-| 13 | pbxproj ContactRouter 등록 4지점 | PASS | grep 4 hits: PBXBuildFile(L21), PBXFileReference(L36), Systems group child(L177), Sources build phase(L358) |
-| 14 | BUILD SUCCEEDED | PASS | `xcodebuild ... build` → `** BUILD SUCCEEDED **` (iPhone 17 simulator) |
+## SPEC §"준수 룰" 15개 검증
+
+| # | 룰 | 검증 결과 |
+|---|---|---|
+| 1 | ScoreSystem.swift 신설 + final class | **PASS** — `Systems/ScoreSystem.swift:12` `final class ScoreSystem` |
+| 2 | private(set) score / combo + private lastCollectAt | **PASS** — `ScoreSystem.swift:16,18` `private(set) var`, `:20` `private var lastCollectAt` |
+| 3 | recordNoteHit(at:) 메서드 | **PASS** — `ScoreSystem.swift:25` `func recordNoteHit(at now: TimeInterval)` |
+| 4 | tickComboExpiry(currentTime:) 메서드 | **PASS** — `ScoreSystem.swift:36` `func tickComboExpiry(currentTime: TimeInterval)` |
+| 5 | reset() 메서드 | **PASS** — `ScoreSystem.swift:43` `func reset()` |
+| 6 | GameScene에서 score / combo / lastCollectAt 멤버 *제거* | **PASS** — `private var (score|combo|lastCollectAt)` 0건 |
+| 7 | GameScene에 `private let scoreSystem = ScoreSystem()` 추가 | **PASS** — `GameScene.swift:43` |
+| 8 | update에서 scoreSystem.tickComboExpiry 호출 1건 | **PASS** — `GameScene.swift:261` (정확히 1건) |
+| 9 | onNoteCollected 콜백 본문이 *3줄로 단순화* | **PASS** — `GameScene.swift:296~300` `guard let self` + `recordNoteHit(at:)` + `note.run` 3줄 |
+| 10 | hud.update 호출 시 scoreSystem.score / scoreSystem.combo 사용 | **PASS** — `GameScene.swift:279` (update), `:313` (endGame) 모두 `scoreSystem.score` 사용 |
+| 11 | endGame의 hud.update에 `combo: 0` 인자 *그대로* | **PASS** — `GameScene.swift:313` `combo: 0` 시각 강제 0 유지 |
+| 12 | 매직 넘버 0건 | **PASS** — ScoreSystem 내 모든 산식 상수는 GameConfig 참조 (`comboWindow`, `comboBonusThreshold`, `scorePerNote`, `scorePerNoteCombo`). `0`/`1` 리터럴은 SPEC 본문 그대로 이전된 콤보 가드/증가 sentinel — 원본 GameScene 코드와 동일. |
+| 13 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | **PASS** — ScoreSystem.swift 0건 검출 |
+| 14 | pbxproj ScoreSystem 등록 4지점 | **PASS** — `grep -c "ScoreSystem" project.pbxproj = 4` (PBXBuildFile / PBXFileReference / Systems group children / Sources build phase) |
+| 15 | BUILD SUCCEEDED | **PASS** — `xcodebuild ... -destination 'platform=iOS Simulator,name=iPhone 17' build` → `** BUILD SUCCEEDED **` |
 
 ## GameScene 줄 수 변화
-- **354 → 324** (30줄 감소: didBegin 본문 18줄 + handleProjectileContact 13줄 + handleNoteContact 21줄 = 52줄 제거 → configureContactRouter 22줄 추가 = 순감 30줄. 헤더에 Phase 2-11 라인 1줄 추가, 클래스 주석 1줄 변경, contactRouter 멤버 1줄 추가, didMove에 configureContactRouter 호출 1줄 추가, contactDelegate 한 줄 변경)
+
+- **이전 (2-11)**: 324 줄
+- **이후 (2-12)**: 315 줄
+- **차이**: -9 줄 (멤버 3개 제거 + 콤보 만료 가드 4줄 → 1줄 + onNoteCollected 본문 9줄 → 3줄, 단 멤버/메서드 추가/주석 +수 보정)
 
 ## Swift 패턴 준수
-- 강제 언래핑 미사용: 준수 (ContactRouter `guard let node = projectileBody.node`, `guard let node = noteBody?.node` 사용)
-- guard let 옵셔널 처리: 준수
-- MARK 섹션 구분: 준수 (`MARK: - Callbacks`, `MARK: - SKPhysicsContactDelegate`, `MARK: - Private`, GameScene는 `MARK: - Contact Router` 신설 + `MARK: - End` 보존)
-- GameConfig 상수 사용: 준수 (콤보/점수 로직 모두 GameConfig.* 만 참조)
-- weak self 캡처: 준수 (3건, onProjectileHitWall은 self 미사용으로 의도적 제외 + 주석 명시)
+
+- 강제 언래핑 미사용: 준수 (ScoreSystem 0건, GameScene 변경부 0건)
+- guard let 옵셔널 처리: 준수 (`onNoteCollected`의 `guard let self`)
+- MARK 섹션 구분: 준수 (`// MARK: - State`, `// MARK: - Mutations`)
+- GameConfig 상수 사용: 준수 (`.comboWindow`, `.comboBonusThreshold`, `.scorePerNote`, `.scorePerNoteCombo`)
+- weak self 캡처: 준수 (`onNoteCollected`의 `[weak self]` 유지)
 
 ## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: 준수 (configureContactRouter 호출이 didMove 안 한 줄)
-- dt 기반 이동: 해당 없음 (리팩터)
-- SKAction 스폰 패턴: 해당 없음 (리팩터)
-- 충돌 후 노드 즉시 삭제 없음: 준수 (`note.run(.removeFromParent())` / `node.run(.removeFromParent())` — 액션 위임)
-- HUD 노드 분리: 해당 없음 (리팩터)
 
-## 회귀 보존 확인
-- Config 4 파일: 변경 0
-- Nodes 6 파일: 변경 0
-- Systems/SpawnSystem.swift: 변경 0
-- iOS 3 파일: 변경 0
-- GameScene의 setup* / didChangeSize / update / endGame: 변경 0
-- HUDNode `update(score:remainingTime:combo:)` 시그니처: 변경 0
-- 콤보/점수 멤버 (combo / score / lastCollectAt): 위치 / 타입 / 초기값 모두 동일
+- didMove(to:)에서 초기화: 준수 (변경 없음)
+- dt 기반 이동: 해당 없음 (리팩터 외 영역)
+- SKAction 스폰 패턴: 해당 없음
+- 충돌 후 노드 즉시 삭제 없음: 준수 (`note.run(.removeFromParent())` 액션 사용 — 기존과 동일)
+- HUD 노드 분리: 준수 (변경 없음)
+
+## 회귀 보존 검증
+
+| 영역 | 상태 |
+|---|---|
+| Config 4 파일 | 변경 0 |
+| Nodes 6 파일 | 변경 0 |
+| Systems/SpawnSystem.swift / ContactRouter.swift | 변경 0 |
+| iOS 3 파일 | 변경 0 |
+| GameScene 의 setup* / didChangeSize / endGame (HUD 라인 외) | 변경 0 |
+| HUDNode `update(score:remainingTime:combo:)` 시그니처 | 변경 0 |
+| 콤보 산식 (`isInWindow ? combo + 1 : 1`) | ScoreSystem.recordNoteHit으로 *그대로 이전* |
+| 점수 산식 (`combo >= comboBonusThreshold ? scorePerNoteCombo : scorePerNote`) | ScoreSystem.recordNoteHit으로 *그대로 이전* |
 
 ## 빌드 상태
-- 예상 빌드 에러: 없음 (`** BUILD SUCCEEDED **`)
-- 주의 필요 경고: 없음 (Metadata extraction skipped 경고는 AppIntents 미사용 무관 경고, 기존부터 있음)
+
+- 빌드 결과: `** BUILD SUCCEEDED **`
+- 예상 빌드 에러: 없음
+- 주의 필요 경고: 없음 (BUILD SUCCEEDED 라인 직전까지 warning 없음)
 
 ## 범위 외 미구현 항목
-- 없음. SPEC §"Sprint 범위 계약"의 IN 3개 (신설 1, 수정 1, pbxproj 1) 모두 처리, OUT 항목 (콤보/점수 분리, 다른 노드/Config/iOS 변경) 0건.
+
+- 없음 — SPEC IN 항목(신설 1 / 수정 1 / pbxproj 1) 정확히 일치. OUT 항목(다른 파일 변경) 0건.
+- `reset()` 메서드는 신설했으나 본 sprint에서 호출 안 함 — SPEC §주의사항 "Phase 3 게임 재시작에서 사용 예정"에 따라 의도된 미사용.
