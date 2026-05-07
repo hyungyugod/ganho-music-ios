@@ -97,8 +97,11 @@ enum GameConfig {
     static let projectileSize: CGFloat = 16
     /// F 투사체 속도 (pt/s). 추적 적(60)보다 빠름 — 회피 시 빠른 이동 필요.
     static let projectileSpeed: CGFloat = 160
-    /// F 발사 주기 (초). GDD §5 easy 시작값. Phase 2-8에서 보간(→2.0초).
+    /// F 발사 주기 시작값 (초). GDD §5 easy 시작값. Phase 2-9에서 IntervalEnd(2.0)까지 선형 보간.
     static let projectileFireInterval: TimeInterval = 3.5
+    /// F 발사 주기 끝값 (초). 게임 종료 시점 도달값. GDD §5 easy.
+    /// Phase 2-9 — 시간 보간으로 projectileFireInterval(3.5)에서 이 값(2.0)까지 선형 감소.
+    static let projectileFireIntervalEnd: TimeInterval = 2.0
     /// 동시에 떠 있을 수 있는 F 최대 수. GDD §5 easy.
     static let projectileMaxConcurrent: Int = 2
 }

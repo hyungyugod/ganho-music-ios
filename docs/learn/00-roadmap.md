@@ -198,6 +198,7 @@ Scenes → Systems → Repositories → (외부)
 | **2-6 hotfix2** | viewport 재설계 (didChangeSize) + player 시작 위치 + enemy 가시성 | [12-phase2-6-hotfix2-viewport.md](12-phase2-6-hotfix2-viewport.md) | ✅ 합격 (9.575/10) |
 | **2-7** | F 투사체 + 발사 주기 + F 피격 시 게임오버 + 벽 닿으면 소멸 | [13-phase2-7-projectile.md](13-phase2-7-projectile.md) | ✅ 합격 (9.65/10) |
 | **2-8** | 수간호사 속도 시간 보간 (60→110 선형) | [14-phase2-8-enemy-speed-curve.md](14-phase2-8-enemy-speed-curve.md) | ✅ 합격 (10.0/10) |
+| **2-9** | F 발사 주기 시간 보간 (3.5→2.0초 재귀 SKAction) | [15-phase2-9-fire-interval-curve.md](15-phase2-9-fire-interval-curve.md) | ✅ 합격 (10.0/10) |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

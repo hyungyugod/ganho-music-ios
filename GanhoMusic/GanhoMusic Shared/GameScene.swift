@@ -308,13 +308,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return CGPoint(x: x, y: y)
     }
 
-    /// Phase 2-7 — F 투사체 자동 발사 루프 시작. SKAction.repeatForever — Timer 금지.
-    /// withKey: "fireProjectiles"로 등록해 endGame에서 stop.
+    /// Phase 2-7 — F 투사체 자동 발사 루프 시작.
+    /// Phase 2-9 — repeatForever 대신 *재귀 SKAction* 패턴으로 교체. 매 발사마다 *다음 wait*가
+    /// 보간된 주기라 고정 주기 repeat로는 표현 불가. 본문은 `scheduleNextFire()` 단일 호출로 단순화.
     private func startProjectileFireLoop() {
-        let wait = SKAction.wait(forDuration: GameConfig.projectileFireInterval)
-        let fire = SKAction.run { [weak self] in self?.fireProjectile() }
-        let loop = SKAction.repeatForever(.sequence([wait, fire]))
-        self.run(loop, withKey: "fireProjectiles")
+        scheduleNextFire()
+    }
+
+    /// Phase 2-9 — F 발사를 *현재 보간 주기* 후에 1회 실행하고, 끝나면 자기 자신을 다시 호출 (재귀).
+    /// `repeatForever` 대신 재귀를 쓰는 이유: 매 발사마다 *다음 wait 시간*이 다름 (보간).
+    /// withKey "fireProjectiles" 동일 — endGame의 removeAction이 즉시 정지 가능 (현재 등록된
+    /// 시퀀스가 끝나야 재귀가 다시 등록되니, removeAction 후엔 추가 호출 없음).
+    private func scheduleNextFire() {
+        let interval = currentFireInterval()
+        let wait = SKAction.wait(forDuration: interval)
+        let fire = SKAction.run { [weak self] in
+            self?.fireProjectile()
+            self?.scheduleNextFire()
+        }
+        self.run(.sequence([wait, fire]), withKey: "fireProjectiles")
+    }
+
+    /// Phase 2-9 — 현재 게임 진행률에 따른 F 발사 주기 (선형 보간).
+    /// 진행률 0 (시작) → projectileFireInterval (3.5초)
+    /// 진행률 1 (종료) → projectileFireIntervalEnd (2.0초)
+    /// 끝값(2.0)이 시작값(3.5)보다 작아 *감소* — 보간 부호 자동 처리.
+    private func currentFireInterval() -> TimeInterval {
+        let progress = 1.0 - remainingTime / GameConfig.gameDuration
+        return GameConfig.projectileFireInterval
+            + (GameConfig.projectileFireIntervalEnd - GameConfig.projectileFireInterval) * progress
     }
 
     /// 한 사이클당 1회 호출. 동시 F 수 projectileMaxConcurrent 미만일 때만 1개 발사.
