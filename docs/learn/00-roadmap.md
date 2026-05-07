@@ -194,6 +194,9 @@ Scenes → Systems → Repositories → (외부)
 | **2-3** | 음표 NoteNode + 자동 스폰 + contact 알림 + score 내부 카운트 | [08-phase2-3-note-spawn.md](08-phase2-3-note-spawn.md) | ✅ 합격 (9.18/10) |
 | **2-4** | HUD: 점수 라벨 + 45초 타이머 + 시간 만료 게임오버 전환 | [09-phase2-4-hud.md](09-phase2-4-hud.md) | ✅ 합격 (9.6/10) |
 | **2-5** | 콤보 시스템 + 점수 ×2 (2.5초 윈도우 / 3콤보 임계 / 🔥 라벨) | [10-phase2-5-combo.md](10-phase2-5-combo.md) | ✅ 합격 (9.6/10) |
+| **2-6** | 수간호사 적 NPC 1마리 + 직선 추적 AI + 접촉 시 즉시 게임오버 | [11-phase2-6-enemy-spawn.md](11-phase2-6-enemy-spawn.md) | ✅ 합격 (10.0/10) |
+| **2-6 hotfix2** | viewport 재설계 (didChangeSize) + player 시작 위치 + enemy 가시성 | [12-phase2-6-hotfix2-viewport.md](12-phase2-6-hotfix2-viewport.md) | ✅ 합격 (9.575/10) |
+| **2-7** | F 투사체 + 발사 주기 + F 피격 시 게임오버 + 벽 닿으면 소멸 | [13-phase2-7-projectile.md](13-phase2-7-projectile.md) | ✅ 합격 (9.65/10) |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

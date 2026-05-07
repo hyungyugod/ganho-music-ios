@@ -43,7 +43,8 @@ enum GameConfig {
     /// D-Pad 단일 버튼 한 변 (pt). Apple HIG 권장 최소 터치 타깃 44pt.
     static let dpadButtonSize: CGFloat = 44
     /// D-Pad 전체 알파 (반투명). 게임 위에 떠 있는 느낌.
-    static let dpadAlpha: CGFloat = 0.3
+    /// Phase 2-7 hotfix — 0.5 → 0.7. 어두운 배경에서 사용자가 *터치 위치 인지* 가능.
+    static let dpadAlpha: CGFloat = 0.7
     /// D-Pad 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
     static let dpadMarginX: CGFloat = 90
     /// D-Pad 하단 가장자리에서의 안쪽 마진 (pt).
@@ -78,4 +79,23 @@ enum GameConfig {
     static let scorePerNote: Int = 1
     /// 콤보 보너스 발동 시 음표 1개당 가산 점수. GDD §8.
     static let scorePerNoteCombo: Int = 2
+
+    // MARK: - Enemy (Phase 2-6)
+    /// 적 기본 속도 (pt/s). easy 난이도 시작값. GDD §5 obsBaseSpeed.
+    /// Phase 2-8에서 시간 보간(→110)이 들어옴 — 본 sprint는 단일 상수.
+    static let enemyBaseSpeed: CGFloat = 60
+    /// 수간호사 박스 가로 (pt). GDD §7-4 16×20.
+    static let enemyWidth: CGFloat = 16
+    /// 수간호사 박스 세로 (pt). GDD §7-4 16×20.
+    static let enemyHeight: CGFloat = 20
+
+    // MARK: - Projectile (Phase 2-7)
+    /// F 투사체 한 변 (pt). GDD §7-5 16×16.
+    static let projectileSize: CGFloat = 16
+    /// F 투사체 속도 (pt/s). 추적 적(60)보다 빠름 — 회피 시 빠른 이동 필요.
+    static let projectileSpeed: CGFloat = 160
+    /// F 발사 주기 (초). GDD §5 easy 시작값. Phase 2-8에서 보간(→2.0초).
+    static let projectileFireInterval: TimeInterval = 3.5
+    /// 동시에 떠 있을 수 있는 F 최대 수. GDD §5 easy.
+    static let projectileMaxConcurrent: Int = 2
 }

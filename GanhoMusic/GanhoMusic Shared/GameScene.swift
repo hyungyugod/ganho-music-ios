@@ -9,6 +9,8 @@
 //  Phase 2-2 · SKPhysicsBody 첫 도입 + 중앙 기둥 신설
 //  Phase 2-3 · 음표 스폰 루프 + contact 알림 + score 내부 카운트
 //  Phase 2-4 · HUD 라벨 부착 + 45초 카운트다운 + 시간 만료 시 endGame()
+//  Phase 2-6 · 수간호사 적 NPC 1마리 + 직선 추적 AI + 접촉 시 즉시 게임오버
+//  Phase 2-7 · F 투사체 발사 루프 + F 피격 시 게임오버 + 벽 닿으면 소멸
 //
 
 import SpriteKit
@@ -32,6 +34,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let worldNode  = SKNode()
     private let cameraNode = SKCameraNode()
     private let player     = PlayerNode()    // worldNode 자식 (이동함)
+    private let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
     private let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
 
     // MARK: - Factory
@@ -49,10 +52,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupCamera()        // cameraNode (1-2 그대로)
         setupDPad()          // 1-3 신설 — DPadNode를 cameraNode 자식으로
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
+        setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         physicsWorld.contactDelegate = self   // Phase 2-3 — didBegin 알림 수신
         startSpawnLoop()                      // Phase 2-3 — 음표 자동 스폰 시작
+        startProjectileFireLoop()             // Phase 2-7 — F 투사체 발사 루프 시작
         gameState = .playing // playing 전환 후에야 update가 동작
+    }
+
+    /// scene.size 변경 시 SpriteKit이 호출 (.resizeFill 모드에서 view bounds 변경 시 자동 트리거).
+    /// cameraNode 자식의 화면 고정 위치(D-Pad / HUD)를 재계산해서 viewport에 맞춤.
+    /// 첫 attach 시점에도 scene이 1024×768 → view 크기로 갱신되며 호출됨.
+    override func didChangeSize(_ oldSize: CGSize) {
+        super.didChangeSize(oldSize)
+        layoutDPad()
+        layoutHUD()
     }
 
     // MARK: - Setup
@@ -148,8 +162,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func setupPlayer() {
+        // Phase 2-6 hotfix 2 — 중앙 기둥(맵 정중앙)과 분리된 좌측 1/4 지점.
+        // 기둥과 같은 좌표에서 시작 시 dynamic body 분리 force로 튕기는 잠재 버그 회피.
         player.position = CGPoint(
-            x: GameConfig.mapWidth  / 2,
+            x: GameConfig.mapWidth  / 4,
             y: GameConfig.mapHeight / 2
         )
         worldNode.addChild(player)
@@ -165,27 +181,47 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func setupDPad() {
-        // cameraNode 자식 좌표계: (0,0) = 화면 중앙, +x 우, +y 상.
-        // scene.size = 1024×768. 우하단 = (+x, -y).
+        // 1-3 신설 — DPadNode를 cameraNode 자식으로 추가. 위치는 layoutDPad가 담당.
+        cameraNode.addChild(dpad)
+        layoutDPad()
+    }
+
+    /// scene.size 변경 시(viewport 회전·resize)에 위치만 재계산. addChild 0건 — 멱등 보장.
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙, +x 우, +y 상. 우하단 = (+x, -y).
+    private func layoutDPad() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         dpad.position = CGPoint(
             x: +(halfW - GameConfig.dpadMarginX),
             y: -(halfH - GameConfig.dpadMarginY)
         )
-        cameraNode.addChild(dpad)
     }
 
     private func setupHUD() {
-        // cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌상단 = (-x, +y).
-        // D-Pad(우하단)와 부호만 반전 — 1-3 패턴 재활용.
+        cameraNode.addChild(hud)
+        layoutHUD()
+    }
+
+    /// scene.size 변경 시 위치만 재계산. addChild 0건 — 멱등.
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌상단 = (-x, +y). D-Pad와 부호만 반전.
+    private func layoutHUD() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         hud.position = CGPoint(
             x: -(halfW - GameConfig.hudMarginX),
             y: +(halfH - GameConfig.hudMarginY)
         )
-        cameraNode.addChild(hud)
+    }
+
+    private func setupEnemy() {
+        // Phase 2-7 hotfix — player가 좌측 1/4(240, 240)에 있으니 enemy를 *맵 우상단*에 배치.
+        // 좌표 (mapW * 3/4, mapH * 3/4) = (720, 360). player와 거리 √(480² + 120²) ≈ 495pt.
+        // 60pt/s 속도로 ~8초 후 도달 → 사용자가 D-Pad 익히고 회피 학습할 시간 확보.
+        enemy.position = CGPoint(
+            x: GameConfig.mapWidth  * 3 / 4,
+            y: GameConfig.mapHeight * 3 / 4
+        )
+        worldNode.addChild(enemy)
     }
 
     // MARK: - Game Loop
@@ -220,7 +256,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // 3) 카메라 follow — Phase 1-5: 드론 follow. player가 늘 화면 정중앙. 클램프 없음 (회피 게임 본질)
         cameraNode.position = player.position
 
-        // 4) HUD 라벨 갱신 (Phase 2-4)
+        // 4) Phase 2-6 — 적 직선 추적 (player 위치를 향해 velocity 갱신)
+        enemy.update(deltaTime: dt, targetPosition: player.position)
+
+        // 5) HUD 라벨 갱신 (Phase 2-4)
         hud.update(score: score, remainingTime: remainingTime, combo: combo)
     }
 
@@ -266,10 +305,82 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return CGPoint(x: x, y: y)
     }
 
+    /// Phase 2-7 — F 투사체 자동 발사 루프 시작. SKAction.repeatForever — Timer 금지.
+    /// withKey: "fireProjectiles"로 등록해 endGame에서 stop.
+    private func startProjectileFireLoop() {
+        let wait = SKAction.wait(forDuration: GameConfig.projectileFireInterval)
+        let fire = SKAction.run { [weak self] in self?.fireProjectile() }
+        let loop = SKAction.repeatForever(.sequence([wait, fire]))
+        self.run(loop, withKey: "fireProjectiles")
+    }
+
+    /// 한 사이클당 1회 호출. 동시 F 수 projectileMaxConcurrent 미만일 때만 1개 발사.
+    /// 발사 *시점* player 위치 향한 단위 벡터 × projectileSpeed로 velocity 설정.
+    private func fireProjectile() {
+        guard currentProjectileCount() < GameConfig.projectileMaxConcurrent else { return }
+        let dx = player.position.x - enemy.position.x
+        let dy = player.position.y - enemy.position.y
+        let magnitude = hypot(dx, dy)
+        guard magnitude > 0 else { return }
+        let unitX = dx / magnitude
+        let unitY = dy / magnitude
+
+        let projectile = ProjectileNode()
+        projectile.position = enemy.position
+        projectile.physicsBody?.velocity = CGVector(
+            dx: unitX * GameConfig.projectileSpeed,
+            dy: unitY * GameConfig.projectileSpeed
+        )
+        worldNode.addChild(projectile)
+    }
+
+    /// worldNode 안 F 투사체 ("projectile" 이름) 개수 카운트.
+    /// 3.5초마다 1회 호출이라 비용 무시 가능.
+    private func currentProjectileCount() -> Int {
+        var count = 0
+        worldNode.enumerateChildNodes(withName: "projectile") { _, _ in count += 1 }
+        return count
+    }
+
     // MARK: - Contact
-    /// player↔note contact 발생 시 호출. note만 식별 (contactTest가 player↔note 둘만 활성).
-    /// 노드 즉시 제거 금지 룰 — `note.run(.removeFromParent())`로 액션 위임.
+    /// 충돌 알림 디스패처. 우선순위: enemy → projectile → note.
+    /// 노드 즉시 제거 금지 룰 — `.run(.removeFromParent())`로 액션 위임.
     func didBegin(_ contact: SKPhysicsContact) {
+        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+
+        // (A) Phase 2-6 — enemy 분기 우선. enemy 비트가 있으면 즉시 게임오버.
+        if categories & PhysicsCategory.enemy != 0 {
+            endGame()
+            return
+        }
+        // (B) Phase 2-7 — projectile 분기. player 피격 시 endGame, wall 시 소멸.
+        if categories & PhysicsCategory.projectile != 0 {
+            handleProjectileContact(contact)
+            return
+        }
+        // (C) 기존 2-3/2-5 — note 분기.
+        if categories & PhysicsCategory.note != 0 {
+            handleNoteContact(contact)
+        }
+    }
+
+    /// Phase 2-7 — F 투사체 충돌 처리. player와 충돌 시 endGame, wall 시 즉시 소멸.
+    private func handleProjectileContact(_ contact: SKPhysicsContact) {
+        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        if categories & PhysicsCategory.player != 0 {
+            endGame()
+            return
+        }
+        if categories & PhysicsCategory.wall != 0 {
+            let projectileBody = contact.bodyA.categoryBitMask == PhysicsCategory.projectile
+                ? contact.bodyA
+                : contact.bodyB
+            projectileBody.node?.run(.removeFromParent())
+        }
+    }
+
+    /// 기존 2-3/2-5 — note 분기 본문을 그대로 이전. 한 글자도 변경 없이 함수만 분리.
+    private func handleNoteContact(_ contact: SKPhysicsContact) {
         let bodyA = contact.bodyA
         let bodyB = contact.bodyB
         let noteBody: SKPhysicsBody?
@@ -292,13 +403,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     // MARK: - End
-    /// 시간 만료 시 호출. gameState 전환 + spawn 정지 + player 정지(둘 다).
+    /// 시간 만료 / enemy 접촉 / F 피격 시 호출. gameState 전환 + 모든 액션·velocity 정지.
     /// HUD는 0초 표시로 마무리. 게임오버 화면/페이드는 Phase 3.
     private func endGame() {
         gameState = .gameOver
         removeAction(forKey: "spawnNotes")
+        removeAction(forKey: "fireProjectiles")   // Phase 2-7 — F 발사 루프 정지
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
+        enemy.physicsBody?.velocity = .zero   // Phase 2-6 — 관성 정지
+        // Phase 2-7 — 모든 떠 있는 F 투사체 velocity 0 (linearDamping=0이라 자동 정지 안 됨)
+        worldNode.enumerateChildNodes(withName: "projectile") { node, _ in
+            node.physicsBody?.velocity = .zero
+        }
         hud.update(score: score, remainingTime: 0, combo: 0)
     }
 }

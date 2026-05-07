@@ -36,7 +36,7 @@ final class PlayerNode: SKSpriteNode {
         body.linearDamping       = 0
         body.categoryBitMask     = PhysicsCategory.player
         body.collisionBitMask    = PhysicsCategory.wall
-        body.contactTestBitMask  = PhysicsCategory.note   // Phase 2-3 활성화
+        body.contactTestBitMask  = PhysicsCategory.note | PhysicsCategory.enemy | PhysicsCategory.projectile   // Phase 2-3 + 2-6 + 2-7
         physicsBody = body
     }
 

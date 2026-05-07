@@ -29,4 +29,19 @@ extension UIColor {
     /// 음표 본체 ♪ (분홍). HEX #F6A6B2
     static let ganhoPinkNote = UIColor(named: "pinkNote")
         ?? UIColor(red: 0xF6 / 255, green: 0xA6 / 255, blue: 0xB2 / 255, alpha: 1)
+
+    // MARK: - Enemy
+    /// 수간호사 가운. HEX #A4243B. assets.md §1.
+    static let ganhoCrimsonNurse = UIColor(named: "crimsonNurse")
+        ?? UIColor(red: 0xA4 / 255, green: 0x24 / 255, blue: 0x3B / 255, alpha: 1)
+
+    /// 수간호사 강조 / 피격 플래시. HEX #D8315B. assets.md §1.
+    /// Phase 2-6 hotfix 2 — enemy 본체 색으로 사용 (ganhoCrimsonNurse는 어두워 가시성 ↓).
+    static let ganhoBloodAccent = UIColor(named: "bloodAccent")
+        ?? UIColor(red: 0xD8 / 255, green: 0x31 / 255, blue: 0x5B / 255, alpha: 1)
+
+    // MARK: - Projectile
+    /// F 투사체. HEX #FFD23F. assets.md §1 yellowF.
+    static let ganhoYellowF = UIColor(named: "yellowF")
+        ?? UIColor(red: 0xFF / 255, green: 0xD2 / 255, blue: 0x3F / 255, alpha: 1)
 }

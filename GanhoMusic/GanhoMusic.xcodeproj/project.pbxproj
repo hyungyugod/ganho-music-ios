@@ -15,6 +15,8 @@
 		A1C0F1660000000000000006 /* DPadNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1560000000000000006 /* DPadNode.swift */; };
 		A1C0F1680000000000000008 /* NoteNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1580000000000000008 /* NoteNode.swift */; };
 		A1C0F1690000000000000009 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1590000000000000009 /* HUDNode.swift */; };
+		A1C0F16A000000000000000A /* EnemyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15A000000000000000A /* EnemyNode.swift */; };
+		A1C0F16B000000000000000B /* ProjectileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15B000000000000000B /* ProjectileNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +28,8 @@
 		A1C0F1560000000000000006 /* DPadNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPadNode.swift; sourceTree = "<group>"; };
 		A1C0F1580000000000000008 /* NoteNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteNode.swift; sourceTree = "<group>"; };
 		A1C0F1590000000000000009 /* HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/Nodes/HUDNode.swift"; sourceTree = "<group>"; };
+		A1C0F15A000000000000000A /* EnemyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyNode.swift; sourceTree = "<group>"; };
+		A1C0F15B000000000000000B /* ProjectileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectileNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -155,6 +159,8 @@
 				A1C0F1550000000000000005 /* PlayerNode.swift */,
 				A1C0F1560000000000000006 /* DPadNode.swift */,
 				A1C0F1580000000000000008 /* NoteNode.swift */,
+				A1C0F15A000000000000000A /* EnemyNode.swift */,
+				A1C0F15B000000000000000B /* ProjectileNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -331,6 +337,8 @@
 				A1C0F1660000000000000006 /* DPadNode.swift in Sources */,
 				A1C0F1680000000000000008 /* NoteNode.swift in Sources */,
 				A1C0F1690000000000000009 /* HUDNode.swift in Sources */,
+				A1C0F16A000000000000000A /* EnemyNode.swift in Sources */,
+				A1C0F16B000000000000000B /* ProjectileNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
