@@ -1,156 +1,314 @@
-# Phase 2-9 — F 발사 주기 시간 보간 (3.5초 → 2.0초 선형)
+# Phase 2-10 — SpawnSystem 분리 (리팩터)
 
 ## 개요
-F 발사 주기가 *3.5초(시작)에서 2.0초(끝)으로 선형 감소*.
-구현: SKAction.repeatForever를 *재귀 SKAction*으로 교체. 매 발사 후 다음 wait duration을 *현재 진행률 기반*으로 동적 계산.
+GameScene에서 spawn(음표 자동 생성) + fire(F 투사체 발사) 관련 9개 메서드를 **SpawnSystem.swift** 신설 파일로 이전.
+**기능 변화 0**. 순수 리팩터.
 
 ## 변경 유형
-**게임플레이** — 시간 압박 강화 (속도 + 주기 둘 다 빨라짐).
+**리팩터** — 코드 구조 정리, 게임 동작 변화 0.
 
 ## 게임 경험 의도
-> "F 발사 주기가 점점 짧아짐. 시작 3.5초마다 → 끝 2초마다.
-> 수간호사 속도(2-8)와 함께 게임이 *후반 가속*. 끝까지 버티면 진짜 성취감."
+> "GameScene이 422줄 → ~250줄로 정리. 기능은 *완전히 똑같음*.
+> 향후 시스템 추가(ContactRouter 등)가 깔끔하게 들어올 토대 마련."
 
 ## Sprint 범위 계약
 
 ### 허용 (IN)
-- 수정 2 파일:
-  - `Config/GameConfig.swift` — `projectileFireIntervalEnd: TimeInterval = 2.0` 1상수 + 기존 `projectileFireInterval` 주석 갱신
-  - `GanhoMusic Shared/GameScene.swift` — `startProjectileFireLoop` 본문 교체 + `scheduleNextFire` / `currentFireInterval` 헬퍼 신설
+- 신설 1 파일: `Systems/SpawnSystem.swift`
+- 수정 1 파일: `GanhoMusic Shared/GameScene.swift`
+- pbxproj 1건: SpawnSystem.swift 등록
 
 ### 금지 (OUT)
-- F 동시 수 변화 (2 → 3 → 4) → Phase 4 (normal/hard 난이도)
-- 청진기 (이교수) → Phase 4
-- 무적 시간 → Phase 5
-- F 사운드 / 시각 효과 → Phase 6
-- Systems 폴더 분리 → 별도 sprint
-- player 속도 보간 → Phase 5+
-- enemy 속도 보간 (이미 2-8) → 변경 0
+- 기능 변화 0 — *어떤 동작도 다르면 실패*
+- ContactRouter 분리 → 별도 sprint
+- ScoreSystem / 콤보 분리 → 별도 sprint
+- 다른 노드 파일 / Config / iOS 3 파일 / 다른 GameScene 함수 변경 0
+
+### 판단 기준
+"리팩터 후 시뮬레이터에서 *동일하게* 동작하는가?" → YES만 허용.
 
 ## 변경 범위
 
-### 수정할 파일
+### 신설 파일
+| 파일 | 역할 |
+|---|---|
+| `GanhoMusic Shared/Systems/SpawnSystem.swift` | spawn 책임 분리 — final class. weak 의존성 + closure progressProvider |
 
+### 수정 파일
 | 파일 | 변경 |
 |---|---|
-| `Config/GameConfig.swift` | (1) 기존 `projectileFireInterval = 3.5` 주석에 *시작값* 명시 (Phase 2-9에서 보간 시작값으로 사용), (2) `projectileFireIntervalEnd: TimeInterval = 2.0` 1줄 추가 |
-| `GanhoMusic Shared/GameScene.swift` | (1) `startProjectileFireLoop` 본문을 `scheduleNextFire()` 단일 호출로 교체, (2) `scheduleNextFire()` 신설 — wait + run 시퀀스 등록, run 클로저 안에서 fireProjectile + 재귀 호출, (3) `currentFireInterval()` 신설 — 보간 계산. `fireProjectile` / `currentProjectileCount` 본체는 *그대로*. `endGame`의 `removeAction(forKey: "fireProjectiles")` 호출은 그대로 유효 (재귀 패턴도 같은 키 사용) |
-
-### 추가할 파일
-**없음.**
+| `GanhoMusic Shared/GameScene.swift` | (1) 9 메서드 제거, (2) `private let spawnSystem = SpawnSystem()` 멤버, (3) `didMove`에서 `spawnSystem.start(...)` 호출 (기존 startSpawnLoop / startProjectileFireLoop 호출 자리 대체), (4) `endGame`에서 `spawnSystem.stop()` 호출 (기존 removeAction 2개 + projectile velocity 0 enumerate 대체) |
 
 ### Xcode 멤버십
-**필요 없음** (신설 파일 0).
+**필요함.** SpawnSystem.swift 등록 (NoteNode/EnemyNode/ProjectileNode 패턴).
 
 ## 기능 상세
 
-### 기능 1: GameConfig — `projectileFireIntervalEnd` 추가
-```swift
-// 기존 주석 갱신:
-/// F 발사 주기 시작값 (초). GDD §5 easy 시작값. Phase 2-9에서 IntervalEnd(2.0)까지 선형 보간.
-static let projectileFireInterval: TimeInterval = 3.5
-/// F 발사 주기 끝값 (초). 게임 종료 시점 도달값. GDD §5 easy.
-/// Phase 2-9 — 시간 보간으로 projectileFireInterval(3.5)에서 이 값(2.0)까지 선형 감소.
-static let projectileFireIntervalEnd: TimeInterval = 2.0
-```
-- 위치: `projectileFireInterval` 정의 *바로 다음 줄*. 기존 `projectileMaxConcurrent` 위.
-- 기존 상수 *값* 변경 0 (주석만 갱신).
+### 기능 1: SpawnSystem.swift 신설
 
-### 기능 2: GameScene — `startProjectileFireLoop` 본문 교체
 ```swift
-// 기존 (2-7)
-private func startProjectileFireLoop() {
-    let wait = SKAction.wait(forDuration: GameConfig.projectileFireInterval)
-    let fire = SKAction.run { [weak self] in self?.fireProjectile() }
-    let loop = SKAction.repeatForever(.sequence([wait, fire]))
-    self.run(loop, withKey: "fireProjectiles")
-}
+//
+//  SpawnSystem.swift
+//  GanhoMusic Shared
+//
+//  Phase 2-10 · spawn(음표) + fire(F 투사체) 시스템 분리
+//
 
-// 변경 후 (2-9)
-private func startProjectileFireLoop() {
-    scheduleNextFire()
-}
-```
-- 함수 시그니처 / 호출 위치 (`didMove`에서) 변경 0.
-- 본문이 단순화 — *재귀 시작*만 트리거.
+import SpriteKit
 
-### 기능 3: GameScene — `scheduleNextFire` 신설
-```swift
-/// F 발사를 *현재 보간 주기* 후에 1회 실행하고, 끝나면 자기 자신을 다시 호출 (재귀).
-/// `repeatForever` 대신 재귀를 쓰는 이유: 매 발사마다 *다음 wait 시간*이 다름 (보간).
-/// withKey: "fireProjectiles" 동일 — endGame의 removeAction이 즉시 정지 가능.
-private func scheduleNextFire() {
-    let interval = currentFireInterval()
-    let wait = SKAction.wait(forDuration: interval)
-    let fire = SKAction.run { [weak self] in
-        self?.fireProjectile()
-        self?.scheduleNextFire()
+/// 음표 자동 spawn + F 투사체 발사 책임을 GameScene에서 분리한 시스템.
+/// GameScene으로부터 의존성(scene/world/player/enemy/progressProvider)을 주입받아 동작.
+/// 모든 외부 참조는 weak — 메모리 누수 방지.
+final class SpawnSystem {
+
+    // MARK: - Dependencies (weak)
+    private weak var scene: SKScene?
+    private weak var worldNode: SKNode?
+    private weak var player: PlayerNode?
+    private weak var enemy: EnemyNode?
+    /// 게임 진행률 (0 ~ 1) 공급자. F 발사 주기 보간에 사용.
+    private var progressProvider: () -> Double = { 0 }
+
+    // MARK: - Lifecycle
+    /// 외부에서 의존성 주입 후 spawn / fire 두 루프 시작.
+    func start(
+        scene: SKScene,
+        world: SKNode,
+        player: PlayerNode,
+        enemy: EnemyNode,
+        progressProvider: @escaping () -> Double
+    ) {
+        self.scene = scene
+        self.worldNode = world
+        self.player = player
+        self.enemy = enemy
+        self.progressProvider = progressProvider
+        startNoteSpawnLoop()
+        startProjectileFireLoop()
     }
-    self.run(.sequence([wait, fire]), withKey: "fireProjectiles")
-}
-```
-- `[weak self]` 캡처로 메모리 누수 방어.
-- self가 nil이면 fireProjectile + 재귀 호출 모두 스킵 (안전).
-- withKey 동일 → endGame의 `removeAction(forKey: "fireProjectiles")`가 *현재 등록된 시퀀스*를 정지. 재귀 클로저는 *액션 끝나야* 호출되니 정지 후엔 추가 호출 없음.
 
-### 기능 4: GameScene — `currentFireInterval` 신설
-```swift
-/// 현재 게임 진행률에 따른 F 발사 주기 (보간).
-/// 진행률 0 (시작) → projectileFireInterval (3.5초)
-/// 진행률 1 (종료) → projectileFireIntervalEnd (2.0초)
-private func currentFireInterval() -> TimeInterval {
-    let progress = 1.0 - remainingTime / GameConfig.gameDuration
-    return GameConfig.projectileFireInterval
-        + (GameConfig.projectileFireIntervalEnd - GameConfig.projectileFireInterval) * progress
+    /// 게임 종료 시 GameScene이 호출. 모든 액션 정지 + 활성 projectile 정지.
+    func stop() {
+        scene?.removeAction(forKey: "spawnNotes")
+        scene?.removeAction(forKey: "fireProjectiles")
+        worldNode?.enumerateChildNodes(withName: "projectile") { node, _ in
+            node.physicsBody?.velocity = .zero
+        }
+    }
+
+    // MARK: - Note Spawn (Phase 2-3)
+    /// 음표 자동 spawn 루프 시작. SKAction.repeatForever — Timer 금지.
+    private func startNoteSpawnLoop() {
+        let wait  = SKAction.wait(forDuration: GameConfig.noteSpawnInterval)
+        let spawn = SKAction.run { [weak self] in self?.trySpawnNote() }
+        let loop  = SKAction.repeatForever(.sequence([wait, spawn]))
+        scene?.run(loop, withKey: "spawnNotes")
+    }
+
+    /// 한 사이클당 1회 호출. 동시 음표 수 미만일 때만 1개 spawn.
+    private func trySpawnNote() {
+        guard let world = worldNode else { return }
+        guard currentNoteCount() < GameConfig.noteMaxConcurrent else { return }
+        guard let position = randomNotePosition() else { return }
+        let note = NoteNode()
+        note.position = position
+        world.addChild(note)
+    }
+
+    /// worldNode 안 음표 ("note" 이름) 개수.
+    private func currentNoteCount() -> Int {
+        guard let world = worldNode else { return 0 }
+        var count = 0
+        world.enumerateChildNodes(withName: "note") { _, _ in count += 1 }
+        return count
+    }
+
+    /// 외곽 1tile 마진 안쪽 균등 랜덤. 중앙 기둥 manhattan 회피 (3 tile 이내면 nil).
+    private func randomNotePosition() -> CGPoint? {
+        let margin = GameConfig.tileSize
+        let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
+        let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
+        let cx = GameConfig.mapWidth  / 2
+        let cy = GameConfig.mapHeight / 2
+        if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
+            return nil
+        }
+        return CGPoint(x: x, y: y)
+    }
+
+    // MARK: - Projectile Fire (Phase 2-7 + 2-9)
+    /// F 발사 루프 시작 (재귀 SKAction).
+    private func startProjectileFireLoop() {
+        scheduleNextFire()
+    }
+
+    /// 현재 보간 주기 후 1회 발사 + 재귀로 자기 자신 다시 호출.
+    /// withKey: "fireProjectiles" 동일 — stop()의 removeAction이 즉시 정지 가능.
+    private func scheduleNextFire() {
+        let interval = currentFireInterval()
+        let wait = SKAction.wait(forDuration: interval)
+        let fire = SKAction.run { [weak self] in
+            self?.fireProjectile()
+            self?.scheduleNextFire()
+        }
+        scene?.run(.sequence([wait, fire]), withKey: "fireProjectiles")
+    }
+
+    /// 현재 게임 진행률에 따른 F 발사 주기 (보간).
+    private func currentFireInterval() -> TimeInterval {
+        let progress = progressProvider()
+        return GameConfig.projectileFireInterval
+            + (GameConfig.projectileFireIntervalEnd - GameConfig.projectileFireInterval) * progress
+    }
+
+    /// F 1개 발사. 발사 시점 player 위치 향한 단위 벡터 × projectileSpeed.
+    private func fireProjectile() {
+        guard let world = worldNode else { return }
+        guard let player = player else { return }
+        guard let enemy = enemy else { return }
+        guard currentProjectileCount() < GameConfig.projectileMaxConcurrent else { return }
+        let dx = player.position.x - enemy.position.x
+        let dy = player.position.y - enemy.position.y
+        let magnitude = hypot(dx, dy)
+        guard magnitude > 0 else { return }
+        let unitX = dx / magnitude
+        let unitY = dy / magnitude
+
+        let projectile = ProjectileNode()
+        projectile.position = enemy.position
+        projectile.physicsBody?.velocity = CGVector(
+            dx: unitX * GameConfig.projectileSpeed,
+            dy: unitY * GameConfig.projectileSpeed
+        )
+        world.addChild(projectile)
+    }
+
+    /// worldNode 안 projectile ("projectile" 이름) 개수.
+    private func currentProjectileCount() -> Int {
+        guard let world = worldNode else { return 0 }
+        var count = 0
+        world.enumerateChildNodes(withName: "projectile") { _, _ in count += 1 }
+        return count
+    }
 }
 ```
-- 보간 패턴은 EnemyNode.update의 speed 보간과 *동일*.
-- 끝값(2.0)이 시작값(3.5)보다 작아 *감소* — 보간 부호 자동 처리.
-- `remainingTime`은 GameScene 멤버 — 직접 접근.
+
+### 기능 2: GameScene.swift 수정
+
+#### 멤버 추가
+```swift
+// 노드 트리 섹션 다음
+private let spawnSystem = SpawnSystem()   // Phase 2-10 — spawn 책임 분리
+```
+
+#### didMove 변경
+```swift
+// 기존 (2-9):
+startSpawnLoop()                      // Phase 2-3
+startProjectileFireLoop()             // Phase 2-7
+
+// 변경 후 (2-10):
+spawnSystem.start(
+    scene: self,
+    world: worldNode,
+    player: player,
+    enemy: enemy,
+    progressProvider: { [weak self] in
+        guard let self = self else { return 0 }
+        return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+    }
+)
+```
+
+#### endGame 변경
+```swift
+// 기존 (2-9):
+private func endGame() {
+    gameState = .gameOver
+    removeAction(forKey: "spawnNotes")
+    removeAction(forKey: "fireProjectiles")
+    player.currentDirection = .zero
+    player.physicsBody?.velocity = .zero
+    enemy.physicsBody?.velocity = .zero
+    worldNode.enumerateChildNodes(withName: "projectile") { node, _ in
+        node.physicsBody?.velocity = .zero
+    }
+    hud.update(score: score, remainingTime: 0, combo: 0)
+}
+
+// 변경 후 (2-10):
+private func endGame() {
+    gameState = .gameOver
+    spawnSystem.stop()
+    player.currentDirection = .zero
+    player.physicsBody?.velocity = .zero
+    enemy.physicsBody?.velocity = .zero
+    hud.update(score: score, remainingTime: 0, combo: 0)
+}
+```
+
+#### 9개 메서드 *제거*
+다음 메서드를 GameScene.swift에서 *완전 제거* (SpawnSystem으로 이전됨):
+- `startSpawnLoop()`
+- `trySpawnNote()`
+- `currentNoteCount()`
+- `randomNotePosition()`
+- `startProjectileFireLoop()`
+- `scheduleNextFire()`
+- `currentFireInterval()`
+- `fireProjectile()`
+- `currentProjectileCount()`
+
+`// MARK: - Spawn` 섹션 자체도 제거 (또는 빈 채로 남기지 말 것).
 
 ## 준수 룰
 
 | # | 룰 | 검증 |
 |---|---|---|
-| 1 | `projectileFireIntervalEnd` 1상수 정의 | grep |
-| 2 | `scheduleNextFire` 함수 정의 1건 + 호출 ≥ 2건 (startProjectileFireLoop + 자기 자신 재귀) | grep |
-| 3 | `currentFireInterval` 함수 정의 1건 + 호출 1건 (scheduleNextFire 안) | grep |
-| 4 | 재귀 클로저 `[weak self]` 캡처 | grep |
-| 5 | 재귀 클로저 안 `self?.fireProjectile()` + `self?.scheduleNextFire()` 2 줄 | grep |
-| 6 | withKey "fireProjectiles" 1건 (scheduleNextFire 안) | grep |
-| 7 | 매직 넘버 0건 (3.5/2.0/45 모두 GameConfig.*) | grep |
-| 8 | `SKAction.repeatForever`가 *fireProjectile 영역*에서 0건 (spawn은 그대로) | grep |
-| 9 | 강제 언래핑 / Timer / print / as! / fileprivate 0건 | grep |
-| 10 | endGame의 `removeAction(forKey: "fireProjectiles")` 보존 | diff |
-| 11 | `fireProjectile` / `currentProjectileCount` 본체 변경 0 | diff |
-| 12 | BUILD SUCCEEDED | xcodebuild |
+| 1 | SpawnSystem.swift 신설 + final class | grep |
+| 2 | weak 의존성 4개 (scene, worldNode, player, enemy) | grep |
+| 3 | progressProvider closure 1건 | grep |
+| 4 | 9 메서드 모두 SpawnSystem 안 (private) | grep |
+| 5 | GameScene에서 9 메서드 *제거 완료* (검색 0건) | grep |
+| 6 | spawnSystem.start(...) 1건 (didMove) | grep |
+| 7 | spawnSystem.stop() 1건 (endGame) | grep |
+| 8 | endGame에서 removeAction 직접 호출 0건 | grep |
+| 9 | endGame에서 enumerateChildNodes 직접 호출 0건 | grep |
+| 10 | 매직 넘버 0건 (모두 GameConfig.*) | grep |
+| 11 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | grep |
+| 12 | [weak self] 클로저 캡처 (재귀 fire + spawn) | grep |
+| 13 | pbxproj SpawnSystem 등록 4지점 | grep |
+| 14 | BUILD SUCCEEDED | xcodebuild |
+| 15 | 시뮬레이터 동작 *2-9와 동일* (음표 spawn / F 발사 / endGame 정지) | 시뮬 검증 |
 
 ## 회귀 보존
 
 | 영역 | 변경 |
 |---|---|
-| `Config/PhysicsCategory.swift` / `GameState.swift` / `ColorTokens.swift` | 0 |
+| `Config/PhysicsCategory.swift` / `GameState.swift` / `ColorTokens.swift` / `GameConfig.swift` | 0 |
 | `Nodes/HUDNode.swift` / `DPadNode.swift` / `NoteNode.swift` / `PlayerNode.swift` / `EnemyNode.swift` / `ProjectileNode.swift` | 0 |
-| iOS 3 파일 / pbxproj | 0 |
-| GameScene 다른 함수 (setupBackground / setupWorld / setupPlayer / setupCamera / setupDPad / layoutDPad / setupHUD / layoutHUD / setupEnemy / didChangeSize / update / didBegin / handleProjectileContact / handleNoteContact / endGame / startSpawnLoop / trySpawnNote / currentNoteCount / randomNotePosition / fireProjectile / currentProjectileCount) | 0 |
+| iOS 3 파일 | 0 |
+| GameScene 의 setup 함수들 / didChangeSize / update / didBegin / handleProjectileContact / handleNoteContact | 0 (didMove + endGame만 변경) |
 | HUDNode `update(score:remainingTime:combo:)` 시그니처 | 0 |
-| 음표 spawn loop (`startSpawnLoop` + `SKAction.repeatForever` 패턴) | 0 — F 발사만 재귀로 변경 |
-| GameConfig 기존 상수 *값* | 0 (`projectileFireInterval` 값 3.5 그대로, 주석만) |
-| EnemyNode update 시그니처 | 0 (2-8 그대로) |
+| 콤보 / 점수 / lastCollectAt / remainingTime 멤버 | 0 (모두 GameScene 그대로) |
 
-## 검증 시뮬레이션
+## 기능 동등성 검증 (시뮬레이터 §15)
 
-- (a) 시작 직후 첫 F 발사: *3.5초 후* (시작값)
-- (b) 게임 중반 (남은시간 22.5초): F 발사 주기 *2.75초* (중간값)
-- (c) 게임 끝 직전 (남은시간 5초): F 발사 주기 *~2.17초* (끝값에 가까움)
-- (d) 게임 종료 시점 (남은시간 0초): 주기 *2.0초* — 다만 endGame 호출되어 다음 발사 안 됨
-- (e) enemy 속도 보간 (2-8) 동시 동작
-- (f) F 동시 최대 2개 (변경 0)
-- (g) endGame 시 fire 시퀀스 즉시 정지 (removeAction)
+리팩터 전(2-9) vs 후(2-10) **완전히 같은 동작** 보장:
+
+- (a) 음표 spawn: 1.5초 주기, 동시 5개, 중앙 기둥 회피, 외곽 1tile 마진 안쪽 — 그대로
+- (b) F 발사 주기 보간: 시작 3.5초 → 끝 2.0초 — 그대로
+- (c) F 발사 시점 player 좌표 캡처 — 그대로
+- (d) F 동시 최대 2개 — 그대로
+- (e) F가 player에 닿으면 endGame, 벽에 닿으면 소멸 — 그대로
+- (f) endGame 시 spawn / fire 즉시 정지, 모든 projectile velocity 0 — 그대로
+- (g) 수간호사 추적 + 속도 보간 (2-8) — 그대로
+- (h) 콤보 / 점수 / HUD / 카메라 follow — 그대로
 
 ## 주의사항
 
-- 재귀 SKAction의 *withKey 동일 등록* — SpriteKit이 같은 키로 액션 등록 시 *기존 액션 교체*. 시퀀스 끝난 후 재등록이라 충돌 없음.
-- `[weak self]` 누락 시 GameScene이 *영원히 살아있음* — 메모리 누수. 반드시 명시.
-- `endGame`에서 `removeAction(forKey: "fireProjectiles")` 호출 → *현재 진행 중인 wait* 즉시 취소 → run 클로저 미실행 → 재귀 종료. 정상 동작.
-- 재귀 호출이 *액션 클로저 안*이라 콜 스택 누적 없음. SpriteKit이 *비동기* 처리.
+- **기능 변화 0** 룰 — Generator가 *논리 변경*하면 즉시 실패.
+- weak 의존성 — `scene?` `worldNode?` 등 *옵셔널 chaining* 일관 사용.
+- closure progressProvider는 `@escaping` 명시 필수 (저장됨).
+- pbxproj 등록 누락 시 `Cannot find type 'SpawnSystem' in scope` — 자동 등록 시도, 실패 시 SELF_CHECK 명시.
+- SpawnSystem은 `Systems/` 폴더 신설. Xcode 그룹도 같이 생성.

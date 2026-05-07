@@ -11,6 +11,7 @@
 //  Phase 2-4 · HUD 라벨 부착 + 45초 카운트다운 + 시간 만료 시 endGame()
 //  Phase 2-6 · 수간호사 적 NPC 1마리 + 직선 추적 AI + 접촉 시 즉시 게임오버
 //  Phase 2-7 · F 투사체 발사 루프 + F 피격 시 게임오버 + 벽 닿으면 소멸
+//  Phase 2-10 · spawn / fire 9 메서드를 SpawnSystem으로 분리 (순수 리팩터, 기능 변화 0)
 //
 
 import SpriteKit
@@ -37,6 +38,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
     private let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
 
+    // 시스템
+    private let spawnSystem = SpawnSystem()   // Phase 2-10 — spawn 책임 분리
+
     // MARK: - Factory
     class func newGameScene() -> GameScene {
         let scene = GameScene(size: CGSize(width: 1024, height: 768))
@@ -55,8 +59,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         physicsWorld.contactDelegate = self   // Phase 2-3 — didBegin 알림 수신
-        startSpawnLoop()                      // Phase 2-3 — 음표 자동 스폰 시작
-        startProjectileFireLoop()             // Phase 2-7 — F 투사체 발사 루프 시작
+        // Phase 2-10 — spawn / fire 두 루프를 SpawnSystem으로 위임. 진행률 closure로 공급.
+        spawnSystem.start(
+            scene: self,
+            world: worldNode,
+            player: player,
+            enemy: enemy,
+            progressProvider: { [weak self] in
+                guard let self = self else { return 0 }
+                return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+            }
+        )
         gameState = .playing // playing 전환 후에야 update가 동작
     }
 
@@ -266,107 +279,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         hud.update(score: score, remainingTime: remainingTime, combo: combo)
     }
 
-    // MARK: - Spawn
-    /// 음표 자동 스폰 루프 시작. SKAction.repeatForever — Timer 금지 룰 준수.
-    /// withKey: "spawnNotes"로 등록해 추후 stop/replace 가능하게.
-    private func startSpawnLoop() {
-        let wait  = SKAction.wait(forDuration: GameConfig.noteSpawnInterval)
-        // 지역 변수명 spawn — `run` 이라 쓰면 self.run(_:withKey:)와 모호 충돌.
-        let spawn = SKAction.run { [weak self] in self?.trySpawnNote() }
-        let loop  = SKAction.repeatForever(.sequence([wait, spawn]))
-        self.run(loop, withKey: "spawnNotes")
-    }
-
-    /// 한 사이클당 1회 호출. 동시 음표 수 5 미만일 때만 1개 스폰.
-    /// 위치 후보가 중앙 기둥 충돌 시 nil — 다음 1.5초에 재시도 (skip).
-    private func trySpawnNote() {
-        guard currentNoteCount() < GameConfig.noteMaxConcurrent else { return }
-        guard let position = randomNotePosition() else { return }
-        let note = NoteNode()
-        note.position = position
-        worldNode.addChild(note)
-    }
-
-    /// worldNode 안 음표 ("note" 이름) 개수 카운트. 1.5초마다 1회라 비용 무시 가능.
-    private func currentNoteCount() -> Int {
-        var count = 0
-        worldNode.enumerateChildNodes(withName: "note") { _, _ in count += 1 }
-        return count
-    }
-
-    /// 외곽 1tile 마진 안쪽 균등 랜덤. 중앙 기둥 manhattan 회피 (3 tile 이내면 nil).
-    private func randomNotePosition() -> CGPoint? {
-        let margin = GameConfig.tileSize
-        let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
-        let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
-        let cx = GameConfig.mapWidth  / 2
-        let cy = GameConfig.mapHeight / 2
-        // 60pt 매직 넘버 회피: tileSize * 3 (= 20 × 3, 자명한 산수)
-        if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
-            return nil
-        }
-        return CGPoint(x: x, y: y)
-    }
-
-    /// Phase 2-7 — F 투사체 자동 발사 루프 시작.
-    /// Phase 2-9 — repeatForever 대신 *재귀 SKAction* 패턴으로 교체. 매 발사마다 *다음 wait*가
-    /// 보간된 주기라 고정 주기 repeat로는 표현 불가. 본문은 `scheduleNextFire()` 단일 호출로 단순화.
-    private func startProjectileFireLoop() {
-        scheduleNextFire()
-    }
-
-    /// Phase 2-9 — F 발사를 *현재 보간 주기* 후에 1회 실행하고, 끝나면 자기 자신을 다시 호출 (재귀).
-    /// `repeatForever` 대신 재귀를 쓰는 이유: 매 발사마다 *다음 wait 시간*이 다름 (보간).
-    /// withKey "fireProjectiles" 동일 — endGame의 removeAction이 즉시 정지 가능 (현재 등록된
-    /// 시퀀스가 끝나야 재귀가 다시 등록되니, removeAction 후엔 추가 호출 없음).
-    private func scheduleNextFire() {
-        let interval = currentFireInterval()
-        let wait = SKAction.wait(forDuration: interval)
-        let fire = SKAction.run { [weak self] in
-            self?.fireProjectile()
-            self?.scheduleNextFire()
-        }
-        self.run(.sequence([wait, fire]), withKey: "fireProjectiles")
-    }
-
-    /// Phase 2-9 — 현재 게임 진행률에 따른 F 발사 주기 (선형 보간).
-    /// 진행률 0 (시작) → projectileFireInterval (3.5초)
-    /// 진행률 1 (종료) → projectileFireIntervalEnd (2.0초)
-    /// 끝값(2.0)이 시작값(3.5)보다 작아 *감소* — 보간 부호 자동 처리.
-    private func currentFireInterval() -> TimeInterval {
-        let progress = 1.0 - remainingTime / GameConfig.gameDuration
-        return GameConfig.projectileFireInterval
-            + (GameConfig.projectileFireIntervalEnd - GameConfig.projectileFireInterval) * progress
-    }
-
-    /// 한 사이클당 1회 호출. 동시 F 수 projectileMaxConcurrent 미만일 때만 1개 발사.
-    /// 발사 *시점* player 위치 향한 단위 벡터 × projectileSpeed로 velocity 설정.
-    private func fireProjectile() {
-        guard currentProjectileCount() < GameConfig.projectileMaxConcurrent else { return }
-        let dx = player.position.x - enemy.position.x
-        let dy = player.position.y - enemy.position.y
-        let magnitude = hypot(dx, dy)
-        guard magnitude > 0 else { return }
-        let unitX = dx / magnitude
-        let unitY = dy / magnitude
-
-        let projectile = ProjectileNode()
-        projectile.position = enemy.position
-        projectile.physicsBody?.velocity = CGVector(
-            dx: unitX * GameConfig.projectileSpeed,
-            dy: unitY * GameConfig.projectileSpeed
-        )
-        worldNode.addChild(projectile)
-    }
-
-    /// worldNode 안 F 투사체 ("projectile" 이름) 개수 카운트.
-    /// 3.5초마다 1회 호출이라 비용 무시 가능.
-    private func currentProjectileCount() -> Int {
-        var count = 0
-        worldNode.enumerateChildNodes(withName: "projectile") { _, _ in count += 1 }
-        return count
-    }
-
     // MARK: - Contact
     /// 충돌 알림 디스패처. 우선순위: enemy → projectile → note.
     /// 노드 즉시 제거 금지 룰 — `.run(.removeFromParent())`로 액션 위임.
@@ -430,17 +342,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: - End
     /// 시간 만료 / enemy 접촉 / F 피격 시 호출. gameState 전환 + 모든 액션·velocity 정지.
     /// HUD는 0초 표시로 마무리. 게임오버 화면/페이드는 Phase 3.
+    /// Phase 2-10 — spawn / fire 정지 + projectile velocity 정지를 SpawnSystem.stop()으로 위임.
     private func endGame() {
         gameState = .gameOver
-        removeAction(forKey: "spawnNotes")
-        removeAction(forKey: "fireProjectiles")   // Phase 2-7 — F 발사 루프 정지
+        spawnSystem.stop()
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero   // Phase 2-6 — 관성 정지
-        // Phase 2-7 — 모든 떠 있는 F 투사체 velocity 0 (linearDamping=0이라 자동 정지 안 됨)
-        worldNode.enumerateChildNodes(withName: "projectile") { node, _ in
-            node.physicsBody?.velocity = .zero
-        }
         hud.update(score: score, remainingTime: 0, combo: 0)
     }
 }
