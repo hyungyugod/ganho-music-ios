@@ -257,7 +257,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         cameraNode.position = player.position
 
         // 4) Phase 2-6 — 적 직선 추적 (player 위치를 향해 velocity 갱신)
-        enemy.update(deltaTime: dt, targetPosition: player.position)
+        // Phase 2-8 — 게임 진행률 0 ~ 1 (시작 0, 끝 1). remainingTime은 max(0, ...)으로 음수 방지.
+        // speedT는 CGFloat (EnemyNode.update 시그니처 일치) — TimeInterval(Double) → CGFloat 변환.
+        let curveT = CGFloat(1.0 - remainingTime / GameConfig.gameDuration)
+        enemy.update(deltaTime: dt, targetPosition: player.position, speedT: curveT)
 
         // 5) HUD 라벨 갱신 (Phase 2-4)
         hud.update(score: score, remainingTime: remainingTime, combo: combo)

@@ -84,6 +84,9 @@ enum GameConfig {
     /// 적 기본 속도 (pt/s). easy 난이도 시작값. GDD §5 obsBaseSpeed.
     /// Phase 2-8에서 시간 보간(→110)이 들어옴 — 본 sprint는 단일 상수.
     static let enemyBaseSpeed: CGFloat = 60
+    /// 적 최대 속도 (pt/s). 게임 종료 시점 도달값. GDD §5 obsMaxSpeed.
+    /// Phase 2-8 — 시간 보간으로 enemyBaseSpeed(60)에서 이 값(110)까지 선형 증가.
+    static let enemyMaxSpeed: CGFloat = 110
     /// 수간호사 박스 가로 (pt). GDD §7-4 16×20.
     static let enemyWidth: CGFloat = 16
     /// 수간호사 박스 세로 (pt). GDD §7-4 16×20.

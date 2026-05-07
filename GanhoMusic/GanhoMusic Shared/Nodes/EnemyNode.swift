@@ -44,13 +44,14 @@ final class EnemyNode: SKSpriteNode {
     }
 
     // MARK: - Update
-    /// 외부에서 매 프레임 호출. player 위치를 향한 단위 벡터 × enemyBaseSpeed → velocity.
+    /// 외부에서 매 프레임 호출. player 위치를 향한 단위 벡터 × 보간 속도 → velocity.
     /// magnitude == 0 가드(NaN 방지).
     /// - Parameters:
     ///   - deltaTime: dt — 본 sprint에서는 미사용 (velocity 기반, 엔진이 dt 처리).
-    ///                Phase 2-8 시간 보간 도입 시 시그니처 추가 변경 없이 사용 가능.
     ///   - targetPosition: 추적 대상 좌표(worldNode 좌표계). 보통 player.position.
-    func update(deltaTime: TimeInterval, targetPosition: CGPoint) {
+    ///   - speedT: 게임 진행률 (0 ~ 1). 0 = 시작 속도(base), 1 = 최대 속도(max).
+    ///             GameScene이 매 프레임 1 - remainingTime / gameDuration 으로 계산.
+    func update(deltaTime: TimeInterval, targetPosition: CGPoint, speedT: CGFloat) {
         let dx = targetPosition.x - position.x
         let dy = targetPosition.y - position.y
         let magnitude = hypot(dx, dy)
@@ -60,9 +61,12 @@ final class EnemyNode: SKSpriteNode {
         }
         let unitX = dx / magnitude
         let unitY = dy / magnitude
+        // Phase 2-8 — 선형 보간: speedT 0 = base(60), 1 = max(110).
+        let speed = GameConfig.enemyBaseSpeed
+            + (GameConfig.enemyMaxSpeed - GameConfig.enemyBaseSpeed) * speedT
         physicsBody?.velocity = CGVector(
-            dx: unitX * GameConfig.enemyBaseSpeed,
-            dy: unitY * GameConfig.enemyBaseSpeed
+            dx: unitX * speed,
+            dy: unitY * speed
         )
     }
 }
