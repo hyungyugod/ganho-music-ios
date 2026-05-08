@@ -20,6 +20,12 @@
 		A1C0F16C000000000000000C /* SpawnSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15C000000000000000C /* SpawnSystem.swift */; };
 		A1C0F16E000000000000000E /* ContactRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15E000000000000000E /* ContactRouter.swift */; };
 		A1C0F16F000000000000000F /* ScoreSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15F000000000000000F /* ScoreSystem.swift */; };
+		A1C0F1B00000000000000011 /* TitleScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000011 /* TitleScene.swift */; };
+		A1C0F1B00000000000000012 /* ResultScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000012 /* ResultScene.swift */; };
+		A1C0F1B00000000000000013 /* HighScoreRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000013 /* HighScoreRepository.swift */; };
+		A1C0F1B00000000000000014 /* GameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000014 /* GameStats.swift */; };
+		A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000015 /* StatisticsRepository.swift */; };
+		A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000017 /* StoneGuardNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +42,12 @@
 		A1C0F15C000000000000000C /* SpawnSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnSystem.swift; sourceTree = "<group>"; };
 		A1C0F15E000000000000000E /* ContactRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactRouter.swift; sourceTree = "<group>"; };
 		A1C0F15F000000000000000F /* ScoreSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSystem.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000011 /* TitleScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleScene.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000012 /* ResultScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultScene.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000013 /* HighScoreRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighScoreRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000014 /* GameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStats.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000015 /* StatisticsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000017 /* StoneGuardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneGuardNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -49,6 +61,7 @@
 				Assets.xcassets,
 				GameScene.sks,
 				GameScene.swift,
+				"GameScene+Setup.swift",
 			);
 			target = C75D46282FA627C20016BB86 /* GanhoMusic iOS */;
 		};
@@ -66,6 +79,7 @@
 				Assets.xcassets,
 				GameScene.sks,
 				GameScene.swift,
+				"GameScene+Setup.swift",
 			);
 			target = C75D46392FA627C20016BB86 /* GanhoMusic tvOS */;
 		};
@@ -83,6 +97,7 @@
 				Assets.xcassets,
 				GameScene.sks,
 				GameScene.swift,
+				"GameScene+Setup.swift",
 			);
 			target = C75D46492FA627C20016BB86 /* GanhoMusic macOS */;
 		};
@@ -167,9 +182,20 @@
 				A1C0F1580000000000000008 /* NoteNode.swift */,
 				A1C0F15A000000000000000A /* EnemyNode.swift */,
 				A1C0F15B000000000000000B /* ProjectileNode.swift */,
+				A1C0F1A00000000000000017 /* StoneGuardNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
+			sourceTree = "<group>";
+		};
+		A1C0F1C00000000000000012 /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0F1A00000000000000011 /* TitleScene.swift */,
+				A1C0F1A00000000000000012 /* ResultScene.swift */,
+			);
+			name = Scenes;
+			path = "GanhoMusic Shared/Scenes";
 			sourceTree = "<group>";
 		};
 		A1C0F15D000000000000000D /* Systems */ = {
@@ -183,13 +209,35 @@
 			path = "GanhoMusic Shared/Systems";
 			sourceTree = "<group>";
 		};
+		A1C0F1D00000000000000013 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0F1A00000000000000013 /* HighScoreRepository.swift */,
+				A1C0F1A00000000000000015 /* StatisticsRepository.swift */,
+			);
+			name = Repositories;
+			path = "GanhoMusic Shared/Repositories";
+			sourceTree = "<group>";
+		};
+		A1C0F1E00000000000000014 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0F1A00000000000000014 /* GameStats.swift */,
+			);
+			name = Models;
+			path = "GanhoMusic Shared/Models";
+			sourceTree = "<group>";
+		};
 		C75D461B2FA627C10016BB86 = {
 			isa = PBXGroup;
 			children = (
 				C75D46202FA627C10016BB86 /* GanhoMusic Shared */,
 				A1C0F1500000000000000000 /* Config */,
 				A1C0F1570000000000000007 /* Nodes */,
+				A1C0F1C00000000000000012 /* Scenes */,
 				A1C0F15D000000000000000D /* Systems */,
+				A1C0F1D00000000000000013 /* Repositories */,
+				A1C0F1E00000000000000014 /* Models */,
 				C75D462B2FA627C20016BB86 /* GanhoMusic iOS */,
 				C75D463B2FA627C20016BB86 /* GanhoMusic tvOS */,
 				C75D464B2FA627C20016BB86 /* GanhoMusic macOS */,
@@ -360,6 +408,12 @@
 				A1C0F16C000000000000000C /* SpawnSystem.swift in Sources */,
 				A1C0F16E000000000000000E /* ContactRouter.swift in Sources */,
 				A1C0F16F000000000000000F /* ScoreSystem.swift in Sources */,
+				A1C0F1B00000000000000011 /* TitleScene.swift in Sources */,
+				A1C0F1B00000000000000012 /* ResultScene.swift in Sources */,
+				A1C0F1B00000000000000013 /* HighScoreRepository.swift in Sources */,
+				A1C0F1B00000000000000014 /* GameStats.swift in Sources */,
+				A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */,
+				A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

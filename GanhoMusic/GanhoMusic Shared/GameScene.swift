@@ -14,6 +14,12 @@
 //  Phase 2-10 · spawn / fire 9 메서드를 SpawnSystem으로 분리 (순수 리팩터, 기능 변화 0)
 //  Phase 2-11 · didBegin / handleProjectileContact / handleNoteContact를 ContactRouter로 분리 (순수 리팩터)
 //  Phase 2-12 · score / combo / lastCollectAt + 콤보 갱신 로직을 ScoreSystem으로 분리 (순수 리팩터)
+//  Phase 3-1+2 · GameOverOverlay 부착 + endGame 멱등 가드 + touchesBegan으로 TitleScene 복귀
+//  Phase 3-3 · 결과 표시를 ResultScene으로 분리 — 오버레이/터치/가드 폐기, endGame은 presentScene만
+//  Phase 3-4 · HighScoreRepository 주입 + endGame에서 record → bestScore/isNewBest를 ResultScene에 전달
+//  Phase 3-5 · StatisticsRepository 주입 + endGame에서 recordPlay → stats를 ResultScene에 전달
+//  Phase 3 종결 후 리팩터 — setup/add 9개 메서드를 GameScene+Setup.swift로 분리
+//  Phase 4-1 · StoneGuardNode 1마리 추가 (시계방향 4 waypoint 패트롤, PhysicsBody 없음 — 시각만)
 //
 
 import SpriteKit
@@ -25,22 +31,26 @@ import SpriteKit
 class GameScene: SKScene {
 
     // MARK: - Properties
-    private var gameState: GameState = .waiting
-    private var lastUpdateTime: TimeInterval = 0
-    private let hud = HUDNode()                                         // Phase 2-4 — cameraNode 자식
-    private var remainingTime: TimeInterval = GameConfig.gameDuration   // Phase 2-4 — 45초 카운트다운
+    // Phase 3 종결 후 리팩터 — GameScene+Setup.swift extension 접근 위해 private 해제 (필수 연동 변경).
+    var gameState: GameState = .waiting
+    var lastUpdateTime: TimeInterval = 0
+    let hud = HUDNode()                                         // Phase 2-4 — cameraNode 자식
+    var remainingTime: TimeInterval = GameConfig.gameDuration   // Phase 2-4 — 45초 카운트다운
 
     // 노드 트리
-    private let worldNode  = SKNode()
-    private let cameraNode = SKCameraNode()
-    private let player     = PlayerNode()    // worldNode 자식 (이동함)
-    private let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
-    private let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
+    let worldNode  = SKNode()
+    let cameraNode = SKCameraNode()
+    let player     = PlayerNode()    // worldNode 자식 (이동함)
+    let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
+    let stoneGuard = StoneGuardNode()  // worldNode 자식 (4 waypoint 시계방향 패트롤, Phase 4-1)
+    let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
 
     // 시스템
-    private let spawnSystem = SpawnSystem()       // Phase 2-10 — spawn 책임 분리
-    private let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
-    private let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
+    let spawnSystem = SpawnSystem()       // Phase 2-10 — spawn 책임 분리
+    let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
+    let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
+    let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
+    let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
 
     // MARK: - Factory
     class func newGameScene() -> GameScene {
@@ -58,6 +68,7 @@ class GameScene: SKScene {
         setupDPad()          // 1-3 신설 — DPadNode를 cameraNode 자식으로
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
+        setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         configureContactRouter()                       // Phase 2-11 — 콜백 4개 등록
         physicsWorld.contactDelegate = contactRouter   // Phase 2-11 — 분기는 ContactRouter가 담당
@@ -84,126 +95,9 @@ class GameScene: SKScene {
         layoutHUD()
     }
 
-    // MARK: - Setup
-    private func setupBackground() {
-        backgroundColor = .ganhoBgDeep
-    }
-
-    private func setupWorld() {
-        worldNode.position = .zero
-        addChild(worldNode)
-
-        addOuterWalls()
-        addCentralPillar()   // Phase 2-2 신설 — GDD §6 easy 맵 명세
-    }
-
-    private func addOuterWalls() {
-        // 4 외곽 벽: 두께 1 tile (20pt), 맵 바깥쪽에 배치.
-        // Phase 2-2 — 각 벽에 static PhysicsBody 부착하여 박스가 진짜로 부딪히게 함.
-        // (1-4 자체 클램프 제거 후 외곽 벽 PhysicsBody가 그 책임을 이어받음.)
-        let mapW = GameConfig.mapWidth
-        let mapH = GameConfig.mapHeight
-        let t    = GameConfig.tileSize
-        let halfT = t / 2
-
-        struct WallSpec {
-            let size: CGSize
-            let position: CGPoint
-        }
-        let walls: [WallSpec] = [
-            // top
-            WallSpec(
-                size: CGSize(width: mapW + t * 2, height: t),    // 좌우 모서리까지 덮음
-                position: CGPoint(x: mapW / 2, y: mapH + halfT)
-            ),
-            // bottom
-            WallSpec(
-                size: CGSize(width: mapW + t * 2, height: t),
-                position: CGPoint(x: mapW / 2, y: -halfT)
-            ),
-            // left
-            WallSpec(
-                size: CGSize(width: t, height: mapH),
-                position: CGPoint(x: -halfT, y: mapH / 2)
-            ),
-            // right
-            WallSpec(
-                size: CGSize(width: t, height: mapH),
-                position: CGPoint(x: mapW + halfT, y: mapH / 2)
-            )
-        ]
-
-        for spec in walls {
-            let wall = SKSpriteNode(color: .ganhoPaper, size: spec.size)
-            wall.position = spec.position
-
-            // Phase 2-2 — PhysicsBody 부착 (static, 박스가 부딪힘)
-            let body = SKPhysicsBody(rectangleOf: spec.size)
-            body.isDynamic           = false
-            body.friction            = 0
-            body.restitution         = 0
-            body.categoryBitMask     = PhysicsCategory.wall
-            body.collisionBitMask    = 0   // 벽은 다른 객체에 의해 안 움직임 (static)
-            body.contactTestBitMask  = 0   // 충돌 알림은 player가 받음 (대칭)
-            wall.physicsBody = body
-
-            worldNode.addChild(wall)
-        }
-    }
-
-    private func addCentralPillar() {
-        // GDD §6 easy 맵 — 중앙 기둥 1개 (2×4 tile = 40×80pt), 맵 정중앙.
-        let pillarSize = CGSize(
-            width:  GameConfig.tileSize * 2,    // 40pt
-            height: GameConfig.tileSize * 4     // 80pt
-        )
-        let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
-        pillar.position = CGPoint(
-            x: GameConfig.mapWidth  / 2,        // 맵 가로 정중앙
-            y: GameConfig.mapHeight / 2         // 맵 세로 정중앙
-        )
-
-        // PhysicsBody 부착 (외곽 벽과 동일 정책)
-        let body = SKPhysicsBody(rectangleOf: pillarSize)
-        body.isDynamic           = false
-        body.friction            = 0
-        body.restitution         = 0
-        body.categoryBitMask     = PhysicsCategory.wall
-        body.collisionBitMask    = 0
-        body.contactTestBitMask  = 0
-        pillar.physicsBody = body
-
-        worldNode.addChild(pillar)
-    }
-
-    private func setupPlayer() {
-        // Phase 2-6 hotfix 2 — 중앙 기둥(맵 정중앙)과 분리된 좌측 1/4 지점.
-        // 기둥과 같은 좌표에서 시작 시 dynamic body 분리 force로 튕기는 잠재 버그 회피.
-        player.position = CGPoint(
-            x: GameConfig.mapWidth  / 4,
-            y: GameConfig.mapHeight / 2
-        )
-        worldNode.addChild(player)
-    }
-
-    private func setupCamera() {
-        cameraNode.position = CGPoint(
-            x: GameConfig.mapWidth  / 2,
-            y: GameConfig.mapHeight / 2
-        )
-        addChild(cameraNode)
-        camera = cameraNode   // 씬에 메인 카메라 통보 (필수)
-    }
-
-    private func setupDPad() {
-        // 1-3 신설 — DPadNode를 cameraNode 자식으로 추가. 위치는 layoutDPad가 담당.
-        cameraNode.addChild(dpad)
-        layoutDPad()
-    }
-
     /// scene.size 변경 시(viewport 회전·resize)에 위치만 재계산. addChild 0건 — 멱등 보장.
     /// cameraNode 자식 좌표계: (0,0) = 화면 중앙, +x 우, +y 상. 우하단 = (+x, -y).
-    private func layoutDPad() {
+    func layoutDPad() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         dpad.position = CGPoint(
@@ -212,31 +106,15 @@ class GameScene: SKScene {
         )
     }
 
-    private func setupHUD() {
-        cameraNode.addChild(hud)
-        layoutHUD()
-    }
-
     /// scene.size 변경 시 위치만 재계산. addChild 0건 — 멱등.
     /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌상단 = (-x, +y). D-Pad와 부호만 반전.
-    private func layoutHUD() {
+    func layoutHUD() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         hud.position = CGPoint(
             x: -(halfW - GameConfig.hudMarginX),
             y: +(halfH - GameConfig.hudMarginY)
         )
-    }
-
-    private func setupEnemy() {
-        // Phase 2-7 hotfix — player가 좌측 1/4(240, 240)에 있으니 enemy를 *맵 우상단*에 배치.
-        // 좌표 (mapW * 3/4, mapH * 3/4) = (720, 360). player와 거리 √(480² + 120²) ≈ 495pt.
-        // 60pt/s 속도로 ~8초 후 도달 → 사용자가 D-Pad 익히고 회피 학습할 시간 확보.
-        enemy.position = CGPoint(
-            x: GameConfig.mapWidth  * 3 / 4,
-            y: GameConfig.mapHeight * 3 / 4
-        )
-        worldNode.addChild(enemy)
     }
 
     // MARK: - Game Loop
@@ -300,16 +178,35 @@ class GameScene: SKScene {
         }
     }
 
-    // MARK: - End
+    // MARK: - Game State
     /// 시간 만료 / enemy 접촉 / F 피격 시 호출. gameState 전환 + 모든 액션·velocity 정지.
-    /// HUD는 0초 표시로 마무리. 게임오버 화면/페이드는 Phase 3.
     /// Phase 2-10 — spawn / fire 정지 + projectile velocity 정지를 SpawnSystem.stop()으로 위임.
+    /// Phase 3-1+2 — 멱등 가드 추가 (적/F/시간 동시 발생 시 1회만 실행).
+    /// Phase 3-3 — 오버레이/가드 패턴 폐기. 정지 작업 후 ResultScene으로 fade transition.
     private func endGame() {
+        // 멱등 가드 — 이미 종료됐으면 아무 것도 안 함.
+        if gameState == .gameOver { return }
         gameState = .gameOver
         spawnSystem.stop()
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero   // Phase 2-6 — 관성 정지
         hud.update(score: scoreSystem.score, remainingTime: 0, combo: 0)
+
+        // Phase 3-3 — 결과 표시는 ResultScene이 담당. presentScene 직후 GameScene 자식은 ARC로 해제됨.
+        // Phase 3-4 — record → current 순서가 핵심. record가 디스크를 갱신한 *직후* current를 읽으면
+        // 신기록일 때 bestScore가 *이번 점수*가 된다(자기 일관성).
+        // Phase 3-5 — recordPlay → current도 같은 record/current 패턴.
+        // 순서: record(highScore) → current(best) → recordPlay(stats) → current(stats).
+        guard let view = self.view else { return }
+        let score = scoreSystem.score
+        let isNewBest = highScoreRepo.record(score)
+        let bestScore = highScoreRepo.current
+        statsRepo.recordPlay(score: score)
+        let stats = statsRepo.current
+        let resultScene = ResultScene.newResultScene(
+            score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats
+        )
+        view.presentScene(resultScene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
     }
 }

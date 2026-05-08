@@ -23,7 +23,8 @@ class GameViewController: UIViewController {
             return
         }
 
-        let scene = GameScene.newGameScene()
+        // Phase 3-1+2 — 첫 진입은 TitleScene. 사용자가 의도적으로 탭해야 GameScene 시작.
+        let scene = TitleScene.newTitleScene()
         skView.presentScene(scene)
 
         skView.ignoresSiblingOrder = true

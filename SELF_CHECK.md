@@ -1,69 +1,115 @@
-# 자체 점검 — Phase 2-12 ScoreSystem 분리
+# 자체 점검 — Phase 4-1 석조무사 NPC
 
-전략: Case A (1회차) — SPEC 본문 그대로 적용. 리팩터 sprint, 기능 변화 0.
+전략: Case A (1회차) — SPEC 준수형 신규 구현.
 
-## SPEC §"준수 룰" 15개 검증
+## SPEC In Scope 항목 체크
 
-| # | 룰 | 검증 결과 |
+- [x] **기능 1**: `Nodes/StoneGuardNode.swift` 신설
+  - `final class StoneGuardNode: SKSpriteNode`
+  - `init()` 색상 `.ganhoPaper`, name "stoneGuard", zPosition 5
+  - `physicsBody` 부착 안 함 (기본 nil)
+  - `required init?(coder:)` fatalError
+  - `private func startPatrol()` — waypoints 순회, hypot으로 거리 계산, dist/speed로 duration 계산, `SKAction.repeatForever(.sequence(moves))` 실행
+- [x] **기능 2**: `GameConfig.swift` `// MARK: - Stone Guard (Phase 4-1)` 섹션 + 신규 5상수 (Statistics 다음, 파일 끝)
+  - `stoneGuardWidth: CGFloat = 16`
+  - `stoneGuardHeight: CGFloat = 20`
+  - `stoneGuardSpeed: CGFloat = 55`
+  - `stoneGuardWaypoints: [CGPoint]` (4개 좌표, 시계방향)
+  - 모든 상수에 `///` 퀵헬프 주석
+- [x] **기능 3**: `GameScene+Setup.swift`에 `setupStoneGuard()` 추가 (extension 맨 끝, setupEnemy 다음)
+- [x] **기능 4**: `GameScene.swift` 본체 변경
+  - 헤더 코멘트에 Phase 4-1 1줄 추가
+  - Properties에 `let stoneGuard = StoneGuardNode()` 1줄 (enemy 다음)
+  - `didMove(to:)`에 `setupStoneGuard()` 호출 1줄 (setupEnemy 다음)
+  - update / contactRouter / endGame 등 손대지 않음
+- [x] **기능 5**: pbxproj 4곳 등록 (식별자 0017, 충돌 검증 완료)
+  - PBXBuildFile (line 28)
+  - PBXFileReference (line 50)
+  - Nodes 그룹 children (line 185, 그룹 식별자 `A1C0F1570000000000000007`)
+  - iOS PBXSourcesBuildPhase (line 416)
+  - tvOS/macOS Sources phase 미수정
+
+## 신설/수정 파일 목록 + 줄 수
+
+| 종류 | 파일 | 줄 수 |
 |---|---|---|
-| 1 | ScoreSystem.swift 신설 + final class | **PASS** — `Systems/ScoreSystem.swift:12` `final class ScoreSystem` |
-| 2 | private(set) score / combo + private lastCollectAt | **PASS** — `ScoreSystem.swift:16,18` `private(set) var`, `:20` `private var lastCollectAt` |
-| 3 | recordNoteHit(at:) 메서드 | **PASS** — `ScoreSystem.swift:25` `func recordNoteHit(at now: TimeInterval)` |
-| 4 | tickComboExpiry(currentTime:) 메서드 | **PASS** — `ScoreSystem.swift:36` `func tickComboExpiry(currentTime: TimeInterval)` |
-| 5 | reset() 메서드 | **PASS** — `ScoreSystem.swift:43` `func reset()` |
-| 6 | GameScene에서 score / combo / lastCollectAt 멤버 *제거* | **PASS** — `private var (score|combo|lastCollectAt)` 0건 |
-| 7 | GameScene에 `private let scoreSystem = ScoreSystem()` 추가 | **PASS** — `GameScene.swift:43` |
-| 8 | update에서 scoreSystem.tickComboExpiry 호출 1건 | **PASS** — `GameScene.swift:261` (정확히 1건) |
-| 9 | onNoteCollected 콜백 본문이 *3줄로 단순화* | **PASS** — `GameScene.swift:296~300` `guard let self` + `recordNoteHit(at:)` + `note.run` 3줄 |
-| 10 | hud.update 호출 시 scoreSystem.score / scoreSystem.combo 사용 | **PASS** — `GameScene.swift:279` (update), `:313` (endGame) 모두 `scoreSystem.score` 사용 |
-| 11 | endGame의 hud.update에 `combo: 0` 인자 *그대로* | **PASS** — `GameScene.swift:313` `combo: 0` 시각 강제 0 유지 |
-| 12 | 매직 넘버 0건 | **PASS** — ScoreSystem 내 모든 산식 상수는 GameConfig 참조 (`comboWindow`, `comboBonusThreshold`, `scorePerNote`, `scorePerNoteCombo`). `0`/`1` 리터럴은 SPEC 본문 그대로 이전된 콤보 가드/증가 sentinel — 원본 GameScene 코드와 동일. |
-| 13 | 강제 언래핑 / Timer / print / as! / fileprivate / DispatchQueue 0건 | **PASS** — ScoreSystem.swift 0건 검출 |
-| 14 | pbxproj ScoreSystem 등록 4지점 | **PASS** — `grep -c "ScoreSystem" project.pbxproj = 4` (PBXBuildFile / PBXFileReference / Systems group children / Sources build phase) |
-| 15 | BUILD SUCCEEDED | **PASS** — `xcodebuild ... -destination 'platform=iOS Simulator,name=iPhone 17' build` → `** BUILD SUCCEEDED **` |
-
-## GameScene 줄 수 변화
-
-- **이전 (2-11)**: 324 줄
-- **이후 (2-12)**: 315 줄
-- **차이**: -9 줄 (멤버 3개 제거 + 콤보 만료 가드 4줄 → 1줄 + onNoteCollected 본문 9줄 → 3줄, 단 멤버/메서드 추가/주석 +수 보정)
+| 신설 | `GanhoMusic Shared/Nodes/StoneGuardNode.swift` | 52 |
+| 수정 | `GanhoMusic Shared/Config/GameConfig.swift` | 192 (+17) |
+| 수정 | `GanhoMusic Shared/GameScene+Setup.swift` | 154 (+8) |
+| 수정 | `GanhoMusic Shared/GameScene.swift` | 212 (+3) |
+| 수정 | `GanhoMusic.xcodeproj/project.pbxproj` | (+4 항목) |
 
 ## Swift 패턴 준수
 
-- 강제 언래핑 미사용: 준수 (ScoreSystem 0건, GameScene 변경부 0건)
-- guard let 옵셔널 처리: 준수 (`onNoteCollected`의 `guard let self`)
-- MARK 섹션 구분: 준수 (`// MARK: - State`, `// MARK: - Mutations`)
-- GameConfig 상수 사용: 준수 (`.comboWindow`, `.comboBonusThreshold`, `.scorePerNote`, `.scorePerNoteCombo`)
-- weak self 캡처: 준수 (`onNoteCollected`의 `[weak self]` 유지)
+- 강제 언래핑 미사용: 준수 (StoneGuardNode 내 `!` 사용 0건)
+- guard let / if let 옵셔널 처리: 해당 없음 (옵셔널 변수 없음)
+- MARK 섹션 구분: 준수 (`// MARK: - Init`, `// MARK: - Patrol`)
+- GameConfig 상수 사용: 준수 (width/height/speed/waypoints 모두 GameConfig 경유)
+- weak self 캡처: 해당 없음 (클로저 미사용 — SKAction.move/sequence/repeatForever만 사용)
+- `final class`: 준수
+- `required init?(coder:)` fatalError: 준수
+- 매직 넘버 0: 준수 (좌표/속도/크기 모두 GameConfig)
+- 한국어 변수명 0: 준수 (변수명 영어, 주석만 한국어)
 
 ## SpriteKit 패턴 준수
 
-- didMove(to:)에서 초기화: 준수 (변경 없음)
-- dt 기반 이동: 해당 없음 (리팩터 외 영역)
-- SKAction 스폰 패턴: 해당 없음
-- 충돌 후 노드 즉시 삭제 없음: 준수 (`note.run(.removeFromParent())` 액션 사용 — 기존과 동일)
-- HUD 노드 분리: 준수 (변경 없음)
-
-## 회귀 보존 검증
-
-| 영역 | 상태 |
-|---|---|
-| Config 4 파일 | 변경 0 |
-| Nodes 6 파일 | 변경 0 |
-| Systems/SpawnSystem.swift / ContactRouter.swift | 변경 0 |
-| iOS 3 파일 | 변경 0 |
-| GameScene 의 setup* / didChangeSize / endGame (HUD 라인 외) | 변경 0 |
-| HUDNode `update(score:remainingTime:combo:)` 시그니처 | 변경 0 |
-| 콤보 산식 (`isInWindow ? combo + 1 : 1`) | ScoreSystem.recordNoteHit으로 *그대로 이전* |
-| 점수 산식 (`combo >= comboBonusThreshold ? scorePerNoteCombo : scorePerNote`) | ScoreSystem.recordNoteHit으로 *그대로 이전* |
+- 초기화는 `didMove(to:)`에서: 준수 (setupStoneGuard 호출 위치)
+- dt 기반 이동: 준수 (SKAction이 자동 dt 처리, update() 미사용)
+- SKAction 스폰 패턴: 해당 없음 (이번 sprint는 spawn 미수정)
+- Timer/DispatchQueue 0: 준수
+- `physicsBody` 부착 0: 준수 (SPEC OoS — 4-2에서 도입)
+- 노드 즉시 삭제 0: 해당 없음 (충돌 처리 없음)
+- HUD 노드 분리: 해당 없음 (worldNode 자식)
+- zPosition 명시: 준수 (5 — EnemyNode와 동일)
+- 카테고리 비트마스크 PhysicsCategory 미수정: 준수
+- ColorTokens 미수정: 준수 (`.ganhoPaper` 재사용)
 
 ## 빌드 상태
 
-- 빌드 결과: `** BUILD SUCCEEDED **`
-- 예상 빌드 에러: 없음
-- 주의 필요 경고: 없음 (BUILD SUCCEEDED 라인 직전까지 warning 없음)
+- 빌드 명령:
+  ```
+  xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
+             -scheme "GanhoMusic iOS" \
+             -destination 'platform=iOS Simulator,name=iPhone 17' build
+  ```
+- 결과: **`** BUILD SUCCEEDED **`**
+- 에러: **0건**
+- 경고: **0건** (`grep -E "(warning|error):"` 출력 없음 — `Metadata extraction skipped`는 AppIntents 무관 노이즈, 사용자 코드 무관)
+
+## 검증 시나리오 정적 검증
+
+| # | 시나리오 | 정적 검증 결과 |
+|---|---|---|
+| (a) | 게임 시작 직후 | setupStoneGuard()가 (200,100) 부여 → init 시점 startPatrol이 첫 .move(to: (760,100))로 진입 → `.ganhoPaper` 16×20 박스가 우측으로 이동 시작 ✓ |
+| (b) | 약 10초 (560pt / 55 ≈ 10.18s) | 첫 변(좌하→우하) 거리 560pt, 55pt/s → ~10.18초에 (760,100) 도달 → 두 번째 .move((760,380))로 위쪽 이동 시작 ✓ |
+| (c) | 약 15초 (10.18 + 280/55 ≈ 15.27s) | 두 번째 변(우하→우상) 거리 280pt, 55pt/s → ~5.09초 추가 → ~15.27초에 (760,380) 도달 → 좌측 이동 시작 ✓ |
+| (d) | 약 25초 (15.27 + 560/55 ≈ 25.45s) | 세 번째 변(우상→좌상) 거리 560pt → ~10.18초 추가 → ~25.45초에 (200,380) 도달 → 아래쪽 이동 시작 ✓ |
+| (e) | 약 30~31초 (25.45 + 280/55 ≈ 30.55s) | 네 번째 변(좌상→좌하) 거리 280pt → ~5.09초 추가 → ~30.55초에 (200,100) 복귀 → repeatForever로 두 번째 바퀴 시작 ✓ |
+| (f) | 플레이어가 같은 위치 | physicsBody = nil → SKPhysicsContact 미발생 → ContactRouter didBegin 분기 0 → 그대로 통과 ✓ |
+| (g) | 카메라 follow | stoneGuard는 worldNode 자식 → cameraNode가 player.position 추종 시 worldNode 좌표계가 viewport 안에서 흘러감 → 시각적 follow ✓ |
+| (h) | 게임오버 | endGame()이 presentScene → GameScene ARC 해제 → 자식 트리(stoneGuard 포함) 함께 해제 → SKAction 자동 정리 ✓ (endGame 코드 손대지 않음 — SPEC 명시) |
+
+### waypoint 좌표 검증 (정적)
+
+- 모든 waypoint x ∈ [200, 760], y ∈ [100, 380] → 외곽 벽(0~960, 0~480) 내부 ✓
+- 중앙 기둥 영역 x ∈ [460, 500], y ∈ [200, 280]:
+  - 가로 변 (y=100, y=380) — 기둥 y 범위와 미접근 ✓
+  - 세로 변 (x=200, x=760) — 기둥 x 범위와 미접근 ✓
+- 한 바퀴 둘레: 560+280+560+280 = 1680pt → 1680/55 ≈ 30.55초 ✓ (SPEC 30.5초 일치)
+
+### pbxproj 식별자 0017 충돌 검증
+
+```
+$ grep -c "0000000000000017" project.pbxproj
+4
+$ grep -n "0017" project.pbxproj
+28:  PBXBuildFile (StoneGuardNode.swift in Sources)
+50:  PBXFileReference (StoneGuardNode.swift)
+185: Nodes 그룹 children
+416: iOS PBXSourcesBuildPhase
+```
+4곳 모두 의도된 위치, 다른 식별자 영역과 충돌 없음.
 
 ## 범위 외 미구현 항목
 
-- 없음 — SPEC IN 항목(신설 1 / 수정 1 / pbxproj 1) 정확히 일치. OUT 항목(다른 파일 변경) 0건.
-- `reset()` 메서드는 신설했으나 본 sprint에서 호출 안 함 — SPEC §주의사항 "Phase 3 게임 재시작에서 사용 예정"에 따라 의도된 미사용.
+없음 — SPEC In Scope 5개 항목 100% 구현, OoS 항목(physicsBody, PhysicsCategory.stoneGuard, 접촉 효과, 다른 NPC, 새 ColorTokens, tvOS/macOS Sources, update 게임 루프 변경, 기존 시스템 수정) 일절 손대지 않음.

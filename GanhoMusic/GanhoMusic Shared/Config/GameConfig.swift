@@ -104,4 +104,89 @@ enum GameConfig {
     static let projectileFireIntervalEnd: TimeInterval = 2.0
     /// 동시에 떠 있을 수 있는 F 최대 수. GDD §5 easy.
     static let projectileMaxConcurrent: Int = 2
+
+    // MARK: - Scene Transition (Phase 3-1+2)
+    /// 씬 전환 fade 길이 (초). TitleScene ↔ GameScene 양방향 공용.
+    static let sceneTransitionDuration: TimeInterval = 0.4
+
+    // MARK: - Title Scene (Phase 3-1+2)
+    /// 타이틀 메인 라벨 폰트 크기 (pt). "김간호는 음악박사".
+    static let titleFontSize: CGFloat = 36
+    /// 타이틀 안내 라벨 폰트 크기 (pt). "TAP TO START".
+    static let titlePromptFontSize: CGFloat = 18
+    /// 타이틀 메인 라벨 y 오프셋 (pt). 화면 중심 기준 위쪽.
+    /// Phase 3-4 — bestLabel(중앙)이 끼면서 40 → 60으로 위로 이동(시각 균형).
+    /// Phase 3-5 — playsLabel(-20) 신설로 60 → 80, 라벨 4개 간격 40pt 균등.
+    static let titleLabelOffsetY: CGFloat = 80
+    /// 타이틀 안내 라벨 y 오프셋 (pt). 화면 중심 기준 아래쪽.
+    /// Phase 3-4 — bestLabel(중앙) 신설로 -40 → -60.
+    /// Phase 3-5 — playsLabel(-20)과 간격 확보 위해 -60 → -80.
+    static let titlePromptOffsetY: CGFloat = -80
+    /// 타이틀 안내 라벨 깜빡임 알파 최저값.
+    static let titlePromptBlinkMinAlpha: CGFloat = 0.3
+    /// 타이틀 안내 라벨 깜빡임 한 사이클(in/out 각각) 길이 (초).
+    static let titlePromptBlinkDuration: TimeInterval = 0.6
+
+    // MARK: - Result Scene (Phase 3-3)
+    /// ResultScene "GAME OVER" 라벨 폰트 크기 (pt).
+    static let resultTitleFontSize: CGFloat = 32
+    /// ResultScene 점수 라벨 폰트 크기 (pt).
+    static let resultScoreFontSize: CGFloat = 24
+    /// ResultScene "TAP TO RETURN" 라벨 폰트 크기 (pt).
+    static let resultPromptFontSize: CGFloat = 16
+    /// ResultScene GAME OVER 라벨 y 오프셋. frame.midY 기준 위쪽.
+    /// Phase 3-4 — bestLabel(-20)이 끼면서 40 → 60으로 더 위로.
+    /// Phase 3-5 — statsLabel(-40) 신설로 5라벨 균등 배치 위해 60 → 80.
+    static let resultTitleOffsetY: CGFloat = 80
+    /// ResultScene 점수 라벨 y 오프셋. 화면 중앙 살짝 위.
+    /// Phase 3-4 — bestLabel과 충돌 회피하려 0 → 20.
+    /// Phase 3-5 — 5라벨 균등 배치 위해 20 → 40.
+    static let resultScoreOffsetY: CGFloat = 40
+    /// ResultScene 안내 라벨 y 오프셋. frame.midY 기준 아래쪽.
+    /// Phase 3-4 — bestLabel(-20)과 간격 확보 위해 -50 → -60.
+    /// Phase 3-5 — statsLabel(-40)과 간격 확보 위해 -60 → -80.
+    static let resultPromptOffsetY: CGFloat = -80
+
+    // MARK: - High Score (Phase 3-4)
+    /// UserDefaults에 최고 점수를 저장할 키. 호출부에 리터럴 노출 금지 — 단 1회만 정의.
+    static let highScoreUserDefaultsKey: String = "highScore"
+    /// ResultScene BEST 라벨 폰트 크기 (pt). 점수 라벨(24)보다 작고 안내 라벨(16)보다 큼.
+    static let resultBestFontSize: CGFloat = 22
+    /// ResultScene BEST 라벨 y 오프셋. score(+20)와 prompt(-60) 사이 가운데.
+    /// Phase 3-5 — score(+40)/statsLabel(-40) 사이 가운데로 -20 → 0.
+    static let resultBestOffsetY: CGFloat = 0
+    /// TitleScene BEST 라벨 폰트 크기 (pt). prompt(18)와 동급.
+    static let titleBestFontSize: CGFloat = 18
+    /// TitleScene BEST 라벨 y 오프셋. title(+60)과 prompt(-60)의 정중앙.
+    /// Phase 3-5 — title(+80)/playsLabel(-20) 사이 균등 배치 위해 0 → 20.
+    static let titleBestOffsetY: CGFloat = 20
+
+    // MARK: - Statistics (Phase 3-5)
+    /// UserDefaults에 누적 통계(GameStats)를 JSON Data로 저장할 키. 호출부에 리터럴 노출 금지.
+    static let statisticsUserDefaultsKey: String = "statistics"
+    /// ResultScene PLAYS/TOTAL 라벨 폰트 크기 (pt). prompt(16)와 동급으로 보조 정보 톤.
+    static let resultStatsFontSize: CGFloat = 16
+    /// ResultScene PLAYS/TOTAL 라벨 y 오프셋. best(0)와 prompt(-80) 사이 균등 배치(-40).
+    static let resultStatsOffsetY: CGFloat = -40
+    /// TitleScene PLAYS 라벨 폰트 크기 (pt). prompt(18)와 best(18) 동급보다 살짝 작게.
+    static let titlePlaysFontSize: CGFloat = 16
+    /// TitleScene PLAYS 라벨 y 오프셋. best(+20)와 prompt(-80) 사이 균등 배치(-20).
+    static let titlePlaysOffsetY: CGFloat = -20
+
+    // MARK: - Stone Guard (Phase 4-1)
+    /// 석조무사 박스 가로 (pt). GDD §7-6 — 수간호사와 동일 16×20.
+    static let stoneGuardWidth: CGFloat = 16
+    /// 석조무사 박스 세로 (pt). GDD §7-6 16×20.
+    static let stoneGuardHeight: CGFloat = 20
+    /// 석조무사 패트롤 속도 (pt/s). GDD §7-6 — 시간 보간 없음(단일 상수).
+    static let stoneGuardSpeed: CGFloat = 55
+    /// 석조무사 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상).
+    /// 맵 960×480, 중앙 기둥 (480, 240±40) 회피.
+    /// 한 바퀴 둘레 = 1680pt → 1680/55 ≈ 30.5초.
+    static let stoneGuardWaypoints: [CGPoint] = [
+        CGPoint(x: 200, y: 100),   // 좌하 — 시작 위치
+        CGPoint(x: 760, y: 100),   // 우하
+        CGPoint(x: 760, y: 380),   // 우상
+        CGPoint(x: 200, y: 380)    // 좌상
+    ]
 }

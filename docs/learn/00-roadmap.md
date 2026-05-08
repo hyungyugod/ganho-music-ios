@@ -109,9 +109,9 @@
 | Phase | 한 문장 스토리 | 시뮬레이터에서 보이는 것 | 학습 포커스(Swift/iOS) |
 |---|---|---|---|
 | **0** ✅ | "앱은 켜진다" | 빈 화면, 가로 모드 | Xcode 프로젝트 구조, 타겟 |
-| **1** ⬜ | "내 캐릭터가 움직인다" | 사각형 캐릭터 + 반투명 D-Pad로 이동, 카메라가 따라옴 | enum 네임스페이스, struct/class, optional, dt 기반 게임 루프, **`SKCameraNode`(카메라 follow)** |
-| **2** ⬜ | "음표 모으고 적 피한다" (게임 다움) | 음표·수간호사·F투사체·점수·45초 타이머 | SKAction.repeatForever, SKPhysicsContactDelegate |
-| **3** ⬜ | "한 판 끝나면 결과화면 + 최고기록" | 타이틀→게임→결과 화면 전환 | Scene 전환, UserDefaults, Codable |
+| **1** ✅ | "내 캐릭터가 움직인다" | 사각형 캐릭터 + 반투명 D-Pad로 이동, 카메라가 따라옴 | enum 네임스페이스, struct/class, optional, dt 기반 게임 루프, **`SKCameraNode`(카메라 follow)** |
+| **2** ✅ | "음표 모으고 적 피한다" (게임 다움) | 음표·수간호사·F투사체·점수·45초 타이머 | SKAction.repeatForever, SKPhysicsContactDelegate |
+| **3** ✅ | "한 판 끝나면 결과화면 + 최고기록" | 타이틀→게임→결과 화면 전환, BEST + PLAYS/TOTAL | Scene 전환, UserDefaults, Codable + Repository |
 | **4** ⬜ | "추가 NPC와 깜짝 이벤트" | 석조무사·이교수·박병장 비행기 | AI 패트롤, 이벤트 트리거 |
 | **5** ⬜ | "캐릭터 5명, 각자 스킬" | 캐릭터 선택 + 능동 스킬 | protocol 다형성, 쿨다운 |
 | **6** ⬜ | "그림·소리·진동 다 입혔다" | 픽셀 아트 + BGM/SFX + 햅틱 | SKTextureAtlas, AVAudioEngine, UIFeedbackGenerator |
@@ -202,6 +202,12 @@ Scenes → Systems → Repositories → (외부)
 | **2-10** | SpawnSystem 분리 (리팩터, GameScene 446→354줄) | [16-phase2-10-spawn-system.md](16-phase2-10-spawn-system.md) | ✅ 합격 (9.65/10) |
 | **2-11** | ContactRouter 분리 (콜백 패턴, GameScene 354→324줄) | [17-phase2-11-contact-router.md](17-phase2-11-contact-router.md) | ✅ 합격 (10.0/10) |
 | **2-12** | ScoreSystem 분리 (private(set), GameScene 324→315줄) — 🎉 **리팩터 종결** | [18-phase2-12-score-system.md](18-phase2-12-score-system.md) | ✅ 합격 (9.675/10) |
+| **3-1+2** | TitleScene 신설 + GameOver 오버레이 + 씬 페이드 전환 사이클 | [19-phase3-1-2-title-result.md](19-phase3-1-2-title-result.md) | ✅ 합격 (9.675/10) |
+| **3-3** | ResultScene 분리 + init(score:) 주입 + GameOverOverlayNode 폐기 | [20-phase3-3-result-scene.md](20-phase3-3-result-scene.md) | ✅ 합격 (9.83/10) |
+| **3-4** | 최고 점수 영구 저장 (UserDefaults + HighScoreRepository) + Title/Result 양쪽 표시 | [21-phase3-4-highscore.md](21-phase3-4-highscore.md) | ✅ 합격 (**10.0/10**) 🎉 |
+| **3-5** | Codable 통계 (GameStats + StatisticsRepository) + PLAYS/TOTAL 양쪽 표시 — 🎉 **Phase 3 종결** | [22-phase3-5-statistics.md](22-phase3-5-statistics.md) | ✅ 합격 (9.825/10) |
+| **리팩터** | GameScene Setup 분리 (`extension GameScene` 도입, 340→209줄) — Swift 접근 제어 5단계 학습 | [23-gamescene-setup-extension.md](23-gamescene-setup-extension.md) | ✅ 합격 (9.65/10) |
+| **4-1** | 석조무사 NPC + 4 waypoint 시계방향 패트롤 (`SKAction.repeatForever(.sequence)`) — 두 번째 AI 패턴 | [24-phase4-1-stoneguard-patrol.md](24-phase4-1-stoneguard-patrol.md) | ✅ 합격 (**10.0/10**) 🎉 |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 
