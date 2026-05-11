@@ -1,103 +1,88 @@
-# 자체 점검 — Phase 4-2 석조무사 접촉 감지 골격
+# 자체 점검 — Phase 4-3 AIRFORCE 이스터에그
 
-전략: 신규 sprint (1회차) — Case 판정 없음. SPEC 그대로 적용.
+## 변경 요약
 
-## 파일별 변경 줄 수
-
-| 파일 | 변경 | 실제 |
+| 파일 | 신설/수정 | 변경 라인 수 |
 |---|---|---|
-| `Config/PhysicsCategory.swift` | +1줄 | +1줄 (stoneGuard = 0b100000) |
-| `Nodes/StoneGuardNode.swift` | +~12줄 | +14줄 / -1줄 (헤더 1줄 + PhysicsBody 블록 13줄, 기존 nil 주석 1줄 삭제) |
-| `Systems/ContactRouter.swift` | +~5줄 | +6줄 (콜백 변수 1줄 + 분기 3줄 + 주석 1줄 + 공백 1줄) |
-| `GameScene.swift` | +~4줄 | +4줄 (헤더 MARK 1줄 + onStoneGuardContact 등록 3줄) |
+| `Nodes/AirplaneNode.swift` | 신설 | +49 (전체) |
+| `Config/GameConfig.swift` | 수정 | +10 (Stone Guard 섹션 다음, Airforce Easter Egg 섹션 + 4 상수) |
+| `GameScene.swift` | 수정 | +18 (헤더 1줄 + 프로퍼티 3줄 + onStoneGuardContact 본체 교체 -2/+2 + 새 메서드 + MARK 11줄) |
+| `GanhoMusic.xcodeproj/project.pbxproj` | 수정 | +4 (식별자 0018 4곳) |
 
-`git diff --stat` 합계: 4개 파일 (Swift), +25 / -1 줄. SPEC 예상 범위(+~22줄)와 일치.
+총 4개 파일.
 
 ## SPEC 기능 체크
 
-- [x] **기능 1**: PhysicsCategory.stoneGuard = 0b100000 (32) — projectile 다음 줄에 삽입. 기존 비트 미변경.
-- [x] **기능 2**: StoneGuardNode init 내 `super.init` 다음·`startPatrol()` 직전에 PhysicsBody 부착. `isDynamic=false`, `collisionBitMask=0`, `contactTestBitMask=.player`. 기존 `physicsBody = nil` 주석 삭제. 파일 헤더에 Phase 4-2 라인 1줄 추가.
-- [x] **기능 3**: `onStoneGuardContact: () -> Void = {}` 콜백 신설 (`onEnemyHit` 다음). `didBegin` 분기 순서 `enemy → stoneGuard → projectile → note`.
-- [x] **기능 4**: GameScene 헤더 MARK 1줄 추가. `configureContactRouter()` 본문 끝에 stub 클로저 등록 (TODO 주석 1줄만, `[weak self]` 생략 — 미사용 캡처 경고 회피).
-
-## OoS 미위반 자가 점검 (체크리스트)
-
-- [x] `GameScene+Setup.swift` 한 줄도 변경 없음 — `git status` working tree clean 확인
-- [x] `GameConfig.swift` 한 줄도 변경 없음 — stoneGuard 4개 상수(width/height/speed/waypoints) 그대로
-- [x] pbxproj 변경 0건 (신규 파일 0건)
-- [x] waypoint 좌표/패트롤 속도/방향/크기 미변경 — `GameConfig.stoneGuardWaypoints` 미변경, `startPatrol()` 본문 미변경
-- [x] 다른 노드(Player/Enemy/Note/Projectile/HUD/DPad) 변경 0건
-- [x] 다른 시스템(SpawnSystem/ScoreSystem) 변경 0건
-- [x] TitleScene/ResultScene 변경 0건
-- [x] 새 ColorTokens 토큰 신설 0건
-- [x] `update()` 게임 루프 변경 0건
-- [x] `endGame()` 본문 변경 0건
-- [x] `configureContactRouter()` 외 GameScene 메서드 변경 0건
-- [x] 이스터에그 효과(오버레이/비행기/폭탄/도주) 구현 0건 — stub 본문 TODO 주석만
-- [x] `print` / `NSLog` / `debugPrint` 0건 — `grep` 결과 `no matches`
-- [x] macOS/tvOS Sources phase 변경 0건
-- [x] Test 코드 추가 0건
+- [x] 기능 1: `AirplaneNode.swift` 신설 — SPEC 그대로. final class, init+required init?(coder:)+crossScreen 3개 멤버. PhysicsBody 0건. `.ganhoYellowF` 사용. zPosition=50. 크기 `GameConfig.airplaneWidth × airplaneHeight`. name="airplane".
+- [x] 기능 2: `GameConfig` Airforce Easter Egg 섹션 4상수 — `airplaneWidth=32`, `airplaneHeight=16`, `airplaneCrossDuration=2.0`, `airplaneTopOffset=60`. Stone Guard 섹션 바로 다음.
+- [x] 기능 3: GameScene 헤더 MARK 라인 추가 — Phase 4-2 헤더 다음 줄 (라인 23).
+- [x] 기능 4: `airforceTriggered: Bool = false` private var — `statsRepo` 다음, `// MARK: - Factory` 위.
+- [x] 기능 5: `triggerAirforceEasterEgg()` private func — `configureContactRouter()` 직후, `// MARK: - Easter Egg` 섹션. SPEC 본문 5단계 정확: ① 가드 ② 플래그 ③ AirplaneNode 인스턴스화 ④ cameraNode.addChild ⑤ crossScreen.
+- [x] 기능 6: `onStoneGuardContact` stub 본체 교체 — `{ [weak self] in self?.triggerAirforceEasterEgg() }`. 4-2 stub 주석 제거 완료.
+- [x] 기능 7: pbxproj 4곳 0018 등록 — PBXBuildFile, PBXFileReference, Nodes 그룹 children, iOS Sources phase. StoneGuardNode 0017 *바로 다음 줄*에 동일 패턴.
 
 ## Swift 패턴 준수
 
-- 강제 언래핑 미사용: 준수 (4개 파일 어디에도 `!` 없음)
-- guard let 옵셔널 처리: 준수 (해당 변경분에 옵셔널 없음 — stub 콜백 본문 비어있음)
-- MARK 섹션 구분: 준수 (`// MARK: - Callbacks` 섹션 안에 새 변수 삽입)
-- GameConfig 상수 사용: 준수 — PhysicsBody size는 `GameConfig.stoneGuardWidth/Height` 그대로, `categoryBitMask`/`contactTestBitMask`는 `PhysicsCategory.stoneGuard`/`.player` 사용. 매직 넘버 0
-- weak self 캡처: 의도적 생략 — stub 본문 self 미사용. `[weak self]`만 두면 *unused capture* 경고 위험 (SPEC 명시)
+- 강제 언래핑 미사용: 준수 (`required init?(coder:)` 표준 `fatalError`는 강제 언래핑 아님)
+- guard let 옵셔널 처리: N/A (이번 sprint 옵셔널 0건)
+- MARK 섹션 구분: 준수 (Init / Cross / Easter Egg / Factory / Game State 모두 // MARK: - 사용)
+- GameConfig 상수 사용: 준수 (32, 16, 2.0, 60 모두 `GameConfig.airplane*` 참조)
+- weak self 캡처: 준수 (`onStoneGuardContact = { [weak self] in self?.triggerAirforceEasterEgg() }`)
 
 ## SpriteKit 패턴 준수
 
-- didMove(to:)에서 초기화: 해당 없음 (didMove 미변경)
-- dt 기반 이동: 해당 없음 (StoneGuard는 SKAction.move 기반 — Phase 4-1 그대로)
-- SKAction 스폰 패턴: 해당 없음 (스폰 미변경)
-- 충돌 후 노드 즉시 삭제 없음: 준수 (stub 본문 비어있음 → removeFromParent 호출 자체가 없음)
-- HUD 노드 분리: 해당 없음 (HUD 미변경)
-- PhysicsBody 3비트마스크 패턴: 준수 — category(.stoneGuard) / collision(0, 통과) / contactTest(.player, 알림) 셋 독립 명시
-- 양방향 collision 정책: 안전 — 다른 노드 `collisionBitMask`에 `.stoneGuard` 미포함 (Player=.wall, Enemy=.wall, Note=0, Projectile=0). 양방향 수정 0건으로 통과 보장
+- didMove(to:)에서 초기화: 준수 (configureContactRouter는 기존 호출 그대로, AirplaneNode는 콜백 시점 생성)
+- dt 기반 이동: N/A (비행기는 SKAction.move duration 기반)
+- SKAction 스폰 패턴: 준수 (`SKAction.sequence([move, removeFromParent])`)
+- 충돌 후 노드 즉시 삭제 없음: 준수 (비행기는 충돌 무관, 자가 소멸 SKAction)
+- HUD 노드 분리: 준수 (HUD 0건 변경)
+- 물리 델리게이트 0건 손댐: 준수 (PhysicsCategory / ContactRouter 0줄 변경)
+
+## OoS 미위반 체크리스트
+
+| 항목 | 변경 여부 | 비고 |
+|---|---|---|
+| ContactRouter.swift | 0줄 변경 | 콜백 시그니처 `() -> Void` 그대로 |
+| PhysicsCategory.swift | 0줄 변경 | .airplane 신설 0건 |
+| StoneGuardNode.swift | 0줄 변경 | PhysicsBody / startPatrol 그대로 |
+| GameScene+Setup.swift | 0줄 변경 | setupStoneGuard 그대로 |
+| 기존 GameConfig 상수 | 0줄 변경 | 새 섹션만 추가 |
+| ColorTokens.swift | 0줄 변경 | `.ganhoYellowF` 재사용 |
+| EnemyNode/PlayerNode/NoteNode/ProjectileNode/HUDNode/DPadNode | 0줄 변경 | |
+| TitleScene/ResultScene | 0줄 변경 | |
+| update() | 0줄 변경 | |
+| endGame() | 0줄 변경 | |
+| macOS/tvOS Sources phase | 0줄 변경 | iOS Sources phase에만 0018 추가 |
+| 새 Manager/Repository/System | 0건 신설 | |
+| Test 코드 | 0건 추가 | |
+
+## 검증 시나리오 정적 검증 결과
+
+| # | 시나리오 | 결과 |
+|---|---|---|
+| (a) | StoneGuard 미접촉 시 비행기 0건 | PASS — `AirplaneNode()` 호출 1곳(GameScene.swift:197, `triggerAirforceEasterEgg()` 본문). didMove / update / endGame에 직접 호출 0건. |
+| (b) | 통과 시 비행기 1회 등장 | PASS — `triggerAirforceEasterEgg()` 본문 5단계: ① `if airforceTriggered { return }` ② `airforceTriggered = true` ③ `let plane = AirplaneNode()` ④ `cameraNode.addChild(plane)` ⑤ `plane.crossScreen(sceneWidth: size.width, atY: y)`. AirplaneNode.crossScreen는 `SKAction.sequence([move, cleanup])` 정확. |
+| (c) | 재통과 시 비행기 0건 | PASS — `airforceTriggered = true` 가 본문 2번째 줄(가드 직후). 두 번째 호출은 `if airforceTriggered { return }`로 즉시 종료. |
+| (d) | HUD / 점수 변화 0 | PASS — `triggerAirforceEasterEgg()` 본문에 `scoreSystem`, `hud`, `remainingTime`, `gameState`, `endGame` 참조 0건. AirplaneNode.swift 전체에 `scoreSystem`, `hud` 참조 0건. |
+| (e) | player / enemy / F 영향 0 | PASS — AirplaneNode.swift 전체에 `physicsBody`, `SKPhysicsBody`, `categoryBitMask`, `contactTestBitMask`, `collisionBitMask`, `PhysicsCategory` 참조 0건 (grep 확인). |
+| (f) | cameraNode 자식 부착 | PASS — `cameraNode.addChild(plane)` 명시 (GameScene.swift:198). `worldNode.addChild(plane)` / `self.addChild(plane)` 0건. |
+| (g) | 게임오버 시 비행기 잔존 → ARC 자동 해제 | PASS — `endGame()` 본문 0줄 변경. cameraNode 자식이라 GameScene 트리에 종속, `presentScene(ResultScene)` 시 ARC로 자동 해제. 별도 cleanup 0건. |
+| (h) | 재시작 시 리셋 | PASS — `private var airforceTriggered: Bool = false` 기본값 명시. 새 GameScene 인스턴스 생성 시 false로 시작. |
+| (i) | 빌드 SUCCEEDED + 경고 0건 | PASS — `xcodebuild build` 결과 ** BUILD SUCCEEDED **. warning/error grep 결과 0건. pbxproj 0018 4곳 모두 등록 확인. `final class AirplaneNode: SKSpriteNode` + `required init?(coder:)` + `import SpriteKit` 시그니처 정확. |
 
 ## 빌드 상태
 
-- `xcodebuild ... build` **BUILD SUCCEEDED**
-- 경고: 0건 (`grep -E "warning:|error:"` 결과 빈 출력)
+- 명령: `xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' build`
+- 결과: **BUILD SUCCEEDED**
+- 경고: 0건 (AppIntents Metadata 스킵은 환경 메시지 — 본 sprint 무관)
 - 에러: 0건
-
-## 검증 시나리오 (a)~(h) 정적 검증 결과
-
-| # | 시나리오 | 정적 검증 결과 |
-|---|---|---|
-| (a) | 시작 직후 4-1과 동일 패트롤 | PASS — `startPatrol()` 본문 미변경, `setupStoneGuard()` 미변경, `stoneGuardWaypoints` 미변경 (grep 확인) |
-| (b) | 플레이어 통과 시 튕김·정지 0 | PASS — `collisionBitMask = 0`(stoneGuard), `isDynamic = false`. Player/Enemy/Note/Projectile 어디에도 `.stoneGuard` 미포함 (grep 확인) |
-| (c) | 통과 시 점수·콤보·HUD 변화 0 | PASS — `onStoneGuardContact` 본문은 TODO 주석 1줄만. `scoreSystem`/`hud`/`endGame` 호출 0건 |
-| (d) | 통과 시 콘솔 출력 0 | PASS — 4개 변경 파일에 `print`/`NSLog`/`debugPrint` 0건 (grep 결과 `no matches`) |
-| (e) | enemy/projectile/note 접촉 회귀 0 | PASS — `didBegin` 기존 enemy/projectile/note 분기 본문 미변경. `handleProjectileContact`/`handleNoteContact` 함수 미변경. stoneGuard 분기는 enemy 다음·projectile 앞에 삽입만 됨 |
-| (f) | 한 판 → 게임오버 회귀 0 | PASS — `endGame()` 본문 미변경, `SpawnSystem.stop` 미호출 변경, ResultScene presentation flow 미변경 |
-| (g) | 결과 화면 → 다시 플레이 회귀 0 | PASS — TitleScene/ResultScene 0줄 변경 (working tree clean 확인) |
-| (h) | 빌드 SUCCEEDED + 경고 0 | PASS — xcodebuild BUILD SUCCEEDED, 경고/에러 0건 |
-
-## 분기 순서 검증
-
-`ContactRouter.didBegin` 최종 분기 순서:
-1. `enemy` (게임오버 최우선)
-2. `stoneGuard` (신설 — enemy 다음, projectile/note 앞)
-3. `projectile`
-4. `note`
-
-근거: enemy↔stoneGuard 동시 접촉 시(이론상 불가능) 게임오버 누락 방지. enemy/projectile/note 카테고리는 서로 배타적이라 순서 변경의 부작용 없음.
-
-## 캡처 정책 검증
-
-stub 콜백은 `[weak self]` 생략:
-```swift
-contactRouter.onStoneGuardContact = {
-    // Phase 4-2 — stub. 4-3에서 이스터에그 트리거 본체가 들어옴.
-}
-```
-- self 미사용 → 캡처할 게 없음 → `[weak self]` 생략이 정확
-- 빈 캡처 리스트만 두면 Xcode가 *unused capture* 경고를 띄울 수 있음 → SPEC 주의사항 7 "경고 0건" 충족
-- 4-3에서 self를 사용할 때 `[weak self] in`을 추가 (호출 측 시그니처 미변경)
 
 ## 범위 외 미구현 항목
 
-- 이스터에그 효과 본체 (오버레이/비행기/폭탄/수간호사 도주): **의도적 미구현** — SPEC 명시대로 4-3에서 본체 추가. stub 콜백 시그니처는 본 sprint에서 확정 완료.
-- 그 외 SPEC 범위 외 변경 0건.
+- 없음 — SPEC In Scope 1~4 모두 구현. Out of Scope 항목 0건 변경 (위 OoS 체크리스트 참조).
+
+## 전략 노트
+
+- 1회차 작업이므로 Case A/B/C 판단 불필요.
+- SPEC.md의 핵심 코드 구조를 *글자 단위로* 답습. 자율 판단 0건.
+- pbxproj 0018 식별자가 StoneGuardNode 0017 다음 자유 슬롯임을 확인(0018 grep 결과 사전 0건 → 사후 정확히 4건).

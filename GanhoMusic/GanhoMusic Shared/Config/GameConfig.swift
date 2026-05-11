@@ -189,4 +189,14 @@ enum GameConfig {
         CGPoint(x: 760, y: 380),   // 우상
         CGPoint(x: 200, y: 380)    // 좌상
     ]
+
+    // MARK: - Airforce Easter Egg (Phase 4-3)
+    /// 비행기 가로 (pt). 가로로 긴 막대형.
+    static let airplaneWidth: CGFloat = 32
+    /// 비행기 세로 (pt). 가로형 비율.
+    static let airplaneHeight: CGFloat = 16
+    /// 비행기 좌→우 가로지르기 duration (초). 너무 빠르면 못 보고, 너무 느리면 게임 방해.
+    static let airplaneCrossDuration: TimeInterval = 2.0
+    /// 화면 상단에서 비행기 y 위치까지의 거리 (pt). cameraNode 자식 좌표계: y = +(halfH - 60).
+    static let airplaneTopOffset: CGFloat = 60
 }

@@ -21,6 +21,7 @@
 //  Phase 3 종결 후 리팩터 — setup/add 9개 메서드를 GameScene+Setup.swift로 분리
 //  Phase 4-1 · StoneGuardNode 1마리 추가 (시계방향 4 waypoint 패트롤, PhysicsBody 없음 — 시각만)
 //  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub
+//  Phase 4-3 · AIRFORCE 이스터에그 — Player ↔ StoneGuard 첫 접촉 시 비행기 가로지르기 1회
 //
 
 import SpriteKit
@@ -52,6 +53,10 @@ class GameScene: SKScene {
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
+
+    // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
+    // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
+    private var airforceTriggered: Bool = false
 
     // MARK: - Factory
     class func newGameScene() -> GameScene {
@@ -177,9 +182,22 @@ class GameScene: SKScene {
             self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             note.run(.removeFromParent())
         }
-        contactRouter.onStoneGuardContact = {
-            // Phase 4-2 — stub. 4-3에서 이스터에그 트리거 본체가 들어옴.
+        contactRouter.onStoneGuardContact = { [weak self] in
+            self?.triggerAirforceEasterEgg()
         }
+    }
+
+    // MARK: - Easter Egg
+    /// Player ↔ StoneGuard 첫 접촉 시 호출. 1회 한정 가드 후 비행기 1마리를 cameraNode에 부착,
+    /// 좌→우 가로지르기 SKAction 실행. AirplaneNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
+    /// 점수/HUD/적/게임오버 로직 일체 미접촉 — 순수 시각 이스터에그.
+    private func triggerAirforceEasterEgg() {
+        if airforceTriggered { return }
+        airforceTriggered = true
+        let plane = AirplaneNode()
+        cameraNode.addChild(plane)
+        let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
+        plane.crossScreen(sceneWidth: size.width, atY: y)
     }
 
     // MARK: - Game State
