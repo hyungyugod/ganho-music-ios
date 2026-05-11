@@ -1,107 +1,84 @@
-# 자체 점검 — Phase 4-5 AIRFORCE 폭탄 화면 플래시
+# 자체 점검 — Phase 4-6 (E) 수간호사 5초 도주 모드
+
+전략: 최초 구현 (1회차).
 
 ## 파일별 변경 줄 수
 
-| 파일 | 변경 형태 | 줄 수 |
-|---|---|---|
-| `GanhoMusic Shared/Nodes/BombFlashNode.swift` | 신규 | 44줄 (헤더+클래스 본문) |
-| `GanhoMusic Shared/Config/GameConfig.swift` | 수정 (Airforce 섹션 끝 +6줄: doc 3 + 상수 3) | +6 |
-| `GanhoMusic Shared/GameScene.swift` | 수정 (헤더 MARK 1줄 + doc 1줄 + 본문 3줄) | +5 |
-| `GanhoMusic.xcodeproj/project.pbxproj` | 수정 (식별자 0020 4곳) | +4 |
+| 파일 | 추가 줄 | 삭제 줄 | 변경 요약 |
+|---|---|---|---|
+| `GanhoMusic Shared/Nodes/EnemyNode.swift` | +16 | 0 | 헤더 1 + `// MARK: - State` 4 + `// MARK: - Flee` 9 + update 분기 3 줄 (direction 주석 1 + `let direction` 1 + `* direction` 2회) |
+| `GanhoMusic Shared/Config/GameConfig.swift` | +3 | 0 | Airforce 섹션 끝 doc 2줄 + `enemyFleeDuration: TimeInterval = 5.0` 1줄 |
+| `GanhoMusic Shared/GameScene.swift` | +3 | 0 | 헤더 MARK 1 + trigger doc 1 + `enemy.startFleeing(...)` 1줄 |
 
-**합계**: 신규 1 파일(44줄) + 기존 3 파일(+15줄). 모든 변경 *추가만*, 기존 줄 변경 0.
-
----
+신설 파일 0, 삭제 파일 0, pbxproj 변경 0.
 
 ## SPEC 기능 체크
+- [x] 기능 1 — `var isFleeing: Bool = false`: EnemyNode 19행, `// MARK: - State` 섹션 신설
+- [x] 기능 2 — `startFleeing(duration:)`: EnemyNode 56~62행, 첫 줄 `if isFleeing { return }` 가드, 두 `SKAction.run` 모두 `[weak self]`
+- [x] 기능 3 — update 방향 분기: EnemyNode 86행 `let direction: CGFloat = isFleeing ? -1 : 1`, 87~89행 velocity 두 성분 모두 `* direction`
+- [x] 기능 4 — EnemyNode 헤더: 6행 "Phase 4-6 · 5초 도주 모드 추가" 1줄 추가
+- [x] 기능 5 — GameConfig `enemyFleeDuration`: 219행, Airforce 섹션 *끝* (`bombFlashFadeOutDuration` 다음), doc 2줄 포함
+- [x] 기능 6 — GameScene trigger 1줄: 214행 본문 *마지막*, `enemy.startFleeing(duration: GameConfig.enemyFleeDuration)`
+- [x] 기능 7 — GameScene 헤더/doc: 27행 헤더 MARK + 200행 trigger doc
 
-- [x] **기능 1 — `BombFlashNode` 클래스**: `final class : SKSpriteNode`, `init`에서 `color: .ganhoPaper`, `size: .zero`, `name = "bombFlash"`, `zPosition = 250`, `alpha = 0`. `flash(sceneSize:)`에서 size·position 갱신 후 `SKAction.sequence([wait(2.1), fadeIn(0.07), fadeOut(0.35), removeFromParent()])`.
-- [x] **기능 2 — `GameConfig.swift` 3 상수 추가**: `bombFlashDelay = 2.1`, `bombFlashFadeInDuration = 0.07`, `bombFlashFadeOutDuration = 0.35`. 위치: `airforceOverlayFadeOutDuration` *다음 줄* (Airforce 섹션 내부 끝).
-- [x] **기능 3 — `GameScene.swift` 헤더 MARK + doc + 본문 3줄**: 헤더 26행 (Phase 4-4 다음에 Phase 4-5), doc 198행 (Phase 4-4 doc 다음 줄), `triggerAirforceEasterEgg()` 본문 끝 209-211행 3줄.
-- [x] **기능 4 — `project.pbxproj` 4곳 0020 등록**: PBXBuildFile(31행) / PBXFileReference(56행) / Nodes 그룹 children(194행) / iOS Sources phase(428행). macOS/tvOS Sources는 빈 채로 유지.
-
----
-
-## OoS 미위반 체크리스트
-
-| OoS 항목 | 검증 결과 |
-|---|---|
-| `AirplaneNode.swift` 미변경 | 변경 없음 (Read만) |
-| `AirforceOverlayNode.swift` 미변경 | 변경 없음 (Read만) |
-| `ContactRouter` 미변경 | 변경 없음 |
-| `PhysicsCategory` 미변경 | 변경 없음 |
-| `StoneGuardNode` 미변경 | 변경 없음 |
-| `GameScene+Setup` 미변경 | 변경 없음 |
-| 기존 GameConfig 상수(airplane 4 + airforceOverlay 3 + 그 외) 미변경 | 추가만 — 기존 줄 0건 수정 |
-| 다른 노드/시스템/씬 미변경 | 변경 없음 |
-| `ColorTokens` 새 토큰 신설 0 | `.ganhoPaper` 재사용 |
-| `update()` 미변경 | 변경 없음 |
-| `endGame()` 미변경 | 변경 없음 |
-| `airforceTriggered` 가드 위치 미변경 | trigger 함수 최상단 그대로 |
-| 기존 trigger 본문 7줄(가드 2 + 비행기 4 + 오버레이 3) 미변경 | 한 줄도 안 건드림 — 3줄 *추가만* |
-| macOS/tvOS Sources phase 미수정 | 두 phase 모두 `files = ();` 빈 채로 유지 |
-| `BombFlashNode`에 PhysicsBody 부착 0 | `physicsBody` 키워드 본 파일 0건 |
-
----
+## OoS(Out of Scope) 미위반 체크리스트
+- [x] AirplaneNode.swift 변경 0
+- [x] AirforceOverlayNode.swift 변경 0
+- [x] BombFlashNode.swift 변경 0
+- [x] ContactRouter.swift 변경 0
+- [x] PhysicsCategory.swift 변경 0
+- [x] StoneGuardNode.swift 변경 0
+- [x] GameScene+Setup.swift 변경 0
+- [x] 기존 GameConfig 상수 값 변경 0 (airplane 4 + airforceOverlay 3 + bombFlash 3 + 그 외 모두 그대로)
+- [x] Player/Note/Projectile/HUD/DPad Node 변경 0
+- [x] TitleScene/ResultScene 변경 0
+- [x] ColorTokens 변경 0 (새 토큰 추가 없음)
+- [x] update() 게임 루프 변경 0
+- [x] endGame() 변경 0
+- [x] airforceTriggered 가드 위치 변경 0 (trigger 본문 1~2행 그대로)
+- [x] contactBitMask/collisionBitMask 변경 0 (EnemyNode physicsBody 설정 그대로)
+- [x] 기존 trigger 본문 10줄 한 줄도 변경 없음 (마지막에 1줄 *추가*만)
+- [x] F 재스폰 효과 없음 (다음 sprint)
+- [x] DispatchQueue.main.asyncAfter / Timer 사용 0
+- [x] 사운드/햅틱 0
+- [x] 도주 시각 효과 (색 변화 등) 0
+- [x] pbxproj 변경 0
+- [x] macOS/tvOS 변경 0
+- [x] Test 코드 추가 0
+- [x] 도주 속도 별도 상수 추가 0 (enemyBaseSpeed/enemyMaxSpeed 그대로)
 
 ## Swift 패턴 준수
-
-- **강제 언래핑 미사용**: BombFlashNode·GameConfig·GameScene 추가분에 `!` 0건
-- **guard let 옵셔널 처리**: 옵셔널 분기 발생 없음 (모두 값 타입)
-- **MARK 섹션 구분**: BombFlashNode에 `// MARK: - Init`, `// MARK: - Flash` 2개. GameScene 헤더에 Phase 4-5 코멘트 추가.
-- **GameConfig 상수 사용**: 매직 넘버 0 — `bombFlashDelay`, `bombFlashFadeInDuration`, `bombFlashFadeOutDuration` 3상수 전부 사용. 색은 `.ganhoPaper`.
-- **weak self 캡처**: BombFlashNode.flash에 클로저 없음 — 캡처 불필요 (SPEC §3.5 주석과 일치)
-
----
+- 강제 언래핑 미사용: 준수 (EnemyNode/GameConfig/GameScene 신규 코드에 `!` 0; grep 검증)
+- guard/if let 옵셔널 처리: 준수 (신규 코드에는 옵셔널이 없음 — `isFleeing`은 비옵셔널 Bool)
+- MARK 섹션 구분: 준수 (`// MARK: - State`, `// MARK: - Flee` 신설, 기존 `// MARK: - Init`/`// MARK: - Update` 보존)
+- GameConfig 상수 사용: 준수 (`enemyFleeDuration` 신설, trigger에서 `GameConfig.enemyFleeDuration` 참조 — 매직 넘버 0)
+- weak self 캡처: 준수 (`startFleeing` 내부 두 `SKAction.run` 클로저 모두 `[weak self]`)
 
 ## SpriteKit 패턴 준수
-
-- **didMove(to:)에서 초기화**: 본 sprint는 didMove 손 안 댐 — 기존 초기화 흐름 유지
-- **dt 기반 이동**: 해당 없음 (이동 없는 alpha 액션만)
-- **SKAction 스폰 패턴**: `SKAction.wait` / `fadeIn` / `fadeOut` / `removeFromParent` 4단 sequence — Timer 0
-- **충돌 후 노드 즉시 삭제 없음**: 본 노드는 충돌 비참여 (PhysicsBody 없음). 자기 액션 sequence 마지막 단계에서 자가 `removeFromParent` — `didBegin` 안 아님
-- **HUD 노드 분리**: 본 노드는 `cameraNode`에 부착 (`hud`와 분리). `zPosition = 250`으로 HUD(100), AirforceOverlay(200) 위
-- **`addChild`는 액션 외부 1회**: `update()` 내부 호출 0 — `triggerAirforceEasterEgg()` 1회만 호출
-
----
+- didMove(to:)에서 초기화: 해당 없음 (변경 없음, 기존 그대로)
+- dt 기반 이동: 해당 없음 (velocity 기반, 엔진이 dt 처리 — 기존 정책 보존)
+- SKAction 스폰 패턴: 준수 (`SKAction.sequence([run, wait, run])`로 시간 흐름 표현, Timer/DispatchQueue 미사용)
+- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (충돌 코드 변경 0)
+- HUD 노드 분리: 해당 없음 (HUD 변경 0)
 
 ## 빌드 상태
+- 빌드: **BUILD SUCCEEDED** (`xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build`)
+- 경고: 0건 (SDK 자체 노트만 출력, 본 변경 관련 경고 없음)
+- 에러: 0건
 
-```
-$ xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" \
-             -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build
-...
-** BUILD SUCCEEDED **
-```
-
-- **빌드 에러**: 0건
-- **빌드 경고**: 0건 (`grep -E "warning:|error:" 결과 빈 출력)
-- **링크/CodeSign**: GanhoMusic.app 정상 생성
-
----
-
-## 검증 시나리오 (a)~(i) 정적 검증 결과
+## 검증 시나리오 정적 검증 결과
 
 | # | 시나리오 | 검증 방법 | 결과 |
 |---|---|---|---|
-| (a) | 미접촉 시 폭탄 0 | `grep -rn "BombFlashNode()"` → 호출 1곳 (GameScene.swift:209, `triggerAirforceEasterEgg` 안) | ✅ PASS |
-| (b) | trigger 시 폭탄 3줄 | GameScene.swift:209-211 `let bomb = BombFlashNode()` / `cameraNode.addChild(bomb)` / `bomb.flash(sceneSize: size)` 3줄 일치 | ✅ PASS |
-| (c) | ~1.8s 시점 폭탄 미등장 | `bombFlashDelay = 2.1` (GameConfig.swift:211), sequence 첫 액션이 `wait(forDuration: bombFlashDelay)` (BombFlashNode.swift:37) | ✅ PASS |
-| (d) | ~2.1s 시점 fadeIn 시작 | sequence 순서 정확: `[wait, fadeIn, fadeOut, cleanup]` (BombFlashNode.swift:40) | ✅ PASS |
-| (e) | ~2.5s 시점 removeFromParent | sequence 마지막 액션 `SKAction.removeFromParent()` (BombFlashNode.swift:39) | ✅ PASS |
-| (f) | 게임 변경 0 | `update()` / `endGame()` / `gameState` / `airforceTriggered` 가드 위치 미변경. 기존 7줄 trigger 본문 미변경. | ✅ PASS |
-| (g) | AI 변경 0 | Player·Enemy·Projectile·EnemyNode·SpawnSystem·StoneGuard·ContactRouter·PhysicsCategory 미수정 | ✅ PASS |
-| (h) | 재통과 시 0 | `if airforceTriggered { return }` (GameScene.swift:201) trigger 최상단 가드 그대로. 폭탄 3줄은 가드 *아래* 위치 — 한 번만 발화 보장 | ✅ PASS |
-| (i) | 빌드 SUCCEEDED + 경고 0 | xcodebuild 결과 `** BUILD SUCCEEDED **`, `grep "warning:\|error:"` 빈 출력. pbxproj 4곳 0020 식별자 일관 (PBXBuildFile A1C0F1B0...0020, PBXFileReference A1C0F1A0...0020) | ✅ PASS |
-
----
+| (a) | 미접촉 시 도주 0 | `grep -rn "startFleeing"` → 호출 1곳 (GameScene.swift:214) 외에 trigger 외부 호출처 없음 | 통과 |
+| (b) | trigger 시 호출 정확 | GameScene.swift:214 = `enemy.startFleeing(duration: GameConfig.enemyFleeDuration)` (trigger 본문 마지막) | 통과 |
+| (c) | x축 velocity 반전 | EnemyNode.swift:86 `let direction: CGFloat = isFleeing ? -1 : 1` + 88행 `dx: unitX * speed * direction` | 통과 |
+| (d) | y축 velocity 반전 | EnemyNode.swift:89 `dy: unitY * speed * direction` | 통과 |
+| (e) | 5초 후 false | EnemyNode.swift:60 `let end = SKAction.run { [weak self] in self?.isFleeing = false }` — sequence 마지막 액션 | 통과 |
+| (f) | 도주 중 충돌 게임오버 | EnemyNode.swift init 본문 contactTestBitMask=`.player` / collisionBitMask=`.wall` 그대로 (변경 0) | 통과 |
+| (g) | 재통과 시 도주 0 | airforceTriggered 가드(GameScene.swift:201) + `if isFleeing { return }` (EnemyNode.swift:57) 이중 가드 | 통과 |
+| (h) | ARC 해제 | EnemyNode.swift:58, 60 두 `SKAction.run` 클로저 모두 `[weak self]` 캡처 | 통과 |
+| (i) | 빌드 SUCCEEDED + 경고 0 | xcodebuild BUILD SUCCEEDED + 강제 언래핑 0 + 매직 넘버 0 + Timer/DispatchQueue 호출 0 (주석 안 안내만 존재) | 통과 |
 
 ## 범위 외 미구현 항목
-
-- 수간호사 도주 효과: SPEC OoS — Phase 4-6에서 처리
-- F 재스폰 변형 효과: SPEC OoS — Phase 4-7에서 처리
-- 사운드 / 햅틱: SPEC OoS
-- 자가 소멸 노드 protocol 추출(`SelfDismissingNode`): SPEC OoS — Rule of three 도달했으나 별도 리팩터 sprint로 보류 (학습 가치 § "*추출은 별도 sprint로*")
-- ColorTokens 새 토큰: SPEC OoS — `.ganhoPaper` 재사용
-
-본 sprint 범위는 **순수 시각 임팩트 1건 추가**이며 SPEC In Scope 4개(BombFlashNode 신규 / GameConfig 3 상수 / GameScene 헤더+doc+3줄 / pbxproj 4곳)를 모두 완수.
+- 없음. SPEC In Scope 7개 기능 모두 구현, Out of Scope 24개 항목 모두 미접촉.

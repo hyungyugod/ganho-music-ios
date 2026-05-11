@@ -3,6 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)
+//  Phase 4-6 · 5초 도주 모드 추가 (isFleeing + startFleeing + update 방향 분기)
 //
 
 import SpriteKit
@@ -11,6 +12,11 @@ import SpriteKit
 /// player를 향해 정규화 벡터 × enemyBaseSpeed로 velocity 갱신. 직선 추적.
 /// PlayerNode 패턴(2-2) 정확 일치 — dynamic body, gravity/friction/damping 0.
 final class EnemyNode: SKSpriteNode {
+
+    // MARK: - State
+    /// Phase 4-6 — 도주 모드 플래그. true면 update에서 velocity 방향이 반전된다.
+    /// startFleeing(duration:) 메서드만 토글한다 (외부 직접 쓰기 금지 정책).
+    var isFleeing: Bool = false
 
     // MARK: - Init
     init() {
@@ -43,6 +49,18 @@ final class EnemyNode: SKSpriteNode {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Flee
+    /// 외부 호출 시 duration초간 도주 모드 진입. 만료 시 자동 복귀.
+    /// 이미 도주 중이면 무시(재호출 가드). [weak self]로 순환 참조 방지.
+    /// Phase 4-6 — DispatchQueue/Timer 금지. SKAction.sequence로 시간 흐름 표현.
+    func startFleeing(duration: TimeInterval) {
+        if isFleeing { return }
+        let start = SKAction.run { [weak self] in self?.isFleeing = true }
+        let wait  = SKAction.wait(forDuration: duration)
+        let end   = SKAction.run { [weak self] in self?.isFleeing = false }
+        run(.sequence([start, wait, end]))
+    }
+
     // MARK: - Update
     /// 외부에서 매 프레임 호출. player 위치를 향한 단위 벡터 × 보간 속도 → velocity.
     /// magnitude == 0 가드(NaN 방지).
@@ -64,9 +82,11 @@ final class EnemyNode: SKSpriteNode {
         // Phase 2-8 — 선형 보간: speedT 0 = base(60), 1 = max(110).
         let speed = GameConfig.enemyBaseSpeed
             + (GameConfig.enemyMaxSpeed - GameConfig.enemyBaseSpeed) * speedT
+        // Phase 4-6 — 도주 모드면 player 반대 방향(-1). 추적이면 +1. 한 줄 분기.
+        let direction: CGFloat = isFleeing ? -1 : 1
         physicsBody?.velocity = CGVector(
-            dx: unitX * speed,
-            dy: unitY * speed
+            dx: unitX * speed * direction,
+            dy: unitY * speed * direction
         )
     }
 }

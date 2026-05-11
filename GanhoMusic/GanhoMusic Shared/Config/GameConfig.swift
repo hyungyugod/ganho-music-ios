@@ -214,4 +214,7 @@ enum GameConfig {
     /// 폭탄 화면 플래시 fadeOut 길이 (초). alpha 1 → 0 느린 보간 — *잔상* 효과.
     /// 총 표시 길이 = fadeIn(0.07) + fadeOut(0.35) = 0.42초.
     static let bombFlashFadeOutDuration: TimeInterval = 0.35
+    /// Phase 4-6 — 수간호사 도주 모드 지속 시간 (초). GDD §7-7 명시 5초.
+    /// trigger 시점에 enemy.startFleeing(duration:)에 전달. 만료 후 자동 추적 재개.
+    static let enemyFleeDuration: TimeInterval = 5.0
 }
