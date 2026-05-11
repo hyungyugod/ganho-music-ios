@@ -208,6 +208,7 @@ Scenes → Systems → Repositories → (외부)
 | **3-5** | Codable 통계 (GameStats + StatisticsRepository) + PLAYS/TOTAL 양쪽 표시 — 🎉 **Phase 3 종결** | [22-phase3-5-statistics.md](22-phase3-5-statistics.md) | ✅ 합격 (9.825/10) |
 | **리팩터** | GameScene Setup 분리 (`extension GameScene` 도입, 340→209줄) — Swift 접근 제어 5단계 학습 | [23-gamescene-setup-extension.md](23-gamescene-setup-extension.md) | ✅ 합격 (9.65/10) |
 | **4-1** | 석조무사 NPC + 4 waypoint 시계방향 패트롤 (`SKAction.repeatForever(.sequence)`) — 두 번째 AI 패턴 | [24-phase4-1-stoneguard-patrol.md](24-phase4-1-stoneguard-patrol.md) | ✅ 합격 (**10.0/10**) 🎉 |
+| **4-2** | 석조무사 PhysicsBody 부착 (`collision=0` 통과형) + `PhysicsCategory.stoneGuard` 비트 + ContactRouter `onStoneGuardContact` stub — *그릇만 먼저* | [25-phase4-2-stoneguard-contact.md](25-phase4-2-stoneguard-contact.md) | ✅ 합격 (**10.0/10**) 🎉 |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

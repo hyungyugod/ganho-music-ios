@@ -16,4 +16,5 @@ struct PhysicsCategory {
     static let enemy:      UInt32 = 0b0100   // 4
     static let wall:       UInt32 = 0b1000   // 8
     static let projectile: UInt32 = 0b10000  // 16  ← Phase 2-7 신설
+    static let stoneGuard: UInt32 = 0b100000 // 32  ← Phase 4-2 신설
 }

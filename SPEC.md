@@ -1,231 +1,214 @@
-# Phase 4-1 — 석조무사 NPC: 4 waypoint 시계방향 무한 패트롤
+# Phase 4-2 (A) — 석조무사 접촉 감지 골격
 
 ## 개요
-맵 4지점을 시계방향으로 순환 순찰하는 새 NPC `StoneGuardNode`를 추가한다. 추적 AI(EnemyNode)와 달리 *정해진 길*만 걷는 두 번째 AI 패턴 — `SKAction.repeatForever(.sequence([.move × 4]))`로 구현. 본 sprint는 *시각 등장 + 패트롤 동작*만이며, PhysicsBody/접촉 효과/이스터에그는 일절 OoS.
+4-1에서 도입된 StoneGuardNode를 *접촉 감지 가능한 NPC*로 승격한다. PhysicsBody 부착 + PhysicsCategory 비트 신설 + ContactRouter 분기 추가 + GameScene stub 콜백 등록으로 "라우팅 골격"만 완성한다. 이스터에그 효과 본체는 다음 sprint(4-3)에서 *시그니처 변경 없이* 빈 본문만 채워 추가한다.
 
 ## 변경 유형
-**혼합** — 신규 NPC 노드(게임플레이 객체 추가) + 시각 등장.
+**게임플레이** — 새 PhysicsCategory 비트와 PhysicsBody·contact 분기 도입. 시각·점수·HUD 변화는 0.
 
 ## 게임 경험 의도
-플레이어는 게임이 시작되면 *맵 한가운데 사각형 동선을 따라 묵묵히 순찰하는 석조무사*를 발견한다. 수간호사처럼 자신을 쫓지 않고 *정해진 길만 걷는다는 사실*이 시각적으로 명확해야 하며, 게임플레이(점수·콤보·F·게임오버 조건) 자체에는 어떠한 영향도 주지 않는다(본 sprint OoS). 다음 sprint(4-2)의 이스터에그 트리거 토대를 *시각적으로 먼저* 깔아두는 작업이다.
+플레이어가 석조무사 위를 걸어가도 시각·점수·HUD에는 *변화가 없어 보인다*. 그러나 내부적으로는 SpriteKit이 "접촉했다"를 감지해 ContactRouter가 stoneGuard 분기로 라우팅하고, GameScene이 등록한 *빈 콜백*까지 호출이 도달한다. 학습 노트 §3-5/§3-6의 "그릇만 먼저 만든다" 원칙 — 본 sprint는 *감지 경로*만 완성하고, *효과*는 다음 sprint의 자리로 남겨둔다.
 
 ## Sprint 범위 계약
 
-### In Scope
-- `Nodes/StoneGuardNode.swift` 신설 (final class, init에서 patrol 자동 시작)
-- `Config/GameConfig.swift`에 `// MARK: - Stone Guard (Phase 4-1)` 섹션 + 신규 상수 (속도/크기/waypoint 배열)
-- `GameScene+Setup.swift`에 `setupStoneGuard()` extension 메서드 신설
-- `GameScene.swift` Properties에 `let stoneGuard = StoneGuardNode()` 1줄, `didMove(to:)`에서 `setupStoneGuard()` 호출 1줄
-- pbxproj에 신규 Swift 파일 등록 (PBXBuildFile / PBXFileReference / Nodes 그룹 children / iOS Sources phase 4곳)
+### In Scope (모두 필수)
 
-### Out of Scope
-- StoneGuardNode에 `physicsBody` 부착 — `nil` 유지(기본값)
-- PhysicsCategory에 `stoneGuard` 비트마스크 신설 (4-2)
-- 접촉 시 효과(이스터에그/오버레이/비행기/폭탄/수간호사 도주)
-- 박병장·이교주 등 다른 NPC
-- 새로운 ColorTokens 토큰 신설 — 기존 토큰만 사용
-- tvOS / macOS Sources phase 수정
-- update() 게임 루프 변경 (SKAction이 자동 처리)
-- 기존 EnemyNode·PlayerNode·NoteNode·ProjectileNode·HUDNode·DPadNode·SpawnSystem·ContactRouter·ScoreSystem·TitleScene·ResultScene·HighScoreRepository·StatisticsRepository 변경
+1. **`Config/PhysicsCategory.swift`** (+1줄)
+   - `static let stoneGuard: UInt32 = 0b100000` (= 32) 추가.
+   - `projectile = 0b10000` 다음 줄에 삽입.
+   - 기존 비트(none/player/note/enemy/wall/projectile) 변경 절대 금지.
+
+2. **`Nodes/StoneGuardNode.swift`** (+~12줄)
+   - 파일 헤더에 Phase 4-2 라인 1줄 추가.
+   - `init()` 내부, `super.init` 다음·`startPatrol()` 호출 *직전*에 SKPhysicsBody 부착 블록 삽입.
+   - 본문: `rectangleOf: size` / `isDynamic = false` / `allowsRotation = false` / `friction = 0` / `restitution = 0` / `linearDamping = 0` / `categoryBitMask = .stoneGuard` / `collisionBitMask = 0` / `contactTestBitMask = .player`.
+   - 기존 `// physicsBody = nil (기본값). 본 sprint OoS — 4-2에서 도입.` 주석은 *제거*하거나 4-2에서 도입했음을 알리는 형태로 갱신.
+
+3. **`Systems/ContactRouter.swift`** (+~5줄)
+   - `// MARK: - Callbacks` 섹션에 `var onStoneGuardContact: () -> Void = {}` 1줄 추가 (위치: `onEnemyHit` 바로 다음).
+   - `didBegin(_:)` 내부 분기: `enemy` 다음, `projectile` 직전에 stoneGuard 3줄 분기 삽입.
+   - 최종 분기 순서: `enemy → stoneGuard → projectile → note`.
+
+4. **`GameScene.swift`** (+~4줄)
+   - 파일 헤더 MARK 주석 1줄 추가:
+     `//  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub`
+   - `configureContactRouter()` 본문 끝에 `contactRouter.onStoneGuardContact` 콜백 등록 추가 (`[weak self] in` + TODO 주석 1줄).
+   - 그 외 메서드/프로퍼티 일체 변경 금지.
+
+### Out of Scope (모두 금지, 위반 시 P0)
+
+- `GameScene+Setup.swift` 전 영역 — `setupStoneGuard()` 포함 한 줄도 안 건드림.
+- `GameConfig` 변경 (stoneGuard 상수는 4-1 그대로).
+- pbxproj 변경 (신규 파일 0건).
+- waypoint 좌표/패트롤 속도/방향/크기 변경.
+- 다른 노드 변경 (Player/Enemy/Note/Projectile/HUD/DPad).
+- 다른 시스템 변경 (SpawnSystem/ScoreSystem).
+- TitleScene/ResultScene 변경.
+- 새 ColorTokens 토큰 신설.
+- `update()` 게임 루프 변경.
+- `endGame()` / `configureContactRouter()` 외 GameScene 메서드 변경.
+- 이스터에그 효과(오버레이/비행기/폭탄/수간호사 도주) — 4-3.
+- 콘솔 `print` / `NSLog` 추가. stub 콜백 본문은 *완전히* 비어있어야 하며 TODO 주석 1줄만 허용.
+- macOS/tvOS Sources phase 변경.
+- Test 코드 추가.
 
 ### 판단 기준
-"이 변경이 없으면 SPEC 기능(석조무사가 화면에 등장해 사각형 동선을 시계방향으로 무한 순회)이 동작하는가?" → NO만 허용.
+"이 변경이 없으면 '플레이어가 석조무사를 통과하면 `ContactRouter.onStoneGuardContact`가 호출된다'가 동작하는가?" → **NO**일 때만 In Scope.
 
 ## 변경 범위
 
-### 신설 파일
-- `GanhoMusic/GanhoMusic Shared/Nodes/StoneGuardNode.swift`
+### 수정할 파일 (4개)
+- `GanhoMusic/GanhoMusic Shared/Config/PhysicsCategory.swift` (+1줄)
+- `GanhoMusic/GanhoMusic Shared/Nodes/StoneGuardNode.swift` (+~12줄)
+- `GanhoMusic/GanhoMusic Shared/Systems/ContactRouter.swift` (+~5줄)
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift` (+~4줄: 헤더 1줄 + configureContactRouter 본문 3줄)
 
-### 수정 파일
-- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
-- `GanhoMusic/GanhoMusic Shared/GameScene.swift`
-- `GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift`
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj`
+### 추가할 파일
+없음.
+
+### pbxproj
+변경 없음.
 
 ## 기능 상세
 
-### 기능 1: StoneGuardNode (신규 파일)
-
-- **위치**: `GanhoMusic/GanhoMusic Shared/Nodes/StoneGuardNode.swift`
-- **파일 헤더**:
-  ```
-  //
-  //  StoneGuardNode.swift
-  //  GanhoMusic Shared
-  //
-  //  Phase 4-1 · 석조무사 NPC — 4 waypoint 시계방향 패트롤 (SKAction)
-  //  GDD §7-6: 맵 4지점 사각 순환, 55 px/s, 본 sprint는 시각 등장만 (PhysicsBody 없음).
-  //
-  ```
-- **클래스 시그니처**: `final class StoneGuardNode: SKSpriteNode`, `import SpriteKit`
-- **핵심 코드 구조**:
+### 기능 1: PhysicsCategory에 stoneGuard 비트 신설
+- 설명: 석조무사 PhysicsBody가 자기 정체를 비트마스크로 선언할 수 있도록 비트 하나를 새로 할당한다. 2의 거듭제곱 규칙 준수(32 = `0b100000`).
+- 구현 위치: `Config/PhysicsCategory.swift` — `projectile` 줄 다음.
+- 최종 형태:
   ```swift
-  final class StoneGuardNode: SKSpriteNode {
+  struct PhysicsCategory {
+      static let none:       UInt32 = 0
+      static let player:     UInt32 = 0b0001    // 1
+      static let note:       UInt32 = 0b0010    // 2
+      static let enemy:      UInt32 = 0b0100    // 4
+      static let wall:       UInt32 = 0b1000    // 8
+      static let projectile: UInt32 = 0b10000   // 16  ← Phase 2-7 신설
+      static let stoneGuard: UInt32 = 0b100000  // 32  ← Phase 4-2 신설
+  }
+  ```
 
-      // MARK: - Init
-      init() {
-          let size = CGSize(
-              width:  GameConfig.stoneGuardWidth,
-              height: GameConfig.stoneGuardHeight
-          )
-          // 색상: 수간호사(.ganhoBloodAccent 빨강)와의 시각 대비. 새 ColorTokens 신설 금지.
-          super.init(texture: nil, color: .ganhoPaper, size: size)
-          name = "stoneGuard"
-          zPosition = 5
-          // physicsBody = nil (기본값). 본 sprint OoS — 4-2에서 도입.
-          startPatrol()
+### 기능 2: StoneGuardNode에 PhysicsBody 부착 (통과형)
+- 설명: 정적 사각 PhysicsBody를 부착하되, `collisionBitMask = 0`으로 두어 *물리적으로는 막지 않고* `contactTestBitMask = .player`로 *접촉 사실만 보고*한다. 학습 노트 §3-1/§3-3/§3-4의 핵심 패턴.
+- 구현 위치: `Nodes/StoneGuardNode.swift` — `init()` 내부, `super.init(...)` 다음·`startPatrol()` 호출 *직전*. EnemyNode 패턴 답습(`let body = SKPhysicsBody(rectangleOf: size); ... ; physicsBody = body`).
+- `isDynamic = false` 근거: StoneGuard는 `SKAction.move(to:duration:)`로 위치를 직접 갱신 (velocity 미사용) — 동적 body로 두면 patrol 액션과 물리 엔진이 충돌해 위치가 뜯어진다.
+- 파일 헤더 추가 라인:
+  ```
+  //  Phase 4-2 · PhysicsBody 부착 (collision=0 통과형, contactTest=.player)
+  ```
+- 최종 init 형태:
+  ```swift
+  init() {
+      let size = CGSize(
+          width:  GameConfig.stoneGuardWidth,
+          height: GameConfig.stoneGuardHeight
+      )
+      super.init(texture: nil, color: .ganhoPaper, size: size)
+      name = "stoneGuard"
+      zPosition = 5
+
+      // Phase 4-2 — PhysicsBody 부착. EnemyNode 패턴 답습하되 collision=0(통과형).
+      // patrol은 SKAction.move 기반 → isDynamic=false (velocity 미사용).
+      let body = SKPhysicsBody(rectangleOf: size)
+      body.isDynamic           = false
+      body.allowsRotation      = false
+      body.friction            = 0
+      body.restitution         = 0
+      body.linearDamping       = 0
+      body.categoryBitMask     = PhysicsCategory.stoneGuard
+      body.collisionBitMask    = 0                            // 통과형 — 아무도 막지 않음
+      body.contactTestBitMask  = PhysicsCategory.player       // player와 닿으면 알림
+      physicsBody = body
+
+      startPatrol()
+  }
+  ```
+- 기존 `// physicsBody = nil (기본값). 본 sprint OoS — 4-2에서 도입.` 줄은 *삭제* (또는 위 블록 주석으로 대체됨).
+
+### 기능 3: ContactRouter에 stoneGuard 분기 + 콜백 변수 추가
+- 설명: 콜백 변수 1개 신설 + `didBegin` 내부 분기 1개 추가. 기존 enemy/projectile/note 분기는 한 줄도 손대지 않는다.
+- 구현 위치: `Systems/ContactRouter.swift`.
+- 콜백 변수 (`// MARK: - Callbacks` 섹션, `onEnemyHit` 다음):
+  ```swift
+  /// player ↔ stoneGuard 접촉 시. Phase 4-2 — stub. 본체는 4-3에서.
+  var onStoneGuardContact: () -> Void = {}
+  ```
+- `didBegin(_:)` 최종 분기 순서:
+  ```swift
+  func didBegin(_ contact: SKPhysicsContact) {
+      let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+
+      if categories & PhysicsCategory.enemy != 0 {
+          onEnemyHit()
+          return
       }
-
-      required init?(coder aDecoder: NSCoder) {
-          fatalError("init(coder:) has not been implemented")
+      if categories & PhysicsCategory.stoneGuard != 0 {     // ← 신설 분기
+          onStoneGuardContact()
+          return
       }
-
-      // MARK: - Patrol
-      /// 4 waypoint 시계방향 무한 순환 SKAction을 self.run으로 실행.
-      /// init 시점 호출 — setupStoneGuard()가 (200, 100)에 노드를 둔 직후 worldNode 트리에 들어가면
-      /// 첫 .move(to: w[1])부터 자동으로 (760, 100)을 향해 시작된다.
-      private func startPatrol() {
-          let waypoints = GameConfig.stoneGuardWaypoints
-          var moves: [SKAction] = []
-          for i in 0..<waypoints.count {
-              let from = waypoints[i]
-              let to   = waypoints[(i + 1) % waypoints.count]
-              let dist = hypot(to.x - from.x, to.y - from.y)
-              let dur  = TimeInterval(dist / GameConfig.stoneGuardSpeed)
-              moves.append(.move(to: to, duration: dur))
-          }
-          let loop = SKAction.repeatForever(.sequence(moves))
-          run(loop)
+      if categories & PhysicsCategory.projectile != 0 {
+          handleProjectileContact(contact)
+          return
+      }
+      if categories & PhysicsCategory.note != 0 {
+          handleNoteContact(contact)
       }
   }
   ```
-- **금지 사항**:
-  - `physicsBody` 부착 금지
-  - Timer / DispatchQueue 사용 금지
-  - 매직 넘버 직접 사용 금지
-  - 강제 언래핑(`!`) 금지
-  - update(_:)에서 매 프레임 위치 갱신 코드 작성 금지
+- 분기 순서 근거: enemy는 player가 즉시 게임오버되는 최상위 우선순위. stoneGuard는 enemy 다음, projectile/note보다 우선 — 학습 노트 §3-5 예시와 일치. enemy/projectile/note는 카테고리가 서로 배타적이라 이전 순서 변경의 부작용 없음.
 
-### 기능 2: GameConfig 신규 상수 (Stone Guard 섹션)
+### 기능 4: GameScene에 stub 콜백 등록
+- 설명: `configureContactRouter()` 본문 끝에 `onStoneGuardContact`를 빈 클로저로 등록. 본 sprint의 *효과 0* 정책 — 본문은 TODO 주석 1줄만.
+- 구현 위치: `GameScene.swift` 두 곳.
+  - 파일 헤더 MARK 주석(기존 `Phase 4-1` 줄 다음):
+    ```
+    //  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub
+    ```
+  - `configureContactRouter()` 본문 *끝*(`onNoteCollected` 등록 다음):
+    ```swift
+    contactRouter.onStoneGuardContact = {
+        // Phase 4-2 — stub. 4-3에서 이스터에그 트리거 본체가 들어옴.
+    }
+    ```
+- 캡처 정책: 본 sprint stub은 self 미사용 — `[weak self]` 생략. 4-3 시 self를 사용할 경우 그때 `[weak self] in`을 도입(시그니처가 아닌 *클로저 캡처*만 추가, 외부 호출자/등록자 시그니처는 그대로 유지). 본 sprint 빈 본문에 `[weak self]`만 두면 Xcode가 *unused capture* 경고를 띄울 수 있어 OoS의 "경고 0건" 위반 위험 → 빈 캡처로 시작.
 
-- **위치**: `Config/GameConfig.swift` 파일 *맨 끝*, Statistics 섹션 다음
-- **신규 섹션**:
-  ```swift
-  // MARK: - Stone Guard (Phase 4-1)
-  /// 석조무사 박스 가로 (pt). GDD §7-6 — 수간호사와 동일 16×20.
-  static let stoneGuardWidth: CGFloat = 16
-  /// 석조무사 박스 세로 (pt). GDD §7-6 16×20.
-  static let stoneGuardHeight: CGFloat = 20
-  /// 석조무사 패트롤 속도 (pt/s). GDD §7-6 — 시간 보간 없음(단일 상수).
-  static let stoneGuardSpeed: CGFloat = 55
-  /// 석조무사 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상).
-  /// 맵 960×480, 중앙 기둥 (480, 240±40) 회피.
-  /// 한 바퀴 둘레 = 1680pt → 1680/55 ≈ 30.5초.
-  static let stoneGuardWaypoints: [CGPoint] = [
-      CGPoint(x: 200, y: 100),   // 좌하 — 시작 위치
-      CGPoint(x: 760, y: 100),   // 우하
-      CGPoint(x: 760, y: 380),   // 우상
-      CGPoint(x: 200, y: 380)    // 좌상
-  ]
-  ```
+## 검증 시나리오 (학습 노트 §5 표 정확 매핑 + 정적 검증 방법)
 
-### 기능 3: setupStoneGuard() (GameScene+Setup.swift extension)
-
-- **위치**: `GameScene+Setup.swift` 내 `extension GameScene { ... }` 블록 *맨 끝* (`setupEnemy()` 다음)
-- **핵심 코드**:
-  ```swift
-  func setupStoneGuard() {
-      // Phase 4-1 — 첫 waypoint(좌하단)에 위치 부여. StoneGuardNode.init에서 patrol이 이미 시작됐으므로
-      // 첫 .move 액션은 (200, 100) → (760, 100) 우향으로 자동 진행된다.
-      let first = GameConfig.stoneGuardWaypoints[0]
-      stoneGuard.position = CGPoint(x: first.x, y: first.y)
-      worldNode.addChild(stoneGuard)
-  }
-  ```
-- **금지**: waypoints 배열 인덱스 가드 추가 금지, setupStoneGuard에서 SKAction 직접 시작 금지
-
-### 기능 4: GameScene.swift 본체 변경
-
-- **수정 1 — 헤더 코멘트**: 파일 상단 마지막 줄(Phase 3 종결 후 리팩터) 다음에:
-  ```
-  //  Phase 4-1 · StoneGuardNode 1마리 추가 (시계방향 4 waypoint 패트롤, PhysicsBody 없음 — 시각만)
-  ```
-- **수정 2 — Properties**: `let enemy = EnemyNode()` 다음 줄에:
-  ```swift
-  let stoneGuard = StoneGuardNode()  // worldNode 자식 (4 waypoint 시계방향 패트롤, Phase 4-1)
-  ```
-  접근 제어자: 기존 player/enemy/dpad/hud와 동일 internal(기본).
-- **수정 3 — `didMove(to:)`**: `setupEnemy()` 호출 다음 줄에:
-  ```swift
-  setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
-  ```
-- **금지**:
-  - update(_:)에 stoneGuard 관련 코드 추가 금지
-  - configureContactRouter에 stoneGuard 분기 추가 금지
-  - endGame에서 `stoneGuard.removeAllActions()` 호출 금지 (ARC 자동 정리)
-
-### 기능 5: pbxproj 등록 (식별자 0017)
-
-신규 파일 1개 → 4곳에 식별자 추가. 식별자 `0017`은 grep 검증 결과 충돌 없음.
-
-- **(1) PBXBuildFile**: StatisticsRepository.swift 다음:
-  ```
-  A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000017 /* StoneGuardNode.swift */; };
-  ```
-- **(2) PBXFileReference**:
-  ```
-  A1C0F1A00000000000000017 /* StoneGuardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneGuardNode.swift; sourceTree = "<group>"; };
-  ```
-- **(3) Nodes 그룹 children** (그룹 식별자 `A1C0F1570000000000000007`): ProjectileNode.swift 다음에:
-  ```
-  A1C0F1A00000000000000017 /* StoneGuardNode.swift */,
-  ```
-- **(4) iOS PBXSourcesBuildPhase**: StatisticsRepository.swift 다음에:
-  ```
-  A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */,
-  ```
-- tvOS/macOS Sources phase 미수정.
-
-## waypoint 좌표 검증
-
-| 검증 대상 | 좌표 범위 | 패트롤 변 | 충돌 여부 |
+| # | 시나리오 | 기대 결과 | 정적 검증 방법 |
 |---|---|---|---|
-| 중앙 기둥 | x ∈ [460, 500], y ∈ [200, 280] | — | — |
-| 가로 변 (하) | y = 100 | x: 200 → 760 | 기둥 y 미접근 → **OK** |
-| 가로 변 (상) | y = 380 | x: 200 → 760 | 기둥 y 미접근 → **OK** |
-| 세로 변 (우) | x = 760 | y: 100 → 380 | 기둥 x 미접근 → **OK** |
-| 세로 변 (좌) | x = 200 | y: 100 → 380 | 기둥 x 미접근 → **OK** |
-| 외곽 벽 | (0,0)–(960,480) | — | waypoint 모두 내부 → **OK** |
+| (a) | 게임 시작 직후 | 4-1과 동일 — 석조무사 박스(.ganhoPaper)가 (200,100)에서 시계방향 사각 순환 | `StoneGuardNode.startPatrol()` 본문 / `setupStoneGuard()` / `stoneGuardWaypoints` 모두 *미변경* 확인 |
+| (b) | 플레이어가 석조무사 위로 걸어감 | 시각상 그대로 통과 (튕김·정지 0) | `collisionBitMask = 0` 확인. `isDynamic = false` 확인. 다른 노드의 `collisionBitMask`에 `.stoneGuard` 미포함 확인 |
+| (c) | 통과 시 점수·콤보·HUD | 변화 0 | `onStoneGuardContact` stub 본문에 `scoreSystem` / `hud` / `endGame` 호출 0건 확인. TODO 주석 외 코드 0줄 |
+| (d) | 통과 시 콘솔 출력 | 변화 0 (요구 사항 명시 없음) | 추가된 4개 파일 어디에도 `print` / `NSLog` / `debugPrint` 0건 (Grep) |
+| (e) | enemy/projectile/note 접촉 | 4-1과 100% 동일 (회귀 0) | `ContactRouter.didBegin`의 enemy/projectile/note 분기 본문 *미변경* 확인. `handleProjectileContact` / `handleNoteContact` 함수 *미변경* 확인 |
+| (f) | 한 판 전체 → 게임오버 | 4-1과 100% 동일 | `endGame()` 본문 *미변경* / `SpawnSystem.stop` / ResultScene presentation flow *미변경* 확인 |
+| (g) | 결과 화면 → 다시 플레이 | 4-1과 100% 동일 | TitleScene/ResultScene 0줄 변경 확인 (Grep `TitleScene` `ResultScene`) |
+| (h) | 빌드 SUCCEEDED + 경고 0건 | 빌드 클린 | 강제 언래핑·매직 넘버·미사용 변수 0건. PhysicsCategory 상수만 사용 |
 
-**결론**: 4 waypoint 직선 경로 모두 중앙 기둥/외곽 벽 통과 없음. PhysicsBody 없으므로 player·enemy·F·노트와 통과 가능 (의도된 OoS).
+추가 회귀 검증:
+- `GameScene+Setup.swift` 파일은 한 줄도 변경되지 않음 → `setupStoneGuard()` 본문(`waypoints[0]` 위치 부여 + worldNode addChild) 그대로.
+- `GameConfig.swift`는 한 줄도 변경되지 않음 → stoneGuard 상수 4개(width/height/speed/waypoints) 그대로.
+- pbxproj는 한 줄도 변경되지 않음 → 신규 파일 0건.
 
-## 동시성 / 엣지 케이스
-
-1. **첫 waypoint 일관성**: setupStoneGuard에서 (200,100)에 두고 startPatrol의 첫 액션이 (760,100)으로 자동 시작. waypoints 배열이 폐곡선(`(i+1) % count`)이라 마지막 (200,380)→(200,100)으로 한 바퀴 완성.
-2. **SKAction ARC 정리**: 노드 제거 또는 ARC 해제 시 SKAction 자동 중단. endGame에서 별도 정리 불필요.
-3. **GameScene→ResultScene 전환**: presentScene 시 GameScene 통째 ARC 해제 → 자식 트리 함께 해제 → SKAction 자동 정리.
-4. **재인스턴스화**: 새 GameScene이 새 StoneGuardNode 생성 → 깨끗한 패트롤 시작.
-5. **한 바퀴 시간**: 1680/55 ≈ 30.5초. 게임 45초 동안 1바퀴 + 약 14초.
-6. **physicsBody nil 안전**: 다른 노드의 contactTestBitMask에 stoneGuard 비트가 없음 → didBegin 분기 0.
-
-## 검증 시나리오
-
-| # | 시나리오 | 기대 결과 |
-|---|---|---|
-| (a) | 게임 시작 직후 | 석조무사(.ganhoPaper) 박스 16×20이 (200,100)에서 오른쪽으로 이동 시작 |
-| (b) | 약 10초 | (760,100) 근처 도착 → 위쪽으로 |
-| (c) | 약 15초 | (760,380) 근처 도착 → 왼쪽으로 |
-| (d) | 약 25초 | (200,380) 근처 도착 → 아래쪽으로 |
-| (e) | 약 30~31초 | (200,100) 복귀 → 두 번째 바퀴 시작 |
-| (f) | 플레이어가 같은 위치 | 그대로 통과 (PhysicsBody nil) |
-| (g) | 카메라 follow | worldNode 자식이라 카메라와 시각적으로 흘러감 |
-| (h) | 게임오버 | ResultScene 전환 시 GameScene ARC 해제 → 석조무사도 함께 사라짐 |
+## 학습 가치 (Spring 비유 포함)
+- **PhysicsBody 3비트마스크 패턴**: `category`(명찰 / URL path), `collision`(차단 / 미들웨어 차단), `contactTest`(알림 / @EventListener 구독) — 셋의 *독립성*을 명확히 학습.
+- **collision=0 통과형 노드 패턴**: 첫 도입 — 4-3 이스터에그가 *통과 시나리오*임을 코드 레벨에서 미리 표현.
+- **ContactRouter 분기 순서 결정**: 게임오버 우선순위(enemy > stoneGuard > projectile/note) 명시. 새 분기를 *어디에 끼울지*가 유지보수 첫 의사결정.
+- **stub 콜백 = 시그니처 확정 분리 sprint**: 다음 sprint의 *코드 변경량을 최소화*하는 패턴 — Spring의 "@Service 메서드만 먼저 정의" 분리와 1:1 대응.
 
 ## 주의사항
 
-- **기존 시스템 보존 절대 원칙**: EnemyNode·PlayerNode·NoteNode·ProjectileNode·HUDNode·DPadNode·SpawnSystem·ContactRouter·ScoreSystem·TitleScene·ResultScene·HighScoreRepository·StatisticsRepository·GameStats·PhysicsCategory 한 줄도 수정 금지.
-- **update() 게임 루프 보존**: stoneGuard 관련 코드 추가 금지.
-- **PhysicsCategory 미수정**: `stoneGuard` 비트 신설 금지(4-2 OoS).
-- **ColorTokens 미수정**: `.ganhoPaper` 사용.
-- **swift-rules.md 준수**: guard let, MARK, GameConfig 상수, final class, required init?(coder:) fatalError, 강제 언래핑 0, Timer 0.
-- **spritekit-rules.md 준수**: 초기화는 didMove에서, dt 기반 이동(SKAction이 자동), 노드 계층 일관성, zPosition 5.
+1. **stub 콜백 본문 = 완전히 비어있어야 함**
+   - 학습 노트 §3-6 그대로 *효과 0*. `print` 1줄도 금지.
+   - 빈 클로저 `{ }` + TODO 주석 1줄. 다음 sprint에서 본체를 채울 때 *호출 측 시그니처 변경 0*.
+
+2. **분기 순서 신중**: stoneGuard 분기를 enemy *앞에* 두면 enemy↔stoneGuard 동시 접촉 시(이론상 불가능하지만) 게임오버 누락. 반드시 enemy *다음*.
+
+3. **`collisionBitMask = 0`은 양방향 정책 확인 필요 없음**: 다른 노드(Player/Enemy/Projectile)의 `collisionBitMask`에 `.stoneGuard`가 *원래 없음*. 따라서 그쪽도 자연스럽게 stoneGuard를 통과. 양방향 수정 0건.
+
+4. **`isDynamic = false`인데 contact 받는가? — YES**: SpriteKit은 두 body 중 *최소 한 쪽이라도 dynamic*이면 contact 알림 호출. Player가 dynamic이므로 stoneGuard가 static이어도 `didBegin` 호출 보장. EnemyNode와 다른 점(stoneGuard는 SKAction.move 기반 → static이 맞음).
+
+5. **`physicsBody = body`는 init 안에서만**: SpriteKit은 노드가 씬에 추가된 *후* body를 설정해도 동작은 하지만, EnemyNode/Player 패턴(init 안 설정) 유지로 일관성 확보.
+
+6. **stoneGuard 비트(`0b100000`)는 *4-1 GameConfig 4개 상수와 별도 파일*에서 관리됨**: GameConfig 변경 0 / PhysicsCategory만 변경 1줄 — OoS 경계 정확.
+
+7. **빌드 경고 0건 목표**: 미사용 캡처 경고, 미사용 변수 경고, unused result 경고 모두 0건. stub 클로저에 *불필요한 캡처*나 빈 변수 일체 금지.

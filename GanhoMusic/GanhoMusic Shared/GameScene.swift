@@ -20,6 +20,7 @@
 //  Phase 3-5 · StatisticsRepository 주입 + endGame에서 recordPlay → stats를 ResultScene에 전달
 //  Phase 3 종결 후 리팩터 — setup/add 9개 메서드를 GameScene+Setup.swift로 분리
 //  Phase 4-1 · StoneGuardNode 1마리 추가 (시계방향 4 waypoint 패트롤, PhysicsBody 없음 — 시각만)
+//  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub
 //
 
 import SpriteKit
@@ -175,6 +176,9 @@ class GameScene: SKScene {
             guard let self = self else { return }
             self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             note.run(.removeFromParent())
+        }
+        contactRouter.onStoneGuardContact = {
+            // Phase 4-2 — stub. 4-3에서 이스터에그 트리거 본체가 들어옴.
         }
     }
 

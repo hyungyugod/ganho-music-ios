@@ -4,6 +4,7 @@
 //
 //  Phase 4-1 · 석조무사 NPC — 4 waypoint 시계방향 패트롤 (SKAction)
 //  GDD §7-6: 맵 4지점 사각 순환, 55 px/s, 본 sprint는 시각 등장만 (PhysicsBody 없음).
+//  Phase 4-2 · PhysicsBody 부착 (collision=0 통과형, contactTest=.player)
 //
 
 import SpriteKit
@@ -24,7 +25,20 @@ final class StoneGuardNode: SKSpriteNode {
         name = "stoneGuard"
         // EnemyNode와 동일한 zPosition 5 — 다른 노드(벽/음표/기둥) 위에 그려짐.
         zPosition = 5
-        // physicsBody = nil (기본값). 본 sprint OoS — 4-2에서 도입.
+
+        // Phase 4-2 — PhysicsBody 부착. EnemyNode 패턴 답습하되 collision=0(통과형).
+        // patrol은 SKAction.move 기반 → isDynamic=false (velocity 미사용).
+        let body = SKPhysicsBody(rectangleOf: size)
+        body.isDynamic           = false
+        body.allowsRotation      = false
+        body.friction            = 0
+        body.restitution         = 0
+        body.linearDamping       = 0
+        body.categoryBitMask     = PhysicsCategory.stoneGuard
+        body.collisionBitMask    = 0                            // 통과형 — 아무도 막지 않음
+        body.contactTestBitMask  = PhysicsCategory.player       // player와 닿으면 알림
+        physicsBody = body
+
         startPatrol()
     }
 

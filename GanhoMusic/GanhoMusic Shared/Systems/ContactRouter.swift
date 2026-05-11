@@ -15,6 +15,8 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     // MARK: - Callbacks
     /// player ↔ enemy 접촉 시.
     var onEnemyHit: () -> Void = {}
+    /// player ↔ stoneGuard 접촉 시. Phase 4-2 — stub. 본체는 4-3에서.
+    var onStoneGuardContact: () -> Void = {}
     /// player ↔ projectile 접촉 시.
     var onProjectileHitPlayer: () -> Void = {}
     /// projectile ↔ wall 접촉 시. 인자: 제거할 projectile 노드.
@@ -28,6 +30,10 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
 
         if categories & PhysicsCategory.enemy != 0 {
             onEnemyHit()
+            return
+        }
+        if categories & PhysicsCategory.stoneGuard != 0 {
+            onStoneGuardContact()
             return
         }
         if categories & PhysicsCategory.projectile != 0 {
