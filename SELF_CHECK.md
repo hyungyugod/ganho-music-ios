@@ -1,104 +1,83 @@
-# 자체 점검 — Phase 4-R · `protocol SelfDismissingNode` 추출 리팩터
+# 자체 점검 — Phase 5-1 캐릭터 선택 UI 골격
 
 ## SPEC 기능 체크
+- [x] **기능 1**: `Models/CharacterID.swift` 신설 — enum 5 case + displayName/color (37줄)
+- [x] **기능 2**: `Nodes/CharacterCardNode.swift` 신설 — SKNode 컨테이너 + setSelected + configureLabel (60줄)
+- [x] **기능 3**: `Config/GameConfig.swift` Character Card 섹션 +6 상수 (width/height/spacing/fontSize/offsetY/deselectedAlpha)
+- [x] **기능 4**: `Scenes/TitleScene.swift` 확장 — 헤더 1줄 + properties 2 + setup/layout/select 메서드 + touchesBegan hit test
+- [x] **기능 5**: `pbxproj` 등록 — 식별자 0022(CharacterID)/0023(CharacterCardNode) 각 4곳 (BuildFile, FileReference, PBXGroup, Sources phase)
 
-- [x] **기능 1**: `Protocols/SelfDismissingNode.swift` 신설 — SPEC 정확 코드 그대로 (`protocol SelfDismissingNode: SKNode {}` marker, import SpriteKit, 헤더 주석 + 채택 노드 docstring 포함, 총 18줄).
-- [x] **기능 2**: AirplaneNode line 14 — `final class AirplaneNode: SKSpriteNode {` → `final class AirplaneNode: SKSpriteNode, SelfDismissingNode {` (콤마+공백 1개 정확).
-- [x] **기능 3**: AirforceOverlayNode line 15 — `final class AirforceOverlayNode: SKNode {` → `final class AirforceOverlayNode: SKNode, SelfDismissingNode {`.
-- [x] **기능 4**: BombFlashNode line 15 — `final class BombFlashNode: SKSpriteNode {` → `final class BombFlashNode: SKSpriteNode, SelfDismissingNode {`.
-- [x] **기능 5**: pbxproj 5곳 편집 완료.
-  - 5-1: PBXBuildFile section에 `A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */` 추가 (BombFlashNode 0020 바로 다음).
-  - 5-2: PBXFileReference section에 `A1C0F1A00000000000000021 /* SelfDismissingNode.swift */` 추가 (BombFlashNode 0020 바로 다음, `path = SelfDismissingNode.swift`).
-  - 5-3: 새 PBXGroup `A1C0F1F00000000000000016 /* Protocols */` 추가 (Models 그룹 다음). `path = "GanhoMusic Shared/Protocols"`, children에 SelfDismissingNode.swift 1개.
-  - 5-4: 루트 그룹 `C75D461B...` children에 Models 다음 위치에 `A1C0F1F00000000000000016 /* Protocols */` 삽입.
-  - 5-5: iOS Sources phase `C75D46252FA627C20016BB86 /* Sources */` files에 BombFlashNode 다음 줄 `A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */` 추가, 닫는 `);` 전.
-  - 5-6: tvOS `C75D46362FA627C20016BB86` / macOS `C75D46462FA627C20016BB86` Sources phase는 `files = ()` 빈 채로 보존. **수정 0**.
+## 파일별 변경 줄 수
+| 파일 | 변경 |
+|---|---|
+| `Models/CharacterID.swift` | 신설 +37줄 |
+| `Nodes/CharacterCardNode.swift` | 신설 +60줄 |
+| `Config/GameConfig.swift` | +14줄 (Character Card 섹션) |
+| `Scenes/TitleScene.swift` | +35줄 (헤더 1 + props 4 + didMove 1 + didChangeSize 1 + 메서드 36 + touchesBegan hit test 9 + 주석) |
+| `GanhoMusic.xcodeproj/project.pbxproj` | +8줄 (BuildFile×2, FileReference×2, Nodes group×1, Models group×1, iOS Sources×2) |
 
-## 파일별 변경 줄 수 (git diff 기준)
-
-| 파일 | 추가 | 삭제 | 비고 |
-|---|---|---|---|
-| `Protocols/SelfDismissingNode.swift` | 신규(18줄) | 0 | 신설 |
-| `Nodes/AirplaneNode.swift` | +1 | -1 | line 14 선언 줄만 |
-| `Nodes/AirforceOverlayNode.swift` | +1 | -1 | line 15 선언 줄만 |
-| `Nodes/BombFlashNode.swift` | +1 | -1 | line 15 선언 줄만 |
-| `GanhoMusic.xcodeproj/project.pbxproj` | +13 | 0 | 5곳 등록 |
-
-3 노드 본문/헤더 주석/init/메서드 모두 변경 0. diff에 선언 줄 1줄 외 변경 없음 확인.
-
-## Out of Scope (위반 시 P0) — 미위반 확인
-
-- [x] 3 노드 본문 한 줄도 변경 X (헤더 주석/init/required init?/메서드 모두 보존)
-- [x] 3 노드 헤더 주석 변경 X (Phase 4-R 라인 추가 X)
-- [x] GameScene / GameScene+Setup 변경 X
-- [x] 다른 노드(Player/Enemy/Stone/Note/Projectile/HUD/DPad) 변경 X
-- [x] GameConfig / ColorTokens / PhysicsCategory / Repository / Stats / Scenes 변경 X
-- [x] ContactRouter / SpawnSystem / ScoreSystem 변경 X
-- [x] 새 GameConfig 상수 X
-- [x] update() / endGame() 변경 X
-- [x] macOS / tvOS Sources phase 수정 X (`files = ()` 빈 채로)
-- [x] StoneGuardNode 채택 X (영구 노드는 채택 안 함)
-- [x] protocol에 메서드 시그니처 추가 X (marker `{}` 비어 있음)
-- [x] protocol extension 추가 X
-- [x] 3 노드 시작 메서드 통일 X (crossScreen/showAndDismiss/flash 각자 시그니처 보존)
-- [x] Test 코드 추가 X
+## OoS 미위반 체크
+| 항목 | 상태 |
+|---|---|
+| PlayerNode/EnemyNode/StoneGuard/Note/Projectile/HUD/DPad/Airplane/AirforceOverlay/BombFlash 무변경 | 준수 (0줄 수정) |
+| GameScene / GameScene+Setup / ResultScene 무변경 | 준수 (0줄 수정) |
+| 스킬 시스템 / 캐릭터별 게임 로직 추가 X | 준수 |
+| Repository / System / Manager 신설 X | 준수 |
+| 새 ColorTokens 토큰 X (기존 5색 재사용) | 준수 (.ganhoPaper/.ganhoMint/.ganhoPinkNote/.ganhoYellowF/.ganhoBloodAccent + .ganhoBgDeep 라벨색) |
+| 기존 GameConfig 상수 무변경 | 준수 (enemyFleeDuration 다음 *추가*만) |
+| 기존 4 라벨 위치 무변경 (layoutLabels 본문 그대로) | 준수 |
+| 기존 setupLabels 본문 무변경 | 준수 (didMove에서 setupCharacterCards 호출만 추가) |
+| 기존 touchesBegan 본문 그대로 (앞에 hit test만 *추가*) | 준수 |
+| update() / endGame() / contactRouter 무변경 | 준수 (TitleScene에는 update 없음) |
+| macOS/tvOS Sources phase 무변경 | 준수 (iOS Sources만 +2줄) |
+| Test 코드 추가 X | 준수 |
 
 ## Swift 패턴 준수
-
-- 강제 언래핑 미사용: **준수** (변경된 모든 줄에 `!` 0)
-- guard let 옵셔널 처리: **해당 없음** (옵셔널 신설 X)
-- MARK 섹션 구분: **해당 없음** (3 노드 기존 MARK 그대로, SelfDismissingNode는 protocol marker라 MARK 불필요)
-- GameConfig 상수 사용: **해당 없음** (새 상수 0)
-- weak self 캡처: **해당 없음** (클로저 신설 X)
-- 네이밍: `SelfDismissingNode` UpperCamelCase, `protocol` 키워드 정확, class-constrained `: SKNode` 정확.
-- 한국어 주석 OK, 한국어 식별자 0.
+- 강제 언래핑 미사용: **준수** — `!` 0개. CharacterID/CharacterCardNode 전체 옵셔널 사용 없음. TitleScene touchesBegan은 `guard let touch = touches.first` / `guard let view = self.view` 패턴 그대로
+- guard let 옵셔널 처리: **준수** — `guard let touch`, `guard let view`, `guard count > 0`
+- MARK 섹션 구분: **준수** — `// MARK: - Properties`, `// MARK: - Init`, `// MARK: - Selection`, `// MARK: - Configure`, `// MARK: - Character Cards`
+- GameConfig 상수 사용: **준수** — 모든 카드 크기/색/위치 값 GameConfig 참조, 매직 넘버 0개. `1.0` (선택 alpha)만 인라인 — *선택의 의미 자체*가 100% 표시이므로 상수화 불필요(deselectedAlpha만 GameConfig)
+- weak self 캡처: **해당 없음** — 본 sprint 클로저 사용 없음 (SPEC §주의사항 명시)
+- 네이밍: lowerCamelCase 변수/함수, UpperCamelCase 타입 — 준수
+- 한국어 변수명 없음, 주석만 한국어 — 준수
 
 ## SpriteKit 패턴 준수
-
-- didMove(to:)에서 초기화: **해당 없음** (씬 변경 X)
-- dt 기반 이동: **해당 없음**
-- SKAction 스폰 패턴: **해당 없음** (3 노드의 fire-and-forget 패턴 그대로)
-- 충돌 후 노드 즉시 삭제 없음: **해당 없음** (충돌 코드 변경 0)
-- HUD 노드 분리: **해당 없음**
-- `import SpriteKit`: SelfDismissingNode.swift에 정확히 포함 (SKNode 제약 조건 필요).
+- didMove(to:)에서 초기화: **준수** — setupCharacterCards()는 setupLabels()와 동일 layer로 didMove에서 호출
+- dt 기반 이동: **해당 없음** — 본 sprint 이동/애니메이션 없음 (펄스/페이드 OoS)
+- SKAction 스폰 패턴: **해당 없음** — 본 sprint 스폰 없음 (5장 setup 1회만)
+- 충돌 후 노드 즉시 삭제 없음: **해당 없음** — PhysicsBody 부착 0
+- HUD 노드 분리: **준수** — CharacterCardNode는 자체 SKNode 컨테이너(HUDNode/AirforceOverlayNode 답습)
+- zPosition 명시: **준수** — 100 (HUD-수준 시각, AirforceOverlay 200·BombFlash 250보다 낮음)
+- 좌표계 일관: **준수** — frame.midX/midY 기준 (TitleScene 기존 패턴 답습)
 
 ## 빌드 상태
+- **xcodebuild build (iPhone 17 시뮬레이터, iOS 26.4.1)**: `** BUILD SUCCEEDED **`
+- **클린 빌드 (clean build)**: `** BUILD SUCCEEDED **`
+- CharacterID.swift + CharacterCardNode.swift 정상 컴파일 확인 (`SwiftCompile normal arm64 ...CharacterID.swift` / `...CharacterCardNode.swift` 로그 존재)
+- 소스 코드 경고/에러: **0건**
+- (시스템 도구 경고 1건: `appintentsmetadataprocessor: Metadata extraction skipped. No AppIntents.framework dependency found` — 소스 코드 무관한 정상 메시지로 기존 빌드에도 동일하게 출력됨)
 
-- **빌드 결과**: `** BUILD SUCCEEDED **` (xcodebuild -scheme "GanhoMusic iOS" -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build)
-- **코드 관련 경고**: 0건 (Swift 컴파일러 경고 0)
-- **시스템 경고**: 1건 (`appintentsmetadataprocessor: Metadata extraction skipped. No AppIntents.framework dependency found.`) — 코드/리팩터와 무관한 Xcode 기본 메타데이터 처리 안내 메시지. 본 sprint 이전부터 동일하게 발생.
-- **예상 빌드 에러**: 없음.
+## 검증 시나리오 (a)~(h)
 
-## 검증 시나리오 (a)~(g) 결과
-
-| # | 시나리오 | 검증 결과 |
+| # | 시나리오 | 정적 검증 결과 |
 |---|---|---|
-| (a) | SelfDismissingNode.swift 존재 + 구조 | **PASS** — 파일 생성 확인, `protocol SelfDismissingNode: SKNode {}` 정확, `import SpriteKit` 포함 |
-| (b) | 3 노드 채택 | **PASS** — 각 선언 줄에 `, SelfDismissingNode` 정확 (콤마+공백 1개) |
-| (c) | 3 노드 본문 변경 0 | **PASS** — `git diff Nodes/` 결과 각 파일 +1/-1 (선언 줄만) |
-| (d) | GameScene/기타 변경 0 | **PASS** — git diff --stat 결과 Swift 코드는 `Protocols/SelfDismissingNode.swift` (신설) + 3 노드 선언 줄 + pbxproj. GameScene/Systems/Scenes/Repositories/Models/Config/Managers/Errors/HUDNode/DPadNode/PlayerNode/EnemyNode/NoteNode/ProjectileNode/StoneGuardNode 변경 0 |
-| (e) | pbxproj 등록 정상 | **PASS** — 0021 4곳 (BuildFile/FileReference/Sources phase 각 1줄 + 새 PBXGroup children 1줄) + 새 Protocols PBXGroup `...016` + 루트 children 갱신 |
-| (f) | 빌드 | **PASS** — `** BUILD SUCCEEDED **`, 경고 0건 |
-| (g) | 게임플레이 동일성 | **PASS (정적 검증)** — 3 노드 본문 변경 0 + GameScene 변경 0 + 시그니처 변경 0이므로 AIRFORCE 5단계 호출 경로(Scenes/GameScene → AirforceOverlayNode/AirplaneNode/BombFlashNode init + 메서드 호출) 동일. marker protocol 채택은 런타임 동작 변화 0. Phase 4-7과 정확히 동일하게 동작 |
-
-## 학습 가치 달성
-
-- `protocol` 키워드 첫 도입 — Swift 핵심 추상화 도구 등장.
-- Class-constrained protocol — `: SKNode`로 채택 가능 타입을 SKNode 자손에 한정. 구조체/열거형 채택 차단.
-- Marker protocol — 메서드 0개, 본문 `{}` 비어 있음. 역할/분류 표현 전용.
-- 클래스 + protocol 다중 채택 문법 — `Class: ParentClass, Protocol1, Protocol2 {}` 콤마 구분, 클래스 먼저.
-- Rule of three 추출 시점 — 같은 패턴 3회 반복(4-3/4-4/4-5)에서 분류 추출.
-- `Protocols/` 새 디렉터리 — 프로젝트 구조 진화 (Config / Nodes / Scenes / Systems / Repositories / Models / Protocols).
-- 순수 리팩터 sprint — 기능 변화 0, 분류 표현만 추가.
+| (a) | 5 카드 초기 상태 | ✅ `setupCharacterCards`에서 `for id in CharacterID.allCases` — 5 인스턴스 생성, 기본 `selectedCharacterID = .kim`만 alpha 1.0, 나머지 4장 alpha 0.5 |
+| (b) | 정간호 탭 → 선택 갱신 | ✅ `touchesBegan` 본문 맨 앞 `for card in characterCards / if card.contains(location) / select(card.id) / return` |
+| (c) | 다른 카드 탭 시 이전 선택 해제 | ✅ `select(_:)` 가 *모든* 카드 순회: `for card in characterCards { card.setSelected(card.id == id) }` — 새 선택만 1.0, 나머지 0.5 |
+| (d) | 카드 외 탭 → GameScene 전환 | ✅ hit test 5장 모두 미스 시 루프 종료, 기존 `guard !isTransitioning` / `guard let view` / `presentScene` 분기 그대로 실행 |
+| (e) | GameScene 시작 — PlayerNode 변경 0 | ✅ GameScene/GameScene+Setup/Nodes 0줄 변경. `newGameScene()` 호출 인자 변경 0 |
+| (f) | ResultScene → TitleScene 복귀 — kim 리셋 | ✅ `selectedCharacterID: CharacterID = .kim` 인스턴스 프로퍼티 기본값 — `TitleScene.newTitleScene()`은 매번 새 인스턴스 생성, UserDefaults 저장 안 함 |
+| (g) | didChangeSize — 카드 재계산 | ✅ `super.didChangeSize` → `layoutLabels()` → `layoutCharacterCards()` 호출 |
+| (h) | 빌드 SUCCEEDED + 경고 0 | ✅ `import UIKit` (CharacterID — UIColor 필요), `import SpriteKit` (CharacterCardNode), GameConfig 6 상수로 매직 넘버 0 |
 
 ## 범위 외 미구현 항목
+- **없음** — SPEC In Scope 전 항목(1~5) 완전 구현. Out of Scope 항목 모두 손대지 않음.
+- 비고: 본 sprint(5-1)는 *UI 골격*만 — 선택 결과를 GameScene으로 전달(PlayerNode 색·외형 변경)하는 작업은 5-2 이후로 SPEC에 명시되어 있어 의도적으로 보류함.
 
-- **없음**. SPEC In Scope 5개 기능 모두 정확 구현. Out of Scope 항목은 모두 손대지 않음.
-
-## 산출물 경로
-
-- 신규: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/suspicious-chandrasekhar-09ac09/GanhoMusic/GanhoMusic Shared/Protocols/SelfDismissingNode.swift`
-- 수정: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/suspicious-chandrasekhar-09ac09/GanhoMusic/GanhoMusic Shared/Nodes/AirplaneNode.swift`
-- 수정: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/suspicious-chandrasekhar-09ac09/GanhoMusic/GanhoMusic Shared/Nodes/AirforceOverlayNode.swift`
-- 수정: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/suspicious-chandrasekhar-09ac09/GanhoMusic/GanhoMusic Shared/Nodes/BombFlashNode.swift`
-- 수정: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/suspicious-chandrasekhar-09ac09/GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj`
+## 학습 가치 달성
+- Swift `enum` 첫 도입 (5 case, raw String, CaseIterable) — Java `enum` + `values()` 대응
+- `.allCases` 자동 생성 — 컴파일러 합성으로 새 case 추가 시 자동 반영(누락 방지)
+- SKNode 컨테이너 패턴 3회차 (HUD/AirforceOverlay/CharacterCard) — *부모 = 좌표/zPosition/name, 자식 = 시각 속성* 패턴 일관성
+- `touchesBegan` hit test (`SKNode.contains`) — 노드 영역 판정 기본기
+- 선택 시각 표시 = 알파 1.0/0.5 — 별도 테두리 노드 없이 1프로퍼티로 표현
+- GameScene 호출 측 변경 0 정책 9 sprint 연속 — 책임 경계 유지

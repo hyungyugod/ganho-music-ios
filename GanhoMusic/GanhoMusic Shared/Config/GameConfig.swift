@@ -217,4 +217,18 @@ enum GameConfig {
     /// Phase 4-6 — 수간호사 도주 모드 지속 시간 (초). GDD §7-7 명시 5초.
     /// trigger 시점에 enemy.startFleeing(duration:)에 전달. 만료 후 자동 추적 재개.
     static let enemyFleeDuration: TimeInterval = 5.0
+
+    // MARK: - Character Card (Phase 5-1)
+    /// 캐릭터 선택 카드 1장 가로 (pt). 5장 일렬 + 화면 폭에 맞춰 작게.
+    static let characterCardWidth: CGFloat = 48
+    /// 캐릭터 선택 카드 1장 세로 (pt). 가로보다 살짝 큼.
+    static let characterCardHeight: CGFloat = 60
+    /// 카드 사이 간격 (pt). 5장 일렬 — 전체 폭 = 5×48 + 4×10 = 280.
+    static let characterCardSpacing: CGFloat = 10
+    /// 카드 이름 라벨 폰트 크기 (pt). 카드 폭(48) 안에 한국어 3자 들어가야 함.
+    static let characterCardFontSize: CGFloat = 12
+    /// 카드 줄 y 오프셋 (pt). frame.midY 기준 아래쪽. promptLabel(-80)보다 더 아래.
+    static let characterCardOffsetY: CGFloat = -160
+    /// 선택되지 않은 카드 알파. 선택 카드(1.0)와 시각 대비.
+    static let characterCardDeselectedAlpha: CGFloat = 0.5
 }

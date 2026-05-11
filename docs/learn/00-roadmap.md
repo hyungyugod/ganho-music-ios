@@ -215,6 +215,7 @@ Scenes → Systems → Repositories → (외부)
 | **4-6** | 수간호사 5초 도주 모드 — `EnemyNode.isFleeing` Bool flag + `startFleeing(duration:)` (SKAction.run+wait+run 토글, `[weak self]`), `update`에 direction(-1/+1) 분기. 5 sprint 만에 EnemyNode 첫 변경 — *정책의 제한된 위반, 최소화* | [29-phase4-6-enemy-flee.md](29-phase4-6-enemy-flee.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-7** | 수간호사 복귀 후 F 재스폰 — `startFleeing` 시그니처에 `onEnd: @escaping () -> Void = {}` 콜백 매개변수, `SpawnSystem.fireImmediately()` public wrapper, GameScene trailing closure 등록. *AIRFORCE 이스터에그 5/5 완성* (4-2~4-7 6 sprint 누적, GDD §7-7 완전 구현) | [30-phase4-7-projectile-respawn.md](30-phase4-7-projectile-respawn.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-R** | `protocol SelfDismissingNode` 추출 리팩터 — 자가 소멸 노드 3개(Airplane/AirforceOverlay/BombFlash) marker protocol 채택. *순수 리팩터 — 기능 변화 0*. `protocol` 키워드 / class-constrained / marker / 다중 채택 / Rule of three 도달. `Protocols/` 새 디렉터리. 🎉 **Phase 4 종결** | [31-phase4-R-self-dismissing-protocol.md](31-phase4-R-self-dismissing-protocol.md) | ✅ 합격 (**10.0/10**) 🎉 |
+| **5-1** | 캐릭터 선택 UI 골격 — `CharacterID` enum(5 case, raw String, CaseIterable) + `CharacterCardNode`(SKNode 컨테이너) + TitleScene 하단 5 카드 일렬 + 탭 hit test(`SKNode.contains`) + 알파 1.0/0.5 선택 표시. *게임 로직 변화 0, GameScene 호출 측 0줄* (9 sprint 연속). Phase 5 첫 단추 | [32-phase5-1-character-select.md](32-phase5-1-character-select.md) | ✅ 합격 (**10.0/10**) 🎉 |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 
