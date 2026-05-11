@@ -1,164 +1,166 @@
-# Phase 4-3 · AIRFORCE 이스터에그 시각 트리거 (stub 본체 채우기)
+# Phase 4-4 (C) — "나와라 박병장!" AIRFORCE 오버레이
 
 ## 개요
-4-2에서 만들어둔 `onStoneGuardContact = {}` stub을 *실제 본체*로 교체한다. 플레이어가 석조무사를 *처음* 통과하는 순간 화면 위쪽에 노란 비행기 한 마리가 좌→우로 2초간 가로질러 지나가고 자가 소멸한다. 1회 한정 순수 시각 이스터에그 — 점수/HUD/적/게임오버 로직은 한 줄도 건드리지 않는다.
+
+Phase 4-3에서 구현된 AIRFORCE 이스터에그(비행기 좌→우 가로지르기)에 "나와라 박병장!" 노란 텍스트 오버레이를 화면 정중앙에 추가한다. 비행기와 *동시*에 등장 → 1.5초 표시 → 0.3초 페이드아웃 → 자가 제거(총 수명 1.8초). 사용자 입력 없음(자동), 게임 일시정지 없음. 새 노드 1개(`AirforceOverlayNode`), `GameConfig` 3상수, `GameScene.triggerAirforceEasterEgg()` 본문 3줄 추가가 전부.
 
 ## 변경 유형
-**혼합** — 신규 노드 파일(`AirplaneNode`) + 비주얼 효과(SKAction 가로지르기) + GameScene에 1회 한정 트리거 메서드 신설.
+
+**혼합** — 신규 노드 클래스(`AirforceOverlayNode`) + 비주얼 효과(SKLabelNode + fadeOut) + 게임플레이 메서드 본문 확장(`triggerAirforceEasterEgg`).
 
 ## 게임 경험 의도
-플레이어가 정해진 길을 걷는 석조무사를 *우연히* 통과한 순간, 화면 위쪽 라인을 노란 비행기가 좌→우로 슝~ 지나간다(2초). 게임 점수·HUD·적 행동·게임오버 조건은 *전혀* 영향 없는 순수 시각 이스터에그. 한 판 안에서 *1회만* 발동하며, 새 게임 시작 시 자동 리셋(새 GameScene 인스턴스 → 플래그 기본값 false).
+
+플레이어가 석조무사를 처음 통과하는 순간, 화면 정중앙에 노란색 텍스트 **"나와라 박병장!"**이 1.5초간 또렷이 떠 있다가 0.3초에 걸쳐 자연스럽게 사라진다. 그 사이 화면 위쪽에서는 비행기가 좌→우로 가로지른다(4-3) — 두 효과가 *동시*에 발화해 "박병장이 호출되자 비행기가 응답한다"는 의미를 명확히 전달한다. 점수·HUD·D-Pad·게임 로직은 모두 정상 진행되며, 시각 알림만 추가된다.
 
 ## Sprint 범위 계약
 
-### In Scope (필수, 이게 없으면 SPEC 미동작)
-1. 새 파일 `Nodes/AirplaneNode.swift` (~40줄, SKSpriteNode 서브클래스 + crossScreen 메서드)
-2. `Config/GameConfig.swift` Airforce Easter Egg 섹션 4상수 추가
-3. `GameScene.swift`: 헤더 MARK 1줄 + `airforceTriggered` 프로퍼티 + `triggerAirforceEasterEgg()` 메서드 + onStoneGuardContact stub 본체 교체
-4. `pbxproj` 식별자 0018 4곳 등록 (PBXBuildFile / PBXFileReference / Nodes 그룹 / iOS Sources phase)
+- **허용**: SPEC 기능의 정상 동작에 필수적인 최소 연동 변경 — 신규 노드 1개 파일, `GameConfig` 3상수 추가, `GameScene.swift` 4줄(헤더 MARK 1 + trigger 본문 3), pbxproj 4곳 0019 등록
+- **금지**: SPEC에 없는 독립적인 새 기능/효과 추가
+- **판단 기준**: "이 변경이 없으면 'Player가 StoneGuard 첫 통과 시 화면 중앙에 \"나와라 박병장!\"이 1.5초 + 페이드 0.3초 표시'가 동작하는가?" → YES면 허용, NO면 금지
 
-### Out of Scope (모두 금지, 위반 시 P0)
-- ContactRouter 변경 (콜백 시그니처·분기 그대로)
-- PhysicsCategory 변경 (.airplane 같은 새 비트 0)
-- StoneGuardNode 변경 (PhysicsBody·startPatrol 그대로)
-- GameScene+Setup.swift 변경 (setupStoneGuard 그대로)
-- 기존 GameConfig 상수 변경 (stoneGuard / player / enemy / projectile / note / hud / dpad / time / world 일체)
-- EnemyNode·PlayerNode·NoteNode·ProjectileNode·HUDNode·DPadNode 변경
-- TitleScene·ResultScene 변경
-- ColorTokens 새 토큰 신설 (기존 `.ganhoYellowF`만 사용)
-- update() 게임 루프 변경
-- endGame() 변경
-- physicsBody·collisionBitMask·contactTestBitMask 어디서도 손대지 않음 (비행기 = PhysicsBody 없음)
-- 폭탄·수간호사 도주·오버레이 효과 (다음 sprint)
-- 비행기 충돌 / 점수 / HUD / sound (다음 sprint)
-- macOS / tvOS Sources phase 수정
-- Test 코드 추가
-- 새 Manager / Repository / System 신설
+### In Scope (4건, 모두 필수)
 
-### 판단 기준
-"이 변경이 없으면 'Player가 StoneGuard를 처음 통과 시 비행기가 화면 좌→우 1회 가로지르기'가 동작하는가?" → NO인 변경만 In Scope.
+1. `Nodes/AirforceOverlayNode.swift` 신규 (~50줄, `final class : SKNode`)
+2. `Config/GameConfig.swift` — Airforce Easter Egg 섹션 끝(airplaneTopOffset 다음)에 3상수 추가
+3. `GameScene.swift` — 헤더 MARK 1줄 + `triggerAirforceEasterEgg()` 본문 끝에 3줄 추가
+4. `GanhoMusic.xcodeproj/project.pbxproj` — 4곳 0019 식별자 등록 (AirplaneNode 0018 패턴 답습)
+
+### Out of Scope (위반 시 P0)
+
+- `AirplaneNode.swift` 변경 (한 줄도)
+- `ContactRouter` / `PhysicsCategory` / `StoneGuardNode` / `GameScene+Setup.swift` 변경
+- 기존 `GameConfig` 상수 값/이름 변경 (airplane 4상수 / stoneGuard / 그 외 일체)
+- 다른 노드 변경 (Enemy/Player/Note/Projectile/HUD/DPad)
+- `TitleScene` / `ResultScene` 변경
+- `ColorTokens` 신 토큰 신설 (기존 `.ganhoYellowF` 재사용)
+- `update()` / `endGame()` 변경
+- 폭탄·수간호사 도주·사운드 (다음 sprint)
+- 사용자 입력 처리 (오버레이 터치/확인 버튼 — 자동 페이드만)
+- 게임 일시정지·`gameState` 변경
+- `airforceTriggered` 가드 로직 변경 (4-3 그대로)
+- 비행기와 오버레이 *순서 의존성* 도입 (둘이 독립 노드)
+- macOS / tvOS Sources phase 수정 (현재 비어 있음 — 그대로 유지)
+- 테스트 코드 추가
 
 ## 변경 범위
 
-### 신설 파일 (1개)
-- `GanhoMusic/GanhoMusic Shared/Nodes/AirplaneNode.swift` — SKSpriteNode 서브클래스, 색·크기·zPosition 부여 + `crossScreen(sceneWidth:atY:)` 자가 소멸 메서드
+### 추가할 파일 (1개)
+- `GanhoMusic/GanhoMusic Shared/Nodes/AirforceOverlayNode.swift` — `final class AirforceOverlayNode: SKNode`. 자식 `SKLabelNode` 1개. `showAndDismiss()` 메서드로 자가 소멸.
 
-### 수정 파일 (3개)
-- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` (+1 섹션, +4 상수, ~6줄)
-- `GanhoMusic/GanhoMusic Shared/GameScene.swift` (+~12줄: 헤더 MARK 1줄 + 프로퍼티 1줄 + 메서드 6줄 + stub 본체 교체 1줄 + 주석 정리)
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (4곳 식별자 0018)
+### 수정할 파일 (3개)
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — Airforce Easter Egg 섹션 *끝*에 3상수 추가
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift` — 헤더 MARK 1줄 + `triggerAirforceEasterEgg()` 본문 *마지막*에 3줄 추가
+- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 4곳 0019 식별자 등록
 
 ## 기능 상세
 
-### 기능 1: AirplaneNode.swift 신규 파일
-- 설명: 노란 막대 비행기. init에서 색·크기·zPosition만 부여, SKAction은 외부 호출자가 `crossScreen(sceneWidth:atY:)`를 부르면 시작 (scene.size 의존이라 init에서 자동 시작 불가).
-- 구현 위치: `GanhoMusic/GanhoMusic Shared/Nodes/AirplaneNode.swift` 신규 (~40줄)
-- 핵심 코드 구조:
+### 기능 1 — `AirforceOverlayNode` 신규 노드
+- **설명**: "나와라 박병장!" 텍스트를 1.5초 표시 → 0.3초 페이드아웃 → 자가 제거하는 SKNode 컨테이너. PhysicsBody 없음, 입력 처리 없음, 순수 시각.
+- **구현 위치**: `GanhoMusic/GanhoMusic Shared/Nodes/AirforceOverlayNode.swift` (신규)
+- **참조 패턴**: `Nodes/HUDNode.swift`(SKNode 컨테이너 + 자식 SKLabelNode)와 `Nodes/AirplaneNode.swift`(SKAction.sequence 자가 소멸)
+- **핵심 코드 구조**:
 
 ```swift
 //
-//  AirplaneNode.swift
+//  AirforceOverlayNode.swift
 //  GanhoMusic Shared
 //
-//  Phase 4-3 · AIRFORCE 이스터에그 비행기 — 좌→우 가로지르기 + 자가 소멸
+//  Phase 4-4 · AIRFORCE 오버레이 — "나와라 박병장!" 텍스트 + 자가 페이드아웃
 //
 
 import SpriteKit
 
-/// AIRFORCE 이스터에그 비행기. PhysicsBody 부착 0 — 순수 시각.
-/// init에서 색·크기·zPosition만 부여하고, scene.size 의존인 SKAction은
-/// 외부 호출자가 crossScreen(sceneWidth:atY:)을 부르는 시점에 시작한다.
-/// SKAction.sequence([move, removeFromParent])로 자가 소멸(fire-and-forget).
-final class AirplaneNode: SKSpriteNode {
+/// AIRFORCE 이스터에그 호출 텍스트 오버레이. PhysicsBody 부착 0 — 순수 시각.
+/// 자식 SKLabelNode 1개("나와라 박병장!") 컨테이너.
+/// init에서 색·폰트·정렬·zPosition만 부여하고, 외부 호출자가 showAndDismiss()를
+/// 부르는 시점에 SKAction.sequence([wait, fadeOut, removeFromParent])로 자가 소멸.
+/// AirplaneNode 패턴 답습 — fire-and-forget.
+final class AirforceOverlayNode: SKNode {
+
+    // MARK: - Properties
+    private let label: SKLabelNode
 
     // MARK: - Init
-    init() {
-        let size = CGSize(
-            width:  GameConfig.airplaneWidth,
-            height: GameConfig.airplaneHeight
-        )
-        // 색: F 투사체와 동일 .ganhoYellowF — 주의 환기. 새 ColorTokens 신설 금지.
-        super.init(texture: nil, color: .ganhoYellowF, size: size)
-        name = "airplane"
-        // HUD(100) 아래, 일반 노드(5) 위. 점수 라벨을 가리지 않으며 공중에 떠 있는 느낌.
-        zPosition = 50
+    override init() {
+        label = SKLabelNode(text: "나와라 박병장!")
+        super.init()
+        name = "airforceOverlay"
+        // HUD(100) 위 — 이스터에그 강조. AirplaneNode(50)보다도 위. 1.8초만 존재.
+        zPosition = 200
+        configureLabel()
+        addChild(label)
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Cross
-    /// 부모(cameraNode)에 addChild 직후 호출. 화면 좌측 바깥에서 시작 → 우측 바깥까지 이동 → 자가 제거.
-    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 시작/끝 모두 화면 바깥(노드 폭만큼 여유).
-    /// - Parameters:
-    ///   - sceneWidth: 씬 가로 크기(scene.size.width). 좌우 바깥 좌표 계산용.
-    ///   - y: cameraNode 좌표계 y (화면 중앙 기준). 화면 상단 가까이 = 양수.
-    func crossScreen(sceneWidth: CGFloat, atY y: CGFloat) {
-        let startX = -(sceneWidth / 2 + size.width)
-        let endX   = +(sceneWidth / 2 + size.width)
-        position = CGPoint(x: startX, y: y)
-        let move    = SKAction.move(to: CGPoint(x: endX, y: y),
-                                    duration: GameConfig.airplaneCrossDuration)
+    // MARK: - Show / Dismiss
+    /// 부모(cameraNode)에 addChild 직후 호출. 1.5초 대기 → 0.3초 페이드아웃 → 자가 제거.
+    /// self 미사용 — [weak self] 캡처 불필요.
+    func showAndDismiss() {
+        let wait    = SKAction.wait(forDuration: GameConfig.airforceOverlayDisplayDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.airforceOverlayFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
-        run(.sequence([move, cleanup]))
+        run(.sequence([wait, fadeOut, cleanup]))
+    }
+
+    // MARK: - Configure
+    /// 라벨 스타일 — 색은 비행기와 통일(.ganhoYellowF), 중앙 정렬.
+    /// cameraNode 자식 (0,0) = 화면 중앙. label position도 (0,0)으로 두면 화면 정중앙.
+    private func configureLabel() {
+        label.fontSize = GameConfig.airforceOverlayFontSize
+        label.fontColor = .ganhoYellowF
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.position = .zero
     }
 }
 ```
 
-### 기능 2: GameConfig.swift Airforce Easter Egg 섹션 신설
-- 설명: Stone Guard 섹션 *바로 다음*에 새 섹션을 두고 비행기 4상수 정의.
-- 구현 위치: `Config/GameConfig.swift` — `stoneGuardWaypoints` 배열 닫는 `]` 다음 줄(파일 끝 `}` 직전)
-- 핵심 코드 구조:
+**주의**:
+- `label`을 `let` 프로퍼티로 보유하되 외부 노출 0(private).
+- `position = .zero`(라벨 자체) — 부모(`AirforceOverlayNode`) 자체 position은 호출자가 0으로 두므로 화면 정중앙(`cameraNode` 자식 (0,0) = 화면 중앙).
+- `name = "airforceOverlay"`는 디버깅 편의.
+- 폰트 패밀리 지정 안 함(시스템 기본).
+
+### 기능 2 — `GameConfig` 3상수 추가
+- **설명**: 오버레이 폰트 크기·표시 시간·페이드아웃 시간 매직 넘버 제거.
+- **구현 위치**: `Config/GameConfig.swift`, `// MARK: - Airforce Easter Egg (Phase 4-3)` 섹션 *내부 끝*. `airplaneTopOffset` 줄 다음에 추가. 새 MARK 신설 금지(기존 섹션에 합류).
+- **추가 코드(정확한 형태)**:
 
 ```swift
-    // MARK: - Airforce Easter Egg (Phase 4-3)
-    /// 비행기 가로 (pt). 가로로 긴 막대형.
-    static let airplaneWidth: CGFloat = 32
-    /// 비행기 세로 (pt). 가로형 비율.
-    static let airplaneHeight: CGFloat = 16
-    /// 비행기 좌→우 가로지르기 duration (초). 너무 빠르면 못 보고, 너무 느리면 게임 방해.
-    static let airplaneCrossDuration: TimeInterval = 2.0
-    /// 화면 상단에서 비행기 y 위치까지의 거리 (pt). cameraNode 자식 좌표계: y = +(halfH - 60).
-    static let airplaneTopOffset: CGFloat = 60
+    /// "나와라 박병장!" 오버레이 폰트 크기 (pt). HUD(18)보다 크고 화면 중앙 가독성 우선.
+    static let airforceOverlayFontSize: CGFloat = 28
+    /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
+    static let airforceOverlayDisplayDuration: TimeInterval = 1.5
+    /// "나와라 박병장!" 오버레이 페이드아웃 길이 (초). alpha 1 → 0 보간 시간.
+    /// 총 수명 = displayDuration(1.5) + fadeOutDuration(0.3) = 1.8초.
+    static let airforceOverlayFadeOutDuration: TimeInterval = 0.3
 ```
 
-### 기능 3: GameScene.swift 헤더 MARK 라인 1줄 추가
-- 설명: 변경 이력 누적용 헤더 주석 1줄.
-- 구현 위치: `GameScene.swift` 라인 23 (Phase 4-2 헤더 다음)
-- 핵심 코드 구조:
+**금지**: airplane 4상수(`airplaneWidth`, `airplaneHeight`, `airplaneCrossDuration`, `airplaneTopOffset`) 값/이름 변경 금지.
+
+### 기능 3 — `GameScene.swift` 본문 확장
+- **설명**: (a) 헤더 MARK 1줄 추가, (b) `triggerAirforceEasterEgg()` 본문 *마지막*에 오버레이 3줄 추가. 기존 비행기 부분은 한 줄도 변경 금지.
+
+**(a) 헤더 MARK 추가** — 기존 `//  Phase 4-3 · AIRFORCE 이스터에그 …` 라인 *바로 다음 줄*에:
 
 ```swift
-//  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub
-//  Phase 4-3 · AIRFORCE 이스터에그 — Player ↔ StoneGuard 첫 접촉 시 비행기 가로지르기 1회
-//
+//  Phase 4-4 · AIRFORCE 오버레이 — "나와라 박병장!" 텍스트 자가 페이드아웃
 ```
 
-### 기능 4: GameScene.swift `airforceTriggered` 프로퍼티 추가
-- 설명: 1회 한정 이벤트 가드 Bool 플래그. private — 같은 파일·타입 한정. 게임 1판 = 새 GameScene 인스턴스이므로 자동 리셋(별도 reset 메서드 불필요).
-- 구현 위치: `GameScene.swift` Properties 섹션의 *시스템 섹션 마지막*(statsRepo 다음, `// MARK: - Factory` *위*)에 1줄
-- 핵심 코드 구조:
+**(b) `triggerAirforceEasterEgg()` 본문 확장** — 기존 메서드의 *마지막* 비행기 부분 *뒤에* 오버레이 3줄을 추가. 비행기 부분은 *위에 두고* 오버레이는 *뒤에*. 가드 안쪽이어야 함.
 
-```swift
-    let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
-
-    // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
-    // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
-    private var airforceTriggered: Bool = false
-
-    // MARK: - Factory
-```
-
-### 기능 5: GameScene.swift `triggerAirforceEasterEgg()` 메서드 신설
-- 설명: 1회 가드 → AirplaneNode 생성 → cameraNode 자식으로 부착 → crossScreen 호출. cameraNode 자식이라 화면 고정 좌표계.
-- 구현 위치: `GameScene.swift` `configureContactRouter()` 메서드 *직후*, `// MARK: - Game State` *바로 위*. 별도 `// MARK: - Easter Egg` 섹션으로 묶는다.
-- 핵심 코드 구조:
+수정 후 최종 형태:
 
 ```swift
     // MARK: - Easter Egg
     /// Player ↔ StoneGuard 첫 접촉 시 호출. 1회 한정 가드 후 비행기 1마리를 cameraNode에 부착,
     /// 좌→우 가로지르기 SKAction 실행. AirplaneNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
     /// 점수/HUD/적/게임오버 로직 일체 미접촉 — 순수 시각 이스터에그.
+    /// Phase 4-4 — 동일 가드 안쪽에 AirforceOverlayNode("나와라 박병장!") 동시 부착.
+    /// 두 노드는 서로 모르며 각자 자기 SKAction으로 자가 소멸(fire-and-forget).
     private func triggerAirforceEasterEgg() {
         if airforceTriggered { return }
         airforceTriggered = true
@@ -166,86 +168,97 @@ final class AirplaneNode: SKSpriteNode {
         cameraNode.addChild(plane)
         let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
         plane.crossScreen(sceneWidth: size.width, atY: y)
+        let overlay = AirforceOverlayNode()
+        cameraNode.addChild(overlay)
+        overlay.showAndDismiss()
     }
-
-    // MARK: - Game State
 ```
 
-### 기능 6: GameScene.swift onStoneGuardContact stub 본체 교체
-- 설명: 4-2의 빈 stub `{ }`를 `[weak self]` 캡처 + triggerAirforceEasterEgg() 호출로 교체. 콜백 시그니처(`() -> Void`) 그대로 — ContactRouter 0줄 변경.
-- 구현 위치: `GameScene.swift` `configureContactRouter()` 메서드 안, `contactRouter.onStoneGuardContact = ...` 블록
-- 핵심 코드 구조:
+**금지**:
+- 비행기 4줄(`AirplaneNode()` / `cameraNode.addChild(plane)` / `let y = ...` / `plane.crossScreen(...)`) 한 줄도 변경 금지.
+- `airforceTriggered` 가드 위치 이동 금지.
+- `cameraNode` 외 부착지 금지.
+- 오버레이 위치 설정 코드 추가 금지.
+- 메서드 분리 금지.
 
-```swift
-        contactRouter.onStoneGuardContact = { [weak self] in
-            self?.triggerAirforceEasterEgg()
-        }
+### 기능 4 — `project.pbxproj` 4곳 0019 등록
+- **설명**: AirplaneNode(0018) 패턴을 정확히 답습한 0019 식별자로 신규 파일 등록.
+
+**4-1. PBXBuildFile** (0018 다음에 1줄 추가):
+```
+		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
 ```
 
-> 기존 stub 안 `// Phase 4-2 — stub. 4-3에서 이스터에그 트리거 본체가 들어옴.` 주석은 **제거**한다.
-
-### 기능 7: project.pbxproj — AirplaneNode 4곳 등록
-- 설명: 식별자 `0018` (StoneGuardNode `0017` 다음 자유 슬롯). 4-1과 동일 정책으로 iOS Sources phase에만 등록 (tvOS / macOS 수정 0).
-- 구현 위치: 4곳, StoneGuardNode 0017 등록 *바로 다음 줄*에 동일 패턴으로 추가
-
-**(1) PBXBuildFile section**:
+**4-2. PBXFileReference** (0018 다음에 1줄 추가):
 ```
-		A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000018 /* AirplaneNode.swift */; };
+		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
 ```
 
-**(2) PBXFileReference section**:
+**4-3. Nodes 그룹 children** (AirplaneNode 다음 1줄 추가):
 ```
-		A1C0F1A00000000000000018 /* AirplaneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneNode.swift; sourceTree = "<group>"; };
-```
-
-**(3) Nodes 그룹 children** (`StoneGuardNode.swift` 다음):
-```
-				A1C0F1A00000000000000018 /* AirplaneNode.swift */,
+				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
 ```
 
-**(4) iOS Sources phase files** (`StoneGuardNode.swift in Sources` 다음, `);` 닫기 전):
+**4-4. iOS Sources phase** (AirplaneNode 다음 1줄 추가):
 ```
-				A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */,
+				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,
 ```
 
-> tvOS / macOS Sources phase는 4-1·4-2와 동일 정책으로 *그대로 둔다*.
+**금지**:
+- tvOS / macOS Sources phase 수정 금지
+- 0019 외 식별자 사용 금지
+- `path` 디렉터리 포함 금지 (AirplaneNode와 동일하게 상대 파일명만)
 
-## 검증 시나리오 (a)~(i) — Evaluator 정적 검증 항목
+## 검증 시나리오 (a)~(i)
 
-| # | 시나리오 | 정적 검증 방법 |
+| # | 시나리오 | 봐야 할 것 | 정적 검증 방법 |
+|---|---|---|---|
+| (a) | 게임 시작, 석조무사 미접촉 | 오버레이 0건 | `triggerAirforceEasterEgg()` 호출 경로가 `onStoneGuardContact` 콜백뿐 |
+| (b) | Player가 석조무사 첫 통과 | 화면 정중앙 노란 "나와라 박병장!" + 비행기 동시 등장 | `triggerAirforceEasterEgg()` 본문에 `AirforceOverlayNode()` / `cameraNode.addChild(overlay)` / `overlay.showAndDismiss()` 3줄 존재 |
+| (c) | ~1.5초 후 | 오버레이 페이드아웃 시작 | `showAndDismiss()` 시퀀스 정확: `wait(1.5) → fadeOut(0.3) → removeFromParent()` |
+| (d) | ~1.8초 후 | 오버레이 완전 사라짐 | `airforceOverlayDisplayDuration + airforceOverlayFadeOutDuration == 1.8` |
+| (e) | 재통과 시 | 오버레이·비행기 모두 0 | `airforceTriggered` 가드 진입부 그대로 |
+| (f) | 점수·HUD | 영향 0 | `update()` / `endGame()` / `scoreSystem` / `hud` 한 줄도 변경 없음 |
+| (g) | D-Pad | 정상 입력 | `dpad` / `player.currentDirection` / `player.update` 변경 없음 |
+| (h) | 게임오버 잔존 | ResultScene 전환 시 ARC 자동 해제 | `endGame()` 변경 없음 — `cameraNode` 자식 overlay도 함께 해제 |
+| (i) | pbxproj 정합성 | 빌드 SUCCEEDED + 경고 0 | 4곳 식별자가 모두 정확히 1회 등장. tvOS/macOS 0019 0건 |
+
+## 학습 가치 (Spring 비유)
+
+| 학습 항목 | 한 줄 설명 | Spring 비유 |
 |---|---|---|
-| (a) | StoneGuard 미접촉 시 비행기 0건 | `AirplaneNode()` 생성 호출이 `triggerAirforceEasterEgg()` 내부 1곳에만 존재 — Grep으로 확인. didMove·update에 직접 호출 없음. |
-| (b) | 통과 시 비행기 1회 등장 | `triggerAirforceEasterEgg()` 본문: ① `if airforceTriggered { return }` ② `airforceTriggered = true` ③ `AirplaneNode()` 인스턴스화 ④ `cameraNode.addChild(plane)` ⑤ `plane.crossScreen(...)`. AirplaneNode.crossScreen 본문: `SKAction.sequence([move, removeFromParent])` 정확. |
-| (c) | 재통과 시 비행기 0건 | `airforceTriggered = true`가 메서드 본문 *2번째 줄*. 가드 통과 후 즉시 한 번만 발사. |
-| (d) | HUD / 점수 변화 0 | `triggerAirforceEasterEgg()` 본문에 `scoreSystem`, `hud`, `remainingTime`, `gameState`, `endGame` 참조 0건 — Grep으로 확인. AirplaneNode.swift 전체에 `scoreSystem`, `hud` 참조 0건. |
-| (e) | player / enemy / F 영향 0 | AirplaneNode.swift 전체에 `physicsBody`, `SKPhysicsBody`, `categoryBitMask`, `contactTestBitMask`, `collisionBitMask` 0건. PhysicsCategory 0건 참조. |
-| (f) | cameraNode 자식 부착 | `triggerAirforceEasterEgg()` 본문에 `cameraNode.addChild(plane)` 명시. `worldNode.addChild(plane)` 0건. `self.addChild` 0건. |
-| (g) | 게임오버 시 비행기 잔존 → ARC 자동 해제 | `endGame()` 본문 0줄 변경. ResultScene `presentScene` 호출이 GameScene 트리 전체를 ARC 해제하므로 자동 정리. 별도 cleanup 코드 *불필요*. |
-| (h) | 재시작 시 리셋 | `airforceTriggered: Bool = false` 가 *기본값* 명시. 새 GameScene 인스턴스 → 자동 false. |
-| (i) | 빌드 SUCCEEDED + 경고 0건 | pbxproj 0018 4곳 모두 등록. 식별자 충돌 0(0017이 마지막 사용 식별자). AirplaneNode.swift `import SpriteKit` 1건. `final class AirplaneNode: SKSpriteNode` 시그니처. `required init?(coder:)` 명시. |
+| 자가 소멸 노드 패턴 2회차 | AirplaneNode `[move, removeFromParent]` → AirforceOverlayNode `[wait, fadeOut, removeFromParent]`. 두 번 반복 = 인식 단계 | 같은 fire-and-forget 패턴 두 서비스 등장 |
+| `SKLabelNode` 중앙 정렬 | `.center` 정렬로 화면 정중앙 anchor | `text-align: center` |
+| `SKAction.wait + fadeOut + removeFromParent` | 3단 시퀀스 토스트 패턴 표준 | 토스트 라이브러리 duration + fadeOut |
+| 호출 측 변경 0 패턴 3 sprint 연속 | ContactRouter / PhysicsCategory / StoneGuardNode 0줄 | `@EventListener` 신규 리스너 추가만 |
+| `triggerAirforceEasterEgg` 본문 *확장* | 단일 이스터에그 응집. 메서드 분리 X | 한 도메인 이벤트 = 한 핸들러 |
+| `zPosition = 200` | HUD(100) 위 — 1.8초만 존재 | CSS z-index 토스트 |
+| 색 토큰 재사용 (`.ganhoYellowF`) | 비행기와 통일 | brand color token 재사용 |
 
 ## 주의사항
 
-### Swift / SpriteKit 안전 패턴
-- AirplaneNode 자체에 PhysicsBody **부착 금지** — 시각만, 충돌 0.
-- `[weak self]` 캡처는 4-3에서 *비로소* 의미를 가짐 — onStoneGuardContact 본체에서 self.triggerAirforceEasterEgg() 호출.
-- `triggerAirforceEasterEgg()`는 `private func` — 외부에서 직접 호출 차단.
-- `airforceTriggered`는 `private var` — 같은 파일·같은 타입 한정. GameScene+Setup.swift extension에서 접근 *불필요*.
-- `required init?(coder:)`에 `fatalError(...)`는 강제 언래핑이 *아니다* — SKNode 서브클래스의 표준 패턴.
-- 비행기 zPosition 50 = HUD(100) 아래 / 일반 노드(5) 위.
-- 매직 넘버 금지 — 비행기 32×16, duration 2.0, topOffset 60은 모두 `GameConfig.airplane*` 상수 참조.
+### 코드 패턴
+- **강제 언래핑 금지**: 모든 프로퍼티 non-optional.
+- **매직 넘버 금지**: 폰트 크기 28 / 표시 1.5 / 페이드 0.3은 모두 GameConfig 상수.
+- **`[weak self]` 캡처 불필요**: showAndDismiss self 미참조.
+- **Timer 금지**: SKAction.wait 사용.
 
-### pbxproj 규칙
-- 식별자 0018: StoneGuardNode 0017 패턴 정확 답습. PBXBuildFile 접두사 `A1C0F1B0`, PBXFileReference 접두사 `A1C0F1A0`.
-- tvOS / macOS Sources phase는 *그대로 둠*.
-- iOS Sources phase에만 추가.
+### SpriteKit
+- **PhysicsBody 부착 0**: 충돌 없음.
+- **부착지**: 반드시 `cameraNode.addChild(overlay)`. worldNode/self/hud 금지.
+- **zPosition = 200**: HUD(100) 위.
+- **노드 순서**: 비행기 *먼저*, 오버레이 *뒤에*. 실행은 동시.
 
-### 게임 경험 보존
-- 비행기는 **반드시 cameraNode 자식**, worldNode 자식 금지. worldNode 자식이면 player 이동 시 비행기도 같이 흘러가서 어색함.
-- 1회 한정: 한 게임 안에서만 *1회*. 새 GameScene 인스턴스(재시작)에서는 다시 1회 가능.
-- 점수·HUD·게임오버·적·F 어디에도 영향 0.
+### 빌드 / pbxproj
+- **0019 식별자**: 4곳 정확. AirplaneNode 0018 패턴 답습.
+- **tvOS/macOS**: 그대로 유지.
+- **path 상대성**: `AirforceOverlayNode.swift`(디렉터리 미포함).
 
-### 빌드 에러 가능성
-- `AirplaneNode.swift`가 pbxproj 4곳에 모두 등록 안 되면 컴파일 누락 → `Cannot find 'AirplaneNode' in scope` 에러.
-- 식별자 0018 충돌 가능성: 현재 0017이 마지막 사용. 0018 자유 슬롯 확인 완료.
-- `cameraNode.addChild(plane)` 호출이 `cameraNode`가 씬 트리에 추가된 *후*여야 하는데, didMove에서 setupCamera 완료 이후에만 stoneGuard 접촉 발생이라 순서 안전.
+### 텍스트 정확성
+- **"나와라 박병장!"** — 띄어쓰기 1회, 느낌표 1개. 변형 금지.
+
+### 가드 정합성
+- `airforceTriggered` 가드는 *비행기 + 오버레이 둘 다*를 막아야 함. 가드 → 플래그 → 비행기 → 오버레이 순.
+
+### 메서드 doc 코멘트
+- 기존 doc 3줄 그대로 유지. 4-4 동작 설명 2줄 *추가*.

@@ -199,4 +199,11 @@ enum GameConfig {
     static let airplaneCrossDuration: TimeInterval = 2.0
     /// 화면 상단에서 비행기 y 위치까지의 거리 (pt). cameraNode 자식 좌표계: y = +(halfH - 60).
     static let airplaneTopOffset: CGFloat = 60
+    /// "나와라 박병장!" 오버레이 폰트 크기 (pt). HUD(18)보다 크고 화면 중앙 가독성 우선.
+    static let airforceOverlayFontSize: CGFloat = 28
+    /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
+    static let airforceOverlayDisplayDuration: TimeInterval = 1.5
+    /// "나와라 박병장!" 오버레이 페이드아웃 길이 (초). alpha 1 → 0 보간 시간.
+    /// 총 수명 = displayDuration(1.5) + fadeOutDuration(0.3) = 1.8초.
+    static let airforceOverlayFadeOutDuration: TimeInterval = 0.3
 }

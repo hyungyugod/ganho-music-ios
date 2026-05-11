@@ -1,84 +1,84 @@
-# QA 검수 보고서 — Phase 4-3 AIRFORCE 이스터에그
+# QA 검수 보고서 — Phase 4-4 "나와라 박병장!" AIRFORCE 오버레이
 
 ## SPEC 기능 검증
 
-- **PASS** 기능 1 — `Nodes/AirplaneNode.swift` 신설: 49줄. `final class AirplaneNode: SKSpriteNode`, `init()` + `required init?(coder:)` + `crossScreen(sceneWidth:atY:)` 3개 멤버. `name = "airplane"`, `zPosition = 50`. PhysicsBody 0건. `.ganhoYellowF` 재사용.
-- **PASS** 기능 2 — `GameConfig` Airforce Easter Egg 섹션: Stone Guard 섹션 *바로 다음* (라인 193~201). 4상수 (`airplaneWidth=32`, `airplaneHeight=16`, `airplaneCrossDuration=2.0`, `airplaneTopOffset=60`). 기존 상수 0줄 변경.
-- **PASS** 기능 3 — GameScene 헤더 MARK: 라인 24에 Phase 4-3 라인 1줄 추가.
-- **PASS** 기능 4 — `private var airforceTriggered: Bool = false`: 라인 59. `statsRepo`(55) 다음, `// MARK: - Factory`(61) 위.
-- **PASS** 기능 5 — `triggerAirforceEasterEgg()` (라인 194~201): 5단계 정확 — ① 가드 ② 플래그 ③ 인스턴스화 ④ `cameraNode.addChild` ⑤ crossScreen. `// MARK: - Easter Egg` 섹션 신설.
-- **PASS** 기능 6 — `onStoneGuardContact = { [weak self] in self?.triggerAirforceEasterEgg() }` (라인 185~187). 4-2 stub 주석 제거 완료.
-- **PASS** 기능 7 — pbxproj 4곳 0018 등록 확인:
-  - 라인 29 `PBXBuildFile`: `A1C0F1B00000000000000018`
-  - 라인 52 `PBXFileReference`: `A1C0F1A00000000000000018`
-  - 라인 188 Nodes 그룹 children: `A1C0F1A00000000000000018`
-  - 라인 420 iOS Sources phase: `A1C0F1B00000000000000018`
-  - tvOS / macOS Sources phase: files = (); 0건 — 정책 준수.
+- **[PASS] 기능 1 (AirforceOverlayNode 신설)** — `final class AirforceOverlayNode: SKNode`, `private let label: SKLabelNode`. init에서 `text="나와라 박병장!"` / `name="airforceOverlay"` / `zPosition=200` / `configureLabel()` / `addChild(label)`. PhysicsBody 0.
+- **[PASS] 기능 2 (GameConfig 3상수)** — `airforceOverlayFontSize=28`, `airforceOverlayDisplayDuration=1.5`, `airforceOverlayFadeOutDuration=0.3`. 합산 1.8s. Airforce 섹션 끝 위치(`airplaneTopOffset` 다음), 새 MARK 없음.
+- **[PASS] 기능 3 (GameScene.swift)** — 헤더 MARK 1줄(라인 25), `triggerAirforceEasterEgg()` doc 2줄(195-196), 본문 끝 오버레이 3줄(204-206). 비행기 4줄(200-203) 한 줄도 미변경. 가드(198-199) 위치 그대로.
+- **[PASS] 기능 4 (pbxproj 0019 4곳)** — PBXBuildFile(30) / PBXFileReference(54) / Nodes children(191) / iOS Sources phase(424). AirplaneNode 0018 패턴 답습. `path = AirforceOverlayNode.swift`. tvOS / macOS Sources 빈 `files = ()` 유지.
 
 ## 빌드 검증
 
-- 명령: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
-- 결과: **BUILD SUCCEEDED**
-- warning / error grep: **0건**
+- **결과**: BUILD SUCCEEDED
+- **명령어**: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build`
+- **컴파일 경고/에러**: 0건 / 0건
 
-## 회귀 검증 (OoS 위반 점검)
+## 시나리오 (a)~(i) 정적 검증
 
-`git diff HEAD --name-only` 변경 파일 = `GameConfig.swift`, `GameScene.swift`, `project.pbxproj` 3개 + 신규 `AirplaneNode.swift` 1개. 나머지 모두 **0줄 변경 확인**:
-
-| 파일 | 변경 라인 | 확인 |
+| # | 시나리오 | 결과 |
 |---|---|---|
-| `Systems/ContactRouter.swift` | 0 | 콜백 시그니처 `() -> Void` 그대로 |
-| `Config/PhysicsCategory.swift` | 0 | `.airplane` 등 새 비트 0 |
-| `Nodes/StoneGuardNode.swift` | 0 | |
-| `GameScene+Setup.swift` | 0 | `setupStoneGuard` 그대로 |
-| `Nodes/Enemy/Player/Note/Projectile/HUD/DPad` | 0 | |
-| `Scenes/TitleScene.swift` `ResultScene.swift` | 0 | |
-| `Config/ColorTokens.swift` | 0 | `.ganhoYellowF` 재사용 |
-| macOS / tvOS Sources phase | 0 | iOS Sources phase에만 0018 추가 |
-| `GameScene.endGame()` | 0 | diff 컨텍스트 라인만 표시, 본문 unchanged |
+| (a) | trigger 호출 경로가 onStoneGuardContact 콜백 1곳뿐 | **PASS** — `GameScene.swift:187` `self?.triggerAirforceEasterEgg()` 1곳. didMove/update/endGame 직접 호출 0. |
+| (b) | trigger 본문 3줄 (overlay 생성/addChild/showAndDismiss) | **PASS** — `GameScene.swift:204-206`. |
+| (c) | showAndDismiss 시퀀스 순서 | **PASS** — `[wait, fadeOut, cleanup]` 정확. wait=displayDuration, fadeOut=fadeOutDuration. |
+| (d) | 두 상수 합산 1.8s | **PASS** — 1.5 + 0.3 = 1.8. |
+| (e) | airforceTriggered 가드 진입부 그대로 | **PASS** — `if airforceTriggered { return }` / `airforceTriggered = true` 두 줄 진입부. 가드 → 플래그 → 비행기 → 오버레이 순서. |
+| (f) | update/endGame/scoreSystem/hud 변경 0 | **PASS** — 모두 미변경. |
+| (g) | dpad/player 변경 0 | **PASS** — `player.currentDirection` / `player.update` 그대로. |
+| (h) | endGame 변경 0 | **PASS** — ResultScene 전환 시 cameraNode 자식 overlay도 ARC 자동 해제. |
+| (i) | pbxproj 4곳 + tvOS/macOS 0건 + 빌드 SUCCEEDED + 경고 0 | **PASS** — 30/54/191/424 4곳 0019 정확. tvOS/macOS 0건. |
 
-## 검증 시나리오 (a)~(i) 정적 검증 결과
+## 추가 검증 결과
 
-| # | 시나리오 | 결과 | 근거 |
-|---|---|---|---|
-| (a) | StoneGuard 미접촉 시 비행기 0건 | PASS | `AirplaneNode()` 호출 유일 위치: `GameScene.swift:197`. didMove/update/endGame/configureContactRouter 본문 0건. |
-| (b) | 통과 시 비행기 1회 등장 | PASS | trigger 본문 5단계 순서 정확. AirplaneNode.crossScreen: `SKAction.sequence([move, cleanup])`. |
-| (c) | 재통과 시 비행기 0건 | PASS | `airforceTriggered = true`가 본문 2번째 실행 줄. |
-| (d) | HUD / 점수 변화 0 | PASS | trigger·AirplaneNode 양쪽 모두 scoreSystem/hud/remainingTime/gameState/endGame 참조 0건. |
-| (e) | player / enemy / F 영향 0 | PASS | AirplaneNode.swift 전체에 physicsBody/SKPhysicsBody/categoryBitMask/contactTestBitMask/collisionBitMask/PhysicsCategory 참조 0건. |
-| (f) | cameraNode 자식 부착 | PASS | `cameraNode.addChild(plane)` 1건만. worldNode/self.addChild 0건. |
-| (g) | 게임오버 시 비행기 잔존 → ARC 자동 해제 | PASS | `endGame()` 본문 0줄 변경. presentScene 시 GameScene 트리 ARC 해제. |
-| (h) | 재시작 시 리셋 | PASS | `private var airforceTriggered: Bool = false` 기본값 명시. |
-| (i) | 빌드 SUCCEEDED + 경고 0건 | PASS | `xcodebuild build` 결과 `** BUILD SUCCEEDED **`, warning/error 0건. |
+- **`final class : SKNode`** — 정확
+- **zPosition = 200** — HUD(100), Airplane(50) 위
+- **SKLabelNode 스타일** — `.ganhoYellowF` / `.center`/`.center` 정렬 / `position = .zero`
+- **"나와라 박병장!"** — 띄어쓰기 1, 느낌표 1. 변형 0
+- **강제 언래핑 0** — `!` 사용처: required init?(coder:) fatalError(표준), "박병장!" 문자열 리터럴
+- **매직 넘버 0** — 28/1.5/0.3 모두 GameConfig 상수 참조
+- **[weak self] 캡처** — showAndDismiss self 미사용 → 생략 정당
+- **부착지 cameraNode** — `cameraNode.addChild(overlay)` 정확
 
-## 추가 검증
+## 회귀 검증 (OoS, 모두 0줄 변경)
 
-- **pbxproj 0018 식별자 4곳**: PBXBuildFile(라인 29) / PBXFileReference(라인 52) / Nodes 그룹(라인 188) / iOS Sources phase(라인 420). 모두 StoneGuardNode 0017 바로 다음 줄 패턴 답습.
-- **tvOS / macOS Sources phase**: 0018 식별자 0건 — iOS 정책 준수.
-- **`final class AirplaneNode: SKSpriteNode`**: 확인 (라인 14).
-- **`required init?(coder:) fatalError`**: 확인.
-- **MARK 주석**: `// MARK: - Init`, `// MARK: - Cross` 두 섹션.
-- **zPosition = 50**: 확인 (HUD 100 아래, 일반 노드 5 위).
-- **`SKAction.sequence([move, removeFromParent])`**: 확인.
+`git diff HEAD --` 대상별:
+- `AirplaneNode.swift` — **0 lines**
+- `ContactRouter.swift` / `PhysicsCategory.swift` / `StoneGuardNode.swift` / `GameScene+Setup.swift` — **0 lines**
+- 기타 노드/씬/`ColorTokens.swift` — **0 lines**
+- macOS / tvOS Sources phase — 변경 0
+
+변경 stat:
+- `Config/GameConfig.swift` +7 (doc 3 + 상수 3 + 섹션 공백 1)
+- `GameScene.swift` +6 (헤더 MARK 1 + doc 2 + 본문 3)
+- `project.pbxproj` +4
 
 ## 검수 결과 요약
 
 | 등급 | 건수 |
 |---|---|
-| P0 치명 | **0건** |
-| P1 중요 | **0건** |
-| P2 권장 | **0건** |
+| P0 치명 | 0건 |
+| P1 중요 | 0건 |
+| P2 권장 | 0건 |
 
 ## 통과 항목
 
-- **Swift 패턴**: 강제 언래핑 0건(`required init?(coder:) fatalError`는 표준 패턴), MARK 섹션, 매직 넘버 0건(`GameConfig.airplane*` 참조), `[weak self]` 캡처, 함수 단일 책임.
-- **SpriteKit 패턴**: 콜백 시점 생성, `SKAction.sequence([move, removeFromParent])` 자가 소멸, HUD/일반 노드 zPosition 분리.
-- **성능 & 안정성**: 빌드 클린(경고 0건), update() 0줄 변경, `[weak self]` 캡처로 순환 참조 차단.
-- **기능 완성도**: SPEC In Scope 1~7 모두 구현, OoS 22개 항목 모두 미위반, 검증 시나리오 (a)~(i) 9개 모두 PASS.
+- 강제 언래핑 0건(코드)
+- Timer/DispatchQueue 0건 — `SKAction.wait/fadeOut/removeFromParent` 시퀀스
+- 매직 넘버 0건 — 모두 GameConfig
+- MARK 섹션 — Properties / Init / Show / Dismiss / Configure
+- `final class` 선언
+- 파일 분리 — Nodes/ 1 파일 = 1 클래스
+- GameScene 응집 — `triggerAirforceEasterEgg` 단일점, 메서드 분리 X
+- 부착지 일관성 — cameraNode 자식
+- zPosition 계층 — Airplane(50) < HUD(100) < AirforceOverlay(200)
+- 색 토큰 재사용 — `.ganhoYellowF`
+- self 캡처 정확
+- OoS 위반 0
+- tvOS/macOS Sources phase 미변경
+- 빌드 SUCCEEDED + 경고 0
 
 ## 채점
 
-**항목별 점수**:
+**항목별**:
 - **Swift 패턴 일관성: 10/10**
 - **게임 로직 완성도: 10/10**
 - **성능 & 안정성: 10/10**
@@ -88,6 +88,6 @@
 
 ## 최종 판정: **합격**
 
-**핵심 가치**: 4-2의 *그릇 분리*가 본 sprint의 *작업량 최소화*를 정확히 실현. 호출 측(ContactRouter / PhysicsCategory / StoneGuardNode / GameScene+Setup) 0줄 변경, 신규 노드 1개 + GameScene 12줄 + GameConfig 8줄 + pbxproj 4줄로 완성. 한 번의 분리가 다음 sprint를 *수술실*로 만든다.
+**핵심 가치**: 자가 소멸 노드 패턴(AirplaneNode)의 *두 번째 적용*. SKAction.sequence([wait, fadeOut, removeFromParent]) 토스트 패턴 정석. *호출 측 변경 0* 정책이 4-2 → 4-3 → 4-4 *세 sprint 연속* 유지.
 
-**다음 sprint 준비**: Phase 4-4 (박병장 / 이교주 등 추가 NPC)로 진행 가능.
+**다음 sprint 준비**: Phase 4-5 (폭탄 화면 플래시) / 4-6 (수간호사 5초 도주) / Phase 4-Z (이교주 NPC) 후보.

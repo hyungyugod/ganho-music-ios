@@ -27,6 +27,7 @@
 		A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000015 /* StatisticsRepository.swift */; };
 		A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000017 /* StoneGuardNode.swift */; };
 		A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000018 /* AirplaneNode.swift */; };
+		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,7 @@
 		A1C0F1A00000000000000015 /* StatisticsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000017 /* StoneGuardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneGuardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000018 /* AirplaneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -186,6 +188,7 @@
 				A1C0F15B000000000000000B /* ProjectileNode.swift */,
 				A1C0F1A00000000000000017 /* StoneGuardNode.swift */,
 				A1C0F1A00000000000000018 /* AirplaneNode.swift */,
+				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -418,6 +421,7 @@
 				A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */,
 				A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */,
 				A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */,
+				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
