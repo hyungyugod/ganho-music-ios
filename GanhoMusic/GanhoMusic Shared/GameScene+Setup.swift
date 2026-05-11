@@ -110,6 +110,7 @@ extension GameScene {
             x: GameConfig.mapWidth  / 4,
             y: GameConfig.mapHeight / 2
         )
+        player.color = characterID.color   // Phase 5-2 — TitleScene 선택 캐릭터 색을 PlayerNode 몸체에 즉시 반영
         worldNode.addChild(player)
     }
 

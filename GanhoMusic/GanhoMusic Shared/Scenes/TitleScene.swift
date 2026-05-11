@@ -166,7 +166,7 @@ final class TitleScene: SKScene {
         guard !isTransitioning else { return }
         guard let view = self.view else { return }
         isTransitioning = true
-        let gameScene = GameScene.newGameScene()
+        let gameScene = GameScene.newGameScene(characterID: selectedCharacterID)
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(gameScene, transition: fade)
     }

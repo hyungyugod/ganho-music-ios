@@ -26,6 +26,7 @@
 //  Phase 4-5 · AIRFORCE 폭탄 화면 플래시 — 오버레이 닫힘 후 300ms → 420ms 섬광
 //  Phase 4-6 · 수간호사 5초 도주 — 트리거 시 enemy.startFleeing 호출
 //  Phase 4-7 · 수간호사 복귀 후 F 재스폰 — startFleeing onEnd 콜백으로 fireImmediately
+//  Phase 5-2 · 선택 캐릭터 init 주입 + PlayerNode 색 적용 (constructor injection)
 //
 
 import SpriteKit
@@ -62,9 +63,25 @@ class GameScene: SKScene {
     // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
     private var airforceTriggered: Bool = false
 
+    /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
+    /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
+    let characterID: CharacterID
+
+    // MARK: - Init
+    /// Phase 5-2 — characterID 주입형 init. newGameScene factory가 호출.
+    /// Swift 규칙: stored property(`self.characterID`) 초기화 → 그 다음 `super.init`.
+    init(size: CGSize, characterID: CharacterID) {
+        self.characterID = characterID
+        super.init(size: size)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     // MARK: - Factory
-    class func newGameScene() -> GameScene {
-        let scene = GameScene(size: CGSize(width: 1024, height: 768))
+    class func newGameScene(characterID: CharacterID = .kim) -> GameScene {
+        let scene = GameScene(size: CGSize(width: 1024, height: 768), characterID: characterID)
         scene.scaleMode = .resizeFill   // Phase 1-3 핫픽스: scene size를 view 크기에 자동 맞춤 — D-Pad가 viewport 안에 들어오게 함
         return scene
     }
