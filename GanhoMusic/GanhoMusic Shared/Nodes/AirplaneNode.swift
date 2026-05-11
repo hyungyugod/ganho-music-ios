@@ -11,7 +11,7 @@ import SpriteKit
 /// init에서 색·크기·zPosition만 부여하고, scene.size 의존인 SKAction은
 /// 외부 호출자가 crossScreen(sceneWidth:atY:)을 부르는 시점에 시작한다.
 /// SKAction.sequence([move, removeFromParent])로 자가 소멸(fire-and-forget).
-final class AirplaneNode: SKSpriteNode {
+final class AirplaneNode: SKSpriteNode, SelfDismissingNode {
 
     // MARK: - Init
     init() {

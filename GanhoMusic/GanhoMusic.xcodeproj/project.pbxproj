@@ -29,6 +29,7 @@
 		A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000018 /* AirplaneNode.swift */; };
 		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
 		A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000020 /* BombFlashNode.swift */; };
+		A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000021 /* SelfDismissingNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 		A1C0F1A00000000000000018 /* AirplaneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000020 /* BombFlashNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombFlashNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000021 /* SelfDismissingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfDismissingNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -237,6 +239,15 @@
 			path = "GanhoMusic Shared/Models";
 			sourceTree = "<group>";
 		};
+		A1C0F1F00000000000000016 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0F1A00000000000000021 /* SelfDismissingNode.swift */,
+			);
+			name = Protocols;
+			path = "GanhoMusic Shared/Protocols";
+			sourceTree = "<group>";
+		};
 		C75D461B2FA627C10016BB86 = {
 			isa = PBXGroup;
 			children = (
@@ -247,6 +258,7 @@
 				A1C0F15D000000000000000D /* Systems */,
 				A1C0F1D00000000000000013 /* Repositories */,
 				A1C0F1E00000000000000014 /* Models */,
+				A1C0F1F00000000000000016 /* Protocols */,
 				C75D462B2FA627C20016BB86 /* GanhoMusic iOS */,
 				C75D463B2FA627C20016BB86 /* GanhoMusic tvOS */,
 				C75D464B2FA627C20016BB86 /* GanhoMusic macOS */,
@@ -426,6 +438,7 @@
 				A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */,
 				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,
 				A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */,
+				A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

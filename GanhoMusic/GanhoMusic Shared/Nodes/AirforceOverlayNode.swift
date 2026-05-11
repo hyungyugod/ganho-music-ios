@@ -12,7 +12,7 @@ import SpriteKit
 /// init에서 색·폰트·정렬·zPosition만 부여하고, 외부 호출자가 showAndDismiss()를
 /// 부르는 시점에 SKAction.sequence([wait, fadeOut, removeFromParent])로 자가 소멸.
 /// AirplaneNode 패턴 답습 — fire-and-forget.
-final class AirforceOverlayNode: SKNode {
+final class AirforceOverlayNode: SKNode, SelfDismissingNode {
 
     // MARK: - Properties
     private let label: SKLabelNode

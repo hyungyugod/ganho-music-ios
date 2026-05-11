@@ -12,7 +12,7 @@ import SpriteKit
 /// size·position·SKAction은 외부 호출자가 flash(sceneSize:) 부르는 시점에 시작한다.
 /// SKAction.sequence([wait, fadeIn, fadeOut, removeFromParent])로 자가 소멸(fire-and-forget).
 /// AirplaneNode / AirforceOverlayNode 패턴 답습 — 자가 소멸 노드 3회차.
-final class BombFlashNode: SKSpriteNode {
+final class BombFlashNode: SKSpriteNode, SelfDismissingNode {
 
     // MARK: - Init
     init() {
