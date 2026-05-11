@@ -213,6 +213,7 @@ Scenes → Systems → Repositories → (외부)
 | **4-4** | "나와라 박병장!" AIRFORCE 오버레이 — `AirforceOverlayNode`(SKNode + SKLabelNode), `SKAction.sequence([wait, fadeOut, removeFromParent])` 자가 소멸. 비행기와 동시 등장. *호출 측 변경 0 정책 3 sprint 연속* | [27-phase4-4-airforce-overlay.md](27-phase4-4-airforce-overlay.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-5** | AIRFORCE 폭탄 화면 플래시 — `BombFlashNode`(풀스크린 SKSpriteNode), `[wait(2.1), fadeIn(0.07), fadeOut(0.35), removeFromParent]` 자가 소멸. 오버레이 닫힘 후 300ms → 420ms 누런 섬광. *호출 측 변경 0 4 sprint 연속*. 자가 소멸 노드 패턴 *Rule of three* 도달 | [28-phase4-5-bomb-flash.md](28-phase4-5-bomb-flash.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-6** | 수간호사 5초 도주 모드 — `EnemyNode.isFleeing` Bool flag + `startFleeing(duration:)` (SKAction.run+wait+run 토글, `[weak self]`), `update`에 direction(-1/+1) 분기. 5 sprint 만에 EnemyNode 첫 변경 — *정책의 제한된 위반, 최소화* | [29-phase4-6-enemy-flee.md](29-phase4-6-enemy-flee.md) | ✅ 합격 (**10.0/10**) 🎉 |
+| **4-7** | 수간호사 복귀 후 F 재스폰 — `startFleeing` 시그니처에 `onEnd: @escaping () -> Void = {}` 콜백 매개변수, `SpawnSystem.fireImmediately()` public wrapper, GameScene trailing closure 등록. *AIRFORCE 이스터에그 5/5 완성* (4-2~4-7 6 sprint 누적, GDD §7-7 완전 구현) | [30-phase4-7-projectile-respawn.md](30-phase4-7-projectile-respawn.md) | ✅ 합격 (**10.0/10**) 🎉 |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

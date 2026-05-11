@@ -4,6 +4,7 @@
 //
 //  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)
 //  Phase 4-6 · 5초 도주 모드 추가 (isFleeing + startFleeing + update 방향 분기)
+//  Phase 4-7 · startFleeing 시그니처에 onEnd 콜백 매개변수 추가 (default = {})
 //
 
 import SpriteKit
@@ -53,11 +54,15 @@ final class EnemyNode: SKSpriteNode {
     /// 외부 호출 시 duration초간 도주 모드 진입. 만료 시 자동 복귀.
     /// 이미 도주 중이면 무시(재호출 가드). [weak self]로 순환 참조 방지.
     /// Phase 4-6 — DispatchQueue/Timer 금지. SKAction.sequence로 시간 흐름 표현.
-    func startFleeing(duration: TimeInterval) {
+    /// Phase 4-7 — duration 종료 직후 onEnd 콜백 발화. 기본값 {}로 4-6 호출 사이트 호환.
+    func startFleeing(duration: TimeInterval, onEnd: @escaping () -> Void = {}) {
         if isFleeing { return }
         let start = SKAction.run { [weak self] in self?.isFleeing = true }
         let wait  = SKAction.wait(forDuration: duration)
-        let end   = SKAction.run { [weak self] in self?.isFleeing = false }
+        let end   = SKAction.run { [weak self] in
+            self?.isFleeing = false
+            onEnd()
+        }
         run(.sequence([start, wait, end]))
     }
 

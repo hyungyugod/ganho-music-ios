@@ -3,6 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Phase 2-10 · spawn(음표) + fire(F 투사체) 시스템 분리
+//  Phase 4-7 · 외부 호출용 fireImmediately() public wrapper 신설 (AIRFORCE 이스터에그 5/5)
 //
 
 import SpriteKit
@@ -140,5 +141,12 @@ final class SpawnSystem {
         var count = 0
         world.enumerateChildNodes(withName: "projectile") { _, _ in count += 1 }
         return count
+    }
+
+    /// Phase 4-7 — 외부 호출용. private fireProjectile()의 외부 진입점.
+    /// AIRFORCE 이스터에그 수간호사 복귀 시 F 1발 즉시 발사.
+    /// projectileMaxConcurrent 가드는 그대로(균형 유지).
+    func fireImmediately() {
+        fireProjectile()
     }
 }

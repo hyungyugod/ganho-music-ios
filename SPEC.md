@@ -1,194 +1,168 @@
-# Phase 4-6 (E) — 수간호사 5초 도주 모드
+# Phase 4-7 (F) — 수간호사 복귀 후 F 재스폰
 
 ## 개요
-폭탄 직후(같은 trigger 호출 안) `EnemyNode`가 *플레이어 반대 방향*으로 5초간 움직였다가 자동 복귀(추적 재개). EnemyNode 내부에 *isFleeing* 상태 머신 1단계 도입(Bool flag), 호출 측은 `enemy.startFleeing(duration:)` 한 줄만 호출. GameScene·기타 노드의 충돌·점수·F·게임오버 로직은 *0줄 변경*.
+AIRFORCE 이스터에그 시퀀스의 마지막(5/5) 조각. 수간호사가 5초 도주를 끝내고 *추적을 재개하는 바로 그 순간* F 1발이 즉시 player 위치를 향해 발사된다. EnemyNode.startFleeing 시그니처에 `@escaping () -> Void = {}` 콜백 매개변수를 추가하고, SpawnSystem에 public wrapper `fireImmediately()`를 신설, GameScene이 두 변경을 trailing closure로 연결한다.
 
 ## 변경 유형
-**게임플레이** — EnemyNode AI 행동 분기(상태 머신 1차) + GameScene 트리거 1줄.
+**게임플레이** — EnemyNode startFleeing 시그니처 확장(콜백), SpawnSystem public wrapper, GameScene 콜백 등록.
 
 ## 게임 경험 의도
-폭탄이 터진 *직후*, 수간호사가 *겁먹은 듯* 플레이어와 반대 방향으로 5초간 도망간다. 속도는 평소와 동일(`enemyBaseSpeed`/`enemyMaxSpeed` 시간 보간 그대로). 5초가 지나면 자연스럽게 추적이 재개되어 게임의 위협 시계가 *되돌아간* 듯한 *작은 보상*을 준다. F 발사·점수·HUD·게임오버 메커니즘은 정상.
+수간호사가 5초 도주를 끝내고 *추적을 재개하는 바로 그 순간* F 한 발이 즉시 player 위치를 향해 날아간다. AIRFORCE 이스터에그의 *마침표* — "내가 돌아왔다, 다시 던진다" 신호. 게임 균형은 그대로 (projectileMaxConcurrent 가드 통과 필요, 통과 못 하면 발사 0).
 
 ## Sprint 범위 계약
 
 ### In Scope (모두 필수)
 
-1. **`Nodes/EnemyNode.swift`** (+~10줄)
-   - 헤더 주석에 Phase 4-6 라인 1줄
-   - `// MARK: - State` 섹션 신설 + `var isFleeing: Bool = false`
-   - `// MARK: - Flee` 섹션 신설 + `func startFleeing(duration:)` 메서드
-   - `update` 본문에 `direction` 분기 + 최종 `velocity = ... * direction`
+1. **`Systems/SpawnSystem.swift`** (+~5줄)
+   - 헤더 주석 Phase 4-7 라인 1줄
+   - `// MARK: - Projectile Fire` 섹션 안 public wrapper `fireImmediately()` 메서드 신설
+   - 기존 private `fireProjectile()` 본문/시그니처 변경 0
 
-2. **`Config/GameConfig.swift`** (+1 상수)
-   - Airforce Easter Egg 섹션 *끝*(`bombFlashFadeOutDuration` 다음)에 `enemyFleeDuration: TimeInterval = 5.0` + doc 2줄
+2. **`Nodes/EnemyNode.swift`** (+~3줄)
+   - 헤더 주석 Phase 4-7 라인 1줄
+   - `startFleeing(duration:)` 시그니처에 `onEnd: @escaping () -> Void = {}` 매개변수 추가
+   - sequence 마지막 `SKAction.run`(end) 본문에 `onEnd()` 호출 추가 (isFleeing=false 다음)
+   - doc 코멘트 1줄
+   - `isFleeing`/`update`/init 본문은 변경 0
 
-3. **`GameScene.swift`** (+~3줄)
-   - 헤더 MARK 1줄
-   - `triggerAirforceEasterEgg()` doc 1줄
-   - 본문 마지막에 `enemy.startFleeing(duration: GameConfig.enemyFleeDuration)` 1줄
+3. **`GameScene.swift`** (+~5줄)
+   - 헤더 MARK 1줄: `//  Phase 4-7 · 수간호사 복귀 후 F 재스폰 — startFleeing onEnd 콜백으로 fireImmediately`
+   - `triggerAirforceEasterEgg()` doc 코멘트 1줄
+   - 본문 마지막 `enemy.startFleeing(...)` 1줄을 trailing closure 형태 3줄로 확장
+   - 기존 trigger 본문 *그 외 10줄* 한 줄도 변경 금지
+   - 가드 2줄 한 줄도 변경 금지
 
 ### Out of Scope (모두 금지, 위반 시 P0)
 - AirplaneNode / AirforceOverlayNode / BombFlashNode 변경
 - ContactRouter / PhysicsCategory / StoneGuardNode / GameScene+Setup 변경
-- 기존 GameConfig 상수 값 변경
+- GameConfig 변경 (기존 상수 변경 + 신규 상수 추가 모두 금지)
 - Player / Note / Projectile / HUD / DPad 노드 변경
 - TitleScene / ResultScene 변경
 - ColorTokens 새 토큰 신설
 - update() 게임 루프 / endGame() / airforceTriggered 가드 위치 변경
-- F 재스폰 효과 (다음 sprint 4-7)
-- 도주 중 contactBitMask / collisionBitMask 변경
-- 도주 속도 별도 상수 (기존 enemyBaseSpeed/MaxSpeed 그대로)
-- `DispatchQueue.main.asyncAfter` / `Timer` 사용
-- 사운드 / 햅틱 / 진동
-- 도주 시각 효과 (수간호사 색 변화 등)
+- F 발사 주기 변경 / projectileMaxConcurrent 변경
+- 재스폰 시 F 개수 변경 (1발만)
+- 재스폰 시 발사 위치/속도/방향 변경 (기존 fireProjectile 그대로)
+- 도주 시 발사 일시 정지
 - pbxproj 변경
 - macOS / tvOS 변경
 - Test 코드 추가
-- 기존 trigger 본문 10줄 변경
+- `protocol SelfDismissingNode` 추출 (별도 sprint)
+- 기존 EnemyNode `isFleeing`/`update` 본문 변경 (4-6 그대로)
 
 ### 판단 기준
-"이 변경이 없으면 'Player가 StoneGuard 첫 통과 시 trigger 직후 수간호사가 5초간 반대 방향 → 추적 재개'가 동작하는가?" → NO만 In Scope.
+"이 변경이 없으면 '수간호사 도주 종료 시점에 F 1발 즉시 발사'가 동작하는가?" → NO만 In Scope.
 
 ## 변경 범위
-- 수정: `Nodes/EnemyNode.swift` (~10줄)
-- 수정: `Config/GameConfig.swift` (~3줄)
-- 수정: `GameScene.swift` (~3줄)
-- pbxproj 변경 0
+- 수정: `Systems/SpawnSystem.swift` (+~5줄)
+- 수정: `Nodes/EnemyNode.swift` (+~3줄)
+- 수정: `GameScene.swift` (+~5줄)
+- pbxproj 변경 0 / GameConfig 변경 0
 
 ## 기능 상세
 
-### 기능 1: EnemyNode 상태 머신 — `isFleeing` 프로퍼티
-- 설명: 수간호사가 *추적*/*도주* 모드인지 1-bit. 외부 *읽기*만 허용 (internal/기본 가시성).
-- 구현 위치: `Nodes/EnemyNode.swift` `// MARK: - State` 섹션 신설 (Init 위)
-- 코드:
-```swift
-// MARK: - State
-/// Phase 4-6 — 도주 모드 플래그. true면 update에서 velocity 방향이 반전된다.
-/// startFleeing(duration:) 메서드만 토글한다 (외부 직접 쓰기 금지 정책).
-var isFleeing: Bool = false
-```
+### 기능 1: SpawnSystem.fireImmediately() public wrapper
 
-### 기능 2: EnemyNode `startFleeing(duration:)` 메서드
-- 설명: 외부 호출 시 duration초 도주 진입 → 만료 시 자동 복귀. 재호출 가드 + `[weak self]` 캡처.
-- 구현 위치: `Nodes/EnemyNode.swift` `// MARK: - Flee` 섹션 신설 (Update 위)
-- 코드:
+- **구현 위치**: `Systems/SpawnSystem.swift`, `// MARK: - Projectile Fire` 섹션 안. `fireProjectile()` 다음 또는 `startProjectileFireLoop()` 위.
+- **헤더 주석 1줄 추가** (`Phase 2-10` 다음):
 ```swift
-// MARK: - Flee
+//  Phase 4-7 · 외부 호출용 fireImmediately() public wrapper 신설 (AIRFORCE 이스터에그 5/5)
+```
+- **메서드**:
+```swift
+/// Phase 4-7 — 외부 호출용. private fireProjectile()의 외부 진입점.
+/// AIRFORCE 이스터에그 수간호사 복귀 시 F 1발 즉시 발사.
+/// projectileMaxConcurrent 가드는 그대로(균형 유지).
+func fireImmediately() {
+    fireProjectile()
+}
+```
+- **주의**: 기존 private `fireProjectile()`는 한 글자도 손대지 않는다.
+
+### 기능 2: EnemyNode.startFleeing 시그니처 확장 (onEnd 콜백)
+
+- **구현 위치**: `Nodes/EnemyNode.swift`, `// MARK: - Flee` 섹션의 `startFleeing(duration:)`.
+- **헤더 주석 1줄 추가** (`Phase 4-6` 다음):
+```swift
+//  Phase 4-7 · startFleeing 시그니처에 onEnd 콜백 매개변수 추가 (default = {})
+```
+- **메서드 최종 형태**:
+```swift
 /// 외부 호출 시 duration초간 도주 모드 진입. 만료 시 자동 복귀.
 /// 이미 도주 중이면 무시(재호출 가드). [weak self]로 순환 참조 방지.
 /// Phase 4-6 — DispatchQueue/Timer 금지. SKAction.sequence로 시간 흐름 표현.
-func startFleeing(duration: TimeInterval) {
+/// Phase 4-7 — duration 종료 직후 onEnd 콜백 발화. 기본값 {}로 4-6 호출 사이트 호환.
+func startFleeing(duration: TimeInterval, onEnd: @escaping () -> Void = {}) {
     if isFleeing { return }
     let start = SKAction.run { [weak self] in self?.isFleeing = true }
     let wait  = SKAction.wait(forDuration: duration)
-    let end   = SKAction.run { [weak self] in self?.isFleeing = false }
+    let end   = SKAction.run { [weak self] in
+        self?.isFleeing = false
+        onEnd()
+    }
     run(.sequence([start, wait, end]))
 }
 ```
+- **주의**:
+  - `@escaping` 필수
+  - default `= {}` 필수 (4-6 호환)
+  - `onEnd()` 호출은 self가 nil이어도 정상 호출 (onEnd는 self와 별개 closure 변수)
 
-### 기능 3: EnemyNode `update` 방향 분기
-- 설명: 최종 velocity 한 곳에 direction 곱셈. 속도는 그대로, 방향만 반전.
-- 구현 위치: `update` 본문의 `let speed = ...` 다음, `physicsBody?.velocity = ...` 직전 1줄 + velocity 표현식에 `* direction` 2회 추가
-- 코드 (변경 후):
+### 기능 3: GameScene.triggerAirforceEasterEgg — startFleeing 호출에 콜백 등록
+
+- **구현 위치**: `GameScene.swift`, `// MARK: - Easter Egg` 섹션 마지막 줄.
+- **헤더 MARK 1줄 추가** (`Phase 4-6` 다음):
 ```swift
-func update(deltaTime: TimeInterval, targetPosition: CGPoint, speedT: CGFloat) {
-    let dx = targetPosition.x - position.x
-    let dy = targetPosition.y - position.y
-    let magnitude = hypot(dx, dy)
-    guard magnitude > 0 else {
-        physicsBody?.velocity = .zero
-        return
-    }
-    let unitX = dx / magnitude
-    let unitY = dy / magnitude
-    let speed = GameConfig.enemyBaseSpeed
-        + (GameConfig.enemyMaxSpeed - GameConfig.enemyBaseSpeed) * speedT
-    // Phase 4-6 — 도주 모드면 player 반대 방향(-1). 추적이면 +1. 한 줄 분기.
-    let direction: CGFloat = isFleeing ? -1 : 1
-    physicsBody?.velocity = CGVector(
-        dx: unitX * speed * direction,
-        dy: unitY * speed * direction
-    )
+//  Phase 4-7 · 수간호사 복귀 후 F 재스폰 — startFleeing onEnd 콜백으로 fireImmediately
+```
+- **doc 코멘트 1줄 추가** (`Phase 4-6` doc 다음):
+```swift
+/// Phase 4-7 — startFleeing onEnd 콜백 등록 — 도주 종료 시 spawnSystem.fireImmediately() 발화.
+```
+- **본문 마지막 줄 확장**:
+```swift
+// 기존(1줄):
+// enemy.startFleeing(duration: GameConfig.enemyFleeDuration)
+
+// 신규(3줄):
+enemy.startFleeing(duration: GameConfig.enemyFleeDuration) { [weak self] in
+    self?.spawnSystem.fireImmediately()
 }
 ```
-
-### 기능 4: EnemyNode 헤더 주석
-- 코드:
-```swift
-//  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)
-//  Phase 4-6 · 5초 도주 모드 추가 (isFleeing + startFleeing + update 방향 분기)
-```
-
-### 기능 5: GameConfig `enemyFleeDuration`
-- 구현 위치: Airforce Easter Egg 섹션 *끝*(`bombFlashFadeOutDuration` 다음)
-- 코드:
-```swift
-    /// Phase 4-6 — 수간호사 도주 모드 지속 시간 (초). GDD §7-7 명시 5초.
-    /// trigger 시점에 enemy.startFleeing(duration:)에 전달. 만료 후 자동 추적 재개.
-    static let enemyFleeDuration: TimeInterval = 5.0
-```
-
-### 기능 6: GameScene 트리거 호출 1줄 추가
-- 구현 위치: `triggerAirforceEasterEgg()` 본문 *마지막*(폭탄 3줄 뒤)
-- 코드 (최종 본문):
-```swift
-private func triggerAirforceEasterEgg() {
-    if airforceTriggered { return }
-    airforceTriggered = true
-    let plane = AirplaneNode()
-    cameraNode.addChild(plane)
-    let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
-    plane.crossScreen(sceneWidth: size.width, atY: y)
-    let overlay = AirforceOverlayNode()
-    cameraNode.addChild(overlay)
-    overlay.showAndDismiss()
-    let bomb = BombFlashNode()
-    cameraNode.addChild(bomb)
-    bomb.flash(sceneSize: size)
-    enemy.startFleeing(duration: GameConfig.enemyFleeDuration)
-}
-```
-
-### 기능 7: GameScene 헤더 + doc
-- 헤더(Phase 4-5 다음):
-```swift
-//  Phase 4-6 · 수간호사 5초 도주 — 트리거 시 enemy.startFleeing 호출
-```
-- doc(Phase 4-5 doc 다음):
-```swift
-    /// Phase 4-6 — 동일 가드 안쪽에 enemy.startFleeing(...) 호출로 수간호사 5초 도주 모드 진입.
-```
+- **주의**:
+  - `[weak self]` 의무 — ResultScene 전환 시 GameScene 해제 가능
+  - trailing closure 형태 사용 (`onEnd:` 라벨 X — Swift 관용)
+  - 그 외 10줄 + 가드 2줄 *한 글자도* 변경 금지
 
 ## 검증 시나리오 (a)~(i)
 
 | # | 시나리오 | 정적 검증 방법 |
 |---|---|---|
-| (a) | 미접촉 시 도주 0 | `startFleeing` 호출 grep → trigger 본문 1곳뿐 |
-| (b) | trigger 시 호출 정확 | trigger 마지막 줄 `enemy.startFleeing(duration: GameConfig.enemyFleeDuration)` |
-| (c) | x축 velocity 반전 | `let direction: CGFloat = isFleeing ? -1 : 1` + `dx: unitX * speed * direction` |
-| (d) | y축 velocity 반전 | `dy: unitY * speed * direction` |
-| (e) | 5초 후 false | sequence 마지막 run 본문 `self?.isFleeing = false` |
-| (f) | 도주 중 충돌 게임오버 | EnemyNode contactTestBitMask/.player & collisionBitMask/.wall 그대로 |
-| (g) | 재통과 시 도주 0 | airforceTriggered 가드 + `if isFleeing { return }` 이중 가드 |
-| (h) | ARC 해제 | `SKAction.run` 두 곳 모두 `[weak self]` 캡처 |
-| (i) | 빌드 SUCCEEDED + 경고 0 | 강제 언래핑 0, 매직 넘버 0, Timer/DispatchQueue 0 |
+| (a) | 미접촉 시 fireImmediately 호출 0 | Grep `fireImmediately` 호출 사이트 GameScene 1곳뿐 |
+| (b) | trigger 본문에 trailing closure 정확 | `enemy.startFleeing(duration: GameConfig.enemyFleeDuration) { [weak self] in` 확인 |
+| (c) | onEnd default `= {}` 정확 | `onEnd: @escaping () -> Void = {}` 일치 |
+| (d) | sequence 마지막 run 본문 onEnd() | `self?.isFleeing = false` 다음 줄 `onEnd()` |
+| (e) | [weak self] 두 곳 | GameScene 콜백 + EnemyNode end run |
+| (f) | projectileMaxConcurrent 가드 그대로 | fireProjectile 본문 변경 0 |
+| (g) | airforceTriggered 가드 그대로 | trigger 첫 2줄 변경 0 |
+| (h) | ARC 안전 | `[weak self]` 캡처 → self?.spawnSystem 옵셔널 체이닝 |
+| (i) | 빌드 SUCCEEDED + 경고 0 | 강제 언래핑 0, 매직 넘버 0, `@escaping` + default 정확 |
 
 ## 학습 가치
-- EnemyNode 상태 머신 — Bool flag (Rule of three — 3개 등장 시 enum 승격)
-- `SKAction.run { closure }` — 시간 흐름 내 코드 실행
-- `[weak self]` 캡처 — 노드 자체 SKAction에서 의무
-- 방향 반전 = 단위 벡터 * -1
-- 책임 분리 — 도메인 객체가 자기 상태 관리
-- *호출 측 변경 0* 정책의 *제한된 위반* (EnemyNode 한정 최소 변경)
-- 재호출 가드 패턴
+- Closure parameter — 함수가 *값*
+- `@escaping` — 메서드 종료 후 호출되는 클로저
+- Default closure parameter `= {}` — 4-6 호환성
+- Public wrapper 패턴 — private 외부 진입점
+- 콜백 등록 vs 별도 SKAction — 타이머 동기화 안전
+- AIRFORCE 이스터에그 완성 (6 sprint 누적, GDD §7-7 5단계 모두)
+- 호출 측 변경 0 정책 6 sprint 종합
 
 ## 주의사항
-- **`[weak self]` 캡처 의무** — `startFleeing` 내부 두 `SKAction.run` 클로저 *둘 다*
-- **`if isFleeing { return }` 가드** — `startFleeing` 진입부 첫 줄
-- **도주 속도 별도 상수 신설 금지** — 기존 enemyBaseSpeed/MaxSpeed 그대로
-- **direction 곱셈은 *최종 velocity 한 곳*에서만**
-- **`DispatchQueue.main.asyncAfter` / `Timer` 절대 금지** — 반드시 SKAction
-- **기존 trigger 본문 10줄 한 줄도 변경 금지**
-- **`isFleeing`은 internal(기본)** — `private` 강제 X
-- **pbxproj 변경 0** — 신규 파일 없음
-- **direction 위치** — `magnitude == 0` 가드 안쪽이 아닌 `let speed = ...` 다음
+- `@escaping` 키워드 필수 — SKAction 안 보관, 메서드 종료 후 호출
+- default `= {}` 필수 — 4-6 호환
+- GameScene 콜백 `[weak self]` 의무
+- EnemyNode end run의 `[weak self]`는 4-6에서 이미 있음 — onEnd() 호출은 self와 무관
+- `fireImmediately`는 SpawnSystem 메서드 — `spawnSystem.fireImmediately()` 호출
+- F 동시 최대 가드 통과 못 하면 발사 0 — 정상
+- pbxproj 미변경 — 신규 파일 0
+- AIRFORCE 이스터에그 완성 (GDD §7-7 5단계 모두 구현)
