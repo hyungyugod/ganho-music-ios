@@ -206,4 +206,12 @@ enum GameConfig {
     /// "나와라 박병장!" 오버레이 페이드아웃 길이 (초). alpha 1 → 0 보간 시간.
     /// 총 수명 = displayDuration(1.5) + fadeOutDuration(0.3) = 1.8초.
     static let airforceOverlayFadeOutDuration: TimeInterval = 0.3
+    /// 폭탄 화면 플래시 시작 지연 (초). 오버레이 닫힘(1.5+0.3=1.8) + 300ms = 2.1.
+    /// trigger 시점 t=0 기준. 수동 검증: airforceOverlayDisplayDuration + airforceOverlayFadeOutDuration + 0.3.
+    static let bombFlashDelay: TimeInterval = 2.1
+    /// 폭탄 화면 플래시 fadeIn 길이 (초). alpha 0 → 1 빠른 보간 — *번쩍* 임팩트.
+    static let bombFlashFadeInDuration: TimeInterval = 0.07
+    /// 폭탄 화면 플래시 fadeOut 길이 (초). alpha 1 → 0 느린 보간 — *잔상* 효과.
+    /// 총 표시 길이 = fadeIn(0.07) + fadeOut(0.35) = 0.42초.
+    static let bombFlashFadeOutDuration: TimeInterval = 0.35
 }

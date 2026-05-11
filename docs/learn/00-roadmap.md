@@ -211,6 +211,7 @@ Scenes → Systems → Repositories → (외부)
 | **4-2** | 석조무사 PhysicsBody 부착 (`collision=0` 통과형) + `PhysicsCategory.stoneGuard` 비트 + ContactRouter `onStoneGuardContact` stub — *그릇만 먼저* | [25-phase4-2-stoneguard-contact.md](25-phase4-2-stoneguard-contact.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-3** | AIRFORCE 이스터에그 — Player ↔ StoneGuard 첫 접촉 시 비행기(`AirplaneNode`) 1회 화면 가로지르기 + 자가 소멸 (cameraNode 자식, `SKAction.sequence([move, removeFromParent])`) | [26-phase4-3-airforce-easter-egg.md](26-phase4-3-airforce-easter-egg.md) | ✅ 합격 (**10.0/10**) 🎉 |
 | **4-4** | "나와라 박병장!" AIRFORCE 오버레이 — `AirforceOverlayNode`(SKNode + SKLabelNode), `SKAction.sequence([wait, fadeOut, removeFromParent])` 자가 소멸. 비행기와 동시 등장. *호출 측 변경 0 정책 3 sprint 연속* | [27-phase4-4-airforce-overlay.md](27-phase4-4-airforce-overlay.md) | ✅ 합격 (**10.0/10**) 🎉 |
+| **4-5** | AIRFORCE 폭탄 화면 플래시 — `BombFlashNode`(풀스크린 SKSpriteNode), `[wait(2.1), fadeIn(0.07), fadeOut(0.35), removeFromParent]` 자가 소멸. 오버레이 닫힘 후 300ms → 420ms 누런 섬광. *호출 측 변경 0 4 sprint 연속*. 자가 소멸 노드 패턴 *Rule of three* 도달 | [28-phase4-5-bomb-flash.md](28-phase4-5-bomb-flash.md) | ✅ 합격 (**10.0/10**) 🎉 |
 
 > **변경 이력**: 사용자 요청(2026-05-04)으로 카메라 follow가 핵심 메커닉으로 확정 → Phase 1 작업 단위에 1-2(월드/카메라 셋업) 추가, 기존 1-2(PlayerNode 단순 배치)는 1-3과 통합.
 

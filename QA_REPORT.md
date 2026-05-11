@@ -1,55 +1,70 @@
-# QA 검수 보고서 — Phase 4-4 "나와라 박병장!" AIRFORCE 오버레이
+# QA 검수 보고서 — Phase 4-5 AIRFORCE 폭탄 화면 플래시
 
 ## SPEC 기능 검증
 
-- **[PASS] 기능 1 (AirforceOverlayNode 신설)** — `final class AirforceOverlayNode: SKNode`, `private let label: SKLabelNode`. init에서 `text="나와라 박병장!"` / `name="airforceOverlay"` / `zPosition=200` / `configureLabel()` / `addChild(label)`. PhysicsBody 0.
-- **[PASS] 기능 2 (GameConfig 3상수)** — `airforceOverlayFontSize=28`, `airforceOverlayDisplayDuration=1.5`, `airforceOverlayFadeOutDuration=0.3`. 합산 1.8s. Airforce 섹션 끝 위치(`airplaneTopOffset` 다음), 새 MARK 없음.
-- **[PASS] 기능 3 (GameScene.swift)** — 헤더 MARK 1줄(라인 25), `triggerAirforceEasterEgg()` doc 2줄(195-196), 본문 끝 오버레이 3줄(204-206). 비행기 4줄(200-203) 한 줄도 미변경. 가드(198-199) 위치 그대로.
-- **[PASS] 기능 4 (pbxproj 0019 4곳)** — PBXBuildFile(30) / PBXFileReference(54) / Nodes children(191) / iOS Sources phase(424). AirplaneNode 0018 패턴 답습. `path = AirforceOverlayNode.swift`. tvOS / macOS Sources 빈 `files = ()` 유지.
+- [PASS] **기능 1 — `BombFlashNode` 클래스 신규**: `final class : SKSpriteNode`, `init`에서 `color: .ganhoPaper`, `size: .zero`, `name = "bombFlash"`, `zPosition = 250`, `alpha = 0` 모두 부여 확인. `flash(sceneSize:)`에서 `size = sceneSize`, `position = .zero` 갱신 후 `SKAction.sequence([wait, fadeIn, fadeOut, cleanup])` 정확. 자가 소멸 fire-and-forget 패턴 일치.
+- [PASS] **기능 2 — `GameConfig.swift` 3 상수**: 209~216행에 `bombFlashDelay = 2.1`, `bombFlashFadeInDuration = 0.07`, `bombFlashFadeOutDuration = 0.35` 모두 `airforceOverlayFadeOutDuration` 다음 줄(Airforce 섹션 내부 끝)에 추가됨. 매직 넘버 0건.
+- [PASS] **기능 3 — `GameScene.swift` 헤더 MARK + doc + 본문 3줄**: 헤더 26행 Phase 4-5 추가, doc 198행 Phase 4-5 코멘트 추가, 209~211행에 `let bomb = BombFlashNode()` / `cameraNode.addChild(bomb)` / `bomb.flash(sceneSize: size)` 3줄 정확. 기존 7줄(가드 2 + 비행기 4 + 오버레이 3) 한 줄도 변경 없음.
+- [PASS] **기능 4 — `project.pbxproj` 4곳 식별자 0020 등록**: PBXBuildFile(31행 `A1C0F1B0...0020`), PBXFileReference(56행 `A1C0F1A0...0020`), Nodes 그룹 children(194행), iOS Sources phase(428행) 4곳 모두 일관 등록. macOS/tvOS Sources phase는 `files = ();` 빈 상태 유지.
 
 ## 빌드 검증
 
-- **결과**: BUILD SUCCEEDED
-- **명령어**: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build`
-- **컴파일 경고/에러**: 0건 / 0건
+- 결과: **BUILD SUCCEEDED**
+- 명령: `xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
+- 경고: 0건 (`grep -E "warning:|error:"` 결과 빈 출력)
+- 에러: 0건
 
-## 시나리오 (a)~(i) 정적 검증
+## 회귀 검증 (모두 변경 0줄)
 
-| # | 시나리오 | 결과 |
-|---|---|---|
-| (a) | trigger 호출 경로가 onStoneGuardContact 콜백 1곳뿐 | **PASS** — `GameScene.swift:187` `self?.triggerAirforceEasterEgg()` 1곳. didMove/update/endGame 직접 호출 0. |
-| (b) | trigger 본문 3줄 (overlay 생성/addChild/showAndDismiss) | **PASS** — `GameScene.swift:204-206`. |
-| (c) | showAndDismiss 시퀀스 순서 | **PASS** — `[wait, fadeOut, cleanup]` 정확. wait=displayDuration, fadeOut=fadeOutDuration. |
-| (d) | 두 상수 합산 1.8s | **PASS** — 1.5 + 0.3 = 1.8. |
-| (e) | airforceTriggered 가드 진입부 그대로 | **PASS** — `if airforceTriggered { return }` / `airforceTriggered = true` 두 줄 진입부. 가드 → 플래그 → 비행기 → 오버레이 순서. |
-| (f) | update/endGame/scoreSystem/hud 변경 0 | **PASS** — 모두 미변경. |
-| (g) | dpad/player 변경 0 | **PASS** — `player.currentDirection` / `player.update` 그대로. |
-| (h) | endGame 변경 0 | **PASS** — ResultScene 전환 시 cameraNode 자식 overlay도 ARC 자동 해제. |
-| (i) | pbxproj 4곳 + tvOS/macOS 0건 + 빌드 SUCCEEDED + 경고 0 | **PASS** — 30/54/191/424 4곳 0019 정확. tvOS/macOS 0건. |
+| 파일 | 변경 줄 수 |
+|---|---|
+| `Nodes/AirplaneNode.swift` | 0 (CLEAN) |
+| `Nodes/AirforceOverlayNode.swift` | 0 (CLEAN) |
+| `Systems/ContactRouter.swift` | 0 (CLEAN) |
+| `Config/PhysicsCategory.swift` | 0 (CLEAN) |
+| `Nodes/StoneGuardNode.swift` | 0 (CLEAN) |
+| `GameScene+Setup.swift` | 0 (CLEAN) |
+| `Nodes/EnemyNode.swift` | 0 (CLEAN) |
+| `Nodes/PlayerNode.swift` | 0 (CLEAN) |
+| `Nodes/NoteNode.swift` | 0 (CLEAN) |
+| `Nodes/ProjectileNode.swift` | 0 (CLEAN) |
+| `Nodes/HUDNode.swift` | 0 (CLEAN) |
+| `Nodes/DPadNode.swift` | 0 (CLEAN) |
+| `Scenes/TitleScene.swift` | 0 (CLEAN) |
+| `Scenes/ResultScene.swift` | 0 (CLEAN) |
+| `Config/ColorTokens.swift` | 0 (CLEAN) |
+| macOS Sources phase | `files = ();` 유지 |
+| tvOS Sources phase | `files = ();` 유지 |
+| 기존 GameConfig airplane 4 상수 | 줄 변경 0 |
+| 기존 GameConfig airforceOverlay 3 상수 | 줄 변경 0 |
+| 기존 trigger 7줄 (가드 2 + 비행기 4 + 오버레이 3) | 줄 변경 0 |
 
-## 추가 검증 결과
+OoS 침범 0건. 모든 추가는 *순수 신규* 또는 *섹션 끝 append*.
 
-- **`final class : SKNode`** — 정확
-- **zPosition = 200** — HUD(100), Airplane(50) 위
-- **SKLabelNode 스타일** — `.ganhoYellowF` / `.center`/`.center` 정렬 / `position = .zero`
-- **"나와라 박병장!"** — 띄어쓰기 1, 느낌표 1. 변형 0
-- **강제 언래핑 0** — `!` 사용처: required init?(coder:) fatalError(표준), "박병장!" 문자열 리터럴
-- **매직 넘버 0** — 28/1.5/0.3 모두 GameConfig 상수 참조
-- **[weak self] 캡처** — showAndDismiss self 미사용 → 생략 정당
-- **부착지 cameraNode** — `cameraNode.addChild(overlay)` 정확
+## 검증 시나리오 (a)~(i) 결과
 
-## 회귀 검증 (OoS, 모두 0줄 변경)
+| # | 시나리오 | 검증 방법 | 결과 |
+|---|---|---|---|
+| (a) | `BombFlashNode()` 호출 1곳 | `grep -rn "BombFlashNode()"` → GameScene.swift:209 1건 | PASS |
+| (b) | trigger 본문 폭탄 3줄 | GameScene.swift:209~211 `let bomb = BombFlashNode()` / `cameraNode.addChild(bomb)` / `bomb.flash(sceneSize: size)` 일치 | PASS |
+| (c) | wait 2.1 정확 | BombFlashNode.swift:36 `SKAction.wait(forDuration: GameConfig.bombFlashDelay)`, GameConfig.swift:211 `bombFlashDelay = 2.1` | PASS |
+| (d) | sequence 순서 `[wait, fadeIn, fadeOut, cleanup]` | BombFlashNode.swift:40 `run(.sequence([wait, fadeIn, fadeOut, cleanup]))` 정확 | PASS |
+| (e) | sequence 마지막 `removeFromParent` | BombFlashNode.swift:39 `let cleanup = SKAction.removeFromParent()` 시퀀스 마지막 단계 | PASS |
+| (f) | 게임 변경 0 | `update()` / `endGame()` / `gameState` / 콤보 / 점수 / HUD 미수정 | PASS |
+| (g) | AI 변경 0 | Player/Enemy/Projectile/StoneGuard/SpawnSystem/ContactRouter 모두 0줄 변경 | PASS |
+| (h) | `airforceTriggered` 가드 유지 | GameScene.swift:200~201 `if airforceTriggered { return } / airforceTriggered = true` 위치·내용 그대로. 폭탄 3줄은 가드 *아래* 위치 → 1회만 발화 보장 | PASS |
+| (i) | 빌드 SUCCEEDED + 경고 0 | `** BUILD SUCCEEDED **`, `grep "warning:\|error:"` 빈 출력 | PASS |
 
-`git diff HEAD --` 대상별:
-- `AirplaneNode.swift` — **0 lines**
-- `ContactRouter.swift` / `PhysicsCategory.swift` / `StoneGuardNode.swift` / `GameScene+Setup.swift` — **0 lines**
-- 기타 노드/씬/`ColorTokens.swift` — **0 lines**
-- macOS / tvOS Sources phase — 변경 0
+## 추가 검증 항목
 
-변경 stat:
-- `Config/GameConfig.swift` +7 (doc 3 + 상수 3 + 섹션 공백 1)
-- `GameScene.swift` +6 (헤더 MARK 1 + doc 2 + 본문 3)
-- `project.pbxproj` +4
+- **alpha = 0 init**: BombFlashNode.swift:22 — fadeIn 첫 프레임 즉시 가시화 방지, *번쩍* 임팩트 보장
+- **size = .zero init / flash에서 갱신**: BombFlashNode.swift:19, 34 — scene.size 의존 분리 (AirplaneNode 패턴 답습)
+- **zPosition = 250**: BombFlashNode.swift:21 — HUD(100), AirforceOverlay(200) 위로 정확 배치
+- **`cameraNode.addChild(bomb)` 단일 호출**: GameScene.swift:210, worldNode/self/hud 사용 0
+- **매직 넘버 0건**: 2.1, 0.07, 0.35 모두 GameConfig 상수로만 참조 — flash 메서드 내부에 숫자 리터럴 없음
+- **bombFlashDelay = 2.1 합산 검증**: `1.5 (displayDuration) + 0.3 (fadeOutDuration) + 0.3 (간격) = 2.1` 일치, doc 주석에도 명시
+- **`.ganhoPaper` 재사용**: ColorTokens 새 토큰 신설 0, 기존 토큰만 참조
+- **`[weak self]` 캡처 불필요 정확**: flash 메서드는 self·인스턴스 프로퍼티 미사용 (sceneSize 파라미터로 받음). 액션 시퀀스 내부에 `run` 클로저 없음 → 캡처 부재가 정상
 
 ## 검수 결과 요약
 
@@ -59,35 +74,40 @@
 | P1 중요 | 0건 |
 | P2 권장 | 0건 |
 
+## P0 — 치명적 이슈
+없음.
+
+## P1 — 중요 이슈
+없음.
+
+## P2 — 권장 사항
+없음. 자가 소멸 노드 3회차 도달(AirplaneNode / AirforceOverlayNode / BombFlashNode)로 `protocol SelfDismissingNode` 추출 *후보 인식*은 SPEC §학습가치에 명시되어 있고, 추출 자체는 별도 sprint(OoS)로 의도적 보류 — 본 sprint 범위 밖이므로 감점 사유 아님.
+
 ## 통과 항목
 
-- 강제 언래핑 0건(코드)
-- Timer/DispatchQueue 0건 — `SKAction.wait/fadeOut/removeFromParent` 시퀀스
-- 매직 넘버 0건 — 모두 GameConfig
-- MARK 섹션 — Properties / Init / Show / Dismiss / Configure
-- `final class` 선언
-- 파일 분리 — Nodes/ 1 파일 = 1 클래스
-- GameScene 응집 — `triggerAirforceEasterEgg` 단일점, 메서드 분리 X
-- 부착지 일관성 — cameraNode 자식
-- zPosition 계층 — Airplane(50) < HUD(100) < AirforceOverlay(200)
-- 색 토큰 재사용 — `.ganhoYellowF`
-- self 캡처 정확
-- OoS 위반 0
-- tvOS/macOS Sources phase 미변경
-- 빌드 SUCCEEDED + 경고 0
+- Swift 패턴: 강제 언래핑 0 (BombFlashNode 본문 `!` 0건, `fatalError`만 init(coder:) 표준 패턴), guard 불필요(옵셔널 분기 없음), MARK 2개(`Init`, `Flash`), 한글 변수명 0, 매직 넘버 0
+- SpriteKit 패턴: SKAction.sequence 4단(wait → fadeIn → fadeOut → removeFromParent), Timer/DispatchQueue 0, dt 무관(시각 액션), didMove 미변경(기존 골격 보존), HUD와 분리(cameraNode 자식 zPosition 250)
+- 충돌 안정성: PhysicsBody 부착 0 (순수 시각), didBegin 내부 노드 즉시 삭제 미발생 (자기 액션 마지막 단계가 self.removeFromParent — SKAction 컨텍스트로 안전)
+- 메모리: 클로저 자체 0 → 캡처 누수 위험 0, SKAction.sequence 종료 시 자가 detach
+- 파일 분리: 신규 SKNode 서브클래스가 `Nodes/` 디렉터리에 정확 배치, `GameScene.swift` 246줄(300 미만 유지)
+- Sprint 범위: SPEC In Scope 4개 모두 충족, OoS 14개 항목 위반 0
+- 게임 디자인 정합성: `.ganhoPaper` 16색 팔레트 내 토큰, "나와라 박병장!" 톤 보존, 시퀀스 클라이맥스 임팩트 의도와 일치
+
+---
 
 ## 채점
 
-**항목별**:
-- **Swift 패턴 일관성: 10/10**
-- **게임 로직 완성도: 10/10**
-- **성능 & 안정성: 10/10**
-- **기능 완성도: 10/10**
+| 항목 | 비중 | 점수 | 코멘트 |
+|---|---|---|---|
+| Swift 패턴 일관성 | 0.35 | **10/10** | 강제 언래핑 0, 매직 넘버 0, MARK 분리, 네이밍·doc 주석 모범적. GameConfig 3상수 추가도 섹션 위치 정확. |
+| 게임 로직 완성도 | 0.30 | **10/10** | SKAction.sequence 4단 정확, Timer/DispatchQueue 0, 자가 소멸 패턴 일관, `airforceTriggered` 1회 가드 그대로. |
+| 성능 & 안정성 | 0.20 | **10/10** | 빌드 SUCCEEDED + 경고 0, 클로저 0 → 캡처 누수 위험 0, PhysicsBody 0, 자가 detach로 메모리 누수 없음. |
+| 기능 완성도 | 0.15 | **10/10** | SPEC 4개 기능 + 시나리오 (a)~(i) 9개 + 추가 검증 7개 항목 모두 PASS. OoS 14항 위반 0. |
 
-**가중 점수**: (10×0.35) + (10×0.30) + (10×0.20) + (10×0.15) = **10.0 / 10.0**
+**가중 점수**: (10 × 0.35) + (10 × 0.30) + (10 × 0.20) + (10 × 0.15) = **10.00 / 10.0**
 
 ## 최종 판정: **합격**
 
-**핵심 가치**: 자가 소멸 노드 패턴(AirplaneNode)의 *두 번째 적용*. SKAction.sequence([wait, fadeOut, removeFromParent]) 토스트 패턴 정석. *호출 측 변경 0* 정책이 4-2 → 4-3 → 4-4 *세 sprint 연속* 유지.
+자체 점검(SELF_CHECK.md)과 실제 코드·빌드 결과가 100% 일치한다. SPEC의 "기존 줄 변경 0 + 신규/추가만" 정책을 정확히 준수했고, 회귀 영향 범위는 정확히 0이다. AirplaneNode / AirforceOverlayNode 답습 3회차 도달로 자가 소멸 노드 패턴이 *Rule of three* 단계에 들어섰으며, SPEC도 protocol 추출을 **다음 sprint로 의도적 보류**한 점이 명시되어 있어 본 sprint 범위 결정도 합리적이다.
 
-**다음 sprint 준비**: Phase 4-5 (폭탄 화면 플래시) / 4-6 (수간호사 5초 도주) / Phase 4-Z (이교주 NPC) 후보.
+**구체적 개선 지시**: 없음. 다음 sprint 후보 — Phase 4-6(수간호사 도주 효과), Phase 4-7(F 재스폰 변형), 또는 자가 소멸 노드 protocol 추출 리팩터 sprint.

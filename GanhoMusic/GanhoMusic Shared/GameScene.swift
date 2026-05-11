@@ -23,6 +23,7 @@
 //  Phase 4-2 · StoneGuardNode PhysicsBody 부착 + ContactRouter onStoneGuardContact stub
 //  Phase 4-3 · AIRFORCE 이스터에그 — Player ↔ StoneGuard 첫 접촉 시 비행기 가로지르기 1회
 //  Phase 4-4 · AIRFORCE 오버레이 — "나와라 박병장!" 텍스트 자가 페이드아웃
+//  Phase 4-5 · AIRFORCE 폭탄 화면 플래시 — 오버레이 닫힘 후 300ms → 420ms 섬광
 //
 
 import SpriteKit
@@ -194,6 +195,7 @@ class GameScene: SKScene {
     /// 점수/HUD/적/게임오버 로직 일체 미접촉 — 순수 시각 이스터에그.
     /// Phase 4-4 — 동일 가드 안쪽에 AirforceOverlayNode("나와라 박병장!") 동시 부착.
     /// 두 노드는 서로 모르며 각자 자기 SKAction으로 자가 소멸(fire-and-forget).
+    /// Phase 4-5 — 동일 가드 안쪽에 BombFlashNode 폭탄 플래시도 동시 발화, 자가 소멸.
     private func triggerAirforceEasterEgg() {
         if airforceTriggered { return }
         airforceTriggered = true
@@ -204,6 +206,9 @@ class GameScene: SKScene {
         let overlay = AirforceOverlayNode()
         cameraNode.addChild(overlay)
         overlay.showAndDismiss()
+        let bomb = BombFlashNode()
+        cameraNode.addChild(bomb)
+        bomb.flash(sceneSize: size)
     }
 
     // MARK: - Game State

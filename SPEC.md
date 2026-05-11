@@ -1,264 +1,208 @@
-# Phase 4-4 (C) — "나와라 박병장!" AIRFORCE 오버레이
+# Phase 4-5 (D) — AIRFORCE 폭탄 화면 플래시
 
 ## 개요
-
-Phase 4-3에서 구현된 AIRFORCE 이스터에그(비행기 좌→우 가로지르기)에 "나와라 박병장!" 노란 텍스트 오버레이를 화면 정중앙에 추가한다. 비행기와 *동시*에 등장 → 1.5초 표시 → 0.3초 페이드아웃 → 자가 제거(총 수명 1.8초). 사용자 입력 없음(자동), 게임 일시정지 없음. 새 노드 1개(`AirforceOverlayNode`), `GameConfig` 3상수, `GameScene.triggerAirforceEasterEgg()` 본문 3줄 추가가 전부.
+AIRFORCE 이스터에그 시퀀스의 *세 번째 단계*. 오버레이가 사라진 0.3초 뒤(trigger 후 2.1s), 화면 전체가 0.42초 동안 누런 섬광(`.ganhoPaper`)으로 *번쩍* 한 뒤 자가 소멸. 게임 로직은 변하지 않으며 *순수 시각 임팩트*만 추가한다.
 
 ## 변경 유형
-
-**혼합** — 신규 노드 클래스(`AirforceOverlayNode`) + 비주얼 효과(SKLabelNode + fadeOut) + 게임플레이 메서드 본문 확장(`triggerAirforceEasterEgg`).
+**혼합** — 신규 노드(`BombFlashNode`) + 비주얼 효과(풀스크린 사각형 + fadeIn/fadeOut) + `GameScene.triggerAirforceEasterEgg()` 본문 확장(3줄).
 
 ## 게임 경험 의도
-
-플레이어가 석조무사를 처음 통과하는 순간, 화면 정중앙에 노란색 텍스트 **"나와라 박병장!"**이 1.5초간 또렷이 떠 있다가 0.3초에 걸쳐 자연스럽게 사라진다. 그 사이 화면 위쪽에서는 비행기가 좌→우로 가로지른다(4-3) — 두 효과가 *동시*에 발화해 "박병장이 호출되자 비행기가 응답한다"는 의미를 명확히 전달한다. 점수·HUD·D-Pad·게임 로직은 모두 정상 진행되며, 시각 알림만 추가된다.
+오버레이("나와라 박병장!")가 사라진 0.3초 뒤, 화면 전체가 누런 섬광으로 *번쩍* 했다가 0.35초에 걸쳐 잔상처럼 사라진다. AIRFORCE 시퀀스(비행기→오버레이→**폭탄**)의 *클라이맥스 시각 임팩트*. 게임 진행(player/적/F/점수/HUD)은 정상 진행되며 시각 효과만 추가된다.
 
 ## Sprint 범위 계약
 
-- **허용**: SPEC 기능의 정상 동작에 필수적인 최소 연동 변경 — 신규 노드 1개 파일, `GameConfig` 3상수 추가, `GameScene.swift` 4줄(헤더 MARK 1 + trigger 본문 3), pbxproj 4곳 0019 등록
-- **금지**: SPEC에 없는 독립적인 새 기능/효과 추가
-- **판단 기준**: "이 변경이 없으면 'Player가 StoneGuard 첫 통과 시 화면 중앙에 \"나와라 박병장!\"이 1.5초 + 페이드 0.3초 표시'가 동작하는가?" → YES면 허용, NO면 금지
+### In Scope (모두 필수)
+1. **새 파일** `GanhoMusic Shared/Nodes/BombFlashNode.swift` (~50줄)
+2. **수정** `Config/GameConfig.swift` — Airforce Easter Egg 섹션 *내부 끝*에 3상수 추가
+3. **수정** `GameScene.swift` — 헤더 MARK 1줄 + `triggerAirforceEasterEgg()` 본문 끝에 폭탄 3줄 + doc 코멘트 1줄
+4. **수정** `project.pbxproj` — 식별자 0020로 4곳 등록
 
-### In Scope (4건, 모두 필수)
+### Out of Scope (모두 금지, 위반 시 P0)
+- `AirplaneNode` / `AirforceOverlayNode` 한 줄도 변경 금지
+- `ContactRouter` / `PhysicsCategory` / `StoneGuardNode` / `GameScene+Setup` 변경 금지
+- 기존 `GameConfig` 상수(airplane 4 + airforceOverlay 3 + 그 외) 변경 금지
+- 다른 노드(Enemy/Player/Note/Projectile/HUD/DPad) 변경 금지
+- `TitleScene` / `ResultScene` 변경 금지
+- `ColorTokens` 새 토큰 신설 금지 (기존 `.ganhoPaper` 재사용)
+- `update()` / `endGame()` / `airforceTriggered` 가드 위치 변경 금지
+- 수간호사 도주 / F 재스폰 효과 추가 금지 (다음 sprint 4-6, 4-7)
+- 사운드 / 햅틱 / 진동 / 게임 일시정지 / `gameState` 변경 금지
+- `BombFlashNode`에 `PhysicsBody` 부착 금지
+- macOS / tvOS Sources phase 수정 금지
+- Test 코드 추가 금지
+- 자가 소멸 노드 패턴 *protocol 추출* 금지 (별도 리팩터 sprint로)
 
-1. `Nodes/AirforceOverlayNode.swift` 신규 (~50줄, `final class : SKNode`)
-2. `Config/GameConfig.swift` — Airforce Easter Egg 섹션 끝(airplaneTopOffset 다음)에 3상수 추가
-3. `GameScene.swift` — 헤더 MARK 1줄 + `triggerAirforceEasterEgg()` 본문 끝에 3줄 추가
-4. `GanhoMusic.xcodeproj/project.pbxproj` — 4곳 0019 식별자 등록 (AirplaneNode 0018 패턴 답습)
-
-### Out of Scope (위반 시 P0)
-
-- `AirplaneNode.swift` 변경 (한 줄도)
-- `ContactRouter` / `PhysicsCategory` / `StoneGuardNode` / `GameScene+Setup.swift` 변경
-- 기존 `GameConfig` 상수 값/이름 변경 (airplane 4상수 / stoneGuard / 그 외 일체)
-- 다른 노드 변경 (Enemy/Player/Note/Projectile/HUD/DPad)
-- `TitleScene` / `ResultScene` 변경
-- `ColorTokens` 신 토큰 신설 (기존 `.ganhoYellowF` 재사용)
-- `update()` / `endGame()` 변경
-- 폭탄·수간호사 도주·사운드 (다음 sprint)
-- 사용자 입력 처리 (오버레이 터치/확인 버튼 — 자동 페이드만)
-- 게임 일시정지·`gameState` 변경
-- `airforceTriggered` 가드 로직 변경 (4-3 그대로)
-- 비행기와 오버레이 *순서 의존성* 도입 (둘이 독립 노드)
-- macOS / tvOS Sources phase 수정 (현재 비어 있음 — 그대로 유지)
-- 테스트 코드 추가
+### 판단 기준
+"이 변경이 없으면 'Player가 StoneGuard 첫 통과 시 트리거 후 2.1s 뒤 화면 전체가 0.42초간 누런 섬광' 동작이 되는가?" → **NO**만 In Scope.
 
 ## 변경 범위
 
-### 추가할 파일 (1개)
-- `GanhoMusic/GanhoMusic Shared/Nodes/AirforceOverlayNode.swift` — `final class AirforceOverlayNode: SKNode`. 자식 `SKLabelNode` 1개. `showAndDismiss()` 메서드로 자가 소멸.
+### 수정할 파일
+- `GanhoMusic Shared/Config/GameConfig.swift` — Airforce 섹션 끝에 +3 상수
+- `GanhoMusic Shared/GameScene.swift` — 헤더 MARK 1줄 + doc 1줄 + 트리거 본문 끝 3줄
+- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 4곳 (식별자 `0020`)
 
-### 수정할 파일 (3개)
-- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — Airforce Easter Egg 섹션 *끝*에 3상수 추가
-- `GanhoMusic/GanhoMusic Shared/GameScene.swift` — 헤더 MARK 1줄 + `triggerAirforceEasterEgg()` 본문 *마지막*에 3줄 추가
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 4곳 0019 식별자 등록
+### 추가할 파일
+- `GanhoMusic Shared/Nodes/BombFlashNode.swift`
 
 ## 기능 상세
 
-### 기능 1 — `AirforceOverlayNode` 신규 노드
-- **설명**: "나와라 박병장!" 텍스트를 1.5초 표시 → 0.3초 페이드아웃 → 자가 제거하는 SKNode 컨테이너. PhysicsBody 없음, 입력 처리 없음, 순수 시각.
-- **구현 위치**: `GanhoMusic/GanhoMusic Shared/Nodes/AirforceOverlayNode.swift` (신규)
-- **참조 패턴**: `Nodes/HUDNode.swift`(SKNode 컨테이너 + 자식 SKLabelNode)와 `Nodes/AirplaneNode.swift`(SKAction.sequence 자가 소멸)
-- **핵심 코드 구조**:
+### 기능 1: `BombFlashNode` 클래스
+- **설명**: 화면 전체를 덮는 누런 섬광 사각형. 외부에서 `flash(sceneSize:)` 호출 시 4단 SKAction 시퀀스로 자가 소멸.
+- **구현 위치**: 신규 파일 `GanhoMusic Shared/Nodes/BombFlashNode.swift`
+- **참고 패턴**: `AirforceOverlayNode`(0019) / `AirplaneNode`(0018) — init에서 시각 속성만 부여, 외부 호출자가 메서드 호출 시점에 SKAction 시작.
 
+- **핵심 코드 구조**:
 ```swift
 //
-//  AirforceOverlayNode.swift
+//  BombFlashNode.swift
 //  GanhoMusic Shared
 //
-//  Phase 4-4 · AIRFORCE 오버레이 — "나와라 박병장!" 텍스트 + 자가 페이드아웃
+//  Phase 4-5 · AIRFORCE 폭탄 화면 플래시 — 누런 섬광 + 자가 소멸
 //
 
 import SpriteKit
 
-/// AIRFORCE 이스터에그 호출 텍스트 오버레이. PhysicsBody 부착 0 — 순수 시각.
-/// 자식 SKLabelNode 1개("나와라 박병장!") 컨테이너.
-/// init에서 색·폰트·정렬·zPosition만 부여하고, 외부 호출자가 showAndDismiss()를
-/// 부르는 시점에 SKAction.sequence([wait, fadeOut, removeFromParent])로 자가 소멸.
-/// AirplaneNode 패턴 답습 — fire-and-forget.
-final class AirforceOverlayNode: SKNode {
-
-    // MARK: - Properties
-    private let label: SKLabelNode
+/// AIRFORCE 이스터에그 폭탄 화면 플래시. PhysicsBody 부착 0 — 순수 시각.
+/// init에서 색·zPosition·name·alpha=0만 부여하고, scene.size 의존인
+/// size·position·SKAction은 외부 호출자가 flash(sceneSize:) 부르는 시점에 시작한다.
+/// SKAction.sequence([wait, fadeIn, fadeOut, removeFromParent])로 자가 소멸(fire-and-forget).
+/// AirplaneNode / AirforceOverlayNode 패턴 답습 — 자가 소멸 노드 3회차.
+final class BombFlashNode: SKSpriteNode {
 
     // MARK: - Init
-    override init() {
-        label = SKLabelNode(text: "나와라 박병장!")
-        super.init()
-        name = "airforceOverlay"
-        // HUD(100) 위 — 이스터에그 강조. AirplaneNode(50)보다도 위. 1.8초만 존재.
-        zPosition = 200
-        configureLabel()
-        addChild(label)
+    init() {
+        super.init(texture: nil, color: .ganhoPaper, size: .zero)
+        name = "bombFlash"
+        zPosition = 250
+        alpha = 0
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Show / Dismiss
-    /// 부모(cameraNode)에 addChild 직후 호출. 1.5초 대기 → 0.3초 페이드아웃 → 자가 제거.
+    // MARK: - Flash
+    /// 부모(cameraNode)에 addChild 직후 호출. scene.size로 풀스크린 크기 부여 →
+    /// wait(2.1) → fadeIn(0.07) → fadeOut(0.35) → 자가 제거.
     /// self 미사용 — [weak self] 캡처 불필요.
-    func showAndDismiss() {
-        let wait    = SKAction.wait(forDuration: GameConfig.airforceOverlayDisplayDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.airforceOverlayFadeOutDuration)
+    func flash(sceneSize: CGSize) {
+        size = sceneSize
+        position = .zero
+        let wait    = SKAction.wait(forDuration: GameConfig.bombFlashDelay)
+        let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.bombFlashFadeInDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.bombFlashFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
-        run(.sequence([wait, fadeOut, cleanup]))
-    }
-
-    // MARK: - Configure
-    /// 라벨 스타일 — 색은 비행기와 통일(.ganhoYellowF), 중앙 정렬.
-    /// cameraNode 자식 (0,0) = 화면 중앙. label position도 (0,0)으로 두면 화면 정중앙.
-    private func configureLabel() {
-        label.fontSize = GameConfig.airforceOverlayFontSize
-        label.fontColor = .ganhoYellowF
-        label.verticalAlignmentMode = .center
-        label.horizontalAlignmentMode = .center
-        label.position = .zero
+        run(.sequence([wait, fadeIn, fadeOut, cleanup]))
     }
 }
 ```
 
-**주의**:
-- `label`을 `let` 프로퍼티로 보유하되 외부 노출 0(private).
-- `position = .zero`(라벨 자체) — 부모(`AirforceOverlayNode`) 자체 position은 호출자가 0으로 두므로 화면 정중앙(`cameraNode` 자식 (0,0) = 화면 중앙).
-- `name = "airforceOverlay"`는 디버깅 편의.
-- 폰트 패밀리 지정 안 함(시스템 기본).
-
-### 기능 2 — `GameConfig` 3상수 추가
-- **설명**: 오버레이 폰트 크기·표시 시간·페이드아웃 시간 매직 넘버 제거.
-- **구현 위치**: `Config/GameConfig.swift`, `// MARK: - Airforce Easter Egg (Phase 4-3)` 섹션 *내부 끝*. `airplaneTopOffset` 줄 다음에 추가. 새 MARK 신설 금지(기존 섹션에 합류).
-- **추가 코드(정확한 형태)**:
-
+### 기능 2: `GameConfig.swift` Airforce 섹션 +3 상수
+- **설명**: 폭탄 플래시 타이밍 3상수. alpha는 fadeIn이 자동으로 0→1 보간하므로 별도 상수 불필요.
+- **구현 위치**: `airforceOverlayFadeOutDuration` 다음 줄.
+- **삽입 코드**:
 ```swift
-    /// "나와라 박병장!" 오버레이 폰트 크기 (pt). HUD(18)보다 크고 화면 중앙 가독성 우선.
-    static let airforceOverlayFontSize: CGFloat = 28
-    /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
-    static let airforceOverlayDisplayDuration: TimeInterval = 1.5
-    /// "나와라 박병장!" 오버레이 페이드아웃 길이 (초). alpha 1 → 0 보간 시간.
-    /// 총 수명 = displayDuration(1.5) + fadeOutDuration(0.3) = 1.8초.
-    static let airforceOverlayFadeOutDuration: TimeInterval = 0.3
+    /// 폭탄 화면 플래시 시작 지연 (초). 오버레이 닫힘(1.5+0.3=1.8) + 300ms = 2.1.
+    /// trigger 시점 t=0 기준. 수동 검증: airforceOverlayDisplayDuration + airforceOverlayFadeOutDuration + 0.3.
+    static let bombFlashDelay: TimeInterval = 2.1
+    /// 폭탄 화면 플래시 fadeIn 길이 (초). alpha 0 → 1 빠른 보간 — *번쩍* 임팩트.
+    static let bombFlashFadeInDuration: TimeInterval = 0.07
+    /// 폭탄 화면 플래시 fadeOut 길이 (초). alpha 1 → 0 느린 보간 — *잔상* 효과.
+    /// 총 표시 길이 = fadeIn(0.07) + fadeOut(0.35) = 0.42초.
+    static let bombFlashFadeOutDuration: TimeInterval = 0.35
 ```
 
-**금지**: airplane 4상수(`airplaneWidth`, `airplaneHeight`, `airplaneCrossDuration`, `airplaneTopOffset`) 값/이름 변경 금지.
+### 기능 3: `GameScene.swift` 헤더 MARK + 트리거 본문 확장
+- **설명**: 헤더 1줄 + doc 1줄 + 본문 끝 3줄. 기존 비행기 4줄·오버레이 3줄은 한 줄도 변경 금지.
 
-### 기능 3 — `GameScene.swift` 본문 확장
-- **설명**: (a) 헤더 MARK 1줄 추가, (b) `triggerAirforceEasterEgg()` 본문 *마지막*에 오버레이 3줄 추가. 기존 비행기 부분은 한 줄도 변경 금지.
-
-**(a) 헤더 MARK 추가** — 기존 `//  Phase 4-3 · AIRFORCE 이스터에그 …` 라인 *바로 다음 줄*에:
-
+- **헤더 MARK 추가** (`Phase 4-4` 라인 다음 줄):
 ```swift
-//  Phase 4-4 · AIRFORCE 오버레이 — "나와라 박병장!" 텍스트 자가 페이드아웃
+//  Phase 4-5 · AIRFORCE 폭탄 화면 플래시 — 오버레이 닫힘 후 300ms → 420ms 섬광
 ```
 
-**(b) `triggerAirforceEasterEgg()` 본문 확장** — 기존 메서드의 *마지막* 비행기 부분 *뒤에* 오버레이 3줄을 추가. 비행기 부분은 *위에 두고* 오버레이는 *뒤에*. 가드 안쪽이어야 함.
-
-수정 후 최종 형태:
-
+- **doc 코멘트 1줄 추가** (`Phase 4-4` doc 줄 다음):
 ```swift
-    // MARK: - Easter Egg
-    /// Player ↔ StoneGuard 첫 접촉 시 호출. 1회 한정 가드 후 비행기 1마리를 cameraNode에 부착,
-    /// 좌→우 가로지르기 SKAction 실행. AirplaneNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
-    /// 점수/HUD/적/게임오버 로직 일체 미접촉 — 순수 시각 이스터에그.
-    /// Phase 4-4 — 동일 가드 안쪽에 AirforceOverlayNode("나와라 박병장!") 동시 부착.
-    /// 두 노드는 서로 모르며 각자 자기 SKAction으로 자가 소멸(fire-and-forget).
-    private func triggerAirforceEasterEgg() {
-        if airforceTriggered { return }
-        airforceTriggered = true
-        let plane = AirplaneNode()
-        cameraNode.addChild(plane)
-        let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
-        plane.crossScreen(sceneWidth: size.width, atY: y)
-        let overlay = AirforceOverlayNode()
-        cameraNode.addChild(overlay)
-        overlay.showAndDismiss()
-    }
+    /// Phase 4-5 — 동일 가드 안쪽에 BombFlashNode 폭탄 플래시도 동시 발화, 자가 소멸.
 ```
 
-**금지**:
-- 비행기 4줄(`AirplaneNode()` / `cameraNode.addChild(plane)` / `let y = ...` / `plane.crossScreen(...)`) 한 줄도 변경 금지.
-- `airforceTriggered` 가드 위치 이동 금지.
-- `cameraNode` 외 부착지 금지.
-- 오버레이 위치 설정 코드 추가 금지.
-- 메서드 분리 금지.
-
-### 기능 4 — `project.pbxproj` 4곳 0019 등록
-- **설명**: AirplaneNode(0018) 패턴을 정확히 답습한 0019 식별자로 신규 파일 등록.
-
-**4-1. PBXBuildFile** (0018 다음에 1줄 추가):
-```
-		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
+- **본문 확장** — `overlay.showAndDismiss()` 다음 줄에 3줄 추가:
+```swift
+        let bomb = BombFlashNode()
+        cameraNode.addChild(bomb)
+        bomb.flash(sceneSize: size)
 ```
 
-**4-2. PBXFileReference** (0018 다음에 1줄 추가):
+- **최종 모습**:
+```swift
+private func triggerAirforceEasterEgg() {
+    if airforceTriggered { return }
+    airforceTriggered = true
+    let plane = AirplaneNode()
+    cameraNode.addChild(plane)
+    let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
+    plane.crossScreen(sceneWidth: size.width, atY: y)
+    let overlay = AirforceOverlayNode()
+    cameraNode.addChild(overlay)
+    overlay.showAndDismiss()
+    let bomb = BombFlashNode()
+    cameraNode.addChild(bomb)
+    bomb.flash(sceneSize: size)
+}
 ```
-		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
+
+### 기능 4: `project.pbxproj` 4곳 등록 (식별자 `0020`)
+- **설명**: `AirforceOverlayNode` (0019) 패턴 정확 답습. iOS Sources phase에만 등록.
+
+- **위치 1 — PBXBuildFile** (0019 다음):
+```
+		A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000020 /* BombFlashNode.swift */; };
 ```
 
-**4-3. Nodes 그룹 children** (AirplaneNode 다음 1줄 추가):
+- **위치 2 — PBXFileReference** (0019 다음):
 ```
-				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
-```
-
-**4-4. iOS Sources phase** (AirplaneNode 다음 1줄 추가):
-```
-				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,
+		A1C0F1A00000000000000020 /* BombFlashNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombFlashNode.swift; sourceTree = "<group>"; };
 ```
 
-**금지**:
-- tvOS / macOS Sources phase 수정 금지
-- 0019 외 식별자 사용 금지
-- `path` 디렉터리 포함 금지 (AirplaneNode와 동일하게 상대 파일명만)
+- **위치 3 — Nodes 그룹 children** (AirforceOverlayNode 다음):
+```
+				A1C0F1A00000000000000020 /* BombFlashNode.swift */,
+```
 
-## 검증 시나리오 (a)~(i)
+- **위치 4 — iOS Sources phase** (AirforceOverlayNode 다음):
+```
+				A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */,
+```
 
-| # | 시나리오 | 봐야 할 것 | 정적 검증 방법 |
-|---|---|---|---|
-| (a) | 게임 시작, 석조무사 미접촉 | 오버레이 0건 | `triggerAirforceEasterEgg()` 호출 경로가 `onStoneGuardContact` 콜백뿐 |
-| (b) | Player가 석조무사 첫 통과 | 화면 정중앙 노란 "나와라 박병장!" + 비행기 동시 등장 | `triggerAirforceEasterEgg()` 본문에 `AirforceOverlayNode()` / `cameraNode.addChild(overlay)` / `overlay.showAndDismiss()` 3줄 존재 |
-| (c) | ~1.5초 후 | 오버레이 페이드아웃 시작 | `showAndDismiss()` 시퀀스 정확: `wait(1.5) → fadeOut(0.3) → removeFromParent()` |
-| (d) | ~1.8초 후 | 오버레이 완전 사라짐 | `airforceOverlayDisplayDuration + airforceOverlayFadeOutDuration == 1.8` |
-| (e) | 재통과 시 | 오버레이·비행기 모두 0 | `airforceTriggered` 가드 진입부 그대로 |
-| (f) | 점수·HUD | 영향 0 | `update()` / `endGame()` / `scoreSystem` / `hud` 한 줄도 변경 없음 |
-| (g) | D-Pad | 정상 입력 | `dpad` / `player.currentDirection` / `player.update` 변경 없음 |
-| (h) | 게임오버 잔존 | ResultScene 전환 시 ARC 자동 해제 | `endGame()` 변경 없음 — `cameraNode` 자식 overlay도 함께 해제 |
-| (i) | pbxproj 정합성 | 빌드 SUCCEEDED + 경고 0 | 4곳 식별자가 모두 정확히 1회 등장. tvOS/macOS 0019 0건 |
+## 검증 시나리오 (a)~(i) — 정적 검증
 
-## 학습 가치 (Spring 비유)
-
-| 학습 항목 | 한 줄 설명 | Spring 비유 |
+| # | 시나리오 | 정적 검증 방법 |
 |---|---|---|
-| 자가 소멸 노드 패턴 2회차 | AirplaneNode `[move, removeFromParent]` → AirforceOverlayNode `[wait, fadeOut, removeFromParent]`. 두 번 반복 = 인식 단계 | 같은 fire-and-forget 패턴 두 서비스 등장 |
-| `SKLabelNode` 중앙 정렬 | `.center` 정렬로 화면 정중앙 anchor | `text-align: center` |
-| `SKAction.wait + fadeOut + removeFromParent` | 3단 시퀀스 토스트 패턴 표준 | 토스트 라이브러리 duration + fadeOut |
-| 호출 측 변경 0 패턴 3 sprint 연속 | ContactRouter / PhysicsCategory / StoneGuardNode 0줄 | `@EventListener` 신규 리스너 추가만 |
-| `triggerAirforceEasterEgg` 본문 *확장* | 단일 이스터에그 응집. 메서드 분리 X | 한 도메인 이벤트 = 한 핸들러 |
-| `zPosition = 200` | HUD(100) 위 — 1.8초만 존재 | CSS z-index 토스트 |
-| 색 토큰 재사용 (`.ganhoYellowF`) | 비행기와 통일 | brand color token 재사용 |
+| (a) | 미접촉 시 폭탄 0 | `BombFlashNode()` 호출이 `triggerAirforceEasterEgg()` 1곳뿐 |
+| (b) | trigger 시 폭탄 3줄 존재 | 본문 끝 3줄(`BombFlashNode()`/`cameraNode.addChild(bomb)`/`bomb.flash(sceneSize: size)`) |
+| (c) | ~1.8s 시점 폭탄 미등장 | `wait(forDuration: bombFlashDelay)` 첫 액션, `bombFlashDelay = 2.1` 확인 |
+| (d) | ~2.1s 시점 fadeIn 시작 | sequence `[wait, fadeIn, fadeOut, cleanup]` 순서 정확 |
+| (e) | ~2.5s 시점 removeFromParent | sequence 마지막 단계가 `removeFromParent()` |
+| (f) | 게임 변경 0 | `update()` / `endGame()` / `gameState` 미변경 |
+| (g) | AI 변경 0 | `Player` / `Enemy` / `Projectile` / `EnemyNode` / `SpawnSystem` 미변경 |
+| (h) | 재통과 시 0 | `airforceTriggered` 가드 그대로 |
+| (i) | 빌드 SUCCEEDED + 경고 0 | pbxproj 4곳 0020 등록 일관, 컴파일 에러/경고 0 |
+
+## 학습 가치
+- `SKAction.fadeIn(withDuration:)` 첫 도입 (fadeOut의 정확한 반대)
+- 풀스크린 사각형 + `scene.size` 의존 노드 — init/메서드 책임 분리 (AirplaneNode 패턴 답습)
+- **자가 소멸 노드 패턴 3회차** — Rule of three 도달 (`protocol SelfDismissingNode` 추출 *후보 인식*만, 추출은 별도 sprint)
+- 비대칭 fadeIn/fadeOut (0.07s vs 0.35s) — *번쩍 + 잔상* 시각 곡선
+- **호출 측 변경 0 정책 4 sprint 연속** (4-2, 4-3, 4-4, 4-5)
 
 ## 주의사항
-
-### 코드 패턴
-- **강제 언래핑 금지**: 모든 프로퍼티 non-optional.
-- **매직 넘버 금지**: 폰트 크기 28 / 표시 1.5 / 페이드 0.3은 모두 GameConfig 상수.
-- **`[weak self]` 캡처 불필요**: showAndDismiss self 미참조.
-- **Timer 금지**: SKAction.wait 사용.
-
-### SpriteKit
-- **PhysicsBody 부착 0**: 충돌 없음.
-- **부착지**: 반드시 `cameraNode.addChild(overlay)`. worldNode/self/hud 금지.
-- **zPosition = 200**: HUD(100) 위.
-- **노드 순서**: 비행기 *먼저*, 오버레이 *뒤에*. 실행은 동시.
-
-### 빌드 / pbxproj
-- **0019 식별자**: 4곳 정확. AirplaneNode 0018 패턴 답습.
-- **tvOS/macOS**: 그대로 유지.
-- **path 상대성**: `AirforceOverlayNode.swift`(디렉터리 미포함).
-
-### 텍스트 정확성
-- **"나와라 박병장!"** — 띄어쓰기 1회, 느낌표 1개. 변형 금지.
-
-### 가드 정합성
-- `airforceTriggered` 가드는 *비행기 + 오버레이 둘 다*를 막아야 함. 가드 → 플래그 → 비행기 → 오버레이 순.
-
-### 메서드 doc 코멘트
-- 기존 doc 3줄 그대로 유지. 4-4 동작 설명 2줄 *추가*.
+- **alpha = 0 초기화 필수**: 없으면 fadeIn 첫 프레임에 alpha=1로 즉시 가시 → "번쩍" 효과 사라짐
+- **size .zero init**: SKSpriteNode super.init에 `size: .zero` 전달. flash 메서드가 sceneSize로 갱신
+- **`cameraNode.addChild(bomb)` 정확**: worldNode/self/hud 금지
+- **`zPosition = 250`**: HUD(100), AirforceOverlay(200) 위
+- **`[weak self]` 캡처 불필요**: flash self 미사용
+- **`bombFlashDelay = 2.1` 합산 검증**: 1.5 + 0.3 + 0.3 = 2.1
+- **`.ganhoPaper` 재사용**: ColorTokens 새 토큰 신설 금지
+- **pbxproj `0020` 4곳 일관성**: PBXBuildFile은 `A1C0F1B0...0020`, PBXFileReference는 `A1C0F1A0...0020`
+- **macOS / tvOS Sources phase 미변경**
+- **기존 7줄(가드 2 + 비행기 4 + 오버레이 3) 한 줄도 변경 금지**: 폭탄 3줄은 *추가만*
