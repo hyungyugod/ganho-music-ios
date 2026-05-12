@@ -27,6 +27,8 @@ final class TitleScene: SKScene {
     private var selectedCharacterID: CharacterID = .kim
     /// Phase 5-1 — 5 캐릭터 카드 인스턴스 보관. setupCharacterCards에서 생성, layoutCharacterCards에서 위치 갱신, touchesBegan에서 hit test.
     private var characterCards: [CharacterCardNode] = []
+    /// Phase 5-6 — 캐릭터 선택 영속 계층. didMove에서 .current로 복원, select(_:)에서 save 호출.
+    private let preferenceRepo = CharacterPreferenceRepository()
 
     // MARK: - Factory
     /// GameScene.newGameScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
@@ -40,6 +42,7 @@ final class TitleScene: SKScene {
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgDeep
         setupLabels()
+        selectedCharacterID = preferenceRepo.current   // Phase 5-6 — 마지막 선택 복원 (없으면 .kim)
         setupCharacterCards()
         startPromptBlink()
     }
@@ -144,6 +147,7 @@ final class TitleScene: SKScene {
     /// 선택 캐릭터 변경 + 5 카드 알파 일괄 갱신.
     private func select(_ id: CharacterID) {
         selectedCharacterID = id
+        preferenceRepo.save(id)   // Phase 5-6 — 선택 변경 즉시 디스크 반영
         for card in characterCards {
             card.setSelected(card.id == id)
         }

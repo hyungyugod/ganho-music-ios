@@ -3,6 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Phase 5-1 · 캐릭터 선택 카드 — 색 사각형 + 이름 라벨 + 선택 알파 토글
+//  Phase 5-5 · 카드 선택 시 scale 강조 (SKAction.scale 0.10s 보간)
 //
 
 import SpriteKit
@@ -42,10 +43,17 @@ final class CharacterCardNode: SKNode {
     }
 
     // MARK: - Selection
-    /// 선택 상태 시각 토글. true → alpha 1.0(또렷), false → 0.5(흐림).
-    /// CSS opacity 패턴 — 별도 테두리/하이라이트 노드 없이 알파 1개로 표현.
+    /// 선택 상태 시각 토글. true → alpha 1.0(또렷) + scale 1.08(살짝 큼),
+    /// false → alpha 0.5(흐림) + scale 1.0(기본).
+    /// alpha + scale 2개로 표현 — Phase 5-5 — scale 토글 추가(SKAction 0.10s 보간).
     func setSelected(_ selected: Bool) {
         alpha = selected ? 1.0 : GameConfig.characterCardDeselectedAlpha
+        let targetScale: CGFloat = selected ? GameConfig.characterCardSelectedScale : 1.0
+        removeAction(forKey: "cardScale")
+        run(
+            SKAction.scale(to: targetScale, duration: GameConfig.characterCardScaleDuration),
+            withKey: "cardScale"
+        )
     }
 
     // MARK: - Configure

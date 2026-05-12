@@ -1,162 +1,246 @@
-# Phase 5-R — PlayerNode 단일 진입점 리팩터 (apply(_:))
+# Phase 5-6 — selectedCharacterID 영구 저장 (CharacterPreferenceRepository)
 
 ## 개요
-Phase 5-2(color)와 5-3(speedMultiplier)을 거치며 `GameScene+Setup.setupPlayer()` 안에 캐릭터 관련 setter 두 줄이 흩어졌다. 5-5+ 진입 전에 PlayerNode 자체에 단일 진입점 `apply(_ characterID:)`을 신설하여, "캐릭터 정체성을 한 번에 받아 내부에서 적용"하는 책임을 PlayerNode로 이관한다. 기능 변화 0, 구조만 정리하는 순수 리팩터.
+현재 `TitleScene.selectedCharacterID`는 매 앱 실행마다 하드코딩 기본값 `.kim`으로 초기화되어, 사용자는 카드 5장 중 매번 다시 자기 캐릭터를 골라야 한다. Phase 5-6은 마지막 선택을 UserDefaults에 영구 저장하는 `CharacterPreferenceRepository`를 신설하여, 앱을 종료/재실행해도 직전 선택이 자동 복원되도록 한다. 이미 두 번 등장한 Repository 패턴(`HighScoreRepository`/`StatisticsRepository`)을 *세 번째* 그대로 적용 — Spring의 `@Repository`처럼 영속 계층을 단일 클래스에 캡슐화한다.
 
 ## 변경 유형
-**리팩터 (순수)** — 게임플레이/비주얼 동작 변화 0. 컴파일러 출력·런타임 행동 100% 동일. 같은 두 setter를 호출 위치만 PlayerNode 내부로 옮긴다.
+**게임플레이 + UX** — 게임 규칙은 그대로지만, 사용자 환경설정의 영속성을 통해 진입 경험을 개선한다.
 
 ## 게임 경험 의도
-플레이어 입장에서 **체감 변화 0**. 색·속도·이동·충돌 모두 5-3과 한 픽셀/한 프레임도 다르지 않다. 이 sprint는 코드 구조 학습만이 목적이며, 사용자가 5명 캐릭터를 골라 플레이할 때 보이는 결과는 직전 커밋과 완전히 동일하다.
+"내가 좋아하는 간호사를 한 번 고르면, 다음 번에도 게임은 그 간호사를 기억한다." 매 앱 실행마다 카드를 다시 누르는 마찰을 제거하여, 사용자의 캐릭터 정체성을 게임이 인정하는 작은 의례를 만든다. 영속성은 보이지 않는 곳에서 일어나야 한다 — UI 추가 없이, 단지 "기본 선택"이 마지막 선택으로 바뀐다.
 
 ## Sprint 범위 계약
-- **허용**: PlayerNode에 `apply(_ characterID: CharacterID)` 메서드 신설 + `setupPlayer()` 두 줄을 단일 호출로 교체. 헤더 주석 한 줄(Phase 5-R 표기) 추가.
-- **금지**: SPEC In Scope 외 모든 변경 (CharacterID/GameScene 본문/TitleScene/HUDNode/GameConfig/ColorTokens/다른 Node·System·Repository).
-- **판단 기준**: "이 변경이 없으면 `setupPlayer()`가 더 이상 캐릭터 setter 2줄을 직접 알지 않게 된다는 결과가 동작하는가?" → NO인 변경만 In Scope. YES인 변경(예: CharacterID 새 프로퍼티, GameConfig 새 상수)은 전부 P0 위반.
+
+### 허용
+- `Repositories/CharacterPreferenceRepository.swift` 신규 생성 (3번째 Repository — 기존 2개와 동형)
+- `Config/GameConfig.swift`에 `characterPreferenceUserDefaultsKey` 상수 1줄 추가
+- `Scenes/TitleScene.swift`에 (a) `private let preferenceRepo` 프로퍼티 추가 (b) `didMove(to:)`에서 `setupCharacterCards()` 호출 *직전*에 `selectedCharacterID = preferenceRepo.current` 복원 (c) `select(_:)` 함수 내부에서 변경 직후 `preferenceRepo.save(id)` 호출
+- `project.pbxproj`에 신규 .swift 파일 4곳 엔트리 등록 (PBXBuildFile 1개 + PBXFileReference 1개 + Repositories 그룹 children 1개 + Sources 빌드 페이즈 1개)
+
+### 금지 (위반 시 P0)
+- `Models/CharacterID.swift` 변경 — enum이 이미 `String` raw value를 가져 추가 변환 불필요
+- `GameScene.swift` / `GameScene+Setup.swift` 변경
+- `PlayerNode` / `HUDNode` / `CharacterCardNode` 변경
+- `ColorTokens` 변경
+- `HighScoreRepository` / `StatisticsRepository` 변경 (0줄)
+- 시스템 (`ContactRouter` / `SpawnSystem` / `ScoreSystem`) 변경
+- `ResultScene` 변경 (5-7 이후 sprint)
+- `Models/GameStats.swift` 변경
+- `Protocols/` 변경
+- TitleScene의 다른 부분: `bestLabel` / `playsLabel` / `promptLabel` / `startPromptBlink` / `touchesBegan` 본체 / 카드 setup / 카드 layout / `isTransitioning` 로직 변경
+- macOS / tvOS / Test 코드
+
+### 판단 기준
+"이 변경이 없으면 '앱 종료 후 재진입 시 마지막에 선택한 캐릭터가 카드에 선택 상태로 표시되며 GameScene 진입 시 그대로 사용된다'가 동작하는가?" → NO만 In Scope.
+
+## 핵심 결정 포인트
+
+### 1. Fallback 정책 — `.kim` 반환
+- 저장값이 없거나(첫 실행) 잘못된 raw value면 `.kim` 반환. `CharacterID(rawValue:)`가 `Optional<CharacterID>`를 반환 → `?? .kim`로 폴백.
+- **사유**: `.kim`은 5-1 도입 시점부터 기본 캐릭터. graceful degradation 원칙. Spring `@Value("${...:kim}")`의 default 부분과 동일.
+
+### 2. Save 호출 시점 — `select(_:)` 내부 (단일 진입점)
+- `select(_:)` 함수 내부, `selectedCharacterID = id` 직후 `preferenceRepo.save(id)` 호출.
+- **사유**: `select(_:)`는 모든 카드 선택 변경의 단일 진입점. Spring `@Transactional` 단위와 동일.
+- **부작용 평가**: 매 탭마다 `UserDefaults.set` 1회. UserDefaults 내부 비동기 flush로 응답성 저하 없음.
+
+### 3. Load 호출 시점 — `didMove(to:)` 안, `setupCharacterCards()` *직전*
+- `didMove(to:)` 본문 순서:
+  ```
+  backgroundColor = .ganhoBgDeep
+  setupLabels()
+  selectedCharacterID = preferenceRepo.current   // ← 신규 1줄
+  setupCharacterCards()
+  startPromptBlink()
+  ```
+- **사유**: `setupCharacterCards()`가 내부 루프에서 `card.setSelected(id == selectedCharacterID)` 호출 → 카드 생성 *시점*에 selectedCharacterID가 정확해야 첫 프레임부터 올바른 카드가 selected scale/alpha로 표시됨.
+
+### 4. pbxproj 처리 — Generator가 수동 등록 필수
+- 이 프로젝트는 **명시적 pbxproj 등록 방식**을 사용 (기존 Repository 파일들이 모두 4곳에 명시 등록됨).
+- Generator는 다음 4곳에 엔트리 추가:
+  1. `PBXBuildFile` 섹션
+  2. `PBXFileReference` 섹션
+  3. `Repositories` PBXGroup children
+  4. Sources 빌드 페이즈
+- **ID 충돌 방지**: 작업 직전 `grep "A1C0F1.0000000000000023" project.pbxproj`로 마지막 사용 ID 확인 후 +1 (16진수 다음값) 부여. 권장 새 ID: `A1C0F1A00000000000000024` (FileReference), `A1C0F1B00000000000000024` (BuildFile).
+- 누락 시 `Cannot find 'CharacterPreferenceRepository' in scope` 컴파일 에러 → P0.
 
 ## 변경 범위
 
-### 수정할 파일
-- `GanhoMusic/GanhoMusic Shared/Nodes/PlayerNode.swift`:
-  - 헤더 주석에 `Phase 5-R` 한 줄 추가
-  - `// MARK: - Apply` 섹션 신설 + `func apply(_ characterID: CharacterID)` 메서드 추가 (본문 정확히 2줄)
-- `GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift` (`setupPlayer()` 함수만):
-  - `player.color = characterID.color` + `player.speedMultiplier = characterID.playerSpeedMultiplier` 두 줄을 `player.apply(characterID)` 한 줄로 교체
-  - 호출 위치 유지: `player.position = ...` 다음, `worldNode.addChild(player)` 이전
-
 ### 추가할 파일
-없음.
+- `GanhoMusic/GanhoMusic Shared/Repositories/CharacterPreferenceRepository.swift`
+
+### 수정할 파일
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — 상수 1줄
+- `GanhoMusic/GanhoMusic Shared/Scenes/TitleScene.swift` — 프로퍼티 + 2지점 호출
+- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 4 엔트리
 
 ## 기능 상세
 
-### 기능 1: PlayerNode.apply(_:) — 단일 진입점 메서드 신설
-- **설명**: `CharacterID`를 받아 PlayerNode가 *스스로* 자기 외형(color)과 이동 능력(speedMultiplier)을 적용한다. 외부(GameScene)는 "어떤 캐릭터인지"만 전달하고, "그것을 어떻게 적용하는지"는 알지 않는다 (Tell-Don't-Ask).
-- **구현 위치**: `PlayerNode.swift`, 새 `// MARK: - Apply` 섹션. 위치는 `// MARK: - Update` 바로 위 (의미 흐름: Init → Apply → Update).
-- **시그니처 고정**: `func apply(_ characterID: CharacterID)` — 단일 인자, 외부 레이블 생략(`_`). `apply(color:speed:)` 분해 금지, `apply()` no-arg 금지, 반환값 없음.
-- **본문 정확히 2줄** (추가 로직·로깅·검증·side effect 0건):
-  ```swift
-  // MARK: - Apply
-  /// Phase 5-R — 캐릭터 정체성 단일 진입점.
-  /// 외부(GameScene+Setup)는 setter를 직접 알지 않고 CharacterID 하나만 넘긴다.
-  /// 기능 변화 0 — 5-2(color) + 5-3(speedMultiplier) 두 setter를 *내부에서 그대로* 호출.
-  func apply(_ characterID: CharacterID) {
-      color = characterID.color
-      speedMultiplier = characterID.playerSpeedMultiplier
-  }
-  ```
-- **self 표기**: `color = ...` / `speedMultiplier = ...` (self 생략) 권장 — Swift 관용 표기, 메서드 내부에서 명확. 한 메서드 안에서 표기 통일.
+### 기능 1: `CharacterPreferenceRepository` 신규 클래스
 
-### 기능 2: setupPlayer() — 두 setter를 단일 호출로 교체
-- **설명**: `GameScene+Setup.swift`의 `setupPlayer()`에서 `player.color = ...`와 `player.speedMultiplier = ...` 두 줄을 한 줄로 통합.
-- **구현 위치**: `GameScene+Setup.swift` 내 `setupPlayer()` 함수.
-- **교체 패턴**:
-  ```swift
-  // ── Before (현재, 5-3 종결 시점) ────────────────────────────────
-  func setupPlayer() {
-      player.position = CGPoint(
-          x: GameConfig.mapWidth  / 4,
-          y: GameConfig.mapHeight / 2
-      )
-      player.color = characterID.color   // Phase 5-2
-      player.speedMultiplier = characterID.playerSpeedMultiplier   // Phase 5-3
-      worldNode.addChild(player)
-  }
+**핵심 코드 구조**:
+```swift
+//
+//  CharacterPreferenceRepository.swift
+//  GanhoMusic Shared
+//
+//  Phase 5-6 · 캐릭터 선택 영구 저장 (UserDefaults 캡슐화)
+//
 
-  // ── After (5-R) ─────────────────────────────────────────────────
-  func setupPlayer() {
-      player.position = CGPoint(
-          x: GameConfig.mapWidth  / 4,
-          y: GameConfig.mapHeight / 2
-      )
-      player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
-      worldNode.addChild(player)
-  }
-  ```
-- **유지 사항**:
-  - `player.position = ...` 위치 동일 (맨 위)
-  - `worldNode.addChild(player)` 위치 동일 (맨 아래)
-  - 5-2/5-3 흐름 주석은 `apply` 호출 1줄 옆 주석으로 통합 (정보 손실 0)
+import Foundation
 
-### 기능 3: PlayerNode 헤더 주석 갱신
-- **설명**: 파일 헤더에 Phase 5-R 한 줄 추가 (5-3 기록 그대로 유지하면서 5-R 적층).
-- **구현 위치**: `PlayerNode.swift` 파일 최상단 주석.
-- **추가 라인**: `//  Phase 5-R · CharacterID 단일 진입점 메서드 apply(_:) 추출 (순수 리팩터)`
-- **유지**: 기존 1-3 / 2-2 / 5-3 라인 그대로.
+/// 마지막으로 선택한 캐릭터(CharacterID)를 UserDefaults에 raw String으로 영구 저장.
+/// 키 문자열은 GameConfig.characterPreferenceUserDefaultsKey로 단일화.
+/// init에 defaults/key를 기본값으로 받아 DI를 허용 — prod는 CharacterPreferenceRepository(),
+/// 테스트는 별도 suite 주입 가능. 단일 스레드(메인) 호출 가정 → 락/큐 없음.
+/// 패턴: HighScoreRepository / StatisticsRepository와 동형 (3번째 Repository).
+final class CharacterPreferenceRepository {
 
-## 회귀 보장 (5 캐릭터 시나리오)
+    // MARK: - Properties
+    private let key: String
+    private let defaults: UserDefaults
 
-빌드 + 시뮬레이터 실행 후 아래 모든 조합이 직전 커밋(5-3 종결)과 **정확히 동일하게** 동작해야 한다:
+    // MARK: - Init
+    init(defaults: UserDefaults = .standard,
+         key: String = GameConfig.characterPreferenceUserDefaultsKey) {
+        self.defaults = defaults
+        self.key = key
+    }
 
-| # | 시나리오 | 기대 결과 (5-3과 동일) |
-|---|---|---|
-| (a) | TitleScene → `.kim` 선택 | Player 몸체 = `.ganhoPaper`, 속도 배율 = 1.00 |
-| (b) | TitleScene → `.jung` 선택 | Player 몸체 = `.ganhoMint`, 속도 배율 = 1.10 |
-| (c) | TitleScene → `.geon` 선택 | Player 몸체 = `.ganhoPinkNote`, 속도 배율 = 0.90 |
-| (d) | TitleScene → `.im` 선택 | Player 몸체 = `.ganhoYellowF`, 속도 배율 = 0.95 |
-| (e) | TitleScene → `.lee` 선택 | Player 몸체 = `.ganhoBloodAccent`, 속도 배율 = 1.05 |
+    // MARK: - Read
+    /// 저장된 캐릭터 선택. 키가 없거나(첫 실행) 잘못된 raw value면 .kim 폴백.
+    var current: CharacterID {
+        guard let raw = defaults.string(forKey: key) else { return .kim }
+        return CharacterID(rawValue: raw) ?? .kim
+    }
 
-추가 검증:
-- Xcode 빌드 에러 0 / 경고 증가 0
-- D-Pad 4방향 이동, 외곽 벽/중앙 기둥 충돌, 음표 수집, 수간호사/F 피격 게임오버, AIRFORCE 이스터에그 모두 5-3과 동일
-- HUD 우상단 캐릭터 이름(5-4) — 본 sprint 무관, 그대로 표시
-- `didMove(to:)` 호출 순서: `setupPlayer()`가 그대로 호출 (변화 없음)
+    // MARK: - Write
+    /// 캐릭터 선택을 저장. rawValue(String)로 직렬화.
+    /// 호출부는 select(_:) 단일 진입점 — Spring @Transactional 단위와 동일.
+    func save(_ id: CharacterID) {
+        defaults.set(id.rawValue, forKey: key)
+    }
+}
+```
 
-## 학습 가치 — Tell-Don't-Ask · 정보 은닉 · 응집
+### 기능 2: GameConfig 상수 1줄 추가
 
-### Tell-Don't-Ask 원칙
-- **Before (5-3)**: GameScene+Setup이 PlayerNode에게 *물어보고 직접 조작*함 — "너의 `color`를 이걸로 바꿔, 너의 `speedMultiplier`를 이걸로 바꿔" (2번 명령).
-- **After (5-R)**: GameScene+Setup이 PlayerNode에게 *말함* — "너 이 캐릭터야, 알아서 적용해" (1번 위임). PlayerNode가 자기 내부 상태를 어떻게 갱신하는지는 외부가 알 필요 없음.
+**위치**: `// MARK: - Character Card` 섹션 끝 (마지막 character 관련 상수 다음). 또는 `statisticsUserDefaultsKey` 다음 줄도 허용.
 
-### 정보 은닉 (Information Hiding)
-- 외부는 "어떤 setter들이 캐릭터별로 다른가"를 더 이상 알 필요가 없다. 캐릭터 적용 *방식*은 PlayerNode의 사적 영역.
-- 5-5+에서 캐릭터별 setter가 더 늘어나도 외부 호출부는 *불변* — `player.apply(characterID)` 1줄 그대로.
+**핵심 코드**:
+```swift
+/// Phase 5-6 — UserDefaults에 마지막 캐릭터 선택을 raw String으로 저장할 키.
+/// 호출부에 리터럴 노출 금지 — CharacterPreferenceRepository만 사용.
+static let characterPreferenceUserDefaultsKey: String = "selectedCharacterID"
+```
 
-### 응집 (Cohesion)
-- "캐릭터 정체성을 PlayerNode에 적용하는 책임"이 한 메서드 한 곳에 모인다. 흩어져 있던 두 setter가 한 호출 안에 묶이며, 누락·순서 버그 가능성이 구조적으로 사라진다.
+### 기능 3: TitleScene 3 지점 수정
 
-### Spring 비유 (사용자 멘탈 모델)
-- Spring `@Service` 클래스에서 setter 두 번 호출 대신 **facade 메서드** 하나로 모으는 리팩터와 동일:
-  ```java
-  // Before — controller가 service의 내부 setter를 직접 호출
-  userService.setRole(role);
-  userService.setQuota(quota);
+**3-a. 프로퍼티 추가** (Properties 섹션, `characterCards` 다음 줄):
+```swift
+/// Phase 5-6 — 캐릭터 선택 영속 계층. didMove에서 .current로 복원, select(_:)에서 save 호출.
+private let preferenceRepo = CharacterPreferenceRepository()
+```
 
-  // After — service가 단일 진입점 facade 메서드를 노출, controller는 위임만
-  userService.applyProfile(profile);   // 안에서 setRole + setQuota
-  ```
-- **DTO 단일 진입점**: 컨트롤러가 `request.getName()`, `request.getEmail()`을 각각 꺼내 도메인 객체에 set하지 않고, `domain.applyFrom(request)` 1줄로 위임하는 패턴.
-- **OCP (Open/Closed)**: 5-5에서 새 캐릭터별 setter가 추가돼도 *호출 측 코드는 변경 없이* PlayerNode 안의 `apply` 본문만 확장 — OCP가 자연스럽게 충족된다.
+**3-b. `didMove(to:)` 안 1줄 삽입**:
+```swift
+override func didMove(to view: SKView) {
+    backgroundColor = .ganhoBgDeep
+    setupLabels()
+    selectedCharacterID = preferenceRepo.current   // Phase 5-6 — 마지막 선택 복원 (없으면 .kim)
+    setupCharacterCards()
+    startPromptBlink()
+}
+```
 
-### Phase 4-R과의 공통 결 (전례)
-- Phase 4-R: 3 노드의 공통 *자가 소멸* 패턴을 `SelfDismissingNode` protocol로 추출 → "공통 구조를 한 곳에 모음".
-- Phase 5-R: 2 setter의 공통 *캐릭터 적용* 패턴을 `apply(_:)` 메서드로 추출 → "공통 구조를 한 곳에 모음".
-- 둘 다 **기능 변화 0, 구조 정리**라는 동일한 리팩터 DNA.
+**3-c. `select(_:)` 안 1줄 삽입**:
+```swift
+private func select(_ id: CharacterID) {
+    selectedCharacterID = id
+    preferenceRepo.save(id)   // Phase 5-6 — 선택 변경 즉시 디스크 반영
+    for card in characterCards {
+        card.setSelected(card.id == id)
+    }
+}
+```
+
+### 기능 4: pbxproj 4 지점 등록
+
+위 "핵심 결정 4번"에서 명시한 4 라인을 정확한 위치에 삽입. Generator는 작업 직전 `Grep`으로 ID 충돌 확인.
+
+## 검증 시나리오
+
+### (a) 5 캐릭터 각각 저장/복원
+- 시뮬레이터: 김 선택 → 강제 종료/재실행 → 김 카드 selected ✓
+- 정/건/임/이 동일 절차로 5번 모두 검증
+
+### (b) 첫 실행 (UserDefaults 키 없음)
+- 시뮬레이터 reset → 첫 실행 시 김 카드 selected (graceful) ✓
+
+### (c) 잘못된 raw value graceful degradation
+- `UserDefaults.set("ganho", forKey: "selectedCharacterID")` 후 재실행 → 크래시 없이 김 선택 ✓
+
+### (d) GameScene 진입 시 복원된 선택 사용
+- 정 선택 → 재실행 → 정 카드 selected → 빈 곳 탭 → `newGameScene(characterID: .jung)` → PlayerNode 색 민트/속도 1.10x ✓
+
+### (e) 빌드 클린 (pbxproj 누락 회귀)
+- 빌드 → 컴파일 에러 0개, 경고 0개 ✓
+- pbxproj 4곳 등록 확인
+
+### (f) TitleScene 다른 라벨 회귀 없음
+- `bestLabel` / `playsLabel` / `promptLabel` / 카드 5장 layout / `isTransitioning` 더블 탭 방지 모두 그대로 ✓
+
+### (g) 단일 진입점 검증
+- 카드 영역 탭 시: `select(card.id)` → `preferenceRepo.save` 호출
+- 카드 외 영역 탭 시: `select()` 호출되지 *않음* → 디스크 I/O 0 → GameScene 전환만 ✓
+
+## 학습 가치
+
+### Repository 패턴 정합 (3번째 등장)
+이 sprint의 핵심 학습은 **같은 패턴을 세 번째로 그대로 적용하는 경험**이다.
+- `HighScoreRepository` (Phase 3-4) — `Int` 값
+- `StatisticsRepository` (Phase 3-5) — `Codable struct GameStats` (JSON Data)
+- `CharacterPreferenceRepository` (Phase 5-6) — `enum CharacterID` (raw String)
+
+세 클래스 모두 동일 구조: `init(defaults:key:)` DI / `var current: T { get }` 읽기 / `func save(...)` 쓰기.
+
+### Spring 비유 (Spring Boot 출신자 친화)
+- **`@Repository`**: 영속 계층을 단일 클래스에 캡슐화. 호출부는 UserDefaults를 *모른다* → 저장소가 Core Data로 바뀌어도 호출부 0줄.
+- **`@Value("${key:default}")`**: `current` getter의 `?? .kim` fallback = Spring property default 문법.
+- **`@Transactional` 단위**: `select(_:)` 함수 1회 호출 = 1 트랜잭션 (메모리 + 디스크). 단일 진입점에 묶어두면 누락/중복 위험이 사라짐.
+- **`enum.rawValue` ↔ `@Enumerated(EnumType.STRING)`**: enum과 String 자동 변환.
+
+### 직렬화 전략 비교 (3 Repository 차이)
+| Repository | 타입 | 직렬화 | 실패 시 fallback |
+|---|---|---|---|
+| HighScore | `Int` | `defaults.integer(forKey:)` | 0 (Apple 보장) |
+| Statistics | `struct: Codable` | JSON Data | `GameStats()` |
+| **CharacterPreference** | `enum: String` | rawValue String | `.kim` |
+
+저장 대상의 형태에 가장 단순한 직렬화를 선택하는 원칙.
 
 ## 주의사항
 
-### 컴파일 / 타입 안전
-- `apply(_ characterID: CharacterID)`에서 `CharacterID`를 참조하려면 `PlayerNode.swift`는 `Models/CharacterID.swift`와 동일 타겟에 속해야 한다. `CharacterID.swift`가 `GanhoMusic Shared`에 있고 PlayerNode도 같은 타겟이므로 추가 import 불필요.
-- `CharacterID`는 `import UIKit`을 쓰고, `PlayerNode`는 `import SpriteKit`을 쓴다. SpriteKit이 UIKit을 추이적으로 끌어오므로 PlayerNode에서 `UIColor` 타입 사용에 문제 없음.
+### 기존 코드와 충돌 가능성
+- `selectedCharacterID: CharacterID = .kim` 기본값은 *유지* (안전망).
+- `preferenceRepo`를 `private let`으로 선언 → 씬 생명주기 동안 1회만 생성.
 
-### 기능 변화 0 보존 — 절대 금지 사항
-- `apply` 본문에 정렬 변경 금지 (현재 5-3은 `color` 먼저, `speedMultiplier` 나중 — 그대로 유지). 둘 다 독립 setter라 순서는 결과에 영향 없지만, "변화 0" 약속 차원에서 순서까지 보존.
-- `apply` 본문에 `guard`·`if`·로그·디버그 출력·`SKAction` 등 추가 0건.
-- `setupPlayer()`의 `player.position` 계산식·`worldNode.addChild` 위치 일체 불변.
+### SpriteKit 특성상 주의
+- `didMove(to:)` 코드 순서가 중요: `setupLabels()` → 복원 → `setupCharacterCards()` 순. 순서 바뀌면 첫 프레임에 잘못된 카드 selected.
 
-### Out of Scope 재확인 (위반 시 P0)
-- `CharacterID.swift` 한 글자도 수정 금지 — color/playerSpeedMultiplier/displayName 그대로.
-- `GameScene.swift` 본문(init / factory / didMove / update / configureContactRouter / triggerAirforceEasterEgg / endGame) 한 글자도 수정 금지.
-- `TitleScene.swift`, `HUDNode.swift`, `GameConfig.swift`, `ColorTokens.swift`, `EnemyNode`, `StoneGuardNode`, `SpawnSystem`, `ContactRouter`, `ScoreSystem`, Repository류 일체 미접촉.
-- PlayerNode 내 다른 부분 (Properties / Init / Update / physicsBody 설정) 일체 미접촉.
-- pbxproj 변경 0 — 파일 추가/삭제 없음.
-- 테스트 코드, macOS/tvOS 타겟 미접촉.
+### 빌드 에러 가능성
+- **pbxproj 등록 누락 시 P0**: Generator는 4곳 등록 후 SELF_CHECK에 명시.
+- **ID 충돌**: 새 ID는 grep으로 미사용 확인 후 부여.
 
-### SpriteKit 특수 고려
-- `color` 프로퍼티는 `SKSpriteNode`가 제공하는 dynamic 속성이라 setter 호출 즉시 다음 프레임에 화면 반영. `setupPlayer()` 호출 시점(didMove 안, 첫 렌더 전)이라 첫 프레임부터 정상 색.
-- `speedMultiplier`는 `update(deltaTime:)`에서 매 프레임 곱셈 적용 — set 시점이 첫 update 전이라 첫 입력부터 정상 속도.
-- 본 리팩터는 두 setter 모두 `worldNode.addChild(player)` *이전* 호출하므로 SKPhysics/SKScene이 player의 최종 상태를 보고 등록 — 5-3과 동일한 타이밍 보장.
-
-### 평가 기준 정합성
-- Swift 규칙: `guard let` 불필요(옵셔널 없음), 매직 넘버 0, MARK 섹션 추가, 함수 단일 책임 — 모두 충족.
-- SpriteKit 규칙: 초기화 흐름(didMove → setupPlayer → apply) 그대로, dt 기반 이동 영향 0, 액션·물리 미접촉.
-- AI 슬롭 패턴(강제 언래핑·Timer·매직 넘버·고정값 이동·SPEC 외 기능) 0건 — 본 sprint는 신규 로직 추가가 없어 슬롭 발생 여지 자체가 거의 없다.
+### Generator 체크리스트
+1. [ ] `CharacterPreferenceRepository.swift` 신규 생성 (HighScore와 동형)
+2. [ ] `GameConfig.characterPreferenceUserDefaultsKey = "selectedCharacterID"` 1줄
+3. [ ] TitleScene 프로퍼티 `preferenceRepo` 추가
+4. [ ] `didMove`에 `setupCharacterCards()` 직전 복원 1줄
+5. [ ] `select(_:)`에 `preferenceRepo.save(id)` 1줄
+6. [ ] `project.pbxproj` 4곳 등록
+7. [ ] `selectedCharacterID = .kim` 기본값 *유지*
+8. [ ] Out of Scope 파일 0줄
+9. [ ] 강제 언래핑 0
+10. [ ] 매직 넘버 0 (UserDefaults 키는 GameConfig 경유)

@@ -25,6 +25,7 @@
 		A1C0F1B00000000000000013 /* HighScoreRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000013 /* HighScoreRepository.swift */; };
 		A1C0F1B00000000000000014 /* GameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000014 /* GameStats.swift */; };
 		A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000015 /* StatisticsRepository.swift */; };
+		A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };
 		A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000017 /* StoneGuardNode.swift */; };
 		A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000018 /* AirplaneNode.swift */; };
 		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
@@ -53,6 +54,7 @@
 		A1C0F1A00000000000000013 /* HighScoreRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighScoreRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000014 /* GameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStats.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000015 /* StatisticsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000017 /* StoneGuardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneGuardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000018 /* AirplaneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 			children = (
 				A1C0F1A00000000000000013 /* HighScoreRepository.swift */,
 				A1C0F1A00000000000000015 /* StatisticsRepository.swift */,
+				A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */,
 			);
 			name = Repositories;
 			path = "GanhoMusic Shared/Repositories";
@@ -440,6 +443,7 @@
 				A1C0F1B00000000000000013 /* HighScoreRepository.swift in Sources */,
 				A1C0F1B00000000000000014 /* GameStats.swift in Sources */,
 				A1C0F1B00000000000000015 /* StatisticsRepository.swift in Sources */,
+				A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */,
 				A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */,
 				A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */,
 				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,

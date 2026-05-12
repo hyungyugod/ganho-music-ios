@@ -235,4 +235,15 @@ enum GameConfig {
     static let characterCardOffsetY: CGFloat = -160
     /// 선택되지 않은 카드 알파. 선택 카드(1.0)와 시각 대비.
     static let characterCardDeselectedAlpha: CGFloat = 0.5
+    /// Phase 5-5 — 선택된 카드 확대 배율. 1.0 기본에서 1.08배. 인접 카드 spacing(10pt)와 검증:
+    /// 48 × 1.08 = 51.84 → 측면 +1.92 → 갭 8.08pt 유지(겹침 없음).
+    static let characterCardSelectedScale: CGFloat = 1.08
+    /// Phase 5-5 — 선택/해제 시 scale 보간 시간 (초). 탭 응답성 고려 짧게.
+    /// promptLabel 깜빡임(0.6)과 달리 1회 트랜지션 — repeatForever 아님.
+    static let characterCardScaleDuration: TimeInterval = 0.10
+
+    // MARK: - Character Preference (Phase 5-6)
+    /// Phase 5-6 — UserDefaults에 마지막 캐릭터 선택을 raw String으로 저장할 키.
+    /// 호출부에 리터럴 노출 금지 — CharacterPreferenceRepository만 사용.
+    static let characterPreferenceUserDefaultsKey: String = "selectedCharacterID"
 }

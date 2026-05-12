@@ -1,174 +1,158 @@
-# 자체 점검 — Phase 5-R · PlayerNode.apply(_:) 단일 진입점 리팩터
+# 자체 점검 — Phase 5-6 selectedCharacterID 영구 저장
 
-전략: Case A (초기 구현 — SPEC 정밀 적용)
+## 1. 변경 파일 목록
 
-## 1. 변경 파일 목록 (정확히 2개)
+### 신규 파일 (1개)
+- `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Repositories/CharacterPreferenceRepository.swift` — 3번째 Repository (HighScore/Statistics와 동형)
 
-| # | 파일 | 변경 요약 |
+### 수정 파일 (3개)
+- `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — `characterPreferenceUserDefaultsKey` 상수 1줄 + 섹션 MARK
+- `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Scenes/TitleScene.swift` — `preferenceRepo` 프로퍼티 1줄 + `didMove` 1줄 + `select(_:)` 1줄 (총 3줄)
+- `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 4 엔트리 등록
+
+### 학습 노트 (1개)
+- `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/docs/learn/phase-5-6-character-preference-repo.md` — 중학생 톤 + Spring 비유 5가지
+
+---
+
+## 2. SPEC In Scope 충족 확인
+
+| 항목 | 상태 | 비고 |
 |---|---|---|
-| 1 | `GanhoMusic/GanhoMusic Shared/Nodes/PlayerNode.swift` | (a) 헤더 1줄 추가 `Phase 5-R · CharacterID 단일 진입점 메서드 apply(_:) 추출 (순수 리팩터)`. (b) `// MARK: - Apply` 섹션 신설(MARK: - Update 바로 위). (c) `func apply(_ characterID: CharacterID)` 메서드 추가, 본문 정확히 2줄 (`color = characterID.color` / `speedMultiplier = characterID.playerSpeedMultiplier`). |
-| 2 | `GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift` | `setupPlayer()` 내부의 `player.color = characterID.color`와 `player.speedMultiplier = characterID.playerSpeedMultiplier` 두 줄을 `player.apply(characterID)` 한 줄로 *교체*. 위치 동일(`player.position` 다음, `worldNode.addChild(player)` 이전). |
+| Repository 신설 (`CharacterPreferenceRepository`) | ✓ | HighScoreRepository와 동형 구조 (DI init / current getter / save 메서드) |
+| GameConfig 상수 1줄 | ✓ | `characterPreferenceUserDefaultsKey: String = "selectedCharacterID"` |
+| TitleScene 3 지점 | ✓ | (a) 프로퍼티 (b) didMove에서 setupCharacterCards 직전 복원 (c) select(_:) 안 save |
+| pbxproj 4 엔트리 | ✓ | PBXBuildFile / PBXFileReference / Repositories children / Sources 빌드 페이즈 |
 
-### diff 요약 (5-R 변경분만)
+---
 
-**PlayerNode.swift**:
-- 헤더 라인 추가: `//  Phase 5-R · CharacterID 단일 진입점 메서드 apply(_:) 추출 (순수 리팩터)`
-- 새 섹션:
-  ```swift
-  // MARK: - Apply
-  /// Phase 5-R — 캐릭터 정체성 단일 진입점.
-  /// 외부(GameScene+Setup)는 setter를 직접 알지 않고 CharacterID 하나만 넘긴다.
-  /// 기능 변화 0 — 5-2(color) + 5-3(speedMultiplier) 두 setter를 *내부에서 그대로* 호출.
-  func apply(_ characterID: CharacterID) {
-      color = characterID.color
-      speedMultiplier = characterID.playerSpeedMultiplier
-  }
-  ```
-- Properties / Init / required init? / Update 메서드 / physicsBody 설정 — **0줄 변경**.
+## 3. Out of Scope 위반 0건 검증
 
-**GameScene+Setup.swift** (`setupPlayer()` 함수만):
-- 삭제 2줄:
-  ```swift
-  player.color = characterID.color   // Phase 5-2 …
-  player.speedMultiplier = characterID.playerSpeedMultiplier   // Phase 5-3 …
-  ```
-- 추가 1줄:
-  ```swift
-  player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
-  ```
-- `player.position` 계산식 / `worldNode.addChild(player)` 위치 — **0줄 변경**.
-- `setupPlayer()` 외 다른 메서드(setupBackground/setupWorld/addOuterWalls/addCentralPillar/setupCamera/setupDPad/setupHUD/setupEnemy/setupStoneGuard) — **0줄 변경**.
-
-## 2. SPEC In Scope 3항목 충족 여부
-
-| # | SPEC 요구사항 | 충족 |
-|---|---|---|
-| 1 | `apply(_ characterID: CharacterID)` 메서드 신설 (시그니처 정확, 본문 정확히 2줄, 순서 `color` → `speedMultiplier`, guard/if/print/SKAction/추가 setter 0건) | ✅ |
-| 2 | `PlayerNode.swift` 헤더에 `Phase 5-R …` 한 줄 추가 (기존 1-3 / 2-2 / 5-3 라인 그대로 유지) | ✅ |
-| 3 | `setupPlayer()` 두 줄을 `player.apply(characterID)` 한 줄로 교체 (위치: `player.position` 다음, `worldNode.addChild(player)` 이전) | ✅ |
-
-## 3. SPEC Out of Scope 위반 0건 확인
-
-| Out of Scope 항목 | 변경 여부 |
+| 금지 파일 | 변경 줄 수 |
 |---|---|
-| `CharacterID.swift` | **0줄 변경** (color/playerSpeedMultiplier/displayName 그대로) |
-| `GameScene.swift` 본문 (init / factory / didMove / update / configureContactRouter / triggerAirforceEasterEgg / endGame) | **0줄 변경** |
-| `TitleScene.swift` | **0줄 변경** |
-| `HUDNode.swift` | **0줄 변경** |
-| `GameConfig.swift` | **0줄 변경** |
-| `ColorTokens.swift` | **0줄 변경** |
-| `EnemyNode` / `StoneGuardNode` / 다른 Nodes | **0줄 변경** |
-| `SpawnSystem` / `ContactRouter` / `ScoreSystem` / Repositories | **0줄 변경** |
-| `PlayerNode` 내 다른 부분 (Properties / Init / required init? / Update / physicsBody) | **0줄 변경** |
-| pbxproj | **0줄 변경** (파일 추가/삭제 없음) |
-| 테스트 코드, macOS/tvOS 타겟 | **0줄 변경** |
-| `setupPlayer()` 외 다른 setup 메서드 | **0줄 변경** |
+| Models/CharacterID.swift | 0줄 ✓ |
+| GameScene.swift | 0줄 ✓ |
+| GameScene+Setup.swift | 0줄 ✓ |
+| PlayerNode | 0줄 ✓ |
+| HUDNode | 0줄 ✓ |
+| CharacterCardNode | 0줄 ✓ |
+| ColorTokens | 0줄 ✓ |
+| HighScoreRepository | 0줄 ✓ |
+| StatisticsRepository | 0줄 ✓ |
+| 시스템 (ContactRouter/SpawnSystem/ScoreSystem) | 0줄 ✓ |
+| ResultScene | 0줄 ✓ |
+| Models/GameStats.swift | 0줄 ✓ |
+| Protocols/ | 0줄 ✓ |
 
-→ Out of Scope 위반: **0건**
+TitleScene 다른 부분 회귀 검증:
+- `bestLabel` / `playsLabel` / `promptLabel` 변경 0줄 ✓
+- `startPromptBlink` 변경 0줄 ✓
+- `touchesBegan` 본체 변경 0줄 ✓
+- 카드 setup / 카드 layout 변경 0줄 ✓
+- `isTransitioning` 로직 변경 0줄 ✓
+- `selectedCharacterID: CharacterID = .kim` 기본값 *유지* ✓ (안전망)
 
-## 4. 기능 변화 0 검증 — 5 캐릭터 정적 추적
+---
 
-`setupPlayer()` 호출 흐름이 5-3과 동일한 결과를 산출함을 정적으로 증명.
+## 4. pbxproj 4 엔트리 실제 라인 번호
 
-### 호출 흐름 비교
+`grep -n "CharacterPreferenceRepository" project.pbxproj` 결과:
 
-**Before (5-3)**:
-```
-setupPlayer() 진입
-  → player.position = (mapW/4, mapH/2)
-  → player.color = characterID.color                    // Direct setter A
-  → player.speedMultiplier = characterID.playerSpeedMultiplier   // Direct setter B
-  → worldNode.addChild(player)
-```
+| # | 섹션 | 라인 | 내용 |
+|---|---|---|---|
+| 1 | PBXBuildFile | **28** | `A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };` |
+| 2 | PBXFileReference | **57** | `A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };` |
+| 3 | Repositories PBXGroup | **235** | `A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */,` (StatisticsRepository 라인 232 다음) |
+| 4 | Sources 빌드 페이즈 | **446** | `A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */,` (StatisticsRepository in Sources 라인 442 다음) |
 
-**After (5-R)**:
-```
-setupPlayer() 진입
-  → player.position = (mapW/4, mapH/2)
-  → player.apply(characterID)                           // facade 호출
-       └─ (내부) self.color = characterID.color         // setter A (5-3과 동일 라인)
-       └─ (내부) self.speedMultiplier = characterID.playerSpeedMultiplier   // setter B (5-3과 동일 라인)
-  → worldNode.addChild(player)
-```
+### ID 충돌 검증
+- 작업 전 `grep "0000000000000024"` → "0024 is FREE" 확인 (미사용)
+- 마지막 사용 ID = 0023 (CharacterCardNode). 다음 hex = 0024 → 정확히 적용.
+- FileReference prefix `A1C0F1A0...` / BuildFile prefix `A1C0F1B0...` 기존 컨벤션 준수.
 
-**관찰**:
-- 두 setter의 호출 순서 동일 (color → speedMultiplier).
-- 두 setter의 우변 식 동일 (`characterID.color`, `characterID.playerSpeedMultiplier`).
-- 두 setter 모두 `worldNode.addChild(player)` *이전*에 실행 — 5-3과 동일.
-- `CharacterID.swift`는 0줄 변경 → `.color` / `.playerSpeedMultiplier` 반환값도 5-3과 동일.
-
-### 5 캐릭터 시나리오 정적 결과
-
-| # | 캐릭터 | `characterID.color` 반환 | `characterID.playerSpeedMultiplier` 반환 | 적용 후 `player.color` | 적용 후 `player.speedMultiplier` |
-|---|---|---|---|---|---|
-| (a) | `.kim` | `.ganhoPaper` | `1.00` | `.ganhoPaper` | `1.00` |
-| (b) | `.jung` | `.ganhoMint` | `1.10` | `.ganhoMint` | `1.10` |
-| (c) | `.geon` | `.ganhoPinkNote` | `0.90` | `.ganhoPinkNote` | `0.90` |
-| (d) | `.im` | `.ganhoYellowF` | `0.95` | `.ganhoYellowF` | `0.95` |
-| (e) | `.lee` | `.ganhoBloodAccent` | `1.05` | `.ganhoBloodAccent` | `1.05` |
-
-→ 모든 5 캐릭터에서 5-3 종결 시점과 **비트 단위 동일 결과**.
-
-### 추가 검증 — 호출 타이밍
-
-- `apply(_:)` 본문은 함수 호출 시 동기 실행 (SKAction/dispatch_async 없음) → 5-3의 직접 setter와 실행 시점 동일.
-- `apply(_:)` 본문에 side effect 0 (guard/if/로그/디버그/추가 setter 없음).
-- `update(deltaTime:)`의 `playerBaseSpeed * speedMultiplier` 곱셈 식은 5-3 그대로 → 첫 입력부터 정상 속도.
-
-→ 기능 변화: **0**
+---
 
 ## 5. 빌드 결과
 
-```bash
-xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
-  -scheme "GanhoMusic iOS" \
-  -destination 'generic/platform=iOS Simulator' \
-  -configuration Debug build
+```
+$ xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
+             -scheme "GanhoMusic iOS" \
+             -destination 'generic/platform=iOS Simulator' \
+             -configuration Debug build
 ```
 
-- ✅ **BUILD SUCCEEDED**
-- ✅ 경고/에러 (AppIntents 메타 추출 제외) — **0줄**
-- ✅ 컴파일 결과물: `GanhoMusic.app` 정상 생성, codesign 통과
+- **BUILD SUCCEEDED** ✓
+- `grep -E "warning:|error:" | grep -v "AppIntents"` → **0줄** ✓
+- AppIntents 경고는 프로젝트 무관 (Apple 시스템 메타데이터 추출 도구가 던지는 메시지)
 
-```bash
-xcodebuild ... 2>&1 | grep -E "warning:|error:" | grep -v "AppIntents"
-# (출력 없음)
-```
+---
 
-## 6. 학습 노트
+## 6. 검증 시나리오 정적 추적
 
-생성 완료: `docs/learn/phase-5-R-player-apply.md`
+### (a) 5 캐릭터 각각 저장/복원
+- `select(.jung)` → `selectedCharacterID = .jung` → `preferenceRepo.save(.jung)` → `defaults.set("jung", forKey: "selectedCharacterID")` ✓
+- 재실행 시 `didMove` → `preferenceRepo.current` → `defaults.string(forKey:"selectedCharacterID")` = `"jung"` → `CharacterID(rawValue:"jung")` = `.jung` → `setupCharacterCards()`에서 `card.setSelected(card.id == .jung)` ✓
+- 5 case (kim/jung/geon/im/lee) 모두 동일 경로 — enum String rawValue 자동 변환 ✓
 
-수록 4 포인트:
-1. **Tell-Don't-Ask** — 식당 김치찌개 비유, 직접 지시 vs 위임
-2. **Facade 메서드** — Spring `userService.applyProfile(profile)` 비유
-3. **OCP (Open/Closed)** — 5-5에서 setter 추가 시 호출 측 불변 보장
-4. **정보 은닉** — Controller가 Entity 내부 컬럼을 모르고 `entity.update(dto)` 호출하는 패턴
+### (b) 첫 실행 (UserDefaults 키 없음)
+- `defaults.string(forKey:"selectedCharacterID")` → `nil` → `guard let` 분기 → `return .kim` ✓
+- `selectedCharacterID: CharacterID = .kim` 프로퍼티 기본값과 일치 — 이중 안전망 ✓
 
-추가 수록:
-- Phase 4-R(SelfDismissingNode 프로토콜)과의 DNA 비교 — 둘 다 "동작 0 변화, 구조 정돈".
-- Swift 외부 레이블 `_` 문법 해설 (`func apply(_ characterID:)` → `player.apply(characterID)`).
-- 중학생 수준 일상 비유 + Spring 사례 곁들임 (사용자 멘탈 모델 준수).
+### (c) 잘못된 raw value graceful degradation
+- 누군가 `defaults.set("ganho", forKey:"selectedCharacterID")` 했다면 → `defaults.string` = `"ganho"` (non-nil) → `CharacterID(rawValue:"ganho")` = `nil` (CharacterID에 ganho 없음) → `?? .kim` → `.kim` ✓
+- 크래시 없음. fatalError 없음. 강제 언래핑 없음 ✓
 
-## Swift 패턴 준수
+### (d) GameScene 진입 시 복원된 선택 사용
+- `select(.jung)` 한 뒤 앱 종료/재실행 → `didMove`에서 `selectedCharacterID = .jung` 복원 → 카드 외 영역 탭 → `GameScene.newGameScene(characterID: .jung)` 호출 → PlayerNode 색 민트/속도 1.10x (Phase 5-2/5-3 결과물) ✓
 
-- 강제 언래핑 미사용: ✅ (옵셔널 없음)
-- guard let 옵셔널 처리: ✅ (해당 없음 — 비옵셔널 인자)
-- MARK 섹션 구분: ✅ (`// MARK: - Apply` 신설, Init → Apply → Update 의미 흐름)
-- GameConfig 상수 사용: ✅ (해당 없음 — 매직 넘버 0건, 신규 상수 추가 없음)
-- weak self 캡처: ✅ (해당 없음 — 클로저 없음)
-- 함수 단일 책임: ✅ (`apply(_:)`는 캐릭터 정체성 적용만 담당)
-- 외부 레이블 `_`: ✅ (Swift 관용 표기, `player.apply(characterID)`)
+### (e) 빌드 클린 (pbxproj 누락 회귀 — 핵심)
+- 4 엔트리 모두 등록 → 컴파일 에러 0개, 경고 0개 ✓
+- "Cannot find 'CharacterPreferenceRepository' in scope" 미발생 (4곳 등록 효과)
+- pbxproj 4곳 라인 번호 28/57/235/446 모두 검증
 
-## SpriteKit 패턴 준수
+### (f) TitleScene 다른 라벨 회귀 없음
+- `bestLabel` 출력 경로 (line 61-62): `HighScoreRepository().current` 변경 0줄 ✓
+- `playsLabel` 출력 경로 (line 64-65): `StatisticsRepository().current.playCount` 변경 0줄 ✓
+- `promptLabel` 깜빡임 (`startPromptBlink`): `fadeOut`/`fadeIn` SKAction.repeatForever 변경 0줄 ✓
+- 카드 5장 layout (`layoutCharacterCards`): startX 계산식 변경 0줄 ✓
+- `isTransitioning` 더블 enter 방지: `guard !isTransitioning` 변경 0줄 ✓
 
-- didMove(to:)에서 초기화 흐름 보존: ✅ (`setupPlayer()` 호출 시점 5-3 그대로)
-- dt 기반 이동: ✅ (`update(deltaTime:)` 본문 0줄 변경)
-- SKAction 스폰 패턴: ✅ (해당 없음 — 본 sprint는 setup 시점, 스폰 미접촉)
-- 충돌 후 노드 즉시 삭제 없음: ✅ (해당 없음 — 충돌 로직 미접촉)
-- HUD 노드 분리: ✅ (HUDNode 0줄 변경)
-- 물리 바디 설정: ✅ (Init 안의 physicsBody 설정 0줄 변경 → category/collision/contact mask 동일)
+### (g) 단일 진입점 검증 (핵심 — `select(_:)`만 디스크 I/O)
+- 카드 영역 탭: `touchesBegan` → `card.contains(location)` true → `select(card.id)` 호출 → 함수 안 `preferenceRepo.save(id)` 1회 호출 → `return` (조기 종료) → GameScene 전환 안 함 ✓
+- 카드 외 영역 탭: `touchesBegan` → for 루프 모두 miss → `guard !isTransitioning` 통과 → `GameScene.newGameScene(...)` 호출. **`select(_:)` 호출되지 않음** → `preferenceRepo.save` 호출 0회 → 디스크 I/O 없음 ✓
+- 결론: `select(_:)`가 **유일한 save 진입점** — Spring `@Transactional` 단위처럼 작동 ✓
 
-## 범위 외 미구현 항목
+---
 
-**없음**. SPEC In Scope 3항목 전부 구현, Out of Scope 위반 0건.
+## 7. Swift/SpriteKit 패턴 준수
+
+- **강제 언래핑 미사용**: `guard let raw = defaults.string(...)`로 nil-check, `?? .kim` 폴백 ✓
+- **매직 넘버 미사용**: `"selectedCharacterID"` 리터럴은 `GameConfig.characterPreferenceUserDefaultsKey` 1곳에만 ✓
+- **MARK 섹션 구분**: `// MARK: - Properties / Init / Read / Write` 4섹션 (HighScore/Statistics와 동형) ✓
+- **`final class`**: Repository 상속 차단 ✓
+- **DI 가능 init**: `init(defaults: UserDefaults = .standard, key: String = ...)` 기본값으로 prod/test 분기 ✓
+- **단일 스레드 가정**: 메인(SpriteKit) 호출만 — 락 없음, 캐싱 없음 ✓
+- **Timer 미사용**: 본 sprint는 시간 기반 동작 없음 (해당 없음) ✓
+- **클로저 미사용**: `[weak self]` 캡처 필요 없음 (해당 없음) ✓
+
+---
+
+## 8. 학습 노트 작성
+
+`/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/docs/learn/phase-5-6-character-preference-repo.md`
+
+- 중학생 수준 표현 (전문용어 최소화) ✓
+- Spring 비유 5가지: `@Repository` 3번째 등장 / `@Value` default / `@Transactional` 단위 / `@Enumerated(EnumType.STRING)` / 직렬화 전략 비교 표 ✓
+- before/after 박스 다이어그램 + 표 ✓
+- "한 줄 요약" 마무리 — 작은 친절함 뒤의 책임 분리 ✓
+
+---
+
+## 결론
+
+- SPEC In Scope 4 항목 100% 충족
+- Out of Scope 13 카테고리 0줄 변경 (회귀 위험 없음)
+- BUILD SUCCEEDED + 경고 0 + 에러 0
+- pbxproj 4곳 라인 번호 검증 (28/57/235/446)
+- 검증 시나리오 (a)~(g) 정적 추적 모두 통과
+- 학습 노트 톤/형식/Spring 비유 5가지 확보
