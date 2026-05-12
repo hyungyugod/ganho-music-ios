@@ -1,91 +1,78 @@
-# QA 검수 보고서 — Phase 5-6 selectedCharacterID 영구 저장
+# QA 검수 보고서 — Phase 5-7 ResultScene 캐릭터 이름 표시 (Phase 5 종결)
 
 ## SPEC 기능 검증
 
-| 기능 | 결과 | 비고 |
-|---|---|---|
-| `CharacterPreferenceRepository` 신규 (3번째 Repository) | PASS | HighScoreRepository(40줄)/StatisticsRepository(44줄)와 동형(41줄). `init(defaults:key:)` DI · `var current: CharacterID` · `func save(_:)` 시그니처 정확 |
-| `GameConfig.characterPreferenceUserDefaultsKey` 상수 | PASS | line 248, `"selectedCharacterID"`. 호출부 리터럴 노출 0 |
-| TitleScene 프로퍼티 `preferenceRepo` (line 31) | PASS | `private let` 1회 생성, 씬 생명주기 보장 |
-| `didMove`에 setupCharacterCards 직전 복원 (line 45→46) | PASS | 첫 프레임에 정확한 카드가 selected scale/alpha로 표시되는 순서 |
-| `select(_:)` 안 save (line 149→150→151) | PASS | `selectedCharacterID = id` 직후, for 루프 직전 — 단일 트랜잭션 단위 |
-| pbxproj 4 엔트리 등록 | PASS | 라인 28(PBXBuildFile) / 57(PBXFileReference) / 235(Repositories children) / 446(Sources phase). ID `A1C0F1A0...0024` / `A1C0F1B0...0024` 충돌 0 |
+- [PASS] **기능 1**: `ResultScene.swift` 라벨 1개 추가 + init/factory 6-인자 확장 — `characterLabel`(line 39), 6인자 `newResultScene`(line 47-64), 6인자 `private init`(line 69-83), setupLabels 6라벨(line 102-122), layoutLabels 6라벨(line 135-159) 모두 SPEC §기능1 코드 구조와 일치.
+- [PASS] **기능 2**: `GameConfig.swift` 상수 2개 추가 — `resultCharacterFontSize: CGFloat = 22`(line 253), `resultCharacterOffsetY: CGFloat = 115`(line 257) + 신설 MARK 섹션, SPEC docstring 보존.
+- [PASS] **기능 3**: `GameScene.endGame()` 1줄 인자 추가 — line 264-267, `characterName: characterID.displayName` 추가 외 endGame 본문 변경 0줄, endGame 외 메서드 변경 0줄.
 
 ## 빌드 검증
 
-- 결과: `** BUILD SUCCEEDED **`
-- iOS Simulator generic destination, Debug 구성
-- swift compile error 0, warning 0
-- `Cannot find 'CharacterPreferenceRepository' in scope` 미발생 — pbxproj 4곳 등록 효과
+- **결과**: `** BUILD SUCCEEDED **`
+- **destination**: generic/platform=iOS Simulator, Debug
+- **신규 warning/error (AppIntents 잡음 제외)**: 0건
 
-## pbxproj 4 엔트리 정밀 검증
+## 변경 파일 검증
 
-```
-28:  A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 ... };
-57:  A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
-235: A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */,   (Repositories PBXGroup children)
-446: A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */,   (Sources build phase)
-```
-- 정확히 4개 라인 ✓
-- FileRef prefix `A1C0F1A0...` / BuildFile prefix `A1C0F1B0...` 기존 컨벤션 준수
-- ID 충돌 0 (grep `A1C0F1[AB]00000000000000(23|24|25)` → 0024만 등장)
+`git diff --stat` 기준 Swift 변경 정확히 3개 파일:
 
-## 회귀 검증 (Out of Scope 0줄)
+| 파일 | 변경 라인 |
+|---|---|
+| `Scenes/ResultScene.swift` | +44 / -9 (라벨 + init 6-인자) |
+| `Config/GameConfig.swift` | +9 / -0 (상수 2개) |
+| `GameScene.swift` | +2 / -1 (endGame 1줄) |
 
-5-6 sprint에서 0줄 변경 확인:
+회귀 0줄 변경 확인:
+- `CharacterID` / `HUDNode` / `PlayerNode` / `CharacterCardNode` / `TitleScene` / `GameScene+Setup` / `ColorTokens` — 변경 없음
+- 시스템들(`ContactRouter`/`SpawnSystem`/`ScoreSystem`) — 변경 없음
+- Repository들(`HighScore`/`Statistics`/`CharacterPreference`) — 변경 없음
+- `GameStats` / `Protocols/` / pbxproj — 변경 없음
 
-| 파일 | 5-6 sprint 변경 | 비고 |
+## 특별 검증 포인트
+
+| 항목 | 결과 | 위치 |
 |---|---|---|
-| `Models/CharacterID.swift` | 0줄 | enum String raw value 자동 사용 |
-| `GameScene.swift` / `GameScene+Setup.swift` | 0줄 | |
-| `Nodes/PlayerNode.swift` / `HUDNode.swift` | 0줄 | |
-| `Nodes/CharacterCardNode.swift` | 5-5 누적분 12줄만, 5-6 추가 0줄 | 평가 제외 대상 |
-| `Config/ColorTokens.swift` | 0줄 | |
-| `Repositories/HighScoreRepository.swift` | 0줄 | |
-| `Repositories/StatisticsRepository.swift` | 0줄 | |
-| `Scenes/ResultScene.swift` | 0줄 | |
-| `Systems/*` (ContactRouter/SpawnSystem/ScoreSystem) | 0줄 | |
-| `Protocols/*` | 0줄 | |
-| `Models/GameStats.swift` | 0줄 | |
+| `self.characterName = characterName`이 `super.init(size:)` *이전* (two-phase init) | PASS | ResultScene.swift:81-82 |
+| `class func newResultScene` 6 인자 (size는 내부) | PASS | ResultScene.swift:47-64 |
+| `characterLabel.text = "🎮 \(characterName)"` 텍스트 포맷 | PASS | ResultScene.swift:115 |
+| `configureLabel(characterLabel, fontSize: GameConfig.resultCharacterFontSize)` 공통 스타일 | PASS | ResultScene.swift:107 |
+| `characterLabel.position`에 `GameConfig.resultCharacterOffsetY` 사용 (매직 넘버 0) | PASS | ResultScene.swift:152-155 |
+| `endGame` 본문 변경 0 (인자 1줄 추가 외) | PASS | GameScene.swift:264-267 |
+| `GameScene` 다른 메서드/프로퍼티 0줄 변경 | PASS | diff +2/-1 = 호출부 1라인 분할 산술 |
+| 라벨 색 차등 0 (configureLabel 자동 `.ganhoPaper`) | PASS | ResultScene.swift:128 |
+| 강제 언래핑 0 | PASS | `!isTransitioning`(부정 연산자)/"★ NEW BEST! ★"(리터럴)만 |
 
-TitleScene 내부 회귀 회피:
-- `bestLabel`/`playsLabel`/`promptLabel` 출력 경로 변경 0 ✓
-- `startPromptBlink` SKAction 변경 0 ✓
-- `touchesBegan` 본체 (line 159-176) — 카드 hit-test 분기·GameScene 전환 분기 모두 5-1 그대로, 5-6에서 0줄 ✓
-- 카드 setup/layout (line 120-145) 변경 0 ✓
-- `isTransitioning` 더블 탭 방지 (line 170) 변경 0 ✓
-- `selectedCharacterID: CharacterID = .kim` 기본값 (line 27) 유지 — 안전망 ✓
+## 검증 시나리오 (a)~(h)
 
-## 검증 시나리오 (a)~(g) 정적 추적
+### (a) 5 캐릭터 텍스트
+- `displayName`: kim→"김간호" / jung→"정간호" / geon→"건간호" / im→"임간호" / lee→"이간호"
+- `"🎮 \(characterName)"` 합성 → 5케이스 모두 정확 ✓
 
-### (a) 5 캐릭터 각각 저장/복원
-- `select(.jung)` → `selectedCharacterID = .jung` → `preferenceRepo.save(.jung)` → `defaults.set("jung", forKey: ...)`
-- 재실행 시 `didMove` → `preferenceRepo.current` → `defaults.string` = `"jung"` → `CharacterID(rawValue:"jung")` = `.jung`
-- 5 case 모두 동일 String rawValue 경로 ✓
+### (b) 빌드
+- BUILD SUCCEEDED, AppIntents 외 warning/error 0건
+- 6-인자 시그니처 변경 → GameScene 호출부 동기화 컴파일러 검증 ✓
 
-### (b) 첫 실행 (UserDefaults 키 없음) — graceful
-- `defaults.string(forKey: ...)` → `nil`
-- `guard let raw = ...` 분기 실패 → `return .kim`
-- 프로퍼티 기본값과 일치 — 이중 안전망 ✓
+### (c) 5-2 회귀
+- `GameScene.init(size:characterID:)` 0줄 ✓
+- `newGameScene(characterID:)` 0줄 ✓
 
-### (c) 잘못된 raw value graceful degradation
-- `defaults.set("ganho", forKey: ...)` 후 → `defaults.string` = `"ganho"` non-nil
-- `CharacterID(rawValue:"ganho")` = `nil` → `?? .kim` 폴백 → `.kim` 반환
-- 크래시 0, fatalError 0, 강제 언래핑 0 ✓
+### (d) 5-3 회귀
+- PlayerNode/CharacterID `playerSpeedMultiplier` 0줄 ✓
 
-### (d) GameScene 진입 시 복원된 선택 사용
-- 재실행 시 `selectedCharacterID = .jung` 복원 → 빈 곳 탭 → `GameScene.newGameScene(characterID: .jung)` → 5-2/5-3 색·속도 정상 ✓
+### (e) 5-4 회귀
+- HUDNode `setCharacterName(_:)` 0줄 ✓
+- characterName이 HUDNode와 ResultScene 양쪽에 String만 흐름 (동형성)
 
-### (e) 빌드 클린
-- BUILD SUCCEEDED, error 0, warning 0 ✓
+### (f) 라벨 위치 / 클리핑
+- 1024×768: midY 384 → character y = 499, 폰트 22 → 상단 ~510pt, 화면 상단 768까지 258pt 여유 ✓
+- character(+115) ↔ title(+80) 간격 35pt, 폰트 절반 합 27pt → 8pt 시각적 갭 ✓
+- 5라벨 균등 40 간격 유지, characterLabel만 +115 신규 ✓
 
-### (f) TitleScene 다른 라벨 회귀 없음
-- bestLabel / playsLabel / promptLabel / 카드 layout / isTransitioning 변경 0 ✓
+### (g) Graceful (빈 문자열)
+- `""` 주입 시 `"🎮 "` 출력, 크래시 없음. 실제론 endGame이 항상 non-empty 전달 ✓
 
-### (g) 단일 진입점 검증 — 핵심
-- 카드 영역 탭: `select(card.id)` → `preferenceRepo.save` 1회 → `return` → GameScene 전환 안 함 ✓
-- 카드 외 영역 탭: 모두 miss → `GameScene.newGameScene(...)` 호출. **`select(_:)` 미호출** → save 미호출 → 디스크 I/O 0 ✓
-- grep `preferenceRepo` → save는 line 150 한 곳뿐 ✓
+### (h) didChangeSize 회전
+- `layoutLabels()` 호출 → 6라벨 동시 재배치 (멱등) ✓
 
 ## 검수 결과 요약
 
@@ -97,30 +84,28 @@ TitleScene 내부 회귀 회피:
 
 ## 통과 항목
 
-- Repository 패턴 정합 (3번째 등장, HighScore/Statistics와 100% 동형)
-- MARK 4섹션 (Properties / Init / Read / Write)
-- 강제 언래핑 0 (`guard let raw` 패턴)
-- 매직 넘버 0 (GameConfig 상수 경유)
-- graceful degradation 2단계 (`guard let` + `?? .kim`)
-- DI 가능 init (`defaults`/`key` 기본값)
-- 단일 진입점 (`select(_:)` 1곳에서만 save)
-- 순서 정합 (setupLabels → 복원 → setupCharacterCards)
-- Out of Scope 위반 0 (13 카테고리)
-- Timer/DispatchQueue 0
-- 빌드 클린 (error/warning 0)
-- pbxproj 4곳 정확 등록 (ID 충돌 0)
+- **Swift Two-phase init**: stored property 5개 모두 `super.init(size:)` 이전 저장 — 정석.
+- **MARK 섹션 구분**: Properties / Factory / Init / Lifecycle / Setup / Touch 명시.
+- **매직 넘버 0**: `resultCharacterFontSize`(22), `resultCharacterOffsetY`(115) GameConfig 경유.
+- **공통 스타일 통일**: characterLabel도 `configureLabel` 거침 — 라벨별 차등 0.
+- **String-only 동형성 (5-4 일관)**: ResultScene이 CharacterID enum 대신 String만 받음 — 결합도 차단.
+- **6라벨 layout 멱등성**: position만 재계산, addChild 없음.
+- **endGame 미니멀 변경**: 인자 1줄만 추가, 본문 다른 줄 0.
+- **빌드 클린**.
 
 ## 채점
 
 | 항목 | 점수 | 코멘트 |
 |---|---|---|
-| Swift 패턴 일관성 (35%) | **10/10** | Repository 3번째 동형, MARK 4섹션, guard let, DI init, 매직 넘버 0 — 빈틈 없음 |
-| 게임 로직 완성도 (30%) | **10/10** | 복원 위치/저장 위치 모두 SPEC 명세대로. 단일 진입점 보장 |
-| 성능 & 안정성 (20%) | **10/10** | 빌드 클린, fallback 2단계, 디스크 I/O는 사용자 카드 탭 시 1회만 |
-| 기능 완성도 (15%) | **10/10** | In Scope 4 항목 100% 충족, Out of Scope 0건 위반, pbxproj 4곳 정확 |
+| Swift 패턴 일관성 (35%) | **10/10** | 6-인자 init 1:1 대응, two-phase init, MARK/매직 넘버 0 만점 |
+| 게임 로직 완성도 (30%) | **10/10** | 정적 씬, 게임 로직 0줄, 5-2/5-3/5-4 회귀 0, didChangeSize 멱등 |
+| 성능 & 안정성 (20%) | **10/10** | 강제 언래핑 0, Timer 0, 빌드 클린, graceful 빈 문자열 |
+| 기능 완성도 (15%) | **10/10** | SPEC 기능 1/2/3 모두 코드 구조 그대로, In Scope 7/7, Out of Scope 0 위반 |
 
-**가중 점수 = 10.0 / 10.0**
+**가중 점수**: 10.0 × 0.35 + 10.0 × 0.30 + 10.0 × 0.20 + 10.0 × 0.15 = **10.0 / 10.0**
 
-## 최종 판정: **합격 (10.0 / 10.0)**
+## 최종 판정: **합격**
 
-본 sprint는 5-6 목표(영구 저장)를 SPEC의 *지정 위치*에서 *지정 패턴*으로 정확히 구현했다. Repository 패턴 3번째 등장이 명세대로 동형 구조를 유지하고, 단일 진입점·이중 graceful fallback·pbxproj 4곳 등록·빌드 클린이 모두 달성되었다. 추가 개선 지시 없음.
+SPEC의 모든 코드 구조가 한 토큰도 어긋나지 않음(라벨 텍스트 포맷, 6-인자 순서, 상수 docstring, configureLabel 호출 위치). Out of Scope 11개 항목 모두 0줄 변경. Swift two-phase init 규칙 준수. 빌드 신규 경고 0. 회귀 시나리오 모두 정적 추적으로 무영향 확인. 라벨 1개 + 상수 2개 + 호출 1줄이라는 미니멀한 변경 범위가 SPEC과 실제 코드 사이의 인덱스 일치도를 극대화.
+
+**구체적 개선 지시**: 없음. Phase 5 종결 완료.

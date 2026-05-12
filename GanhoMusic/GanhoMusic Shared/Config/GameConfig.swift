@@ -246,4 +246,13 @@ enum GameConfig {
     /// Phase 5-6 — UserDefaults에 마지막 캐릭터 선택을 raw String으로 저장할 키.
     /// 호출부에 리터럴 노출 금지 — CharacterPreferenceRepository만 사용.
     static let characterPreferenceUserDefaultsKey: String = "selectedCharacterID"
+
+    // MARK: - Result Character (Phase 5-7)
+    /// Phase 5-7 — ResultScene 캐릭터 이름 라벨 폰트 크기 (pt). best(22)와 동급.
+    /// title(32) > character(22) = best(22) > score(24)... 위계 — title 강조 유지.
+    static let resultCharacterFontSize: CGFloat = 22
+    /// Phase 5-7 — ResultScene 캐릭터 라벨 y 오프셋. title(+80) 위쪽에 배치.
+    /// 5라벨 균등 40 간격(+80/+40/0/-40/-80) 깨지 않게 *위로* 35pt 추가.
+    /// "정간호 / GAME OVER / 🎵 N / BEST / PLAYS / TAP" 위→아래 흐름.
+    static let resultCharacterOffsetY: CGFloat = 115
 }

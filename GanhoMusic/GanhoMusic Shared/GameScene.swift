@@ -262,7 +262,8 @@ class GameScene: SKScene {
         statsRepo.recordPlay(score: score)
         let stats = statsRepo.current
         let resultScene = ResultScene.newResultScene(
-            score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats
+            score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
+            characterName: characterID.displayName
         )
         view.presentScene(resultScene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
     }
