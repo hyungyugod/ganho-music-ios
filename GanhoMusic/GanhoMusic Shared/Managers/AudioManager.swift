@@ -3,8 +3,10 @@
 //  GanhoMusic Shared
 //
 //  Phase 6-2 · 시스템 사운드 효과음 캡슐화 (Manager 패턴 두 번째 적용)
+//  Phase 6-3 · AVAudioPlayer 폴백 인프라 (자작 음원 추가 시 자동 활성화)
 //
 
+import AVFoundation
 import AudioToolbox
 
 /// iOS 시스템 사운드를 캡슐화한 매니저. AVAudioPlayer / 외부 음원 도입 전 임시 보강.
@@ -18,6 +20,16 @@ final class AudioManager {
         case noteCollected   // 노트 수집 — 짧고 밝은 톤
         case gameOver        // 게임 종료 — 묵직한 종료감
 
+        /// Bundle에 실제 음원 파일이 있을 때만 AVAudioPlayer 경로로 재생.
+        /// nil이면 systemSoundID 폴백만 사용. 확장자는 .wav로 고정.
+        var fileName: String? {
+            switch self {
+            case .noteCollected: return "note"
+            case .gameOver:      return "gameover"
+            }
+            // exhaustive switch — default 없음. 케이스 추가 시 컴파일러가 강제로 매핑 추가 요구.
+        }
+
         /// Apple 내장 시스템 사운드 ID. 1000~1500 범위가 안전.
         /// GameConfig로 분리하지 않는 이유: Apple 시스템 상수라는 외부 도메인 값이며,
         /// SFX 케이스와 1:1 매핑이므로 enum 내부에 두는 게 응집도 높음.
@@ -30,10 +42,43 @@ final class AudioManager {
         }
     }
 
+    // MARK: - Players Cache
+    /// init 시점에 1회 채워지는 AVAudioPlayer 캐시. play 시 O(1) 조회.
+    /// Bundle에 음원 파일이 없는 SFX 케이스는 키 자체가 없음 → play에서 폴백 분기.
+    private var players: [SFX: AVAudioPlayer] = [:]
+
+    // MARK: - Init
+    /// AVAudioSession을 .ambient로 1회 설정하고, SFX 전 케이스에 대해 Bundle 음원 로딩을 시도한다.
+    /// 실패는 전부 graceful — 어떤 단계가 실패해도 systemSoundID 폴백 경로는 항상 살아 있다.
+    init() {
+        // 1) AudioSession 카테고리 — .ambient: 무음모드 따름, 다른 앱 사운드 안 끊음 (효과음 정책).
+        //    setActive(true)는 호출 안 함 — .ambient는 시스템이 자동 활성화. try?로 graceful.
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
+
+        // 2) SFX 전 케이스 순회 — fileName이 있고 Bundle에 실제 .wav가 있을 때만 캐시 채움.
+        //    파일이 없으면 폴백 경로로 자연 전환 (예외 무시).
+        //    CaseIterable 미채택 이유: enum 본체 변경을 회피하고, 명시 배열로 의도를 노출.
+        let allCases: [SFX] = [.noteCollected, .gameOver]
+        for sfx in allCases {
+            guard let name = sfx.fileName,
+                  let url = Bundle.main.url(forResource: name, withExtension: "wav") else { continue }
+            guard let player = try? AVAudioPlayer(contentsOf: url) else { continue }
+            player.prepareToPlay()
+            players[sfx] = player
+        }
+    }
+
     // MARK: - Play
+    /// 캐시 히트 → AVAudioPlayer (자작 음원). 미스 → AudioServicesPlaySystemSound (Phase 6-2 폴백).
+    /// 동일 SFX의 1프레임 내 연속 호출은 currentTime=0 리셋 후 재시작.
     /// 시스템 사운드는 즉시 발화 — HapticsManager의 prepare() 워밍 불필요.
     /// AudioServicesPlaySystemSound는 thread-safe하며 비동기로 사운드 큐에 push.
     func play(_ sfx: SFX) {
+        if let player = players[sfx] {
+            player.currentTime = 0
+            player.play()
+            return
+        }
         AudioServicesPlaySystemSound(sfx.systemSoundID)
     }
 }

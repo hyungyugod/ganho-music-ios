@@ -1,184 +1,229 @@
-# 자체 점검 — Phase 6-2 AudioManager (시스템 사운드 효과음)
+# 자체 점검 — Phase 6-3 AVAudioPlayer 폴백 인프라
 
-전략: Case A — 이유: 1회차. SPEC §기능1 코드 그대로 + 정확히 3줄 GameScene 패치 + pbxproj 4지점.
+전략: Case A — 1회차 신규 구현. SPEC.md 설계가 매우 구체적이라 1:1 충실 반영.
 
 ---
 
-## 1. 변경 파일 목록 (신규 1 + 수정 2 = 3개)
+## 1. 변경 파일 목록 (Swift 1 + 문서 2 = 3개)
 
-### 신규 (1개)
-| 파일 | 라인 수 | 핵심 |
-|---|---|---|
-| `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift` | 39 | `import AudioToolbox`, `final class AudioManager`, `enum SFX { noteCollected, gameOver }`, computed `systemSoundID` (1057/1073), `func play(_:)` |
+| # | 절대경로 | 종류 | 변경 요약 |
+|---|---|---|---|
+| 1 | `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift` | Swift 수정 | `import AVFoundation` 추가, 헤더에 Phase 6-3 라인, `SFX.fileName` computed property 추가 (systemSoundID 위), `// MARK: - Players Cache` + `// MARK: - Init` 신설, `play(_:)` 폴백 분기 |
+| 2 | `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Resources/README.md` | 문서 수정 | `Sounds/` 행 갱신 (Phase 6-3 인프라 메모) + 신규 H2 "Sounds/ — 자작 효과음 활성화 절차" 추가 |
+| 3 | `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/Resources/Sounds/README.md` | 문서 신규 | 빈 디렉터리 표식 + 3줄 가이드 + 상위 README 링크 |
 
-### 수정 (2개)
-
-#### A. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic Shared/GameScene.swift` (+4줄)
-```diff
-+ //  Phase 6-2 · AudioManager 신설 + 노트 수집/게임오버 사운드 트리거 2지점
-  let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
-+ let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
-
-  self.haptics.light()   // Phase 6-1 — 수집 손맛
-+ self.audio.play(.noteCollected)   // Phase 6-2 — 수집 사운드 (햅틱 → 사운드 순서)
-  note.run(.removeFromParent())
-
-  haptics.heavy()   // Phase 6-1 — 종료 무게감 (가드 통과 1회만)
-+ audio.play(.gameOver)   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
-  spawnSystem.stop()
+### git status 검증
 ```
-`git diff --stat`: `GameScene.swift | 4 +` (헤더 주석 1 + 시스템 프로퍼티 1 + 노트 수집 1 + 게임오버 1).
+$ git status --short
+ M "GanhoMusic Shared/Managers/AudioManager.swift"
+ M "GanhoMusic Shared/Resources/README.md"
+ M SPEC.md                                              ← Planner 산출물 (Generator 변경 아님)
+?? "GanhoMusic Shared/Resources/Sounds/"                ← 신규 폴더 (README.md 1개 포함)
+```
 
-#### B. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (+4줄)
-정확히 4지점 (PBXBuildFile / PBXFileReference / Managers PBXGroup children / iOS Sources phase).
-macOS/tvOS Sources phase는 0줄 변경 (의도된 비대칭 — SPEC §결정 4 명시).
+Generator 책임 변경: AudioManager.swift(+45) + Resources/README.md(+40) + Sounds/README.md(신규) = **3개**.
+
+### Swift diff 요약 (AudioManager.swift)
+
+```swift
+// 헤더에 6-3 라인 1줄 추가
+//  Phase 6-3 · AVAudioPlayer 폴백 인프라 (자작 음원 추가 시 자동 활성화)
+
+// import 1줄 추가 (AudioToolbox는 폴백 경로용으로 유지)
+import AVFoundation
+import AudioToolbox
+
+// SFX에 fileName computed property 추가 (systemSoundID 위, default 없음)
+var fileName: String? {
+    switch self {
+    case .noteCollected: return "note"
+    case .gameOver:      return "gameover"
+    }
+}
+
+// 새 MARK 섹션 2개
+// MARK: - Players Cache
+private var players: [SFX: AVAudioPlayer] = [:]
+
+// MARK: - Init
+init() {
+    try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
+    let allCases: [SFX] = [.noteCollected, .gameOver]
+    for sfx in allCases {
+        guard let name = sfx.fileName,
+              let url = Bundle.main.url(forResource: name, withExtension: "wav") else { continue }
+        guard let player = try? AVAudioPlayer(contentsOf: url) else { continue }
+        player.prepareToPlay()
+        players[sfx] = player
+    }
+}
+
+// play(_:) 본문 폴백 분기
+func play(_ sfx: SFX) {
+    if let player = players[sfx] {
+        player.currentTime = 0
+        player.play()
+        return
+    }
+    AudioServicesPlaySystemSound(sfx.systemSoundID)
+}
+```
 
 ---
 
 ## 2. SPEC In Scope 4항목 충족
 
-- [x] **AudioManager.swift 신설** — `import AudioToolbox`, `final class`, `enum SFX { noteCollected, gameOver }`, computed `systemSoundID: SystemSoundID` (1057 Tink / 1073 Boop), `func play(_ sfx: SFX)` — SPEC §기능1 코드 100% 일치.
-- [x] **`let audio = AudioManager()` 1줄** — Properties 시스템 섹션, `let haptics` 다음 줄 (GameScene.swift line 63).
-- [x] **`self.audio.play(.noteCollected)` 1줄** — `onNoteCollected` 콜백 안, `self.haptics.light()` 다음 줄 (햅틱 → 사운드 순서, SPEC §결정 3 준수).
-- [x] **`audio.play(.gameOver)` 1줄** — `endGame()` 안, 멱등 가드 통과 후 `haptics.heavy()` 다음 줄, `spawnSystem.stop()` 전.
+| # | SPEC 기능 | 구현 상태 | 위치 |
+|---|---|---|---|
+| 1 | `import AVFoundation` 추가 (AudioToolbox 유지) | 충족 | AudioManager.swift L9-10 |
+| 2 | `SFX.fileName` computed property (옵셔널, default 없음) | 충족 | AudioManager.swift L23-29 (systemSoundID 바로 위) |
+| 3 | Init + Players Cache (`.ambient` setCategory + Bundle 순회) | 충족 | AudioManager.swift L46-72 |
+| 4 | `play(_:)` 폴백 분기 (캐시 히트 → AVAudioPlayer / 미스 → systemSoundID) | 충족 | AudioManager.swift L79-85 |
+
+문서 작업:
+- Resources/README.md 표 `Sounds/` 행을 "6-3 인프라 설치 완료" 메모로 갱신
+- Resources/README.md "## Sounds/ — 자작 효과음 활성화 절차" H2 섹션 신설 (.wav PCM 16bit 44.1kHz 권장 포맷, note.wav/gameover.wav 파일명 고정, Xcode drag-drop 절차 + "Copy items if needed" ✓ / "Add to targets: GanhoMusic iOS" ✓ 체크박스 명시, 부분 활성화 동작)
+- Resources/Sounds/README.md 신규 (3줄 가이드 + 상위 README 참조 링크)
 
 ---
 
 ## 3. Out of Scope 위반 0건
 
-- [x] **AVAudioPlayer / BGM / 음원 에셋 0건** — `import AudioToolbox`만 사용. 시스템 사운드 API만.
-- [x] **음소거 옵션 / Repository 영속화 0건** — AudioManager에 상태 0건.
-- [x] **SFX 케이스 2개로 고정** — `.combo`, `.airforce`, `.tap` 추가 0건. 미래 확장은 SPEC §결정 2의 OCP 약속만.
-- [x] **GameConfig 새 상수 0건** — 1057/1073은 SFX enum 내부 switch에 직접 (SPEC §결정 5 정책).
-- [x] **HapticsManager.swift 0줄 변경** — 6-1 그대로 보존.
-- [x] **SFX switch에 `default:` 0개** — exhaustive 두 케이스만. `// exhaustive switch — default 없음...` 주석으로 의도 명시.
-- [x] **GameScene 다른 부분 0줄** — init/factory/didMove/didChangeSize/layoutDPad/layoutHUD/update/configureContactRouter의 다른 4 콜백/triggerAirforceEasterEgg/endGame의 멱등 가드+state 전환 외 부분 frozen. `git diff` 정확히 4줄 추가.
-- [x] **GameScene+Setup / TitleScene / ResultScene / 모든 Node / 모든 System / 모든 Repository / CharacterID / GameStats / ColorTokens / GameConfig / Protocols 0줄 변경**.
-- [x] **macOS / tvOS / Test 0줄 변경** — pbxproj iOS Sources phase에만 1줄. macOS/tvOS Sources phase는 빈 채로 유지.
+| 금지 항목 | 위반 여부 | 검증 |
+|---|---|---|
+| BGM 도입 | 0건 | AVAudioPlayer는 효과음만, `.ambient` 카테고리 |
+| `HapticsManager` 변경 | 0건 | git status에 없음 |
+| GameScene / GameScene+Setup / TitleScene / ResultScene 변경 | 0건 | git status에 없음. `audio.play(...)` 호출 두 줄 무변경 |
+| 모든 Nodes / Systems / Repositories / Models / Protocols / Config 변경 | 0건 | git status에 없음 |
+| 음원 파일 *실제 추가* | 0건 | README만 생성, .wav 파일 없음 (사용자 별도 작업) |
+| pbxproj 변경 | 0건 | git status에 없음 |
+| 새 SFX 케이스 추가 | 0건 | `.noteCollected`, `.gameOver` 그대로 |
+| `SFX.systemSoundID` 변경 | 0건 | 1057 Tink / 1073 Boop 그대로 |
+| AVAudioSession `.playback` 사용 | 0건 | `.ambient`만 (mode `.default`, options `[]`) |
+| AVAudioPlayer delegate 사용 | 0건 | delegate 미할당 |
+| 강제 언래핑 (`!`) | 0건 | `grep '!' AudioManager.swift` → 0줄 |
+| `GameConfig` 새 상수 | 0건 | GameConfig 미수정 |
+| `CaseIterable` 채택 | 0건 | 명시 배열 `let allCases: [SFX] = [.noteCollected, .gameOver]` 사용 |
+| macOS / tvOS / Test 코드 | 0건 | iOS 타겟만 |
+| `setActive(true)` 호출 | 0건 | `.ambient`는 자동 활성화 |
+| `try!` / do-catch | 0건 | `try?`만 사용 |
+
+### 강제 언래핑 0건 검증
+```
+$ grep -n '!' "GanhoMusic Shared/Managers/AudioManager.swift"
+(0줄)
+```
 
 ---
 
-## 4. pbxproj 4 엔트리 실제 추가 라인 컨텍스트
-
-`grep -n "AudioManager" project.pbxproj` 결과 정확히 4건:
+## 4. 빌드 결과
 
 ```
-30: 		A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };
-61: 		A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
-268: 				A1C0F1A00000000000000026 /* AudioManager.swift */,
-470: 				A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,
-```
-
-각각:
-- **(a) Line 30 PBXBuildFile**: HapticsManager(line 29) 바로 다음, 동일 패턴.
-- **(b) Line 61 PBXFileReference**: HapticsManager(line 59) 다음 (CharacterPreferenceRepository 라인 60 사이 정렬 — 원래 순서 유지).
-- **(c) Line 268 Managers PBXGroup children**: HapticsManager(line 267) 다음. Managers 그룹은 6-1에서 이미 생성됨 — 신규 그룹 추가 0건.
-- **(d) Line 470 iOS Sources build phase**: HapticsManager(line 469) 다음.
-
-**충돌 검사**: 작업 전 `grep "A1C0F1A00000000000000026\|A1C0F1B00000000000000026"` → 0건 (HapticsManager `...0025` 다음 hex로 안전).
-
-**비대칭 확인**: macOS Sources phase / tvOS Sources phase는 빈 채로 유지 (HapticsManager도 동일 — Manager 시리즈는 iOS 전용 정책).
-
----
-
-## 5. 빌드 결과
-
-```
+$ xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
+    -scheme "GanhoMusic iOS" \
+    -destination 'generic/platform=iOS Simulator' \
+    -configuration Debug build 2>&1 | tail -50
+...
 ** BUILD SUCCEEDED **
 ```
 
-- 명령: `xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" -scheme "GanhoMusic iOS" -destination 'generic/platform=iOS Simulator' -configuration Debug build`
-- `grep -E "warning:|error:" | grep -v "AppIntents"` → **0줄**
-- AppIntents `Metadata extraction skipped` 경고는 본 sprint 무관 (Xcode 26.x 환경 잡음).
-- arm64 + x86_64 universal binary 정상 생성, Codesign OK.
+### 경고/에러 검증
+```
+$ xcodebuild ... 2>&1 | grep -E "warning:|error:" | grep -v "AppIntents"
+(0줄)
+```
+
+**음원 파일 0개 상태에서 빌드 통과 확인 완료.** AVFoundation은 시스템 프레임워크이므로 별도 링크 설정 없이 자동 연결됨. arm64 + x86_64 universal binary 정상 생성, CodeSign OK.
+
+(AppIntents `Metadata extraction skipped` 경고는 본 sprint 무관 — Xcode 26.x 환경 잡음.)
 
 ---
 
-## 6. 검증 시나리오 (a)~(h) 정적 추적
+## 5. 검증 시나리오 (a)~(h) 정적 추적
 
-### (a) 빌드 검증 — 컴파일 ✓
-- `SystemSoundID` 타입 인식 ✓ (AudioToolbox 자동 link).
-- exhaustive switch ✓ (`default` 없음 → 두 케이스 모두 명시).
-- final class ✓.
+### (a) 빌드 — 음원 파일 0개 상태 → BUILD SUCCEEDED
+- AVFoundation 자동 링크. AudioToolbox 그대로 링크. 경고 0줄.
+- `init()` 안 `for sfx in allCases` 루프가 Bundle에서 `note.wav` / `gameover.wav`를 찾지만 둘 다 nil → `continue` → `players` 빈 딕셔너리 상태로 init 종료.
 
-### (b) 노트 수집 사운드 — 정적 흐름 추적 ✓
-1. PhysicsBody 접촉 → `ContactRouter.didBegin(_:)`
-2. `onNoteCollected` 클로저 발화 (GameScene.configureContactRouter 등록)
-3. `[weak self]` 가드 → `scoreSystem.recordNoteHit(...)` → `haptics.light()` → **`audio.play(.noteCollected)`** → `note.run(.removeFromParent())`
-4. `AudioServicesPlaySystemSound(1057)` → iOS Tink 발화. 1초 내 3회 연속도 비동기 큐로 누락 없음.
+### (b) 폴백 동작 — 시뮬레이터 노트/게임오버 → 6-2와 동일 (Tink/Boop)
+- `play(.noteCollected)` 호출 → `if let player = players[.noteCollected]`이 nil (캐시 비어있음) → `if let` 실패 → `AudioServicesPlaySystemSound(1057)` 분기로 흐름 → Tink 발화.
+- `play(.gameOver)` 동일 흐름 → 1073 Boop 발화.
 
-### (c) 게임오버 사운드 3경로 ✓
-세 경로 모두 `endGame()` 한 곳으로 수렴 — 멱등 가드 통과 후 1회만 발화:
-- **시간 만료**: `update()` → `remainingTime <= 0` → `endGame()`
-- **적 접촉**: `onEnemyHit` → `endGame()`
-- **F 피격**: `onProjectileHitPlayer` → `endGame()`
+### (c) 6-2 회귀 0
+- GameScene.swift 변경 0건 (git status에 없음).
+- `audio.play(.noteCollected)` / `audio.play(.gameOver)` 호출부 시그니처/순서/위치 모두 무변경.
 
-`endGame()` 안 흐름: `if gameState == .gameOver { return }` (멱등) → `gameState = .gameOver` → `haptics.heavy()` → **`audio.play(.gameOver)`** → `spawnSystem.stop()` → ...
+### (d) GameScene API 무변경
+- `func play(_ sfx: SFX)` 시그니처 동일 (파라미터 라벨/타입/리턴값 모두 동일).
+- 호출부 컴파일 차이 0.
 
-→ Boop 1회 보장.
+### (e) 강제 언래핑 0
+- AudioManager.swift `grep '!'` 0건 (위 §3 검증 참조).
+- 모두 `try?` / `guard let` / `if let`로 처리.
 
-### (d) 실기기 동작 (정적 명세) ✓
-- 무음 모드 ON: `AudioServicesPlaySystemSound`는 차단됨 (Apple 정책 — 본 sprint 의도된 동작).
-- 무음 모드 OFF: 정상 발화.
-- 햅틱은 무음 모드와 독립 — 동기화 어긋남 위험 정적으로 확인.
+### (f) AudioSession 카테고리
+- `.ambient` (mode `.default`, options `[]`). 코드 L48 명시.
+- `.playback` 0건. `setActive(true)` 0건.
 
-### (e) Phase 6-1 회귀 ✓
-- `HapticsManager.swift`: `git diff --stat` 0건.
-- `haptics.light()` / `haptics.heavy()` 호출 위치 그대로.
+### (g) Resources README
+- Resources/README.md: 표의 `Sounds/` 행 갱신 + 신규 H2 "## Sounds/ — 자작 효과음 활성화 절차" 섹션.
+- 절차에 Xcode drag-drop 체크박스 명시: "Copy items if needed" ✓, "Add to targets: GanhoMusic iOS" ✓.
+- Resources/Sounds/README.md: 신규. 빈 디렉터리 표식 + 상위 README 링크.
 
-### (f) Phase 1~5 회귀 ✓
-- `GameScene.swift` 4줄 추가만 — 게임 로직 메서드(update/triggerAirforceEasterEgg/configureContactRouter의 다른 4 콜백) 모두 동일.
-- 다른 모든 파일 0줄 변경.
-
-### (g) 동시 발화 타이밍 ✓
-- `UIImpactFeedbackGenerator.impactOccurred()`: 즉시 반환 (UIKit 비동기 큐).
-- `AudioServicesPlaySystemSound`: 즉시 반환 (CoreAudio 비동기 큐, thread-safe 명문화).
-- 두 호출 모두 main thread blocking 0 → 게임 루프 1/60 fps 영향 0.
-
-### (h) 멱등 / 메모리 ✓
-- `endGame()` 2회 호출: `if gameState == .gameOver { return }`가 두 번째 호출 가드 → 사운드 1회만.
-- `AudioManager` 인스턴스: `let audio = AudioManager()` — GameScene 인스턴스 수명 = AudioManager 수명. ResultScene presentScene 시 GameScene ARC 해제 → AudioManager 자동 해제.
-- AudioManager는 상태 0건(`enum SFX`만 보유, stored property 없음) → 누수 위험 0.
-- 새 게임 진입: TitleScene → GameScene 새 인스턴스 → 새 AudioManager (자동).
+### (h) 미래 활성화 경로 — 부분 활성화
+- `init()`의 for 루프가 SFX별로 **독립** 처리. 한 케이스 실패가 다른 케이스에 영향 없음.
+- 사용자가 `note.wav` 1개만 추가 → `players[.noteCollected]`만 채워짐, `.gameOver`는 키 부재.
+- `play(.noteCollected)` → AVAudioPlayer 경로 (자작 음원).
+- `play(.gameOver)` → systemSoundID 경로 (Boop).
+- 부분 활성화 정상 동작.
 
 ---
 
-## 7. Swift 패턴 준수
+## 6. 학습 노트
 
-- 강제 언래핑 미사용: 준수 (AudioManager 옵셔널 0건).
-- guard let 옵셔널 처리: 해당 없음 (옵셔널 미사용).
-- MARK 섹션 구분: 준수 (`// MARK: - SFX`, `// MARK: - Play`).
-- GameConfig 상수 사용: 해당 없음 (SPEC §결정 5 — 외부 도메인 ID는 enum 내부 예외).
-- weak self 캡처: 준수 (AudioManager 자체 클로저 0건. `onNoteCollected` 클로저는 이미 6-1에서 `[weak self]`).
-- final class: 준수 (`final class AudioManager` — 상속 의도 없음 명시).
-- enum exhaustive: 준수 (`default:` 0개. Phase 5-3 `CharacterID.playerSpeedMultiplier` 패턴 동일).
+`/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/docs/learn/phase-6-3-avaudioplayer-fallback.md` 작성 완료.
 
-## 8. SpriteKit 패턴 준수
-
-- didMove(to:)에서 초기화: 해당 없음 (AudioManager는 GameScene property로 자동 초기화).
-- dt 기반 이동: 해당 없음.
-- SKAction 스폰 패턴: 해당 없음.
-- 충돌 후 노드 즉시 삭제 없음: 준수 (`note.run(.removeFromParent())` SKAction — 6-1 그대로).
-- HUD 노드 분리: 해당 없음.
+### 톤 & 내용 체크
+- 중학생 수준 표현 (전문용어 최소화, "준비실" 등 일상 비유) — CLAUDE.md MEMORY 정책 준수
+- Spring 비유 3개 명시:
+  - `@Resource` ↔ `Bundle.main.url(forResource:withExtension:)`
+  - `@PostConstruct` + `@Cacheable` ↔ `init()` eager 캐시 워밍
+  - `@CircuitBreaker(fallbackMethod=...)` ↔ `if let ... else { fallback }`
+- graceful degradation 2단계 안전망 설명:
+  - 단계 1: AudioSession 설정 실패 (`try?`)
+  - 단계 2: 파일 로딩 실패 (guard let + continue) → 자연 폴백
+- eager vs lazy 캐시 선택 이유 (첫 호출 16ms 끊김 방지)
+- `.ambient` vs `.playback` 비교표 (효과음 정책 vs BGM 정책)
+- `try?` Swift 한 글자 폴백 패턴 (Java `catch (Exception ignored)`와 매핑)
+- `CaseIterable` 미채택 의도 설명 (enum 본체 변경 회피 + 명시 의도 노출)
+- "audio.play(...) 두 줄 무변경" = 추상화 경계 안정성 강조
+- 게임 출신 톤(자전적 경험) 보존 — "사용자가 작곡할 시간이 1시간 생겼다"
 
 ---
 
-## 9. docs/learn/ 학습 노트
+## 7. Swift / SpriteKit 패턴 준수
 
-`/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/docs/learn/phase-6-2-audio-manager.md` 작성 완료.
+### Swift 패턴
+- 강제 언래핑 미사용: 준수 (0건)
+- guard let / if let 옵셔널 처리: 준수 (`guard let name = sfx.fileName`, `guard let url`, `guard let player`, `if let player = players[sfx]`)
+- MARK 섹션 구분: 준수 (`// MARK: - SFX`, `// MARK: - Players Cache`, `// MARK: - Init`, `// MARK: - Play`)
+- GameConfig 새 상수: 해당 없음 (SPEC 금지). 모든 상수는 SFX enum 내부 또는 init() 안 명시 배열로.
+- weak self 캡처: 해당 없음 (AudioManager 내 클로저 0건)
+- final class: 준수 (`final class AudioManager`)
+- enum exhaustive switch (default 없음): 준수 (`fileName`, `systemSoundID` 모두 두 케이스 명시)
+- `try?` 사용 (try! / do-catch 금지): 준수
 
-다룬 주제:
-1. **Manager 패턴 두 번째 적용** — `@Service` 빈이 둘로 늘었어요 (EmailService + SmsService 비유).
-2. **enum + computed property 재등장** — Phase 5-3 `CharacterID.playerSpeedMultiplier`와 같은 모양 = Java sealed class 안전망.
-3. **매직 넘버 정책의 미묘함** — 1057/1073은 외부 도메인 ID라 GameConfig 밖. application.yml vs HTTP 상태코드 비유.
-4. **멀티모달 피드백 동기화** — 한 사건이 손가락·눈·귀 세 감각으로 동시 도착 = "살아있는 게임" 첫 인상.
-5. **default 절대 금지** — 미래 케이스 추가 시 컴파일러 강제 매핑 안전망.
-6. **pbxproj 4지점 작업법** — HapticsManager 패턴 그대로 반복.
-
-중학생 수준 표현, Spring 비유 명시, 전문용어 최소화 (CLAUDE.md MEMORY 정책 준수).
+### SpriteKit 패턴
+- didMove(to:)에서 초기화: 해당 없음 (AudioManager는 GameScene property로 자동 초기화)
+- dt 기반 이동: 해당 없음
+- SKAction 스폰 패턴: 해당 없음
+- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (AudioManager는 노드 미보유)
+- HUD 노드 분리: 해당 없음
 
 ---
 
 ## 결론
 
-SPEC §기능1~4 100% 적용. 변경 라인 합계: AudioManager.swift 39 신규 + GameScene.swift 4 + pbxproj 4. 빌드 SUCCEEDED + 경고/에러 0줄 (AppIntents 제외). Out of Scope 위반 0건. 멀티모달 피드백 (촉각+청각) 동기화 완성.
+SPEC §기능1~6 100% 적용. Swift 변경 1개(AudioManager.swift +45) + 문서 2개(README 갱신 + 신규). 빌드 SUCCEEDED + 경고/에러 0줄 (AppIntents 제외). Out of Scope 위반 0건 (특히 GameScene 0줄 / HapticsManager 0줄 / pbxproj 0줄 / CaseIterable 미채택 / 강제 언래핑 0).
+
+**가장 자랑스러운 점**: `audio.play(.noteCollected)` / `audio.play(.gameOver)` 두 호출이 한 글자도 안 바뀌면서, 시스템 사운드 → AVAudioPlayer로 분기하는 인프라가 깔끔히 들어갔다. 추상화 경계가 잘 잡혀있다는 정적 증거. Phase 6-2에서 시그니처를 신중히 정해둔 효과가 6-3에서 정확히 보상받은 sprint.

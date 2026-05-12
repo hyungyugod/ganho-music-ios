@@ -1,223 +1,189 @@
-# Phase 6-2 — AudioManager (시스템 사운드 효과음)
+# Phase 6-3 — AVAudioPlayer 인프라 + 시스템 사운드 graceful 폴백
 
 ## 개요
-Phase 6-1에서 도입한 `HapticsManager` 패턴을 *두 번째 적용*하여 **사운드 손맛**을 추가한다. 외부 음원 에셋이 0건이므로 `AudioToolbox`의 `AudioServicesPlaySystemSound`를 이용해 iOS 내장 시스템 사운드 2종을 발화한다. 햅틱과 동일한 2지점(노트 수집 / 게임오버)에서 트리거하여 멀티모달(촉각+청각) 피드백을 완성한다.
+Phase 6-2의 `AudioServicesPlaySystemSound` 위에 `AVAudioPlayer` 레이어를 한 겹 얹는다. Bundle에 자작 음원(`note.wav` / `gameover.wav`)이 있으면 AVAudioPlayer 경로로 재생, 없으면 기존 시스템 사운드 경로로 자동 폴백. 사용자가 FL Studio로 효과음을 만들어 Xcode에 추가하기만 하면 코드 변경 없이 다음 빌드부터 활성화된다.
 
 ## 변경 유형
-**게임플레이 + UX 폴리싱** (햅틱과 동급, 게임 규칙 변화는 0건이지만 플레이어가 인식하는 피드백 채널이 늘어남)
+**인프라 (AVFoundation 도입)** — 게임 체감 변화는 현재 빌드에서 0 (음원 파일이 없어 시스템 사운드 폴백 그대로). 사용자 자작 음원 추가 시점부터 효과음 톤이 시스템 → 자작으로 자동 전환.
 
 ## 게임 경험 의도
-1. 노트 1개를 먹는 순간, 손가락에는 `light` 톡(햅틱) + 귀에는 짧은 "틱"(시스템 사운드 1057 Tink) — 동일 사건이 두 감각으로 동시에 도착하여 "수집했다"라는 확신이 강해진다.
-2. 게임오버 순간엔 `heavy` 둔탁한 충격 + 묵직한 "두웅"(시스템 사운드 1073 Boop) — 종료의 무게감이 멀티모달로 증폭된다.
-3. BGM/자작 음원이 등장하기 전(별도 sprint)에도, 작은 시스템 사운드만으로 "살아있는 게임"의 첫 인상을 만든다.
+1. 인프라 학습 — AVFoundation / AVAudioSession / Bundle 리소스 로딩 패턴의 첫 등장. Spring `@Resource` + `ResourceLoader` 비유로 이해.
+2. 회귀 0 — 음원 부재 상태에서도 6-2 시스템 사운드 동작이 1:1 보존.
+3. 미래 활성화 경로 사전 설치 — 사용자가 자작 효과음을 Resources/Sounds/에 떨어뜨리는 순간 게임 톤이 "한 사람이 만든 것"으로 즉시 격상.
 
 ## Sprint 범위 계약
 
 ### 허용
-- `Managers/AudioManager.swift` 신설 (enum SFX + computed `systemSoundID` + `play(_:)`)
-- `GameScene.swift` 시스템 섹션에 `let audio = AudioManager()` 1줄
-- `GameScene.swift` `onNoteCollected` 콜백 안에 `self.audio.play(.noteCollected)` 1줄
-- `GameScene.swift` `endGame()` 안 멱등 가드 통과 직후 `audio.play(.gameOver)` 1줄
-- `project.pbxproj` 4곳 등록 (BuildFile / FileReference / Managers PBXGroup children / iOS Sources phase)
+- `AudioManager.swift` 단일 파일 확장
+- `Resources/README.md` 갱신 + 신규 `Resources/Sounds/README.md`
+- GameScene.swift의 `audio.play(...)` 두 호출은 **시그니처/순서/위치 모두 무변경**
 
 ### 금지 (위반 시 P0)
-- AVAudioPlayer / BGM / 음원 에셋 도입
-- 음소거 옵션 / Repository 영속화
-- SFX 케이스 추가(`.combo`, `.airforce`, `.tap` 등)
-- `GameConfig` 새 상수 (시스템 사운드 ID는 enum 내부 — 예외 명문화)
+- BGM 도입
 - `HapticsManager` 변경
-- `GameScene.swift`의 다른 부분 변경 (init/factory/didMove/update/triggerAirforceEasterEgg/configureContactRouter의 다른 4 콜백/endGame의 멱등 가드+state 전환 외 부분)
-- `GameScene+Setup` / `TitleScene` / `ResultScene` / Nodes / Systems / Repositories / Models / Protocols / Config 변경
+- `GameScene` / `GameScene+Setup` / `TitleScene` / `ResultScene` 변경
+- 모든 Nodes / Systems / Repositories / Models / Protocols / Config 변경
+- 음원 파일 *실제 추가* (사용자 별도 작업)
+- pbxproj 변경
+- 새 SFX 케이스 추가 (콤보/AIRFORCE는 별도 sprint)
+- `SFX.systemSoundID` 변경 (그대로 — 폴백 경로)
+- AVAudioSession `.playback` 사용
+- AVAudioPlayer delegate 사용
+- 강제 언래핑
+- `GameConfig` 새 상수
+- `CaseIterable` 채택 (enum 본체 변경 회피)
 - macOS / tvOS / Test 코드
 
 ### 판단 기준
-"이 변경이 없으면 *음표 수집 시 시스템 사운드 + 게임오버 시 다른 시스템 사운드가 발화된다*가 동작하는가?" → NO만 In Scope.
+"이 변경이 없으면 'Bundle에 자작 음원이 있을 때 AVAudioPlayer로 재생, 없으면 시스템 사운드로 폴백' 동작이 성립하는가?" → NO만 In Scope.
 
-## 5 핵심 결정 포인트
+## 7 핵심 결정 포인트
 
-### 결정 1 — 시스템 사운드 ID 2개 확정
-| SFX 케이스 | 시스템 사운드 ID | 이름 | 사유 |
+| # | 결정 | 확정 답 | 근거 |
 |---|---|---|---|
-| `.noteCollected` | **1057** | Tink | 매우 짧음(~80ms), 밝은 메탈릭. 음표(♪) 이미지와 결, 연속 발화 누적 피로 적음. |
-| `.gameOver` | **1073** | Boop | 묵직한 종료감, ~200ms로 게임오버의 짧은 정지에 맞음. |
-
-### 결정 2 — enum SFX vs 단순 메서드
-**enum 전략 채택.** Phase 5-3 `CharacterID.playerSpeedMultiplier`의 switch self → computed property 패턴 재활용. 호출부가 `audio.play(.noteCollected)`로 의도 응축. 향후 콤보/이스터에그 추가 시 케이스 1줄 + switch 1줄만 늘면 됨(OCP).
-
-### 결정 3 — 햅틱과의 트리거 순서
-**햅틱 → 사운드** (한 프레임 내라 실제 체감 차이 0이지만 의미상 순서 고정).
-- 햅틱: 하드웨어 진동(즉각·물리적)
-- 사운드: OS 오디오 큐 경유(논리적 지연 1~2ms)
-- 코드 가독성: 촉각 → 청각 흐름이 자연스러움
-
-### 결정 4 — pbxproj 작업 명세 (4곳)
-ID `...0026` 사용 (HapticsManager `...0025` 다음). grep 충돌 0건 확인 후 진행.
-
-| 구역 | 라인 근처 | 추가 라인 |
-|---|---|---|
-| (a) PBXBuildFile | 30 (HapticsManager 다음) | `A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };` |
-| (b) PBXFileReference | 60 (HapticsManager 다음) | `A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };` |
-| (c) Managers PBXGroup children | 266 (HapticsManager 다음) | `A1C0F1A00000000000000026 /* AudioManager.swift */,` |
-| (d) iOS Sources build phase | 467 (HapticsManager 다음) | `A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,` |
-
-**검증**: 작업 후 `grep "AudioManager" project.pbxproj` → 정확히 4건. macOS/tvOS Sources phase는 빈 채로 유지.
-
-### 결정 5 — 시스템 사운드 매직 넘버 정책
-**`1057`/`1073`은 GameConfig로 분리하지 않고 enum 내부 switch에 직접 둔다.** 사유:
-1. Apple 시스템 상수라는 외부 도메인 값 — 게임 튜닝 파라미터와 성질이 다름
-2. 사용처가 단일(SFX 케이스 1:1) — GameConfig 분리 시 간접 참조만 늘어남
-3. enum이 이미 명명 컨테이너 — `SFX.noteCollected.systemSoundID`로 의미 충분
-4. swift-rules §7 매직 넘버 정책은 게임 튜닝 상수 대상, 외부 API 상수는 자기 도메인 타입 내부 권장
+| 1 | AVAudioSession 카테고리 | `.ambient` | 효과음 정책 — 무음 모드 따름, 다른 앱 사운드 안 끊음. `.playback`은 BGM sprint. |
+| 2 | 파일 확장자 | `.wav` 고정 | PCM 무압축, 100~500ms 효과음에 디코딩 비용 ~0. |
+| 3 | AVAudioPlayer 캐시 시점 | `init()` 1회 + `prepareToPlay()` | 첫 호출 시 디코딩 지연 차단. lazy는 첫 음표 충돌 프레임에 hiccup 위험. |
+| 4 | 연속 재생 처리 | `currentTime = 0; play()` | 같은 효과음 1프레임 내 다중 호출 시 항상 처음부터. |
+| 5 | AudioSession 활성화 | `setCategory(.ambient)`만, `setActive(true)` 미호출 | `.ambient`는 자동 활성화. 실패는 `try?`로 graceful. |
+| 6 | `fileName` 미일치 케이스 | `var fileName: String?` 옵셔널 | nil이면 시스템 사운드만. 향후 시스템 사운드 전용 SFX 대비. |
+| 7 | Resources/Sounds/ 폴더 | README만 신규 (빈 폴더 표식) | Xcode 그룹은 drag-drop 시 자동 생성. |
 
 ## 변경 범위
 
-### 추가할 파일
-- `GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift`
-
 ### 수정할 파일
-- `GanhoMusic/GanhoMusic Shared/GameScene.swift` (3줄)
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (4지점)
+- `GanhoMusic Shared/Managers/AudioManager.swift`
+- `GanhoMusic Shared/Resources/README.md`
+
+### 추가할 파일
+- `GanhoMusic Shared/Resources/Sounds/README.md`
 
 ## 기능 상세
 
-### 기능 1: AudioManager 신규 파일
+### 기능 1: `import AVFoundation` 추가
+```swift
+import AVFoundation
+import AudioToolbox   // Phase 6-2 폴백 경로 — 그대로 유지
+```
+
+### 기능 2: `SFX.fileName` computed property
+**위치**: `enum SFX` 내부, `systemSoundID` 바로 위.
 
 ```swift
-//
-//  AudioManager.swift
-//  GanhoMusic Shared
-//
-//  Phase 6-2 · 시스템 사운드 효과음 캡슐화 (Manager 패턴 두 번째 적용)
-//
-
-import AudioToolbox
-
-/// iOS 시스템 사운드를 캡슐화한 매니저. AVAudioPlayer / 외부 음원 도입 전 임시 보강.
-/// Phase 5-3 CharacterID.playerSpeedMultiplier의 enum + computed property 전략을 재사용.
-/// Spring 비유: HapticsManager와 동급 @Service 빈. 둘 다 side-effect 책임을 가진다.
-final class AudioManager {
-
-    // MARK: - SFX
-    /// 게임 내 효과음 종류. 향후 콤보/이스터에그 등 케이스 추가 시 systemSoundID switch만 늘리면 됨(OCP).
-    enum SFX {
-        case noteCollected   // 노트 수집 — 짧고 밝은 톤
-        case gameOver        // 게임 종료 — 묵직한 종료감
-
-        /// Apple 내장 시스템 사운드 ID. 1000~1500 범위가 안전.
-        /// GameConfig로 분리하지 않는 이유: Apple 시스템 상수라는 외부 도메인 값이며,
-        /// SFX 케이스와 1:1 매핑이므로 enum 내부에 두는 게 응집도 높음.
-        var systemSoundID: SystemSoundID {
-            switch self {
-            case .noteCollected: return 1057   // Tink — 짧고 밝은 메탈릭
-            case .gameOver:      return 1073   // Boop — 묵직한 종료감
-            }
-            // exhaustive switch — default 없음. 케이스 추가 시 컴파일러가 강제로 매핑 추가 요구.
-        }
-    }
-
-    // MARK: - Play
-    /// 시스템 사운드는 즉시 발화 — HapticsManager의 prepare() 워밍 불필요.
-    /// AudioServicesPlaySystemSound는 thread-safe하며 비동기로 사운드 큐에 push.
-    func play(_ sfx: SFX) {
-        AudioServicesPlaySystemSound(sfx.systemSoundID)
+/// Bundle에 실제 음원 파일이 있을 때만 AVAudioPlayer 경로로 재생.
+/// nil이면 systemSoundID 폴백만 사용. 확장자는 .wav로 고정.
+var fileName: String? {
+    switch self {
+    case .noteCollected: return "note"
+    case .gameOver:      return "gameover"
     }
 }
 ```
 
-### 기능 2: GameScene에 audio 시스템 1줄 추가
-
-**위치**: Properties 시스템 섹션, `let haptics = HapticsManager()` 다음 줄.
-
-```swift
-let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
-let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
-```
-
-### 기능 3: 노트 수집 시 사운드 트리거
-
-**위치**: `onNoteCollected` 콜백 안, `self.haptics.light()` 다음 줄.
+### 기능 3: 플레이어 캐시 + AVAudioSession 설정 (init)
+**위치**: `final class AudioManager` 내부, `// MARK: - SFX` 아래 / `// MARK: - Play` 위.
 
 ```swift
-contactRouter.onNoteCollected = { [weak self] note in
-    guard let self = self else { return }
-    self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
-    self.haptics.light()                  // Phase 6-1 — 수집 손맛
-    self.audio.play(.noteCollected)       // Phase 6-2 — 수집 사운드 (햅틱 → 사운드 순서)
-    note.run(.removeFromParent())
+// MARK: - Players Cache
+/// init 시점에 1회 채워지는 AVAudioPlayer 캐시. play 시 O(1) 조회.
+/// Bundle에 음원 파일이 없는 SFX 케이스는 키 자체가 없음 → play에서 폴백 분기.
+private var players: [SFX: AVAudioPlayer] = [:]
+
+// MARK: - Init
+/// AVAudioSession을 .ambient로 1회 설정하고, SFX 전 케이스에 대해 Bundle 음원 로딩을 시도한다.
+/// 실패는 전부 graceful — 어떤 단계가 실패해도 systemSoundID 폴백 경로는 항상 살아 있다.
+init() {
+    // 1) AudioSession 카테고리 — .ambient: 무음모드 따름, 다른 앱 사운드 안 끊음 (효과음 정책).
+    //    setActive(true)는 호출 안 함 — .ambient는 시스템이 자동 활성화. try?로 graceful.
+    try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
+
+    // 2) SFX 전 케이스 순회 — fileName이 있고 Bundle에 실제 .wav가 있을 때만 캐시 채움.
+    //    파일이 없으면 폴백 경로로 자연 전환 (예외 무시).
+    let allCases: [SFX] = [.noteCollected, .gameOver]
+    for sfx in allCases {
+        guard let name = sfx.fileName,
+              let url = Bundle.main.url(forResource: name, withExtension: "wav") else { continue }
+        guard let player = try? AVAudioPlayer(contentsOf: url) else { continue }
+        player.prepareToPlay()
+        players[sfx] = player
+    }
 }
 ```
 
-### 기능 4: 게임오버 시 사운드 트리거
-
-**위치**: `endGame()` 안, `haptics.heavy()` 다음 줄 (멱등 가드 통과 후).
+### 기능 4: `play(_:)` 폴백 분기
+**위치**: 기존 `func play(_:)` 본문 교체.
 
 ```swift
-private func endGame() {
-    if gameState == .gameOver { return }   // 멱등 가드
-    gameState = .gameOver
-    haptics.heavy()                         // Phase 6-1
-    audio.play(.gameOver)                   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
-    spawnSystem.stop()
-    // ... 이하 기존 코드 그대로
+// MARK: - Play
+/// 캐시 히트 → AVAudioPlayer (자작 음원). 미스 → AudioServicesPlaySystemSound (Phase 6-2 폴백).
+/// 동일 SFX의 1프레임 내 연속 호출은 currentTime=0 리셋 후 재시작.
+func play(_ sfx: SFX) {
+    if let player = players[sfx] {
+        player.currentTime = 0
+        player.play()
+        return
+    }
+    AudioServicesPlaySystemSound(sfx.systemSoundID)
 }
 ```
+
+### 기능 5: Resources/README.md 갱신
+- "향후 들어올 자산" 표의 `Sounds/` 행을 Phase 6-3 컨텍스트로 갱신
+- 신규 H2 섹션 "## Sounds/ — 자작 효과음 활성화 절차" 추가
+  - 권장 포맷: `.wav` (PCM 16bit 44.1kHz), 길이 100~500ms
+  - 파일명 고정: `note.wav`, `gameover.wav`
+  - Xcode UI 절차: 좌측 네비게이터 `Resources/Sounds/` 그룹 위로 drag → "Copy items if needed" ✓ → "Add to targets: GanhoMusic iOS" ✓
+  - 빌드 후 자동 활성화. 미추가 시 시스템 사운드 폴백 그대로.
+
+### 기능 6: Resources/Sounds/README.md 신규
+- 빈 디렉터리 표식 + 빠른 가이드 (3줄 이내)
+- 상세 가이드는 상위 `Resources/README.md` 참조
 
 ## 검증 시나리오
 
-### (a) 빌드 검증
-- Clean Build → 에러/경고 0건
-- exhaustive switch 인식 확인 (default 없음)
-
-### (b) 노트 수집 사운드 — 시뮬레이터
-- Mac 스피커로 Tink(짧고 밝음) 발화
-- 1초 안에 노트 3개 연속 수집 → 사운드 3회 모두 발화
-
-### (c) 게임오버 사운드 3경로
-- 시간 만료 / 적 접촉 / F 피격 모두 Boop 1회 발화
-- 멱등 가드 통과 직후라 동시 트리거에도 1회만
-
-### (d) 실기기 검증
-- 무음 모드 ON → 시스템 사운드 차단 (Apple 정책 — 의도된 동작)
-- 무음 모드 OFF → 정상 발화
-- 햅틱 + 사운드 동기화 확인
-
-### (e) Phase 6-1 회귀
-- `HapticsManager.swift` 0줄 변경
-- 햅틱 트리거 라인 그대로
-
-### (f) Phase 1~5 회귀
-- 게임 로직(이동/스폰/수집/추적/F/AIRFORCE) 모두 정상
-- TitleScene/ResultScene 정상
-
-### (g) 동시 발화 타이밍
-- 같은 프레임 내 haptics.light() → audio.play() 연속 실행
-- 두 호출 모두 비동기/즉시 반환 → 게임 루프 블로킹 0
-
-### (h) 멱등 / 메모리
-- endGame 2회 호출 시 사운드도 1회
-- AudioManager 인스턴스 ARC 자동 해제
-- 새 게임 시작 시 새 인스턴스
+| # | 시나리오 | 기대 결과 |
+|---|---|---|
+| (a) | 빌드 — 음원 파일 0개 상태 | BUILD SUCCEEDED. AVFoundation 자동 링크. 경고 0~사소. |
+| (b) | 폴백 동작 — 시뮬레이터 노트/게임오버 | 6-2와 동일한 Tink/Boop 시스템 사운드. AVAudioPlayer 캐시는 비어 있고 play가 systemSoundID 분기로 흐름. |
+| (c) | 6-2 회귀 0 | GameScene.swift 변경 0건. audio.play 두 호출 그대로. |
+| (d) | GameScene API 무변경 | `func play(_ sfx: SFX)` 시그니처 동일. 호출부 컴파일 차이 0. |
+| (e) | 강제 언래핑 0 | AudioManager.swift 전체 `!` grep 0건. try? / guard let / 옵셔널 체이닝만. |
+| (f) | AudioSession 카테고리 | `.ambient` (mode `.default`, options 빈 셋). `.playback` 0건. setActive(true) 0건. |
+| (g) | Resources README | 두 README 모두 자작 음원 추가 절차 자명. drag-drop 체크박스 명시. |
+| (h) | 미래 활성화 경로 | 사용자가 note.wav 1개만 추가 → 음표 수집만 자작 음원, 게임오버는 시스템 사운드. 부분 활성화 정상. |
 
 ## 학습 가치
 
-### 1. Manager 패턴 두 번째 적용 — 패턴 내면화
-6-1 첫 등장 + 6-2 반복으로 "side-effect = Manager" 멘탈 모델 굳히기. Spring `EmailService` + `SmsService` 둘 다 같은 자리에 같은 형태로 들어간다는 공간적 반복.
+### AVFoundation 첫 등장 — Spring 비유
 
-### 2. enum + computed property 전략 (Phase 5-3 재활용)
-`SFX.noteCollected.systemSoundID`는 `CharacterID.kim.playerSpeedMultiplier`와 같은 모양. 데이터(케이스)와 행동(매핑)의 응집. exhaustive switch는 Java sealed class 안전망.
+| Swift / iOS | Spring / Java |
+|---|---|
+| `import AVFoundation` | `import org.springframework.core.io.*` |
+| `AVAudioSession.setCategory(.ambient)` | 앱 전체 오디오 정책 설정. Spring `@Configuration` 빈 등록 정책과 동일 위계. |
+| `Bundle.main.url(forResource: "note", withExtension: "wav")` | `ResourceLoader.getResource("classpath:sounds/note.wav")` |
+| `AVAudioPlayer(contentsOf: url)` | `new AudioInputStream(resource.getInputStream())` |
+| `players: [SFX: AVAudioPlayer]` 캐시 | Spring `@Cacheable` 패턴 — init 워밍 후 매번 재사용 |
+| `try? ... else continue` | `try { ... } catch (Exception ignored) { continue; }` graceful degradation |
 
-### 3. 매직 넘버 정책의 미묘함
-1057/1073은 Apple 외부 도메인 상수라 GameConfig로 빼면 어색. swift-rules §7은 게임 튜닝 상수가 대상. 외부 시스템 ID/URL/HTTP 코드 등은 자기 도메인 타입 내부에 두는 게 일관.
+### graceful fallback 패턴
+- "이상적 경로"(AVAudioPlayer)가 실패해도 "보장 경로"(systemSoundID)가 항상 살아 있다.
+- Spring `@CircuitBreaker(fallbackMethod = ...)`와 발상이 같음 — 다만 여기서는 *부재*가 폴백 트리거.
 
-### 4. 멀티모달 피드백 동기화
-촉각(햅틱) + 청각(사운드) 1프레임 내 동기화 = 플레이어 뇌에 "동시" 사건으로 인식. 코드상 순서(촉각 → 청각)는 후속 sprint에서도 의도 보존.
+### 캐시 전략 — eager vs lazy
+- 채택: eager (init 1회). 첫 호출 지연 회피.
+- lazy 거부: 첫 호출 시 디코딩 → 16ms 예산 깨고 끊김 발생 위험.
+
+### "변경 0건"의 의미
+- GameScene의 `audio.play(...)` 두 호출이 변경되지 않는다는 사실 자체가 *추상화의 성공*. Phase 6-2에서 시그니처를 신중히 정해둔 덕. Spring `@Service` 인터페이스 안정성과 동일.
 
 ## 주의사항
 
-1. **무음 모드 = OS 정책**: iPhone 무음 스위치는 시스템 사운드도 차단 (Apple 의도). 본 sprint 범위 외. 향후 BGM은 `AVAudioSession.Category.playback`으로 우회 가능.
-2. **import**: `import AudioToolbox` 1줄. 조건부 import 불필요.
-3. **pbxproj ID 충돌**: 작업 전 `grep "00000000000026"` 0건 확인. 4지점 정확히 삽입.
-4. **`final class` 유지**: 상속 의도 없음 명시.
-5. **`weak self` 불필요**: AudioManager 자체 클로저 캡처 없음. 기존 `[weak self]` 가드 안쪽이라 별도 처리 불필요.
-6. **default 절대 금지**: SFX switch에 default 추가하면 케이스 추가 시 컴파일러가 누락을 잡지 못함. exhaustive 유지가 Phase 5-3 패턴의 핵심.
-7. **GameScene 다른 부분 0줄**: init/didMove/update/didChangeSize/layoutDPad/layoutHUD/triggerAirforceEasterEgg/configureContactRouter의 다른 4 콜백/endGame의 멱등 가드+state 전환 외 부분 모두 frozen.
+- **`import AudioToolbox` 유지 필수**: 폴백 경로의 `AudioServicesPlaySystemSound` 심볼.
+- **`try?` 우선**: `try!` / do-catch 부적합. 시뮬레이터/특정 디바이스에서 setCategory 실패 사례 있음.
+- **`prepareToPlay()` 누락 금지**: 첫 `play()` 시 디코딩 비용이 메인 스레드에 발생 가능.
+- **`currentTime = 0` 위치**: `play()` 호출 *전*.
+- **`setActive(true)` 호출 금지**: `.ambient`는 자동 활성화.
+- **`CaseIterable` 채택 회피**: enum 본체 변경 회피. 명시적 `[SFX]` 배열 사용.
+- **새 SFX 케이스 추가 금지**: 콤보/AIRFORCE는 별도 sprint.
+- **음원 파일 *실제 추가* 금지**: 본 sprint는 인프라까지.
+- **AVAudioPlayer는 stored property로 강참조 유지**: `players` 딕셔너리가 그 역할. 로컬 변수면 ARC 즉시 해제 → 재생 중단.
