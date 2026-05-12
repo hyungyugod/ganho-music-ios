@@ -1,52 +1,36 @@
-# QA 검수 보고서 — Phase 6-1 HapticsManager
+# QA 검수 보고서 — Phase 6-2 AudioManager
 
 ## SPEC 기능 검증
-
-- **PASS** 기능 1 — HapticsManager 클래스 신설: `import UIKit` / `final class` / `private let lightGenerator`, `heavyGenerator` / `init()`에서 `prepare()` 워밍 / `light()`·`heavy()`에서 `impactOccurred()` + 재워밍. SPEC §기능1 코드와 1:1 일치 (43줄).
-- **PASS** 기능 2 — `let haptics = HapticsManager()` 시스템 섹션 프로퍼티 추가 (`GameScene.swift:62`). 기존 시스템 노출 패턴(`spawnSystem`/`contactRouter`/`scoreSystem`/`highScoreRepo`/`statsRepo`)과 일관.
-- **PASS** 기능 3 — `onNoteCollected` 콜백 안 `self.haptics.light()` (`GameScene.swift:206`). `recordNoteHit` *직후*, `note.run(.removeFromParent())` *직전*. `[weak self]` 클로저 안 `guard let self` 통과 후.
-- **PASS** 기능 4 — `endGame()` 안 `haptics.heavy()` (`GameScene.swift:250`). 멱등 가드 통과 후, `gameState = .gameOver` (line 249) 직후, `spawnSystem.stop()` (line 251) 이전. SPEC §결정4 정확.
+- [PASS] **기능 1 — AudioManager.swift 신설** (39줄): `import AudioToolbox` 1줄, `final class AudioManager`, `enum SFX { noteCollected, gameOver }`, computed `systemSoundID: SystemSoundID` (1057/1073, default 없음), `func play(_ sfx: SFX)` 1줄. SPEC §기능1 코드 100% 일치.
+- [PASS] **기능 2 — `let audio = AudioManager()` 1줄** (GameScene.swift:64): Properties 시스템 섹션, `let haptics`(L63) 바로 다음.
+- [PASS] **기능 3 — `self.audio.play(.noteCollected)` 1줄** (GameScene.swift:209): `onNoteCollected` 콜백 안, `self.haptics.light()`(L208) 다음 — 햅틱 → 사운드 순서 (SPEC §결정 3).
+- [PASS] **기능 4 — `audio.play(.gameOver)` 1줄** (GameScene.swift:254): `endGame()` 안, 멱등 가드 통과 후 `haptics.heavy()`(L253) 다음, `spawnSystem.stop()`(L255) 전 — SPEC 정확.
 
 ## 빌드 검증
+- 결과: **BUILD SUCCEEDED**
+- `grep -E "warning:|error:" | grep -v "AppIntents"` → **0줄**
 
-- **결과**: `** BUILD SUCCEEDED **`
-- **명령**: xcodebuild generic/iOS Simulator Debug
-- **경고/에러**: 0건 (AppIntents 자동 메시지 제외)
-- **`Cannot find 'HapticsManager' in scope`**: 미발생 (pbxproj 5곳 등록 정합)
+## pbxproj 4 엔트리 검증
+| # | 라인 | 항목 | 결과 |
+|---|---|---|---|
+| (a) | 30 | PBXBuildFile `A1C0F1B0...0026` | OK — HapticsManager(L29) 직후 |
+| (b) | 61 | PBXFileReference `A1C0F1A0...0026` | OK — HapticsManager(L60) 직후 |
+| (c) | 268 | Managers PBXGroup children | OK — HapticsManager(L267) 직후, 신규 그룹 추가 0 |
+| (d) | 470 | iOS Sources phase | OK — HapticsManager(L469) 직후 |
 
-## 검증 시나리오 (a)~(h) 정적 추적
-
-| 시나리오 | 결과 |
-|---|---|
-| (a) 빌드 클린 | BUILD SUCCEEDED, warning/error 0 |
-| (b) 시뮬레이터 noop | UIImpactFeedbackGenerator 시스템 자동 무시, 추가 분기 0건 |
-| (c) 실기기 light 햅틱 | onNoteCollected 콜백 안 1줄 — 매 수집마다 1회 + prepare 재워밍으로 연속 끊김 없음 |
-| (d) 실기기 heavy 햅틱 3경로 | 시간 만료 / 적 접촉(onEnemyHit→endGame) / F 피격(onProjectileHitPlayer→endGame) 모두 동일 haptics.heavy() 1회 트리거 |
-| (e) 멱등 가드 회귀 | 햅틱이 가드 뒤(line 250) → 동시 발생 시 첫 호출만 트리거, 두 번째는 if gameState == .gameOver return로 즉시 차단 |
-| (f) Phase 4 회귀 (AIRFORCE) | triggerAirforceEasterEgg(line 223~239) 안에 endGame 호출 0건 → heavy 햅틱 미트리거 확인 |
-| (g) Phase 5 회귀 (캐릭터) | characterID / init / factory / HUD / ResultScene 전달 모두 무변경. light 햅틱은 콜백 안 분기 0 — 캐릭터 무관 동일 |
-| (h) Out of Scope 회귀 | git diff 결과 GameScene +4, project.pbxproj +13, 신규 HapticsManager(+43)만. 다른 Swift 0줄 |
-
-## pbxproj 5 엔트리 검증
-
-| 위치 | 라인 | 상태 |
-|---|---|---|
-| (1) PBXBuildFile | 29 | PASS `A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */ = {...};` |
-| (2) PBXFileReference | 59 | PASS `A1C0F1A00000000000000025 /* HapticsManager.swift */ = {...};` |
-| (3) 신규 PBXGroup `Managers` | 262~270 | PASS name=Managers, path="GanhoMusic Shared/Managers" |
-| (4) mainGroup children에 Managers | 282 | PASS Protocols 뒤, GanhoMusic iOS 앞 |
-| (5) iOS PBXSourcesBuildPhase | 466 | PASS CharacterCardNode 뒤에 HapticsManager 추가 |
-
-- ID 충돌 검사: `A1C0F1A0...25`, `A1C0F1B0...25`, `A1C0F200...17` 모두 패치 안에서만 등장, 다른 위치 0건
-- macOS Sources phase / tvOS Sources phase: `files = ( )` 빈 채로 유지
+- `grep "AudioManager"` → 정확히 4건
+- ID 충돌: 작업 전 `A1C0F1A00000000000000026 / A1C0F1B00000000000000026` 0건 확인
+- macOS Sources phase / tvOS Sources phase 모두 `files = ();` 빈 채 유지
 
 ## 회귀 검증 (0줄 변경)
 
-`git diff HEAD` 기준:
-- GameScene+Setup / TitleScene / ResultScene: 0줄
-- ContactRouter / SpawnSystem / ScoreSystem: 0줄
-- 모든 Nodes: 0줄
-- CharacterID / GameStats / Repository 3개 / Protocols / Config 4개: 0줄
+- [PASS] **HapticsManager.swift**: 6-1 그대로 (42줄)
+- [PASS] **GameScene+Setup / TitleScene / ResultScene**: 0줄
+- [PASS] **ContactRouter / SpawnSystem / ScoreSystem**: 0줄
+- [PASS] **모든 Nodes**: 0줄
+- [PASS] **CharacterID / GameStats / Repository 3개 / Protocols**: 0줄
+- [PASS] **Config 4개 (특히 GameConfig 0줄 — 외부 도메인 ID 정책 준수)**: 0줄
+- [PASS] **macOS / tvOS / Test**: 0줄
 
 ## 검수 결과 요약
 
@@ -56,45 +40,48 @@
 | P1 중요 | 0 |
 | P2 권장 | 0 |
 
+## 특별 검증 포인트
+- [PASS] `import AudioToolbox` 단일 import
+- [PASS] `final class AudioManager`
+- [PASS] enum SFX 두 케이스 (noteCollected/gameOver) — 추가 0건
+- [PASS] `var systemSoundID: SystemSoundID` switch에 **default 없음** — exhaustive 매칭
+- [PASS] `func play(_ sfx: SFX)` 본문 1줄
+- [PASS] 1057/1073 enum 내부, GameConfig 추가 0건 (외부 도메인 상수 정책)
+- [PASS] audio 호출 위치: 햅틱 → 사운드 순서 일관
+- [PASS] AudioManager 자체 클로저 없음 — weak self 무관
+- [PASS] 강제 언래핑 0건
+- [PASS] HapticsManager 0줄 (Phase 6-1 그대로)
+
+## 검증 시나리오 (a)~(h) 정적 추적
+- **(a) 빌드**: BUILD SUCCEEDED, 0 warn/0 err
+- **(b) 노트 수집 사운드**: ContactRouter → onNoteCollected → recordNoteHit → haptics.light() → audio.play(.noteCollected) → Tink. 1초 3회 누락 없음
+- **(c) 게임오버 3경로**: 시간 만료 / 적 접촉 / F 피격 모두 endGame() 수렴 → 멱등 가드 통과 후 1회만
+- **(d) 실기기**: 무음 ON 시 차단(Apple 정책 의도), OFF 시 정상
+- **(e) Phase 6-1 회귀**: HapticsManager 0줄, 트리거 라인 그대로
+- **(f) Phase 1~5 회귀**: GameScene 다른 메서드 frozen
+- **(g) 동시 발화**: 두 호출 즉시 반환 비동기 → 메인스레드 블로킹 0
+- **(h) 멱등/메모리**: endGame 2회 호출 시 사운드 1회. AudioManager stored property 0 → 누수 위험 0
+
 ## 통과 항목
-
-### Swift 패턴
-- 강제 언래핑(!) 0
-- final class 명시 (상속 차단)
-- private let 캡슐화
-- MARK 섹션 구분 (Properties / Init / Triggers)
-- /// 퀵헬프 주석
-- GameConfig 새 상수 0 (강도는 enum case로 충분)
-- 매직 넘버 0
-- 한국어 주석 충실 (Spring 비유 포함)
-- 네이밍: HapticsManager / light()·heavy() 일관
-
-### SpriteKit 패턴
-- Timer 0, DispatchQueue 0
-- didMove(to:) 초기화 패턴 무변경
-- [weak self] 캡처 유지
-- 충돌 델리게이트 내 즉시 삭제 없음
-- 멱등 가드 위치 엄수 (heavy 햅틱이 가드 *후*)
-- GameScene 300줄 미만 (274줄)
-- 폴더-그룹 1:1 매핑 (Managers PBXGroup 신설)
-
-### 게임 디자인 정합성
-- 톤 보존 (시각/로직 무변경)
-- 이스터에그 톤 유지 (AIRFORCE heavy 햅틱 미트리거)
+- Swift: final class, MARK 섹션(`- SFX` / `- Play`), enum + computed property (5-3 패턴 재활용), exhaustive switch
+- SpriteKit: 충돌 후 노드 즉시 삭제 없음(SKAction)
+- Sprint 범위: In Scope 4 정확 충족, Out of Scope 8항 위반 0
+- 게임 디자인: 멀티모달 피드백 동기화, BGM/외부 음원 도입 0 (별도 sprint)
+- 학습 노트: `docs/learn/phase-6-2-audio-manager.md` 작성됨
 
 ## 채점
 
 | 항목 | 점수 | 코멘트 |
 |---|---|---|
-| Swift 패턴 일관성 (35%) | **10/10** | final class, private let, MARK, /// 주석, 매직 넘버 0. SPEC 코드 1:1 일치 |
-| 게임 로직 완성도 (30%) | **10/10** | heavy가 멱등 가드 뒤(중복 회피), light가 recordNoteHit과 note.run 사이 정확, AIRFORCE에 heavy 미주입 |
-| 성능 & 안정성 (20%) | **10/10** | 강제 언래핑 0, Timer 0, weak self 유지, prepare 재워밍 |
-| 기능 완성도 (15%) | **10/10** | SPEC 기능 4 모두 구현, Out of Scope 0, pbxproj 5곳 정확 |
+| Swift 패턴 일관성 (35%) | **10/10** | final class, MARK, enum+computed property, exhaustive switch, 강제 언래핑 0, 매직 넘버 정책 일관 |
+| 게임 로직 완성도 (30%) | **10/10** | 6-1 햅틱 패턴 1:1 미러링, 햅틱→사운드 순서, 멱등 가드 통과 후 1회 |
+| 성능 & 안정성 (20%) | **10/10** | thread-safe 비동기 호출, stored property 0, ARC 자동 해제 |
+| 기능 완성도 (15%) | **10/10** | SPEC 기능 1~4 100%, In Scope 4 충족, Out of Scope 0 위반, 빌드 SUCCEEDED |
 
 **가중 점수**: 10.0 × 0.35 + 10.0 × 0.30 + 10.0 × 0.20 + 10.0 × 0.15 = **10.0 / 10.0**
 
 ## 최종 판정: **합격**
 
-Manager 패턴 첫 등장의 모범 사례. Phase 6-2(AudioManager 등) 진입 시 본 sprint의 5곳 pbxproj 패턴 중 (3) 신규 PBXGroup을 *제외한* 4곳만 재사용하면 됨 (Managers 그룹 이미 존재).
+Phase 6-1 Manager 패턴의 두 번째 모범 적용. SPEC 4지점·pbxproj 4지점·신규 1파일 모두 명세대로 정확. GameScene +4줄·다른 모든 파일 0줄로 sprint 범위 계약 완벽 준수. exhaustive switch default 부재로 미래 SFX 케이스 추가 시 컴파일러 안전망. 1057/1073 외부 도메인 ID를 GameConfig가 아닌 enum 내부에 두는 정책 결정이 명문화 — swift-rules §7의 "게임 튜닝 상수" 범주와 구분. 멀티모달 피드백(촉각+청각) 동기화 완성.
 
 **구체적 개선 지시**: 없음. 합격 처리, 커밋 진행 권고.

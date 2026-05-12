@@ -28,6 +28,7 @@
 //  Phase 4-7 · 수간호사 복귀 후 F 재스폰 — startFleeing onEnd 콜백으로 fireImmediately
 //  Phase 5-2 · 선택 캐릭터 init 주입 + PlayerNode 색 적용 (constructor injection)
 //  Phase 6-1 · HapticsManager 신설 + 노트 수집/게임오버 햅틱 트리거 2지점
+//  Phase 6-2 · AudioManager 신설 + 노트 수집/게임오버 사운드 트리거 2지점
 //
 
 import SpriteKit
@@ -60,6 +61,7 @@ class GameScene: SKScene {
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
     let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
+    let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
 
     // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
     // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
@@ -204,6 +206,7 @@ class GameScene: SKScene {
             guard let self = self else { return }
             self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             self.haptics.light()   // Phase 6-1 — 수집 손맛
+            self.audio.play(.noteCollected)   // Phase 6-2 — 수집 사운드 (햅틱 → 사운드 순서)
             note.run(.removeFromParent())
         }
         contactRouter.onStoneGuardContact = { [weak self] in
@@ -248,6 +251,7 @@ class GameScene: SKScene {
         if gameState == .gameOver { return }
         gameState = .gameOver
         haptics.heavy()   // Phase 6-1 — 종료 무게감 (가드 통과 1회만)
+        audio.play(.gameOver)   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
         spawnSystem.stop()
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero

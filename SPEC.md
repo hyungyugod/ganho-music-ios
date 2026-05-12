@@ -1,249 +1,223 @@
-# Phase 6-1 — HapticsManager (진동 피드백) — Phase 6 첫 진입
+# Phase 6-2 — AudioManager (시스템 사운드 효과음)
 
 ## 개요
-게임 손맛을 강화하기 위해 시스템 햅틱(`UIImpactFeedbackGenerator`)을 도입한다. 노트 수집 = light, 게임오버 = heavy 2종만. 외부 에셋 0, 트리거 지점은 GameScene 2곳(`onNoteCollected` 콜백 + `endGame()`)뿐. Phase 6의 첫 진입이자 **Manager 패턴(Spring `@Service` 빈 비유)의 첫 등장** — Phase 5 동안 굳어진 Repository 패턴(영속 책임)과 대비되는 *부수효과(side-effect) 책임*을 학습한다.
+Phase 6-1에서 도입한 `HapticsManager` 패턴을 *두 번째 적용*하여 **사운드 손맛**을 추가한다. 외부 음원 에셋이 0건이므로 `AudioToolbox`의 `AudioServicesPlaySystemSound`를 이용해 iOS 내장 시스템 사운드 2종을 발화한다. 햅틱과 동일한 2지점(노트 수집 / 게임오버)에서 트리거하여 멀티모달(촉각+청각) 피드백을 완성한다.
 
 ## 변경 유형
-**게임플레이 + UX 폴리싱** — 게임 로직 자체는 트리거 호출 2지점 추가만(상태/스코어 무변경). 플레이어 체감은 폴리싱(촉각 피드백). 시각 변화 0.
+**게임플레이 + UX 폴리싱** (햅틱과 동급, 게임 규칙 변화는 0건이지만 플레이어가 인식하는 피드백 채널이 늘어남)
 
 ## 게임 경험 의도
-1. **음표 수집 손맛**: 매 수집마다 가벼운 톡 — "내가 제대로 먹었구나"를 시각 점수 갱신 *이전*에 손끝으로 먼저 알게 한다. 콤보 윈도우 내 연속 수집 시 톡톡톡 리듬감.
-2. **게임오버 무게감**: 시간 만료/적 접촉/F 피격 — 어느 경로든 묵직한 한 방. ResultScene fade transition 직전에 *끝났다*는 명확한 신호.
-3. 시뮬레이터/햅틱 미지원 디바이스에서는 UIKit이 자동 noop 처리 → 시각/로직은 동일하게 작동.
+1. 노트 1개를 먹는 순간, 손가락에는 `light` 톡(햅틱) + 귀에는 짧은 "틱"(시스템 사운드 1057 Tink) — 동일 사건이 두 감각으로 동시에 도착하여 "수집했다"라는 확신이 강해진다.
+2. 게임오버 순간엔 `heavy` 둔탁한 충격 + 묵직한 "두웅"(시스템 사운드 1073 Boop) — 종료의 무게감이 멀티모달로 증폭된다.
+3. BGM/자작 음원이 등장하기 전(별도 sprint)에도, 작은 시스템 사운드만으로 "살아있는 게임"의 첫 인상을 만든다.
 
 ## Sprint 범위 계약
 
 ### 허용
-- `Managers/HapticsManager.swift` 신설
-- `GameScene.swift` 프로퍼티 1줄(`let haptics = HapticsManager()`) + `configureContactRouter()` 안 1줄(`haptics.light()`) + `endGame()` 안 1줄(`haptics.heavy()`)
-- `project.pbxproj` 5곳(BuildFile + FileReference + 신규 PBXGroup Managers + 루트 mainGroup children + Sources phase)
+- `Managers/AudioManager.swift` 신설 (enum SFX + computed `systemSoundID` + `play(_:)`)
+- `GameScene.swift` 시스템 섹션에 `let audio = AudioManager()` 1줄
+- `GameScene.swift` `onNoteCollected` 콜백 안에 `self.audio.play(.noteCollected)` 1줄
+- `GameScene.swift` `endGame()` 안 멱등 가드 통과 직후 `audio.play(.gameOver)` 1줄
+- `project.pbxproj` 4곳 등록 (BuildFile / FileReference / Managers PBXGroup children / iOS Sources phase)
 
 ### 금지 (위반 시 P0)
-- 사운드(AVFoundation) / medium·rigid·soft 햅틱 / 콤보 마일스톤 햅틱 / 이스터에그 햅틱 / DI mock / 음소거 옵션 / Repository 영속 저장
-- `GameScene.swift`의 다른 부분 (init / factory / didMove / didChangeSize / layoutDPad / layoutHUD / update / triggerAirforceEasterEgg / configureContactRouter의 다른 4 콜백 / endGame의 멱등 가드 외 부분) 변경
-- `GameScene+Setup.swift` 변경
-- `Systems/ContactRouter.swift` / `Systems/ScoreSystem.swift` / `Systems/SpawnSystem.swift` 변경
-- 모든 `Nodes/*` 변경
-- `Scenes/TitleScene.swift` / `Scenes/ResultScene.swift` 변경
-- `Models/CharacterID.swift` / `Models/GameStats.swift` 변경
-- `Repositories/*` 3개 변경
-- `Protocols/` 변경
-- `Config/*` 4개 변경 (특히 `GameConfig` — 햅틱 강도는 enum case로 충분)
-- macOS / tvOS Sources phase / Test 코드
+- AVAudioPlayer / BGM / 음원 에셋 도입
+- 음소거 옵션 / Repository 영속화
+- SFX 케이스 추가(`.combo`, `.airforce`, `.tap` 등)
+- `GameConfig` 새 상수 (시스템 사운드 ID는 enum 내부 — 예외 명문화)
+- `HapticsManager` 변경
+- `GameScene.swift`의 다른 부분 변경 (init/factory/didMove/update/triggerAirforceEasterEgg/configureContactRouter의 다른 4 콜백/endGame의 멱등 가드+state 전환 외 부분)
+- `GameScene+Setup` / `TitleScene` / `ResultScene` / Nodes / Systems / Repositories / Models / Protocols / Config 변경
+- macOS / tvOS / Test 코드
 
 ### 판단 기준
-"이 변경이 없으면 '음표 수집 시 라이트 햅틱 + 게임오버 시 헤비 햅틱이 트리거된다'가 동작하는가?" → NO만 In Scope.
+"이 변경이 없으면 *음표 수집 시 시스템 사운드 + 게임오버 시 다른 시스템 사운드가 발화된다*가 동작하는가?" → NO만 In Scope.
 
-## 4 핵심 결정 포인트
+## 5 핵심 결정 포인트
 
-### 결정 1 — Managers PBXGroup 신설
-디스크에 `GanhoMusic Shared/Managers/`가 이미 존재(README.md만), pbxproj엔 미등록. 신규 PBXGroup `Managers` 신설.
-- 폴더-그룹 1:1 매핑 원칙 (spritekit-rules §11)
-- `AudioManager` 등 후속 작업이 같은 그룹에 추가될 거라 지금 만드는 게 합리적
-- pbxproj 5곳 편집 (5-6 대비 +1곳)
+### 결정 1 — 시스템 사운드 ID 2개 확정
+| SFX 케이스 | 시스템 사운드 ID | 이름 | 사유 |
+|---|---|---|---|
+| `.noteCollected` | **1057** | Tink | 매우 짧음(~80ms), 밝은 메탈릭. 음표(♪) 이미지와 결, 연속 발화 누적 피로 적음. |
+| `.gameOver` | **1073** | Boop | 묵직한 종료감, ~200ms로 게임오버의 짧은 정지에 맞음. |
 
-### 결정 2 — import 정책
-**`import UIKit`만 1줄.** `UIImpactFeedbackGenerator`는 UIKit 소속, UIKit이 Foundation 추이 import.
+### 결정 2 — enum SFX vs 단순 메서드
+**enum 전략 채택.** Phase 5-3 `CharacterID.playerSpeedMultiplier`의 switch self → computed property 패턴 재활용. 호출부가 `audio.play(.noteCollected)`로 의도 응축. 향후 콤보/이스터에그 추가 시 케이스 1줄 + switch 1줄만 늘면 됨(OCP).
 
-### 결정 3 — prepare() 시점
-**init 1회 + 매 트리거 직후 재호출.**
-- init: 첫 트리거 지연 최소화
-- impactOccurred 직후: 다음 트리거 대비 워밍 유지 (연속 수집 끊김 방지)
+### 결정 3 — 햅틱과의 트리거 순서
+**햅틱 → 사운드** (한 프레임 내라 실제 체감 차이 0이지만 의미상 순서 고정).
+- 햅틱: 하드웨어 진동(즉각·물리적)
+- 사운드: OS 오디오 큐 경유(논리적 지연 1~2ms)
+- 코드 가독성: 촉각 → 청각 흐름이 자연스러움
 
-### 결정 4 — endGame 안 호출 위치
-**멱등 가드 직후, `gameState = .gameOver` 다음 줄.**
-- 가드를 통과한 첫 호출만 트리거 → 중복 방지
-- spawn 정지/velocity 정지보다 햅틱이 먼저면 즉각성↑
+### 결정 4 — pbxproj 작업 명세 (4곳)
+ID `...0026` 사용 (HapticsManager `...0025` 다음). grep 충돌 0건 확인 후 진행.
+
+| 구역 | 라인 근처 | 추가 라인 |
+|---|---|---|
+| (a) PBXBuildFile | 30 (HapticsManager 다음) | `A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };` |
+| (b) PBXFileReference | 60 (HapticsManager 다음) | `A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };` |
+| (c) Managers PBXGroup children | 266 (HapticsManager 다음) | `A1C0F1A00000000000000026 /* AudioManager.swift */,` |
+| (d) iOS Sources build phase | 467 (HapticsManager 다음) | `A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,` |
+
+**검증**: 작업 후 `grep "AudioManager" project.pbxproj` → 정확히 4건. macOS/tvOS Sources phase는 빈 채로 유지.
+
+### 결정 5 — 시스템 사운드 매직 넘버 정책
+**`1057`/`1073`은 GameConfig로 분리하지 않고 enum 내부 switch에 직접 둔다.** 사유:
+1. Apple 시스템 상수라는 외부 도메인 값 — 게임 튜닝 파라미터와 성질이 다름
+2. 사용처가 단일(SFX 케이스 1:1) — GameConfig 분리 시 간접 참조만 늘어남
+3. enum이 이미 명명 컨테이너 — `SFX.noteCollected.systemSoundID`로 의미 충분
+4. swift-rules §7 매직 넘버 정책은 게임 튜닝 상수 대상, 외부 API 상수는 자기 도메인 타입 내부 권장
 
 ## 변경 범위
 
 ### 추가할 파일
-- `GanhoMusic Shared/Managers/HapticsManager.swift`
+- `GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift`
 
 ### 수정할 파일
-- `GanhoMusic Shared/GameScene.swift` (3줄 추가)
-- `GanhoMusic.xcodeproj/project.pbxproj` (5곳 추가)
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift` (3줄)
+- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (4지점)
 
 ## 기능 상세
 
-### 기능 1: HapticsManager 클래스
+### 기능 1: AudioManager 신규 파일
 
-**핵심 코드 구조**:
 ```swift
 //
-//  HapticsManager.swift
+//  AudioManager.swift
 //  GanhoMusic Shared
 //
-//  Phase 6-1 · 시스템 햅틱 피드백 캡슐화 (Manager 패턴 첫 등장)
+//  Phase 6-2 · 시스템 사운드 효과음 캡슐화 (Manager 패턴 두 번째 적용)
 //
 
-import UIKit
+import AudioToolbox
 
-/// 시스템 햅틱 발생기를 캡슐화한 매니저.
-/// - light(): 노트 수집 등 가벼운 긍정 피드백
-/// - heavy(): 게임오버 등 묵직한 종료 피드백
-/// 시뮬레이터/햅틱 미지원 디바이스에서는 UIKit이 자동 noop 처리.
-/// Spring 비유: side-effect 책임을 가진 @Service 빈. Repository(영속 책임)와 대비.
-final class HapticsManager {
+/// iOS 시스템 사운드를 캡슐화한 매니저. AVAudioPlayer / 외부 음원 도입 전 임시 보강.
+/// Phase 5-3 CharacterID.playerSpeedMultiplier의 enum + computed property 전략을 재사용.
+/// Spring 비유: HapticsManager와 동급 @Service 빈. 둘 다 side-effect 책임을 가진다.
+final class AudioManager {
 
-    // MARK: - Properties
-    private let lightGenerator: UIImpactFeedbackGenerator
-    private let heavyGenerator: UIImpactFeedbackGenerator
+    // MARK: - SFX
+    /// 게임 내 효과음 종류. 향후 콤보/이스터에그 등 케이스 추가 시 systemSoundID switch만 늘리면 됨(OCP).
+    enum SFX {
+        case noteCollected   // 노트 수집 — 짧고 밝은 톤
+        case gameOver        // 게임 종료 — 묵직한 종료감
 
-    // MARK: - Init
-    init() {
-        lightGenerator = UIImpactFeedbackGenerator(style: .light)
-        heavyGenerator = UIImpactFeedbackGenerator(style: .heavy)
-        // 첫 트리거 지연 최소화를 위해 미리 워밍
-        lightGenerator.prepare()
-        heavyGenerator.prepare()
+        /// Apple 내장 시스템 사운드 ID. 1000~1500 범위가 안전.
+        /// GameConfig로 분리하지 않는 이유: Apple 시스템 상수라는 외부 도메인 값이며,
+        /// SFX 케이스와 1:1 매핑이므로 enum 내부에 두는 게 응집도 높음.
+        var systemSoundID: SystemSoundID {
+            switch self {
+            case .noteCollected: return 1057   // Tink — 짧고 밝은 메탈릭
+            case .gameOver:      return 1073   // Boop — 묵직한 종료감
+            }
+            // exhaustive switch — default 없음. 케이스 추가 시 컴파일러가 강제로 매핑 추가 요구.
+        }
     }
 
-    // MARK: - Triggers
-    /// 가벼운 톡. 노트 수집 시 호출. 직후 prepare()로 다음 호출 대비.
-    func light() {
-        lightGenerator.impactOccurred()
-        lightGenerator.prepare()
-    }
-
-    /// 묵직한 한 방. 게임오버 시 호출. 직후 prepare()로 다음 호출 대비.
-    func heavy() {
-        heavyGenerator.impactOccurred()
-        heavyGenerator.prepare()
+    // MARK: - Play
+    /// 시스템 사운드는 즉시 발화 — HapticsManager의 prepare() 워밍 불필요.
+    /// AudioServicesPlaySystemSound는 thread-safe하며 비동기로 사운드 큐에 push.
+    func play(_ sfx: SFX) {
+        AudioServicesPlaySystemSound(sfx.systemSoundID)
     }
 }
 ```
 
-### 기능 2: GameScene 프로퍼티 추가
+### 기능 2: GameScene에 audio 시스템 1줄 추가
 
-**위치**: 시스템 섹션 (`scoreSystem` / `highScoreRepo` / `statsRepo` 뒤).
+**위치**: Properties 시스템 섹션, `let haptics = HapticsManager()` 다음 줄.
+
 ```swift
-let haptics = HapticsManager()   // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
+let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
+let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
 ```
 
-### 기능 3: 노트 수집 시 light 햅틱
+### 기능 3: 노트 수집 시 사운드 트리거
 
-**위치**: `configureContactRouter()` 안 `onNoteCollected` 콜백, `scoreSystem.recordNoteHit` *직후*, `note.run(.removeFromParent())` *직전*.
+**위치**: `onNoteCollected` 콜백 안, `self.haptics.light()` 다음 줄.
 
 ```swift
 contactRouter.onNoteCollected = { [weak self] note in
     guard let self = self else { return }
     self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
-    self.haptics.light()   // Phase 6-1 — 수집 손맛
+    self.haptics.light()                  // Phase 6-1 — 수집 손맛
+    self.audio.play(.noteCollected)       // Phase 6-2 — 수집 사운드 (햅틱 → 사운드 순서)
     note.run(.removeFromParent())
 }
 ```
 
-### 기능 4: 게임오버 시 heavy 햅틱
+### 기능 4: 게임오버 시 사운드 트리거
 
-**위치**: `endGame()` 안, `gameState = .gameOver` *다음 줄*, `spawnSystem.stop()` *이전*.
+**위치**: `endGame()` 안, `haptics.heavy()` 다음 줄 (멱등 가드 통과 후).
 
 ```swift
 private func endGame() {
-    if gameState == .gameOver { return }
+    if gameState == .gameOver { return }   // 멱등 가드
     gameState = .gameOver
-    haptics.heavy()   // Phase 6-1 — 종료 무게감 (가드 통과 1회만)
+    haptics.heavy()                         // Phase 6-1
+    audio.play(.gameOver)                   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
     spawnSystem.stop()
     // ... 이하 기존 코드 그대로
 }
 ```
 
-## pbxproj 작업 명세 (5곳)
-
-기존 ID 패턴:
-- PBXBuildFile: `A1C0F1B0...001X` 시리즈 (최근 `...0024` CharacterPreferenceRepository)
-- PBXFileReference: `A1C0F1A0...001X` 시리즈 (최근 `...0024`)
-- PBXGroup: 그룹별로 다른 prefix
-
-**신규 ID 제안 (충돌 방지 grep 필수)**:
-- BuildFile: `A1C0F1B00000000000000025`
-- FileReference: `A1C0F1A00000000000000025`
-- Managers PBXGroup: `A1C0F2000000000000000017`
-
-Generator는 작업 전 grep으로 미사용 확인. hit 발생 시 +1 재확인.
-
-### 편집 5곳
-
-**(1) PBXBuildFile section** (CharacterPreferenceRepository 줄 뒤):
-```
-A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000025 /* HapticsManager.swift */; };
-```
-
-**(2) PBXFileReference section** (CharacterPreferenceRepository 줄 뒤):
-```
-A1C0F1A00000000000000025 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
-```
-
-**(3) 신규 PBXGroup `Managers`** (Protocols 그룹 직후):
-```
-A1C0F2000000000000000017 /* Managers */ = {
-    isa = PBXGroup;
-    children = (
-        A1C0F1A00000000000000025 /* HapticsManager.swift */,
-    );
-    name = Managers;
-    path = "GanhoMusic Shared/Managers";
-    sourceTree = "<group>";
-};
-```
-
-**(4) 루트 mainGroup children에 Managers 추가** (Protocols 뒤, GanhoMusic iOS 앞):
-```
-A1C0F1F00000000000000016 /* Protocols */,
-A1C0F2000000000000000017 /* Managers */,   ← 신규 줄
-C75D462B2FA627C20016BB86 /* GanhoMusic iOS */,
-```
-
-**(5) iOS PBXSourcesBuildPhase files 목록에 추가** (CharacterCardNode.swift 또는 마지막 줄 뒤):
-```
-A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
-```
-**주의**: macOS/tvOS Sources phase는 비어있는 그대로 — iOS 타겟만 정식 지원.
-
-### Membership Exception
-- HapticsManager는 PBXFileSystemSynchronizedBuildFileExceptionSet에 **추가하지 않는다**. 기존 HighScoreRepository/ScoreSystem 등 명시 등록 파일도 exception에 없는데 정상 빌드 — Xcode 26.x에서 `path` 명시된 PBXGroup에 등록되면 sync 중복이 자동 회피되는 것으로 보임.
-
 ## 검증 시나리오
 
-**(a) 빌드 클린**: `⌘B` 에러 0, 경고 0. `Cannot find 'HapticsManager' in scope` 미발생.
+### (a) 빌드 검증
+- Clean Build → 에러/경고 0건
+- exhaustive switch 인식 확인 (default 없음)
 
-**(b) 시뮬레이터 noop**: iPhone 시뮬레이터 실행 → 게임 진행 → 크래시 없음, 콘솔 에러 0. 진동은 시뮬레이터가 무시 (예상 동작).
+### (b) 노트 수집 사운드 — 시뮬레이터
+- Mac 스피커로 Tink(짧고 밝음) 발화
+- 1초 안에 노트 3개 연속 수집 → 사운드 3회 모두 발화
 
-**(c) 실기기 라이트 햅틱**: 실기기에서 노트 1개 수집 시 가벼운 톡 1회. 연속 수집 시 톡톡톡 (콤보 윈도우 내 끊김 없이).
+### (c) 게임오버 사운드 3경로
+- 시간 만료 / 적 접촉 / F 피격 모두 Boop 1회 발화
+- 멱등 가드 통과 직후라 동시 트리거에도 1회만
 
-**(d) 실기기 헤비 햅틱**: 게임오버 3경로 각각 — (i) 45초 만료 (ii) 적 접촉 (iii) F 피격. 셋 모두 묵직한 한 방 1회.
+### (d) 실기기 검증
+- 무음 모드 ON → 시스템 사운드 차단 (Apple 정책 — 의도된 동작)
+- 무음 모드 OFF → 정상 발화
+- 햅틱 + 사운드 동기화 확인
 
-**(e) 멱등 가드 회귀**: F 피격과 적 접촉이 동시 발생 시 heavy 햅틱 *2회 트리거 안 됨*. ResultScene이 1회만 표시됨.
+### (e) Phase 6-1 회귀
+- `HapticsManager.swift` 0줄 변경
+- 햅틱 트리거 라인 그대로
 
-**(f) Phase 4 회귀**: AIRFORCE 이스터에그(StoneGuard 첫 접촉) 발동 시 heavy 햅틱 *트리거 안 됨* (`triggerAirforceEasterEgg`는 endGame 미호출). 비행기/오버레이/폭탄/도주/F 재스폰 모두 Phase 4-7 동작 그대로.
+### (f) Phase 1~5 회귀
+- 게임 로직(이동/스폰/수집/추적/F/AIRFORCE) 모두 정상
+- TitleScene/ResultScene 정상
 
-**(g) Phase 5 회귀**: 캐릭터 선택 → 색·속도·HUD 우상단 이름·ResultScene characterName 모두 정상. 노트 수집 시 light 햅틱(캐릭터 무관 동일).
+### (g) 동시 발화 타이밍
+- 같은 프레임 내 haptics.light() → audio.play() 연속 실행
+- 두 호출 모두 비동기/즉시 반환 → 게임 루프 블로킹 0
 
-**(h) Out of Scope 회귀**: `git diff`는 `Managers/HapticsManager.swift`(신규) + `GameScene.swift`(3줄) + `project.pbxproj`(5곳)만.
+### (h) 멱등 / 메모리
+- endGame 2회 호출 시 사운드도 1회
+- AudioManager 인스턴스 ARC 자동 해제
+- 새 게임 시작 시 새 인스턴스
 
-## 학습 가치 (Spring 비유)
+## 학습 가치
 
-| 측면 | Repository (Phase 5에서 3회 등장) | Manager (Phase 6-1 첫 등장) |
-|---|---|---|
-| Spring 대응 | `@Repository` + Mapper | `@Service` (도메인 외 부수효과) |
-| 책임 | 영속화 (UserDefaults 읽기/쓰기) | 부수효과 (햅틱 트리거) |
-| 함수 반환 | `current` (Read) / `record` (Write + return) | `light()` / `heavy()` (Void) |
-| 호출자 관심 | "데이터가 잘 저장됐나?" | "사용자가 느꼈나?" |
-| 폴더 | `Repositories/` | `Managers/` |
-| 호출 빈도 | 게임 끝날 때 1회 | 매 노트 수집(빈번) + 게임오버(1회) |
-| init 비용 | 거의 0 | `prepare()` 워밍 비용 있음 |
-| DI 여지 | 본 sprint 채택 | 본 sprint 미채택 (직접 인스턴스) |
+### 1. Manager 패턴 두 번째 적용 — 패턴 내면화
+6-1 첫 등장 + 6-2 반복으로 "side-effect = Manager" 멘탈 모델 굳히기. Spring `EmailService` + `SmsService` 둘 다 같은 자리에 같은 형태로 들어간다는 공간적 반복.
 
-**핵심 인사이트**: Spring `@Service` 빈은 "행위(behavior)"를 캡슐화하고, `@Repository`는 "상태(state)"를 캡슐화한다. HapticsManager는 행위(트리거), HighScoreRepository는 상태(저장된 점수). 둘 다 "GameScene을 얇게 유지"라는 동일 목표를 다른 각도에서 달성.
+### 2. enum + computed property 전략 (Phase 5-3 재활용)
+`SFX.noteCollected.systemSoundID`는 `CharacterID.kim.playerSpeedMultiplier`와 같은 모양. 데이터(케이스)와 행동(매핑)의 응집. exhaustive switch는 Java sealed class 안전망.
+
+### 3. 매직 넘버 정책의 미묘함
+1057/1073은 Apple 외부 도메인 상수라 GameConfig로 빼면 어색. swift-rules §7은 게임 튜닝 상수가 대상. 외부 시스템 ID/URL/HTTP 코드 등은 자기 도메인 타입 내부에 두는 게 일관.
+
+### 4. 멀티모달 피드백 동기화
+촉각(햅틱) + 청각(사운드) 1프레임 내 동기화 = 플레이어 뇌에 "동시" 사건으로 인식. 코드상 순서(촉각 → 청각)는 후속 sprint에서도 의도 보존.
 
 ## 주의사항
 
-1. **강제 언래핑 금지**: `UIImpactFeedbackGenerator` 초기화 실패 안 함 → 옵셔널 처리 불필요. `init?`/`!` 도입 금지.
-2. **Timer 금지**: 햅틱 지연이 필요해도 `SKAction.wait`. 본 sprint는 지연 없음.
-3. **매직 넘버 금지**: 강도는 `.light` / `.heavy` enum case로 충분. `GameConfig` 새 상수 0.
-4. **클로저 self 캡처**: `onNoteCollected`는 이미 `[weak self]` 캡처. `self.haptics.light()` 형태 그대로.
-5. **pbxproj 편집 위험**: 텍스트 편집 실수 시 Xcode가 프로젝트를 못 연다. 반드시 ID grep 충돌 확인 + 들여쓰기(탭) 보존 + 콤마/세미콜론 정확.
-6. **import**: HapticsManager는 `import UIKit`. GameScene은 `import SpriteKit`(UIKit 추이 import)이라 추가 import 불필요.
-7. **macOS/tvOS 타겟**: `UIImpactFeedbackGenerator`는 iOS 전용. macOS/tvOS Sources phase가 비어있어 안전.
-8. **GameScene 본체 0줄 영역**: init / required init? / newGameScene / didMove / didChangeSize / layoutDPad / layoutHUD / update / triggerAirforceEasterEgg / endGame의 멱등 가드 외 부분 / configureContactRouter의 onEnemyHit/onProjectileHitPlayer/onProjectileHitWall/onStoneGuardContact 4개 콜백. 만지면 P0.
-9. **endGame 안 햅틱 위치 엄수**: `gameState = .gameOver` *직후* 1줄. 그 앞이면 가드 회피로 중복 트리거 위험.
+1. **무음 모드 = OS 정책**: iPhone 무음 스위치는 시스템 사운드도 차단 (Apple 의도). 본 sprint 범위 외. 향후 BGM은 `AVAudioSession.Category.playback`으로 우회 가능.
+2. **import**: `import AudioToolbox` 1줄. 조건부 import 불필요.
+3. **pbxproj ID 충돌**: 작업 전 `grep "00000000000026"` 0건 확인. 4지점 정확히 삽입.
+4. **`final class` 유지**: 상속 의도 없음 명시.
+5. **`weak self` 불필요**: AudioManager 자체 클로저 캡처 없음. 기존 `[weak self]` 가드 안쪽이라 별도 처리 불필요.
+6. **default 절대 금지**: SFX switch에 default 추가하면 케이스 추가 시 컴파일러가 누락을 잡지 못함. exhaustive 유지가 Phase 5-3 패턴의 핵심.
+7. **GameScene 다른 부분 0줄**: init/didMove/update/didChangeSize/layoutDPad/layoutHUD/triggerAirforceEasterEgg/configureContactRouter의 다른 4 콜백/endGame의 멱등 가드+state 전환 외 부분 모두 frozen.
