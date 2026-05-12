@@ -3,6 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Phase 5-1 · 캐릭터 선택 UI 골격 — 5명 enum (id/displayName/color)
+//  Phase 5-3 · 캐릭터별 이동속도 차등 (speedMultiplier 주입)
 //
 
 import UIKit
@@ -32,6 +33,18 @@ enum CharacterID: String, CaseIterable {
         case .geon: return .ganhoPinkNote
         case .im:   return .ganhoYellowF
         case .lee:  return .ganhoBloodAccent
+        }
+    }
+
+    /// Phase 5-3 — 캐릭터별 이동속도 배율. `.kim` = 1.0을 기준으로 +/- 10% 이내 미세 차등.
+    /// PlayerNode.update(deltaTime:)에서 GameConfig.playerBaseSpeed × multiplier로 velocity 산출.
+    var playerSpeedMultiplier: CGFloat {
+        switch self {
+        case .kim:  return 1.00   // 기준
+        case .jung: return 1.10   // 민첩
+        case .lee:  return 1.05   // 살짝 빠름
+        case .im:   return 0.95   // 살짝 느림
+        case .geon: return 0.90   // 묵직
         }
     }
 }

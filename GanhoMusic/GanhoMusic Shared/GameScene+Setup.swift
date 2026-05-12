@@ -110,7 +110,7 @@ extension GameScene {
             x: GameConfig.mapWidth  / 4,
             y: GameConfig.mapHeight / 2
         )
-        player.color = characterID.color   // Phase 5-2 — TitleScene 선택 캐릭터 색을 PlayerNode 몸체에 즉시 반영
+        player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
         worldNode.addChild(player)
     }
 
@@ -131,6 +131,7 @@ extension GameScene {
 
     func setupHUD() {
         cameraNode.addChild(hud)
+        hud.setCharacterName(characterID.displayName)   // Phase 5-4 — TitleScene 선택 캐릭터 이름을 HUD 우상단에 1회 주입
         layoutHUD()
     }
 

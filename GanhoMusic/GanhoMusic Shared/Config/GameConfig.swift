@@ -5,6 +5,7 @@
 //  Phase 1-1 · Config Bootstrap
 //  Phase 1-2 · World 파생값 + Placeholder 상수 추가
 //  Phase 1-3 · Player / D-Pad 상수 정식 진입 + 1-2 임시값 정리
+//  Phase 5-4 · HUD 우상단 캐릭터 이름 라벨 (단일 setter 주입)
 //
 
 import Foundation
@@ -69,6 +70,9 @@ enum GameConfig {
     static let hudMarginY: CGFloat = 24
     /// HUD 알파 (반투명, 가독성 우선). D-Pad 0.3보다 큼.
     static let hudAlpha: CGFloat = 0.85
+    /// Phase 5-4 — HUD 우상단 캐릭터 이름 라벨의 x 위치 (HUDNode 좌상단 anchor 기준 오른쪽 offset, pt).
+    /// landscape 1024-width 기본 캔버스 가정. 라벨 자체는 .right/.top 정렬이라 이 좌표가 라벨의 우상단 점.
+    static let hudCharacterNameOffsetX: CGFloat = 760
 
     // MARK: - Combo (Phase 2-5)
     /// 콤보 윈도우 (초). 마지막 수집 후 이 시간 이내 재수집 안 하면 콤보 0. GDD §8.
