@@ -255,4 +255,12 @@ enum GameConfig {
     /// 5라벨 균등 40 간격(+80/+40/0/-40/-80) 깨지 않게 *위로* 35pt 추가.
     /// "정간호 / GAME OVER / 🎵 N / BEST / PLAYS / TAP" 위→아래 흐름.
     static let resultCharacterOffsetY: CGFloat = 115
+
+    // MARK: - BGM Fade (Phase 6-5)
+    /// Phase 6-5 — BGM 페이드 인 길이 (초). play() 호출 시 volume 0 → 1.0 보간.
+    /// 첫 음표 스폰 주기(1.5)와 자연 동기화되도록 1.5초 채택.
+    static let bgmFadeInDuration: TimeInterval = 1.5
+    /// Phase 6-5 — BGM 페이드 아웃 길이 (초). stop() 호출 시 현재 volume → 0 보간.
+    /// ResultScene 전환 페이드(0.4)보다 길어 두 페이드가 겹치며 끝나도록 1.0초.
+    static let bgmFadeOutDuration: TimeInterval = 1.0
 }

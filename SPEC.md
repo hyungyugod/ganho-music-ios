@@ -1,288 +1,282 @@
-# Phase 6-4 — BGMPlayer (배경음악 인프라)
+# Phase 6-6 — AVAudioSession Interruption 처리
 
 ## 개요
-자작 BGM 파일(`bgm.m4a`)이 Bundle에 존재하면 게임 중 무한 루프로 재생하고, 없으면 noop. Phase 6-3 `AudioManager`의 graceful fallback 패턴을 그대로 답습하되, BGM 전용 `AVAudioSession` 카테고리(`.playback` + `.mixWithOthers`)를 음원이 있을 때에만 덮어쓴다. 본 sprint는 인프라 신설이라 체감 변화는 0이며, 사용자가 FL Studio로 만든 BGM 파일을 `Resources/Sounds/bgm.m4a`로 드롭하는 순간 다음 빌드부터 자동 활성화된다.
+Phase 6-5에서 BGM 페이드 인/아웃까지 마무리된 BGMPlayer에, 게임 도중 전화/Siri/타이머 알람 같은 **시스템 인터럽션**을 만났을 때 BGM이 자동으로 일시정지되고, 인터럽션이 끝나면 자연스럽게 다시 살아 돌아오도록 한다. AVFoundation 표준 패턴인 `AVAudioSession.interruptionNotification`을 `NotificationCenter`로 구독하고, BGMPlayer **내부에서만** 옵저버를 등록/해제한다. 외부 인터페이스(play/stop)는 6-5 그대로 유지한다 — *좁은 인터페이스(narrow interface)* 원칙.
 
 ## 변경 유형
-**인프라** (AVAudioSession 정책 분리). 음원 부재 시 6-3 `.ambient` 정책 그대로 유지 → 회귀 0.
+**폴리싱 / 라이프사이클 안정성** — 게임플레이 규칙 변화 0, 시각 변화 0. 시스템과의 매너(graceful interruption handling)를 다듬는 sprint.
 
 ## 게임 경험 의도
-사용자가 게임을 시작하면 자기가 작곡한 BGM이 무한 루프로 흐르고, 게임이 끝나면 멈춘다 — 김간호 세계관의 "병동에서 작곡하던 새벽"을 직접 들려주는 것이 이 sprint의 종착지다. 음원 파일 1개만 끼우면 다음 빌드부터 그 경험이 완성된다. 효과음과의 충돌(.ambient vs .playback)을 미리 정리해, BGM 도입 시 효과음이 죽는 사고를 막는다.
+게임 도중 전화가 울려도, Siri를 불러도, 타이머 알람이 떠도 BGM이 "끊긴 채 영영 돌아오지 못하는" 사고가 없다. 통화를 끊고 게임 화면으로 돌아오면 BGM이 6-5의 페이드 인을 타고 자연스럽게 다시 살아난다. 사용자는 "어 음악이 다시 들어왔네" 정도로만 인지하면 충분 — *시스템과 다투지 않는 앱*이라는 인상.
 
 ## Sprint 범위 계약
 
 ### 허용
-- `Managers/BGMPlayer.swift` 신설
-- `GameScene.swift` 4지점 추가 (헤더 1 + 시스템 1 + didMove 1 + endGame 1)
-- `project.pbxproj` 4곳 등록
-- `Resources/README.md`에 BGM 가이드 단락 추가
+- `BGMPlayer.swift` 내부에서 `NotificationCenter.default.addObserver` 호출
+- `BGMPlayer.swift`에 `private func handleInterruption(_:)`, `private func pause()`, `private func resume()` 메서드 추가
+- `init()`에 옵저버 등록 한 줄 추가 (player 로딩 성공 *이후*)
+- `deinit` 신설 — 옵저버 해제 (`NotificationCenter.default.removeObserver(self)`)
+- `[weak self]` 의식 — selector 방식은 weak 자동이지만 의식적 코딩 습관 유지
+- 상단 헤더 주석에 "Phase 6-6 · Interruption 처리" 1줄 추가
 
-### 금지 (위반 시 P0)
-- 페이드 인/아웃 (별도 sprint)
-- 볼륨 조절 / 음소거 옵션 / Repository 영속화
-- TitleScene/ResultScene BGM (별도 sprint)
-- `AudioManager` 변경 (6-3 그대로)
-- `HapticsManager` 변경
-- 새 SFX 케이스 추가
-- `GameScene` 다른 부분 변경 (init/factory/update/triggerAirforceEasterEgg/configureContactRouter/layout*/endGame 멱등 가드+state 전환+haptics/audio 호출 외 부분)
-- `GameScene+Setup` / `TitleScene` / `ResultScene` 변경
-- 모든 Nodes / Systems / Repositories / Models / Protocols / Config 변경 (GameConfig 새 상수 0)
-- 음원 파일 *실제 추가* (사용자 작업)
-- BGM delegate / 재생 완료 콜백
-- `setActive(true)` 명시 호출
-- 강제 언래핑
-- `Resources/Sounds/README.md` 변경 (그 파일은 효과음 전용)
-- macOS / tvOS / Test 코드
+### 금지
+- **GameScene 변경 0줄** — Phase 6-4/6-5와 동일 진입/종료 경로 유지
+- **AudioManager / HapticsManager 변경** — Manager 간 결합도 0 유지
+- **public 인터페이스 변경** — 외부에 노출되는 메서드는 `play()` / `stop()`만. 새 public 메서드/프로퍼티 추가 금지
+- **새 GameConfig 상수 추가** — 인터럽션 처리는 비즈니스 튜닝 값이 아닌 시스템 응답이므로 즉시 처리(페이드 없음). 상수가 필요 없음
+- **AVAudioSession 카테고리 변경** — 6-4의 `.playback + .mixWithOthers` 정책 그대로
+- **게임 일시정지 UI 신설** — 본 sprint는 BGM 한정. 화면 멈춤은 별도 sprint
+- **백그라운드 라이프사이클 옵저버** (`UIApplication.didEnterBackground` 등) — 별도 sprint
+- **새 SFX / 음원 추가**
 
 ### 판단 기준
-"이 변경이 없으면 'Bundle에 bgm.m4a가 있을 때 게임 중 무한 루프 BGM 재생, 없으면 회귀 0'이 동작하는가?" → NO만 In Scope.
+"이 변경이 없으면 인터럽션 후 BGM이 자동 복귀하지 못하는가?" → YES면 허용. 아니면 금지.
 
-## 7 핵심 결정 포인트
-
-### 결정 1. 파일명/확장자 — `bgm.m4a` 확정
-BGM은 효과음과 달리 길고 압축이 절실. m4a(AAC)는 iOS 네이티브 디코더라 추가 라이브러리 0, 30~60초 루프가 ~500KB 안쪽. 효과음(wav)과 확장자를 다르게 둬서 의도(길이/압축 정책)가 파일명만으로 드러남.
-
-### 결정 2. AVAudioSession 카테고리 정책
-- **음원 부재**: 카테고리 변경 0. 6-3 `.ambient` 유지 → 회귀 0.
-- **음원 존재**: `.playback` + `.mixWithOthers`로 덮어쓰기. `AudioManager.init()`이 `BGMPlayer.init()`보다 *먼저* 호출되므로 BGM 정책이 *나중에 덮어쓰는* 구조. 효과음도 같은 컨텍스트에서 발화(사용자가 BGM 듣고 싶으면 효과음도 듣고 싶을 것).
-
-### 결정 3. didMove 호출 위치 — `gameState = .playing` 직후
-무거운 setup 중 디코딩 끼임 회피. `.playing` 직후가 "게임 루프 시작 = BGM 시작"으로 의미적 일치.
-
-### 결정 4. endGame 호출 위치 — `audio.play(.gameOver)` 직후 (멱등 가드 안쪽)
-순서: haptics → audio.play(.gameOver) → **bgm.stop()** → spawnSystem.stop(). 멱등 가드 안쪽이라 1회 보장.
-
-### 결정 5. 재시작 시 처리 — 별도 처리 불필요
-새 GameScene 진입 시 새 BGMPlayer 인스턴스 → 매 진입마다 0초부터. 이전 인스턴스는 ARC 해제.
-
-### 결정 6. `mixWithOthers` 옵션 — 포함
-사용자가 Apple Music과 공존. 음악박사 게임이 다른 음악을 강제 차단하면 무례.
-
-### 결정 7. `stop` vs `pause` — `stop()` 채택
-의미적 명확성. 매 진입마다 새 인스턴스라 차이 없음. pause는 향후 일시정지 sprint에서 별도.
+---
 
 ## 변경 범위
 
-### 추가할 파일
-- `GanhoMusic Shared/Managers/BGMPlayer.swift`
-
 ### 수정할 파일
-- `GanhoMusic Shared/GameScene.swift` (4지점 추가만)
-- `GanhoMusic Shared/Resources/README.md` (BGM 단락 추가)
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (4곳 등록)
+- `GanhoMusic/GanhoMusic Shared/Managers/BGMPlayer.swift` — 옵저버 등록/해제, interruption handler, private pause/resume
+
+### 추가할 파일
+없음.
+
+### 0줄 변경 파일 (Sprint 범위 계약 검증용)
+- `GanhoMusic/GanhoMusic Shared/Scenes/GameScene.swift`
+- `GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift`
+- `GanhoMusic/GanhoMusic Shared/Managers/HapticsManager.swift`
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+
+---
+
+## Interruption Notification 페이로드 정리
+
+### Notification 이름
+`AVAudioSession.interruptionNotification`
+
+### userInfo 키
+| 키 | 타입 | 의미 |
+|---|---|---|
+| `AVAudioSessionInterruptionTypeKey` | `UInt` → `AVAudioSession.InterruptionType` raw | `.began` (= 1) / `.ended` (= 0) |
+| `AVAudioSessionInterruptionOptionKey` | `UInt` → `AVAudioSession.InterruptionOptions` raw | `.shouldResume` 비트가 켜져 있으면 자동 재개 허용 |
+
+### 처리 매트릭스
+| Type | shouldResume | 우리 처리 |
+|---|---|---|
+| `.began` | (irrelevant) | 즉시 `pause()` — 페이드 없음 |
+| `.ended` | true | `resume()` — 6-5의 `play()` 호출로 페이드 인 재시작 |
+| `.ended` | false | noop — 시스템이 재개 거부했으므로 BGM 그대로 멈춤 |
+
+---
 
 ## 기능 상세
 
-### 기능 1: BGMPlayer 클래스 신설
+### 기능 1: 옵저버 라이프사이클 — init↔deinit 매칭
+- **설명**: BGMPlayer 인스턴스가 살아 있는 동안만 인터럽션을 구독한다. 인스턴스 해제 시 옵저버도 같이 정리해 dangling observer / NotificationCenter의 강참조로 인한 누수를 방지.
+- **구현 위치**: `BGMPlayer.swift`의 `// MARK: - Init`, 새 `// MARK: - Deinit`
+- **핵심 코드 구조**:
+  ```swift
+  init() {
+      // ... 기존 6-5의 Bundle 음원 로딩 / 카테고리 설정 / prepareToPlay 그대로 ...
+      player = p
 
-```swift
-//
-//  BGMPlayer.swift
-//  GanhoMusic Shared
-//
-//  Phase 6-4 · 자작 BGM 무한 루프 재생 인프라 (graceful fallback)
-//
+      // 음원 로딩 성공한 *이후에만* 인터럽션 구독.
+      // 음원이 없는(player == nil) 경우엔 어차피 play/stop이 noop이므로 구독해도 의미 없음.
+      NotificationCenter.default.addObserver(
+          self,
+          selector: #selector(handleInterruption(_:)),
+          name: AVAudioSession.interruptionNotification,
+          object: AVAudioSession.sharedInstance()
+      )
+  }
 
-import AVFoundation
+  // MARK: - Deinit
+  /// init에서 addObserver를 한 만큼 정확히 한 번 해제.
+  /// Spring `@PreDestroy`와 동일 발상 — 빈 소멸 시점에 등록한 자원 회수.
+  deinit {
+      NotificationCenter.default.removeObserver(self)
+  }
+  ```
+- **주의**: `addObserver(_:selector:name:object:)` 형식은 옵저버를 약참조하지만, 명시적 `removeObserver(self)` 호출이 표준 안전 패턴. 만약 block 기반 `addObserver(forName:object:queue:using:)`을 쓴다면 반환된 토큰을 보관해야 하므로 본 sprint는 selector 방식 채택.
 
-/// 배경음악 재생을 캡슐화한 매니저. Bundle에 bgm.m4a가 있을 때만 활성화.
-/// 없으면 player = nil, 모든 메서드 noop. AudioManager(.ambient)와의 카테고리 분리도
-/// 음원 존재 여부를 트리거로 함 — 음원 없으면 .ambient 유지(회귀 0).
-/// Spring 비유: AudioManager / HapticsManager와 동급의 @Service 빈.
-final class BGMPlayer {
+### 기능 2: Interruption Handler — userInfo 디스패치
+- **설명**: NotificationCenter가 호출하는 단일 진입점. `userInfo`에서 type을 꺼내 began/ended로 분기. `@objc` 어노테이션 필수(selector 호출 대상).
+- **구현 위치**: `BGMPlayer.swift` 새 `// MARK: - Interruption` 섹션
+- **핵심 코드 구조**:
+  ```swift
+  // MARK: - Interruption
+  /// AVAudioSession.interruptionNotification 콜백.
+  /// @objc 필수 — Objective-C 런타임 selector 디스패치 대상.
+  @objc private func handleInterruption(_ notification: Notification) {
+      guard let userInfo = notification.userInfo,
+            let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
 
-    // MARK: - Properties
-    /// Bundle에 음원이 있을 때만 채워짐. nil이면 play/stop 모두 noop.
-    private var player: AVAudioPlayer?
+      switch type {
+      case .began:
+          // 인터럽션 진입 — 즉시 응답이 미덕. 페이드 없음.
+          pause()
+      case .ended:
+          // 시스템이 재개해도 좋다고 알려준 경우에만 다시 켠다.
+          guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
+          let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+          if options.contains(.shouldResume) {
+              resume()
+          }
+      @unknown default:
+          break
+      }
+  }
+  ```
+- **주의**:
+  - `@unknown default` — Apple이 향후 새 case 추가 시 컴파일러 경고로 알려주는 forward-compat 패턴
+  - `as? UInt` 가드로 강제 언래핑 회피
+  - notification은 어떤 스레드에서 올지 보장되지 않지만, `AVAudioPlayer.pause()/play()`는 thread-safe → 추가 디스패치 불필요. 6-5의 `stopWorkItem`이 main queue에서 도는 점은 본 sprint에서 건드리지 않는다
 
-    // MARK: - Init
-    /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
-    /// 실패는 전부 graceful (try?) — 어떤 단계가 실패해도 6-3 .ambient 정책이 살아 회귀 0.
-    init() {
-        // 1) Bundle 음원 탐색. 없으면 player = nil로 끝 — 카테고리 변경 안 함.
-        guard let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") else { return }
+### 기능 3: private pause() — 즉시 일시정지
+- **설명**: `player.pause()`만 호출. 페이드 아웃 사용 안 함 (인터럽션은 즉시 응답해야 자연스러움 — 페이드 0.3초가 통화 벨소리와 겹치면 오히려 부자연스러움).
+- **구현 위치**: `BGMPlayer.swift` `// MARK: - Interruption` 내부, `handleInterruption` 아래
+- **핵심 코드 구조**:
+  ```swift
+  /// 인터럽션 진입 시 즉시 멈춤 (페이드 없음).
+  /// 6-5의 stop()과 다른 점:
+  ///   - stop()은 의도적 게임 종료 → 페이드 아웃으로 끝
+  ///   - pause()는 시스템 강요 → 즉시 멈추고 player 내부 재생 위치 보존
+  /// player.pause()는 currentTime을 유지하므로 ended에서 play()를 다시 부르면
+  /// numberOfLoops=-1 설정과 함께 자연스럽게 이어진다.
+  private func pause() {
+      guard let player = player else { return }
+      // 페이드 아웃이 *진행 중*이었다면 (stop 호출 직후 인터럽션 도착 같은 희귀 시나리오):
+      //   페이드는 이미 시스템이 처리 중이고 stopWorkItem이 곧 player.stop()을 호출할 예정.
+      //   여기서 추가로 pause()를 부르면 player.stop()과 충돌 가능 — 그래서 isFadingOut 가드.
+      if isFadingOut { return }
+      player.pause()
+  }
+  ```
+- **왜 isFadingOut 가드인가**: 게임이 막 끝나 `stop()`이 호출된 직후(=페이드 아웃 진행 중) 인터럽션이 들어오는 경우, 어차피 곧 `player.stop()`이 실행될 예정. 여기서 `pause()`를 추가로 부르면 의미상 충돌 — "이미 끝나는 중인 음악은 그냥 끝나게 둔다"는 정책.
 
-        // 2) AVAudioPlayer 생성 시도. 디코딩 실패도 graceful.
-        guard let p = try? AVAudioPlayer(contentsOf: url) else { return }
+### 기능 4: private resume() — 페이드 인 재시작
+- **설명**: 6-5의 `play()`를 그대로 재호출. play()의 기존 가드(`player.isPlaying` 체크 + `stopWorkItem.cancel()` + `isFadingOut = false` 초기화)가 인터럽션 후 재진입 시나리오를 그대로 흡수.
+- **구현 위치**: `BGMPlayer.swift` `// MARK: - Interruption` 내부, `pause` 아래
+- **핵심 코드 구조**:
+  ```swift
+  /// 인터럽션 종료(.ended + shouldResume) 시 6-5의 play() 그대로 재호출.
+  /// play() 내부의 isPlaying 가드가 핵심:
+  ///   - pause() 후엔 isPlaying=false → play() 진입 → 페이드 인 처음부터 다시 시작
+  ///   - 이미 isPlaying=true (희귀: 다른 경로로 살아남) → noop, 회귀 없음
+  /// 별도 페이드 인 코드 작성 안 함 — 6-5의 fadeIn을 *재사용*하는 게 6-6의 우아함.
+  private func resume() {
+      play()
+  }
+  ```
+- **검증 포인트**: 6-5의 `play()` 첫 줄 `if player.isPlaying { return }` — `pause()` 직후엔 `isPlaying`이 `false`이므로 이 가드를 통과하고 페이드 인이 시작된다. ✅
 
-        // 3) 음원 로딩 성공한 *이후에만* 카테고리를 BGM 정책으로 덮어쓴다.
-        //    - .playback: 무음모드 무시, 백그라운드 가능
-        //    - .mixWithOthers: Apple Music 등 다른 앱 사운드와 동시 재생 허용
-        //    - setActive(true) 명시 호출 안 함 — 시스템 자동 처리
-        try? AVAudioSession.sharedInstance().setCategory(
-            .playback, mode: .default, options: [.mixWithOthers]
-        )
+### 기능 5: 교차 시나리오 정합성
 
-        // 4) 무한 루프 + prepareToPlay로 첫 play 지연 최소화.
-        p.numberOfLoops = -1
-        p.prepareToPlay()
-        player = p
-    }
-
-    // MARK: - Control
-    /// player가 있고 재생 중이 아니면 play. 이미 재생 중이면 noop(중복 호출 안전).
-    func play() {
-        guard let player = player else { return }
-        if player.isPlaying { return }
-        player.play()
-    }
-
-    /// player가 있으면 stop. 없으면 noop. stop은 재생 위치를 0으로 리셋.
-    func stop() {
-        guard let player = player else { return }
-        player.stop()
-    }
-}
-```
-
-### 기능 2: GameScene 시스템 섹션 1줄
-
-**위치**: `audio` 다음 줄.
-
-```swift
-let haptics = HapticsManager()              // Phase 6-1
-let audio   = AudioManager()                // Phase 6-2
-let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
-```
-
-### 기능 3: didMove(to:) 1줄
-
-**위치**: `gameState = .playing` *직후*.
-
-```swift
-gameState = .playing // playing 전환 후에야 update가 동작
-bgm.play()           // Phase 6-4 — playing 전환 직후 BGM 시작 (음원 없으면 noop)
-```
-
-### 기능 4: endGame() 1줄
-
-**위치**: `audio.play(.gameOver)` *직후*, `spawnSystem.stop()` *이전*.
-
-```swift
-if gameState == .gameOver { return }
-gameState = .gameOver
-haptics.heavy()
-audio.play(.gameOver)
-bgm.stop()           // Phase 6-4 — gameOver 사운드와 동시에 BGM 정지 (멱등 가드 안쪽 = 1회 보장)
-spawnSystem.stop()
-```
-
-### 기능 5: GameScene 헤더 1줄
-
-```swift
-//  Phase 6-2 · AudioManager 신설 + 노트 수집/게임오버 사운드 트리거 2지점
-//  Phase 6-4 · BGMPlayer 신설 + 게임 시작/종료 시 BGM 재생/정지
-//
-```
-
-### 기능 6: pbxproj 4곳 등록
-
-권장 ID: `A1C0F1B00000000000000027` (PBXBuildFile) / `A1C0F1A00000000000000027` (PBXFileReference). 충돌 grep 0건 확인.
-
-| # | section | 추가 위치 | 추가 라인 |
+| 시나리오 | 진입 상태 | 인터럽션 began 처리 | 인터럽션 ended 처리 |
 |---|---|---|---|
-| 1 | PBXBuildFile | line 30 (AudioManager 다음) | `A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000027 /* BGMPlayer.swift */; };` |
-| 2 | PBXFileReference | line 61 (AudioManager 다음) | `A1C0F1A00000000000000027 /* BGMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BGMPlayer.swift; sourceTree = "<group>"; };` |
-| 3 | Managers PBXGroup children | line 268 (AudioManager 다음) | `A1C0F1A00000000000000027 /* BGMPlayer.swift */,` |
-| 4 | iOS Sources phase | line 470 (AudioManager 다음) | `A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */,` |
+| 페이드 인 중 began | `isPlaying=true, isFadingOut=false, volume이 0→1 보간 중` | `player.pause()` 실행. volume은 보간 중간값에 멈춤. | `play()` 진입 → `isPlaying=false` → `volume=0`으로 리셋 → 페이드 인 처음부터 다시 시작. UX: "통화 끝나고 처음부터 살아 돌아옴" |
+| 정상 재생 중 began | `isPlaying=true, isFadingOut=false, volume=1` | `player.pause()` 실행. volume=1로 멈춤. | `play()` 진입 → `volume=0` 리셋 → 페이드 인 1.5초 후 1.0. 약간의 "다시 페이드 인" 비용을 받아들이고 일관성 우선. |
+| 페이드 아웃 중 began | `isPlaying=true, isFadingOut=true, volume이 1→0 보간 중, stopWorkItem 예약됨` | **noop** (isFadingOut 가드). 이미 게임이 끝나는 중이므로 그냥 페이드 아웃 진행. | `play()` 진입 → `stopWorkItem.cancel() + isFadingOut=false` → `isPlaying`이 아직 true면 가드에 막혀 noop / false면 새로 페이드 인. 어느 쪽이든 일관성 깨지지 않음. |
+| 음원 없음 (player=nil) | — | `pause()`의 guard let player에 막혀 noop | `play()`의 guard let player에 막혀 noop |
 
-> Managers PBXGroup이 이미 있으므로 신규 그룹 0 — children에 1줄 추가만. macOS/tvOS Sources phase는 비어있는 그대로.
+### 기능 6: AVAudioSession 카테고리 변경 0
+6-4의 `.playback + .mixWithOthers` 정책 그대로. 인터럽션은 카테고리와 무관하게 `AVAudioSession.sharedInstance()`가 발행하므로 카테고리 손대지 않는다. AudioManager의 `.ambient` 정책 또한 영향 0.
 
-### 기능 7: Resources/README.md BGM 단락 추가
-
-기존 "Sounds/ — 자작 효과음 활성화 절차" 섹션 *아래*에 신규 H2 단락 추가:
-
-```markdown
-## Sounds/ — 자작 BGM 활성화 절차 (Phase 6-4)
-
-Phase 6-4에서 `BGMPlayer`에 AVAudioPlayer 기반 BGM 인프라가 설치되어 있다.
-음원 파일이 Bundle에 있으면 게임 진입 시 무한 루프 재생, 없으면 noop.
-
-### 권장 포맷 (효과음과 다름 — 압축 포맷 사용)
-- 확장자: `.m4a` (AAC 압축, iOS 네이티브)
-- 길이: 30~60초 (무한 루프되므로 짧고 깔끔한 루프 권장)
-- 채널: 스테레오 OK
-- 루프 포인트: 시작/끝이 자연스럽게 이어지도록 페이드아웃 제거
-
-### 파일명 (고정)
-| 파일명 | 역할 |
-|---|---|
-| `bgm.m4a` | 게임 진입 시 재생, 게임오버 시 정지 |
-
-### AVAudioSession 카테고리 차이
-- 음원 부재: `.ambient` 그대로 (6-3 정책)
-- bgm.m4a 추가 후: `.playback` + `.mixWithOthers` 덮어쓰기 → 무음모드 무시 + Apple Music과 동시 재생
-
-### Xcode 추가 절차
-효과음과 동일. `Resources/Sounds/`에 drag-drop, Copy items if needed ✓, Add to targets: GanhoMusic iOS ✓.
-
-### 부분 활성화 동작
-- `bgm.m4a`만 → BGM 자작, 효과음 시스템 사운드
-- `note.wav` + `gameover.wav` + `bgm.m4a` 모두 → 완전 자작 사운드
-- 셋 다 없음 → 시스템 사운드만, BGM 무음
-```
+---
 
 ## 검증 시나리오
 
 ### (a) 빌드
-- `⌘B` → 에러 0 / 경고 0
-- BGMPlayer.swift Sources 빌드 페이즈 등록 확인
+- `xcodebuild ... build` → BUILD SUCCEEDED, 경고 0
 
-### (b) 음원 부재 폴백
-- `bgm.m4a` 없음 → BGM 무음, 효과음(Tink/Boop) 정상
-- `BGMPlayer.init()` 첫 guard 실패 → player = nil → 카테고리 변경 0 → `.ambient` 유지
+### (b) 음원 부재 폴백 (회귀 0)
+- `bgm.m4a` 없음 → init 첫 guard에서 player = nil
+- 옵저버 등록 자체 안 됨 (player == nil 이후 코드 도달 X) — 또는 옵저버 등록은 되더라도 pause/resume 모두 guard에 막힘
+- 6-3/6-4/6-5와 동일 noop 동작
 
-### (c) 6-3 회귀
-- AudioManager.swift 변경 0 (git diff)
-- 효과음 트리거 그대로 동작
-- 카테고리 `.ambient` 유지
+### (c) 6-5 회귀
+- play()/stop() 본문 0줄 변경
+- isFadingOut / stopWorkItem 사용 패턴 그대로
+- GameConfig.bgmFade*Duration 호출 그대로
 
-### (d) Phase 1~5 회귀
+### (d) 인터럽션 began 동작
+- handleInterruption(.began) → pause() → player.pause()
+- isFadingOut=false 상태에서만 발화
+
+### (e) 인터럽션 ended + shouldResume 동작
+- handleInterruption(.ended, shouldResume=true) → resume() → play()
+- play()의 isPlaying 가드를 거쳐 페이드 인 재시작
+
+### (f) 인터럽션 ended without shouldResume
+- options.contains(.shouldResume) == false → 분기 무시
+- BGM 멈춘 상태 유지
+
+### (g) 페이드 아웃 도중 began
+- isFadingOut=true → pause() noop
+- 게임 종료 페이드 아웃 그대로 진행
+
+### (h) deinit 옵저버 해제
+- BGMPlayer ARC 해제 시 deinit 호출
+- removeObserver(self) → NotificationCenter에서 등록 제거
+
+### (i) Phase 1~5 회귀
 - 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터 선택/AIRFORCE 모두 정상
-- endGame 멱등 가드와 ResultScene transition 미접촉
 
-### (e) 멱등 가드
-- 시간만료 + F 피격 동시 발생 시 `bgm.stop()` 1회만 호출 (가드 안쪽)
-- `audio.play(.gameOver)`와 함께 1회만 실행
+---
 
-### (f) 재시작
-- ResultScene → TitleScene → 새 GameScene → BGM 0초부터 재시작
-- 이전 BGMPlayer ARC 해제 → 새 인스턴스가 새 AVAudioPlayer 로딩
+## 학습 가치 (docs/learn/에 별도 노트로 작성될 내용 시드)
 
-### (g) mixWithOthers (음원 추가 후 사용자 수동 검증)
-- Apple Music 재생 중 → 게임 진입 → 음악 안 끊김 + BGM 겹쳐 재생
-- 본 sprint에선 코드에 `.mixWithOthers` 옵션 포함됨만 확인
+### 1. NotificationCenter 옵저버 패턴 — Spring `@EventListener` 비유
+Spring에서 다른 빈이 발행하는 이벤트를 받을 때 `@EventListener` 메서드를 만들고 ApplicationEvent를 받는 것처럼, iOS에서는 시스템이 발행하는 이벤트(인터럽션, 화면 회전, 백그라운드 진입 등)를 `NotificationCenter`로 구독한다. **NotificationCenter == iOS의 ApplicationEventPublisher**.
 
-### (h) 새 SFX 영향
-- `note.wav` / `gameover.wav`만 추가 → AudioManager 활성화, BGMPlayer 무관. 카테고리 `.ambient` 유지
-- `bgm.m4a`만 추가 → BGM 자작, 효과음 시스템. 카테고리 `.playback`
+차이점: Spring `@EventListener`는 컨테이너가 메서드 시그니처로 자동 매핑하지만, iOS는 **selector + addObserver 명시 호출**이 필요하다. 컨테이너의 의존성 주입 마법이 없는 만큼 직접 등록/해제를 챙겨야 한다.
 
-## 학습 가치
+### 2. 라이프사이클 매칭 — init↔deinit (Spring `@PostConstruct`↔`@PreDestroy`)
+스프링 빈이 `@PostConstruct`에서 연결한 자원을 `@PreDestroy`에서 닫는 것처럼, BGMPlayer는 `init`에서 등록한 옵저버를 `deinit`에서 해제해야 한다. **등록한 횟수만큼 정확히 해제** — 이게 안 지켜지면 dangling observer로 크래시 / 누수.
 
-### BGM vs 효과음 라이프사이클
-- **효과음**: fire-and-forget. `play()` 후 자가 종료. → Spring `@EventListener` 1회 이벤트.
-- **BGM**: 장기 라이프사이클. 무한 루프 + 명시적 stop 필요. → Spring `@Scheduled` 장기 데몬 빈.
+학생 비유: "도서관에서 책 빌렸으면 반납해야 한다. 안 하면 다음에 빌리려는 사람도 곤란하고, 책 자체가 사라져도 도서관 시스템엔 '아직 빌려준 상태'로 남는다."
 
-### AVAudioSession 카테고리 정책의 본질
-- iOS는 시스템 단위 오디오 정책. 카테고리는 앱의 의도 선언.
-- `.ambient`: 무음모드 따름, 다른 앱 안 끊음 (효과음 정책)
-- `.playback`: 무음모드 무시, 백그라운드 가능 (BGM/음악 앱 정책)
-- `.mixWithOthers`: 공존 모드
-- → Spring 비유: `@Transactional(propagation = REQUIRES_NEW)` vs `SUPPORTS` 같은 외부 시스템 협상 정책
+### 3. 시스템과 협상하는 매너 — "전화 끝나면 자연스럽게 돌아오는" UX 디테일
+좋은 앱은 시스템과 싸우지 않는다. 전화 오면 멈추고, 끝나면 돌아오고, 무음 모드면 조용히 한다. 이번 sprint의 한 줄 정리:
 
-### Manager 패턴 3연타
-6-1 HapticsManager / 6-2 AudioManager / 6-4 BGMPlayer — 셋 다 side-effect 책임 final class. Spring `@Service` 패턴. GameScene은 오케스트레이터로서 인스턴스 3개를 `let`으로 보유하고 트리거 지점에서 호출만. 새 Manager 추가 시 GameScene은 *추가만* 일어남(OCP).
+> "BGM은 게임의 주인공이지만, 전화는 인생의 주인공이다. 우리는 잠시 빠져 준다."
 
-### graceful fallback의 가치
-"파일 없으면 noop, 있으면 활성화" 패턴 = 비기술적 워크플로(FL Studio drag-drop)와 기술적 빌드(코드 변경 0) 분리. Spring `@ConditionalOnResource` 비유.
+### 4. 좁은 인터페이스(Narrow Interface) 원칙
+외부에 노출되는 메서드는 6-5 그대로 `play()` / `stop()` 두 개. `pause()` / `resume()` 같은 인터럽션 응답은 **private** — 호출자가 알 필요 없다. Spring에서 컨트롤러가 서비스의 public API만 알고 내부 트랜잭션 처리는 모르는 것과 동일.
+
+학생 비유: "식당에서 손님은 '주문/계산'만 알면 된다. 주방에서 불을 잠깐 줄였다가 다시 켜는 건 셰프 몫."
+
+### 5. 재사용의 우아함 — resume()이 play()를 그냥 부른다
+6-5에서 잘 만들어 둔 `play()`(페이드 인 + isPlaying 가드 + stopWorkItem cancel)를 그대로 호출하는 것이 6-6의 가장 우아한 부분. 같은 페이드 인 곡선을 두 번 작성하지 않는다 — **DRY(Don't Repeat Yourself)**.
+
+---
 
 ## 주의사항
 
-- **`setActive(true)` 명시 호출 금지**: 카테고리 설정만으로 시스템이 자동 활성화.
-- **카테고리 덮어쓰기 순서 의존성**: GameScene의 `let audio` → `let bgm` 순서 유지. Swift는 위에서 아래로 init 실행. bgm이 *나중에* 카테고리를 덮어씀.
-- **pbxproj 들여쓰기**: 기존 항목 탭 사용. 스페이스 섞이면 디프 노이즈.
-- **macOS / tvOS Sources phase 비어있는 그대로**: iOS 타겟만 등록.
-- **강제 언래핑 0**: `guard let url`, `guard let p`, `guard let player` 패턴.
-- **Resources/Sounds/README.md 미변경**: 효과음 전용. BGM 안내는 상위 `Resources/README.md`에만.
-- **GameConfig 새 상수 0**: `"bgm"` / `"m4a"` / `-1` 모두 매직 넘버 아님 (1곳 등장 / Apple 표준 신호).
-- **`print` 디버그 금지**: silent fallback이 본 sprint 정체성.
+### 빌드 에러 가능성
+- `@objc` 누락 시 selector 디스패치 런타임 크래시 → handleInterruption 메서드에 반드시 `@objc` 어노테이션
+- `#selector(handleInterruption(_:))` 시그니처가 메서드 정의와 일치해야 함 (파라미터 1개, 라벨 underscore)
+- `AVAudioSession.InterruptionType(rawValue: UInt)` — `UInt`로 캐스팅 (Int 아님)
+
+### SpriteKit 특성상 주의할 점
+- BGMPlayer는 SKNode가 아니므로 SKAction 사용 불가 — 6-5의 DispatchWorkItem 패턴 그대로 유지
+- Notification 콜백 스레드 보장 없음 — 다만 본 sprint에서 추가하는 `pause()/play()`는 AVAudioPlayer가 thread-safe, 추가 main dispatch 불필요
+
+### 회귀 위험
+- **GameScene 진입 시점 BGM 시작은 그대로** — 6-4/6-5의 진입 경로(GameScene `didMove(to:)`에서 `bgm.play()`) 0줄 변경
+- **음원 없는 환경(시뮬레이터에 bgm.m4a 미포함)**: `player == nil` → pause/resume 모두 guard에 막힘 → 회귀 0
+- **6-5의 isFadingOut 가드**: pause()에서 isFadingOut 확인 안 하면 페이드 아웃 도중 인터럽션 시 stopWorkItem의 player.stop()과 충돌 가능 — 반드시 가드 포함
+
+### 검증 체크리스트 (SELF_CHECK.md에서 다룰 항목 미리보기)
+- [ ] `init()` 안의 옵저버 등록이 `player = p` *이후*에 있는가 (player == nil이면 등록 안 함)
+- [ ] `deinit`에서 `removeObserver(self)` 호출되는가
+- [ ] `handleInterruption`에 `@objc` 붙어 있는가
+- [ ] `pause()`/`resume()`가 `private`인가 (외부 노출 0)
+- [ ] `pause()`가 `isFadingOut` 가드를 가지는가
+- [ ] `resume()`이 `play()`를 호출만 하는가 (페이드 인 직접 구현 X — 재사용)
+- [ ] `userInfo` 파싱에 강제 언래핑 없는가
+- [ ] `@unknown default` 처리 있는가
+- [ ] GameScene / GameConfig / AudioManager / HapticsManager 0줄 변경 확인
+- [ ] 빌드 BUILD SUCCEEDED + 경고 0

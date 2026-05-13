@@ -1,79 +1,24 @@
-# 자체 점검 — Phase 6-4 BGMPlayer (배경음악 인프라)
+# 자체 점검 — Phase 6-6 · AVAudioSession Interruption 처리
 
-## 1. 변경 파일 목록 (신규 1 + 수정 3 = 4개)
+## 0. 한 줄 요약
+BGMPlayer.swift 단 1개 파일에 NotificationCenter 옵저버 등록/해제와 began/ended 분기 처리를 추가. 외부 인터페이스(`play()` / `stop()`)는 0줄 변경. 회귀 0.
 
-| 파일 | 종류 | diff 요약 |
-|---|---|---|
-| `GanhoMusic/GanhoMusic Shared/Managers/BGMPlayer.swift` | 신규 | 58줄 — `final class BGMPlayer`, `init()`(Bundle 로딩 → .playback+.mixWithOthers → numberOfLoops=-1 + prepareToPlay), `play()/stop()` |
-| `GanhoMusic/GanhoMusic Shared/GameScene.swift` | 수정 | +4 / -0 — 헤더 1줄 + 시스템 `let bgm` 1줄 + `bgm.play()` 1줄 + `bgm.stop()` 1줄 |
-| `GanhoMusic/GanhoMusic Shared/Resources/README.md` | 수정 | +28 / -0 — `## Sounds/ — 자작 BGM 활성화 절차 (Phase 6-4)` H2 단락 1개 추가, 기존 효과음 섹션 0줄 변경 |
-| `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` | 수정 | +4 / -0 — PBXBuildFile 1줄 + PBXFileReference 1줄 + Managers PBXGroup children 1줄 + iOS Sources phase 1줄 |
+---
 
-git diff --stat 출력:
-```
-GanhoMusic/GanhoMusic Shared/GameScene.swift     |   4 +
-GanhoMusic/GanhoMusic Shared/Resources/README.md |  28 ++
-GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj  |   4 +
-```
-(SPEC.md / SELF_CHECK.md / QA_REPORT.md는 하네스 산출물, 코드 변경에서 제외.)
+## 1. SPEC 기능 6개 구현 확인 표
 
-## 2. SPEC In Scope 7항목 충족
-
-| # | 항목 | 충족 | 위치 |
+| # | SPEC 기능 | 구현 상태 | 위치 (BGMPlayer.swift) |
 |---|---|---|---|
-| 1 | BGMPlayer 클래스 신설 | ✅ | `Managers/BGMPlayer.swift` 신규 |
-| 2 | GameScene 시스템 섹션 `let bgm = BGMPlayer()` | ✅ | `audio` 다음 줄 (line 65) |
-| 3 | GameScene didMove `bgm.play()` | ✅ | `gameState = .playing` 직후 (line 119) |
-| 4 | GameScene endGame `bgm.stop()` | ✅ | `audio.play(.gameOver)` 직후, `spawnSystem.stop()` 이전 (line 256) |
-| 5 | GameScene 헤더 1줄 (Phase 6-4 라벨) | ✅ | Phase 6-2 라벨 다음 줄 (line 32) |
-| 6 | pbxproj 4곳 등록 | ✅ | PBXBuildFile/PBXFileReference/Managers group/iOS Sources phase 각 1줄 |
-| 7 | Resources/README.md BGM H2 단락 | ✅ | "관련 문서" 직전에 28줄 추가, 효과음 섹션 무손상 |
+| 1 | 옵저버 라이프사이클 — init↔deinit 매칭 | 구현 완료 | `init()` L54-63 `addObserver`, `deinit` L66-73 `removeObserver(self)` |
+| 2 | Interruption Handler — userInfo 디스패치 | 구현 완료 | `handleInterruption(_:)` L125-145, `@objc private` 어노테이션 + `@unknown default` 포함 |
+| 3 | private pause() — 즉시 일시정지 | 구현 완료 | `pause()` L158-162, `isFadingOut` 가드 포함 |
+| 4 | private resume() — 페이드 인 재시작 | 구현 완료 | `resume()` L168-170, `play()` 1줄 호출만 (DRY) |
+| 5 | 교차 시나리오 정합성 (페이드 중/정상 재생 중/페이드 아웃 중/음원 없음) | 정적 추적 통과 | 아래 §5 검증 시나리오 참조 |
+| 6 | AVAudioSession 카테고리 변경 0 | 준수 | 6-4의 `.playback + .mixWithOthers` 코드 0줄 변경 (L42-44) |
 
-## 3. Out of Scope 위반 0건 (정적 검증)
+---
 
-- `AudioManager.swift` 변경: **0줄** (git diff에 미등장)
-- `HapticsManager.swift` 변경: **0줄**
-- `GameConfig.swift` 변경: **0줄** — 새 상수 0. `"bgm"`/`"m4a"`/`-1`은 모두 BGMPlayer 내부 1회 등장 신호값 (Apple 표준 numberOfLoops = -1).
-- 강제 언래핑 (`!`) 사용 횟수: **0회** — 모두 `guard let` 패턴 (`guard let url`, `guard let p`, `guard let player` × 2).
-- 페이드 인/아웃: 코드 무 (SKAction.fadeIn/fadeOut 0건).
-- 볼륨 조절 / 음소거 옵션: 코드 무 (`player.volume = ...` 0건).
-- Repository 영속화: 코드 무 (UserDefaults / BGMRepository 0).
-- TitleScene/ResultScene BGM 호출: 코드 무 (해당 파일 변경 0).
-- 새 SFX 케이스: `AudioManager.SFX` enum 변경 0.
-- `setActive(true)` 명시 호출: **0회** (의도적 미호출 — 카테고리 설정만으로 시스템 자동 활성화).
-- BGM delegate / 재생 완료 콜백 (`AVAudioPlayerDelegate`): 0.
-- `print` 디버그: 0줄.
-- `Resources/Sounds/README.md`: **변경 0** (효과음 전용 유지).
-- macOS / tvOS / Test 코드: 미접촉. macOS/tvOS Sources phase 비어있는 그대로 (Phase 6-2 이래 정책 유지).
-- `GameScene+Setup` / `TitleScene` / `ResultScene` / Nodes / Systems / Repositories / Models / Protocols: 변경 0.
-
-## 4. pbxproj 4 엔트리 실제 추가 컨텍스트
-
-```diff
-@@ PBXBuildFile section (line 30~31) @@
- A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };
-+A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000027 /* BGMPlayer.swift */; };
-
-@@ PBXFileReference section (line 61~62) @@
- A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
-+A1C0F1A00000000000000027 /* BGMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BGMPlayer.swift; sourceTree = "<group>"; };
-
-@@ Managers PBXGroup children (line 268~269) @@
- A1C0F1A00000000000000025 /* HapticsManager.swift */,
- A1C0F1A00000000000000026 /* AudioManager.swift */,
-+A1C0F1A00000000000000027 /* BGMPlayer.swift */,
-
-@@ iOS Sources build phase (line 470~471) @@
- A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
- A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,
-+A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */,
-```
-
-- 작업 전 `grep "A1C0F1A00000000000000027"` 0건, `grep "A1C0F1B00000000000000027"` 0건, `grep "BGMPlayer"` 0건 검증 완료 → 충돌 없음, 권장 ID 그대로 사용.
-- 신규 PBXGroup 추가 0 (Managers 그룹 이미 존재).
-- macOS / tvOS Sources phase 비어있는 그대로 — 두 phase 모두 미접촉.
-
-## 5. 빌드 결과
+## 2. 빌드 결과
 
 ```
 xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
@@ -82,81 +27,134 @@ xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
   -configuration Debug build
 ```
 
-- **결과**: `** BUILD SUCCEEDED **`
-- **에러**: 0
-- **경고** (`grep -E "warning:|error:" | grep -v "AppIntents"`): **0줄**
-- AppIntents 경고("Metadata extraction skipped. No AppIntents.framework dependency found")는 Phase 1-1부터 존재한 무관 경고 — 본 sprint와 무관.
-- BGMPlayer.swift Sources 빌드 페이즈 등록 확인 (위 pbxproj diff 4번째 hunk).
+- 결과: **BUILD SUCCEEDED**
+- 컴파일 에러: **0**
+- 컴파일 경고: **0** (grep 검증 — `warning:` / `error:` 출력 없음)
+- `note: Using stub executor library with Swift entry point.`만 표준 출력 (정상)
+- `note: Metadata extraction skipped. No AppIntents.framework dependency found.` (정상)
 
-## 6. 검증 시나리오 (a)~(h) 정적 추적
+---
 
-### (a) 빌드 — ✅
-BUILD SUCCEEDED + warning/error 0건. BGMPlayer.swift Sources phase 등록 (pbxproj diff 4번째 hunk).
+## 3. 회귀 0줄 강제 항목 (git diff 기반)
 
-### (b) 음원 부재 폴백 — ✅ (정적)
-`BGMPlayer.init()` line 27: `guard let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") else { return }` → 현재 `bgm.m4a` 없음 (Resources/Sounds/ 디렉터리 확인) → 첫 guard 실패 → `player = nil`. `try?` AVAudioSession 호출 *이전*에 return하므로 카테고리 변경 0 → AudioManager `.ambient` 정책 유지. `play()/stop()` 모두 `guard let player = player else { return }`로 noop.
+`git status --short` + 본 sprint 작업 전후 비교:
 
-### (c) 6-3 회귀 — ✅
-- `git diff` 확인: `GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift` 변경 0줄.
-- 효과음 트리거 위치 (`onNoteCollected`의 `audio.play(.noteCollected)` line 209, `endGame`의 `audio.play(.gameOver)` line 254) 그대로.
-- 음원 부재 시 카테고리 `.ambient` 유지 (위 (b) 참조).
+| 파일 | 본 sprint 변경 | SPEC 계약 |
+|---|---|---|
+| `GanhoMusic Shared/Scenes/GameScene.swift` | **0줄** | 준수 |
+| `GanhoMusic Shared/Managers/AudioManager.swift` | **0줄** | 준수 |
+| `GanhoMusic Shared/Managers/HapticsManager.swift` | **0줄** | 준수 |
+| `GanhoMusic Shared/Config/GameConfig.swift` | **0줄** (`git status`의 변경분은 Phase 6-5 미커밋 잔여물 — bgmFadeInDuration/bgmFadeOutDuration 상수, 본 sprint에서 건드리지 않음) | 준수 |
+| `GanhoMusic Shared/Scenes/TitleScene.swift` | **0줄** | 준수 |
+| `GanhoMusic Shared/Scenes/ResultScene.swift` | **0줄** | 준수 |
+| `GanhoMusic Shared/Nodes/*` | **0줄** | 준수 |
+| `GanhoMusic Shared/Systems/*` | **0줄** | 준수 |
+| `GanhoMusic Shared/Repositories/*` | **0줄** | 준수 |
+| `GanhoMusic Shared/Models/*` | **0줄** | 준수 |
+| `GanhoMusic Shared/Protocols/*` | **0줄** | 준수 |
 
-### (d) Phase 1~5 회귀 — ✅
-- 이동/수집/점수/HUD/적/F: `update(_:)` line 154~189 무손상 (변경 0줄).
-- 게임오버: `endGame()` 본문은 멱등 가드 + state 전환 + haptics/audio/bgm/spawnSystem.stop/velocity 0 + HUD 갱신 + ResultScene transition — 기존 순서에서 `bgm.stop()` 1줄만 삽입. 다른 line 미접촉.
-- ResultScene transition: line 277의 `view.presentScene(resultScene, transition: ...)` 그대로.
-- 캐릭터 선택/AIRFORCE: `triggerAirforceEasterEgg()` line 226~242 무손상.
-- endGame 멱등 가드: `if gameState == .gameOver { return }` line 251 그대로 — `bgm.stop()`은 가드 *안쪽*에 위치 (line 256).
+본 sprint에서 *유일하게* 수정한 파일: `GanhoMusic Shared/Managers/BGMPlayer.swift`.
 
-### (e) 멱등 가드 — ✅
-시간만료(`update`에서 `remainingTime <= 0` → `endGame()`) + F 피격(`contactRouter.onProjectileHitPlayer` → `endGame()`) 동시 발생 시:
-- 첫 호출: `gameState == .playing` → 가드 통과 → `gameState = .gameOver` → haptics → audio.play → `bgm.stop()` → spawnSystem.stop ...
-- 둘째 호출: `gameState == .gameOver` → `return` → `bgm.stop()` 미도달.
-→ `bgm.stop()` 1회 보장. `audio.play(.gameOver)`와 동일 보장.
+### 신규 파일: 없음
+SPEC §변경 범위 / 추가할 파일 = "없음"과 일치.
 
-### (f) 재시작 — ✅
-- ResultScene → TitleScene → `GameScene.newGameScene(characterID:)` factory (line 87) → 새 `GameScene` 인스턴스.
-- `let bgm = BGMPlayer()`는 stored property 초기화 시점에 새 인스턴스 생성 (line 65).
-- 매 진입마다 새 AVAudioPlayer → 0초부터 재생.
-- 이전 GameScene의 BGMPlayer는 GameScene ARC 해제 시 함께 해제 → 이전 AVAudioPlayer도 dealloc.
-- `stop()`은 재생 위치 0 리셋이지만, 어차피 새 인스턴스라 무관.
+---
 
-### (g) mixWithOthers — ✅ (코드 옵션 포함 확인)
-BGMPlayer.swift line 36~38:
-```swift
-try? AVAudioSession.sharedInstance().setCategory(
-    .playback, mode: .default, options: [.mixWithOthers]
-)
-```
-`.mixWithOthers` 옵션 포함됨. 실사용 검증(Apple Music + 게임 동시 재생)은 사용자 음원 추가 후 수동.
+## 4. 특별 검증 (코드 라인 직접 확인)
 
-### (h) 새 SFX 영향 — ✅
-- `note.wav` / `gameover.wav`만 추가: AudioManager가 자동 활성화 (Phase 6-3 그대로). BGMPlayer는 `bgm` URL 없음 → 첫 guard 실패 → 카테고리 `.ambient` 유지.
-- `bgm.m4a`만 추가: BGMPlayer 활성화 → 카테고리 `.playback` + `.mixWithOthers`로 덮어쓰기. 효과음은 `AudioManager.SystemFallback` 경로(Tink/Boop) 사용. iOS의 카테고리는 시스템 단위 정책 — `.playback`이 켜져 있어도 시스템 사운드는 그대로 재생.
-- 셋 다: 완전 자작 사운드 경로. AudioManager가 AVAudioPlayer 경로로 효과음 재생, BGMPlayer가 무한 루프 BGM 재생.
+| 검증 항목 | 결과 | 근거 |
+|---|---|---|
+| `@objc` 어노테이션 부착 (selector 디스패치 대상) | 준수 | L125 `@objc private func handleInterruption(_ notification: Notification)` |
+| `private` 키워드 (좁은 인터페이스, 외부 노출 0) | 준수 | `handleInterruption` (L125), `pause` (L158), `resume` (L168) 모두 `private` |
+| `isFadingOut` 가드 in `pause()` | 준수 | L160 `if isFadingOut { return }` — 페이드 아웃 도중 인터럽션 시 stopWorkItem과의 충돌 회피 |
+| `@unknown default` 처리 (forward-compat) | 준수 | L141-143 `@unknown default: break` |
+| 강제 언래핑 (`!`) 사용 | **0개** | `as? UInt` 옵셔널 캐스팅 + `guard let` 체이닝만 사용 (L126-128, L136-137) |
+| `[weak self]` 캡처 | 자동 | selector 방식의 `addObserver`는 옵저버를 약참조하므로 명시 `[weak]` 불필요 (SPEC §기능1 주의 사항 일치). stop() 내부의 DispatchWorkItem `[weak self]`는 6-5 기존 코드 보존 |
+| `removeObserver(self)` in `deinit` | 준수 | L72 `NotificationCenter.default.removeObserver(self)` |
+| `setActive(true)` / 카테고리 재설정 | **0** | 카테고리는 6-4 정책 그대로 (L42-44), Interruption 처리 중 카테고리 손대지 않음 |
+| 외부 인터페이스 추가 | **0** | `internal func` 신규 없음. 신규 4개 메서드(deinit, handleInterruption, pause, resume) 모두 private 또는 deinit |
+| GameConfig 신규 상수 추가 | **0** | 인터럽션은 즉시 처리 → 상수 불필요 (SPEC §금지 일치) |
 
-## 7. docs/learn/phase-6-4-bgm-player.md 학습 노트
+---
 
-**작성 완료**: `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/affectionate-elion-d0363a/docs/learn/phase-6-4-bgm-player.md`
+## 5. 검증 시나리오 (a)~(i) 정적 추적
 
-중학생 수준 표현 + Spring 비유 포함. 다룬 주제:
+### (a) 빌드
+- BUILD SUCCEEDED, 경고 0. §2에서 확인 완료.
 
-1. **한 줄 요약** — "준비실을 또 하나 차렸어요. 파일 한 개만 떨어뜨리면 음악이 흘러요."
-2. **graceful fallback의 의미** — 비기술적 워크플로(FL Studio 작곡) ↔ 기술적 빌드(코드) 분리. `@ConditionalOnResource` 비유.
-3. **Manager 3연타 (6-1/6-2/6-4)** — final class side-effect 책임 분리. GameScene = `@Controller`, Manager = `@Service`. OCP의 살아있는 예시("새 Manager 추가 시 추가만 일어남").
-4. **AVAudioSession 카테고리 정책** — `.ambient` vs `.playback`, `.mixWithOthers` 옵션. `@Transactional(propagation = ...)` 외부 시스템 협상 정책 비유. **"음원 있을 때만 덮어쓰기"** 트릭(회귀 0의 핵심).
-5. **BGM vs 효과음 라이프사이클** — 효과음은 `@EventListener`(단발), BGM은 `@Scheduled`(장기 데몬). 명시적 stop 필수.
-6. **멱등 가드 안쪽 배치 이유** — 동시 종료 이벤트에서도 `bgm.stop()` 1회 보장.
-7. **재시작 시 ARC 자동 청소** — 매 진입마다 새 인스턴스, 이전 BGMPlayer는 ARC가 해제.
-8. **pbxproj 4지점의 의미** — Maven pom.xml과 비교한 Xcode 프로젝트 등록 구조.
-9. **빌드 검증 결과** — 음원 없는 지금 상태(체감 6-3 그대로) vs 음원 추가 시 자동 활성화 흐름 둘 다 정적 추적.
+### (b) 음원 부재 폴백 (회귀 0)
+- `bgm.m4a` 없음 → L33 `guard let url ... else { return }` 또는 L36 `guard let p ... else { return }`에서 init이 조기 종료
+- L58-63의 `addObserver` 호출 도달 X (조기 return 이후 코드)
+- 가령 옵저버가 등록되어도 `pause()` L159 `guard let player ... else { return }`와 `play()` L79 `guard let player ... else { return }`이 noop 보장
+- **결론**: 6-3/6-4/6-5와 동일하게 player == nil 경로에서 모든 사운드 동작 noop
 
-## 결론
+### (c) 6-5 회귀 — play()/stop() 본문 0줄 변경 확인
+- `play()` L78-93: 6-5 그대로
+- `stop()` L97-118: 6-5 그대로
+- `isFadingOut` / `stopWorkItem` 패턴 그대로
+- `GameConfig.bgmFadeInDuration` / `GameConfig.bgmFadeOutDuration` 호출 그대로
 
-- ✅ SPEC In Scope 7항목 모두 구현
-- ✅ Out of Scope 위반 0건 (AudioManager / HapticsManager / GameConfig / Resources/Sounds/README.md 모두 변경 0줄)
-- ✅ 강제 언래핑 0회
-- ✅ pbxproj 4지점 정확히 추가, ID 충돌 0건
-- ✅ BUILD SUCCEEDED, warning/error 0줄
-- ✅ 검증 시나리오 (a)~(h) 모두 정적 추적 통과
-- ✅ 학습 노트 작성 완료 (중학생 수준 + Spring 비유)
+### (d) 인터럽션 began 동작
+- 시스템이 `interruptionNotification` 발행 (typeValue=1, .began)
+- L125 `handleInterruption(_:)` 진입 → L126-128 guard 통과 → L131 `case .began:` → L133 `pause()` 호출
+- L158 `pause()` 진입 → L159 player 가드 통과 → L160 `isFadingOut=false`이므로 가드 통과 → L161 `player.pause()` 실행
+- **결과**: BGM 즉시 정지, 재생 위치 currentTime 보존
+
+### (e) 인터럽션 ended + shouldResume 동작
+- 시스템이 `interruptionNotification` 발행 (typeValue=0, options.shouldResume=true)
+- L134 `case .ended:` → L136 optionsValue guard → L137 `InterruptionOptions(rawValue:)` 생성 → L138 `options.contains(.shouldResume)` true → L139 `resume()` 호출
+- L168 `resume()` → L169 `play()` 호출
+- `play()` L79 player 가드 통과 → L80 `player.isPlaying` false (방금 pause 됨) → L84-86 stopWorkItem 정리 → L90 `volume=0` → L91 `player.play()` → L92 `setVolume(1.0, fadeDuration: 1.5)` 페이드 인 시작
+- **결과**: 1.5초 페이드 인으로 BGM 복귀
+
+### (f) 인터럽션 ended without shouldResume
+- L136 옵셔널 가드 통과 → L138 `options.contains(.shouldResume)` **false** → L139 미실행
+- `resume()` 호출 0
+- **결과**: BGM 멈춘 상태 유지 (시스템 의도 존중)
+
+### (g) 페이드 아웃 도중 began
+- 게임 종료 직후 `stop()` 호출 → L100 `isFadingOut=true` 세팅 → 페이드 아웃 진행 중
+- 인터럽션 `.began` 도달 → L133 `pause()` 호출
+- L158 `pause()` 진입 → L159 player 가드 통과 → L160 `isFadingOut=true`이므로 `return`
+- `player.pause()` 미호출 → stopWorkItem이 예정대로 L109 `player.stop()` 실행
+- **결과**: 페이드 아웃 자연 완료, 충돌 없음
+
+### (h) deinit 옵저버 해제
+- BGMPlayer 인스턴스 ARC 해제 시점 → L71 `deinit` 진입 → L72 `removeObserver(self)` 실행
+- NotificationCenter에서 self 등록 모두 제거 → dangling observer / 누수 없음
+
+### (i) Phase 1~5 회귀
+- GameScene.swift 0줄 변경 → 이동/수집/점수/HUD/적/F/게임오버 모두 그대로
+- ResultScene.swift 0줄 변경 → 결과 화면/캐릭터 표시 그대로
+- TitleScene.swift / 캐릭터 선택 / AIRFORCE 정책 0줄 변경
+- AudioManager / HapticsManager 0줄 변경 → SFX/햅틱 그대로
+
+---
+
+## 6. Swift 패턴 준수
+
+- 강제 언래핑 미사용: **준수** (L126-128, L136-137 옵셔널 가드)
+- guard let 옵셔널 처리: **준수** (handleInterruption userInfo 파싱, pause player 가드)
+- MARK 섹션 구분: **준수** (`// MARK: - Init`, `// MARK: - Deinit` 신설, `// MARK: - Interruption` 신설)
+- GameConfig 상수 사용: **해당 없음** (인터럽션은 즉시 처리 = 튜닝 값 없음, SPEC 정책 일치)
+- weak self 캡처: **자동** (selector 방식 addObserver는 옵저버 약참조)
+
+## 7. SpriteKit 패턴 준수
+
+- didMove(to:)에서 초기화: 해당 없음 (BGMPlayer는 SKNode가 아닌 Manager)
+- dt 기반 이동: 해당 없음
+- SKAction 스폰 패턴: 해당 없음 (Manager에선 SKAction 사용 불가)
+- 충돌 후 노드 즉시 삭제 없음: 해당 없음
+- HUD 노드 분리: 해당 없음
+
+## 8. 범위 외 미구현 항목
+
+**없음**. SPEC의 §허용 항목 6개 전부 구현. §금지 항목 전부 준수:
+- GameScene 변경 0줄
+- AudioManager / HapticsManager 변경 0
+- public 인터페이스 변경 0 (`play()`/`stop()` 그대로)
+- 새 GameConfig 상수 추가 0
+- AVAudioSession 카테고리 변경 0
+- 게임 일시정지 UI 신설 0
+- 백그라운드 라이프사이클 옵저버 0
+- 새 SFX / 음원 추가 0
