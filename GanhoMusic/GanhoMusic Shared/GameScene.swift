@@ -30,6 +30,7 @@
 //  Phase 6-1 · HapticsManager 신설 + 노트 수집/게임오버 햅틱 트리거 2지점
 //  Phase 6-2 · AudioManager 신설 + 노트 수집/게임오버 사운드 트리거 2지점
 //  Phase 6-4 · BGMPlayer 신설 + 게임 시작/종료 시 BGM 재생/정지
+//  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)
 //
 
 import SpriteKit
@@ -210,6 +211,14 @@ class GameScene: SKScene {
             self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             self.haptics.light()   // Phase 6-1 — 수집 손맛
             self.audio.play(.noteCollected)   // Phase 6-2 — 수집 사운드 (햅틱 → 사운드 순서)
+            // Phase 6-8 — note 위치에서 sparkle 8방향 방사. note는 worldNode 자식이므로
+            // worldNode 좌표계 위치를 캡처해 같은 worldNode에 sparkle을 부착 → 카메라 follow 자연 동기.
+            // note.position을 *먼저* 캡처 — note.removeFromParent() 후엔 노드가 트리에서 빠짐.
+            let sparkleOrigin = note.position
+            let sparkle = SparkleEffectNode()
+            sparkle.position = sparkleOrigin
+            self.worldNode.addChild(sparkle)
+            sparkle.emit()
             note.run(.removeFromParent())
         }
         contactRouter.onStoneGuardContact = { [weak self] in

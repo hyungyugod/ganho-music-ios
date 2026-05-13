@@ -29,6 +29,7 @@
 		A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000025 /* HapticsManager.swift */; };
 		A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };
 		A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000027 /* BGMPlayer.swift */; };
+		A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000028 /* SparkleEffectNode.swift */; };
 		A1C0F1B00000000000000017 /* StoneGuardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000017 /* StoneGuardNode.swift */; };
 		A1C0F1B00000000000000018 /* AirplaneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000018 /* AirplaneNode.swift */; };
 		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
@@ -61,6 +62,7 @@
 		A1C0F1A00000000000000025 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000027 /* BGMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BGMPlayer.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000028 /* SparkleEffectNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleEffectNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000017 /* StoneGuardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneGuardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000018 /* AirplaneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
 				A1C0F1A00000000000000020 /* BombFlashNode.swift */,
 				A1C0F1A00000000000000023 /* CharacterCardNode.swift */,
+				A1C0F1A00000000000000028 /* SparkleEffectNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -472,6 +475,7 @@
 				A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
 				A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,
 				A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */,
+				A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

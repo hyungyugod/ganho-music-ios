@@ -1,380 +1,375 @@
-# Phase 6-7 — 앱 백그라운드/포그라운드 라이프사이클에 따른 BGM 일시정지/재개
+# Phase 6-8 — 음표 수집 시 sparkle 파티클 효과
 
 ## 개요
-사용자가 홈 버튼/앱 스위처/제어센터/카톡 알림 클릭 등으로 앱을 백그라운드로 보내면 SpriteKit이 게임을 자동 일시정지하지만 BGM은 `.playback` 카테고리 덕에 혼자 계속 흐른다. 이 부조화를 해소하기 위해 `UIApplication.didEnterBackgroundNotification` / `willEnterForegroundNotification`을 `BGMPlayer`에서 구독하여 BGM도 함께 일시정지/재개한다. 6-6의 private `pause()` / `resume()`을 그대로 재사용하고, "원래 재생 중이었는가"를 기억하는 새 플래그 하나만 추가한다.
+현재 음표를 먹으면 점수가 오르고 효과음(`audio.play(.noteCollected)`) + 햅틱(`haptics.light()`)만 나오고 시각 변화는 0이다. Phase 6-8은 음표 수집 순간에 8방향으로 튀어나오는 작은 sparkle 파편(SKShapeNode 원형)을 음표 위치에 spawn 시켜 *수집 만족감 + 음악=별의 미학*을 시각적으로 완성한다. Phase 6-1~6-7의 사운드/햅틱/BGM 시리즈에 이어 첫 *시각 폴리싱* sprint.
 
 ## 변경 유형
-**폴리싱 / 라이프사이클 안정성** — 게임 핵심 루프 변경 없음. Manager 내부 라이프사이클 옵저버 증설.
+**폴리싱 / 시각 임팩트** (Evaluator는 비주얼 트랙으로 채점 — 게임 로직/점수 계산 영향 0, 새 SKShapeNode 도형 패턴 + SKAction.group 학습이 핵심)
 
 ## 게임 경험 의도
-플레이어가 게임 중 카톡 알림을 보러 잠깐 나갔다가 다시 돌아왔을 때, BGM이 "어색하게 혼자 흐르다 끊기는 일" 없이 자연스럽게 살아난다. 게임 화면이 멈춰 있는 동안 음악도 함께 숨을 죽이고, 다시 화면이 켜지면 음악도 함께 깨어나는 "한 호흡 같은" 일관성을 만든다. 사용자 의도(홈 버튼)에 시스템이 양보하는 6-6의 철학을 라이프사이클 차원으로 확장한 것.
+사용자가 새벽 병동에서 작곡한 BGM이 깔린 가운데, 음표를 먹는 순간이 *별이 터지는 순간*처럼 느껴져야 한다. 8개의 작은 흰빛 파편이 8방향으로 퍼지며 0.5초 안에 사라지는 — 짧지만 또렷한 *반짝*. "음악 = 별"이라는 자전적 미학(밤하늘 같은 어두운 BG #1A1B2E 위에 분홍 음표가 별처럼 떠 있던 화면)을 한 단계 더 끌어올린다. 한 행동(=음표 수집)에 햅틱(6-1) + 사운드(6-2) + sparkle(6-8) 3채널 멀티모달 피드백을 완성하는 마지막 퍼즐.
 
 ## Sprint 범위 계약
 
-### 허용
-- `BGMPlayer.swift` 내부에 라이프사이클 옵저버 **2개**(`didEnterBackground` + `willEnterForeground`) 추가
-- `init`에 옵저버 등록 (6-6 interruption 옵저버 다음에 이어 붙임)
-- `deinit`에 변화 없음 (`removeObserver(self)` 한 줄이 모든 옵저버 일괄 해제 — 추가 코드 0줄)
-- 새 `private var shouldResumeOnForeground: Bool = false` 1개 추가
-- 새 `@objc private` 메서드 2개(`handleDidEnterBackground(_:)`, `handleWillEnterForeground(_:)`)
-- 파일 헤더 주석에 Phase 6-7 1줄 추가
-- `import UIKit` 추가 (`UIApplication.*Notification`은 UIKit 심볼)
+### 허용 (필수 연동 변경만)
+- 새 파일 `Nodes/SparkleEffectNode.swift` 신설 (SelfDismissingNode protocol 채택)
+- `Config/GameConfig.swift`에 `// MARK: - Sparkle Effect (Phase 6-8)` 섹션 신설 + 6개 상수 추가
+- `GameScene.swift`의 `configureContactRouter()` 안 `onNoteCollected` 클로저에 sparkle spawn 5줄 추가 (note 위치를 worldNode 좌표로 캡처해 sparkle 부착)
+- 파일 상단 주석에 `Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)` 한 줄 추가
+- `GanhoMusic.xcodeproj/project.pbxproj`에 `SparkleEffectNode.swift` 4지점 등록 (PBXBuildFile, PBXFileReference, Nodes 그룹 children, Sources build phase)
 
-### 금지
-- `GameScene.swift` / `TitleScene.swift` / `ResultScene.swift` 변경 (BGM 호출 지점 그대로 유지)
-- `AudioManager.swift` / `HapticsManager.swift` 변경 (BGM 단독 sprint)
-- `GameConfig.swift`에 새 상수 추가 (시간/지연 없음 — pause/resume은 즉시)
-- 새 `public` 메서드 / 새 외부 API 노출 (전부 `private`)
-- `AVAudioSession` 카테고리 변경 (`.playback` + `.mixWithOthers` 그대로)
-- 게임 자체 일시정지 UI / pause overlay 신설
-- `SKView.isPaused` / `Scene.isPaused` 직접 조작 (SpriteKit이 자동 처리)
-- `Repository`, 새 음원, 새 효과음 추가
-- 6-6의 `pause()` / `resume()` / `handleInterruption(_:)` 시그니처/로직 수정
+### 금지 (Sprint 범위 위반 시 자동 감점)
+- 외부 SKEmitterNode / `.sks` 파티클 파일 사용 — **코드만**으로 SKShapeNode 사용
+- `GameScene` / `ContactRouter` / `ScoreSystem` / `SpawnSystem`의 *시그니처/책임 경계* 변경
+- 새 PhysicsCategory 추가, sparkle에 PhysicsBody 부착 (파티클은 충돌 0)
+- 새 효과음 / 햅틱 / BGM 트리거 추가 (이번은 *시각만*)
+- `HighScoreRepository` / `StatisticsRepository` / `CharacterPreferenceRepository` / `BGMPlayer` / `AudioManager` / `HapticsManager` 변경
+- 새 GameScene 진입점 / 새 Scene 신설 / 캐릭터 시스템 변경
+- 매직 넘버 하드코딩 (모든 상수는 GameConfig 경유)
+- 강제 언래핑 `!` / `Timer` 사용 / `update()` 안 `addChild()` 호출
+- ColorTokens.swift에 새 색 추가 (기존 토큰 또는 `SKColor.white` 사용 — 흰빛 파편)
 
 ### 판단 기준
-"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+> "이 변경이 없으면 sparkle이 음표 위치에서 안 보이는가?" → YES면 허용, NO면 금지.
+
+---
 
 ## 변경 범위
 
 ### 수정할 파일
-- `GanhoMusic/GanhoMusic Shared/Managers/BGMPlayer.swift`:
-  - 헤더 주석에 Phase 6-7 1줄 추가
-  - `import UIKit` 추가
-  - 새 프로퍼티 `shouldResumeOnForeground` 1개
-  - `init`에 라이프사이클 옵저버 2개 등록 추가
-  - 새 `@objc private` 메서드 2개
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+  - `// MARK: - Sparkle Effect (Phase 6-8)` 섹션 신설, 상수 6개 추가
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift`
+  - `configureContactRouter()` 내 `contactRouter.onNoteCollected` 클로저에 sparkle spawn 코드 3~5줄 추가 (note 위치 캡처 → SparkleEffectNode 생성 → worldNode에 addChild → emit 호출)
+  - 파일 상단 주석에 `Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)` 한 줄 추가
+- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj`
+  - SparkleEffectNode.swift 4지점 등록 (BombFlashNode.swift 등록 패턴 답습)
 
 ### 추가할 파일
-- 없음.
+- `GanhoMusic/GanhoMusic Shared/Nodes/SparkleEffectNode.swift`
+  - SKNode 컨테이너. 자식으로 8개의 SKShapeNode 원형 파편. SelfDismissingNode 채택.
+
+---
 
 ## 기능 상세
 
-### 기능 1: UIKit import 및 헤더 주석 갱신
-- 설명: `UIApplication.didEnterBackgroundNotification`, `willEnterForegroundNotification`은 UIKit 심볼이라 import 필요
-- 구현 위치: `BGMPlayer.swift` 파일 최상단
-- 핵심 코드 구조:
-  ```swift
-  //
-  //  BGMPlayer.swift
-  //  GanhoMusic Shared
-  //
-  //  Phase 6-4 · 자작 BGM 무한 루프 재생 인프라 (graceful fallback)
-  //  Phase 6-5 · play/stop에 페이드 인(1.5s) / 아웃(1.0s) 적용
-  //  Phase 6-6 · Interruption 처리 — 전화/Siri/타이머 등 시스템 인터럽션 시 BGM 자동 일시정지/복귀
-  //  Phase 6-7 · 백그라운드/포그라운드 라이프사이클 — 홈 버튼/앱 스위처 시 BGM 일시정지/재개
-  //
+### 기능 1: GameConfig 상수 6개 추가
 
-  import AVFoundation
-  import UIKit  // Phase 6-7 — UIApplication.*Notification 사용
-  ```
+**구현 위치**: `Config/GameConfig.swift` 파일 맨 아래 (`bgmFadeOutDuration` 다음)
 
-### 기능 2: 상태 보관 플래그 `shouldResumeOnForeground`
-- 설명: 백그라운드 진입 시점에 "원래 재생 중이었는가"를 기록. 포그라운드 복귀 시 이 플래그가 true일 때만 `resume()` 호출. 게임 진입 안 함 / `gameOver` 후 / 음원 부재 환경에서는 false 유지하여 의도 없는 재생 차단.
-- 구현 위치: `BGMPlayer.swift` `// MARK: - Properties` 섹션 (기존 `isFadingOut`, `stopWorkItem` 옆)
-- 핵심 코드 구조:
-  ```swift
-  /// Phase 6-7 — 백그라운드 진입 시점에 player.isPlaying이 true였는지 기록.
-  /// 포그라운드 복귀 시 이 비트가 켜져 있을 때만 resume() 호출.
-  /// 게임 미진입/gameOver 후/음원 부재 등 *원래 안 울리던* 상황은 false 유지.
-  /// Spring `@Stateful`(혹은 scope=session 빈)의 짧은 변형 — 라이프사이클 페어를 잇는 일회용 메모.
-  private var shouldResumeOnForeground: Bool = false
-  ```
-
-### 기능 3: `init`에 라이프사이클 옵저버 2개 등록
-- 설명: 6-6의 interruption 옵저버 등록 *바로 다음 줄*에 이어 붙임. 6-6과 동일한 selector 방식으로 일관성 확보. 음원 로딩 성공한 이후 시점이므로 시뮬레이터/리소스 누락 환경에서는 옵저버 자체가 등록되지 않아 NotificationCenter에 군더더기 0.
-- 구현 위치: `BGMPlayer.swift` `init()` 끝, 6-6 옵저버 등록 직후
-- 핵심 코드 구조:
-  ```swift
-  // (기존 6-6 interruption 옵저버 등록 코드 그대로)
-  NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(handleInterruption(_:)),
-      name: AVAudioSession.interruptionNotification,
-      object: AVAudioSession.sharedInstance()
-  )
-
-  // Phase 6-7 — 앱 라이프사이클 옵저버 페어.
-  // 페어 관계: didEnterBackground(앱이 background phase로 진입한 직후 발행)
-  //         ↔ willEnterForeground(suspended→inactive로 깨어나기 직전 발행).
-  // selector 일관성: 6-6과 동일하게 selector 방식. block 방식과 섞으면 deinit 정리가 복잡.
-  // object: nil — 시스템이 단 하나의 UIApplication.shared만 발행하므로 필터 불필요.
-  NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(handleDidEnterBackground(_:)),
-      name: UIApplication.didEnterBackgroundNotification,
-      object: nil
-  )
-  NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(handleWillEnterForeground(_:)),
-      name: UIApplication.willEnterForegroundNotification,
-      object: nil
-  )
-  ```
-
-### 기능 4: `handleDidEnterBackground(_:)` — 백그라운드 진입 콜백
-- 설명: 백그라운드 진입 시점에 `player.isPlaying`이 true면 `shouldResumeOnForeground = true`로 기록 후 `pause()` 호출. 이미 멈춰 있었거나(`isPlaying == false`) 음원 부재(`player == nil`)면 noop. 6-6의 `pause()` 그대로 재사용 — `isFadingOut` 가드 덕에 페이드 아웃 중 호출돼도 멱등.
-- 구현 위치: `BGMPlayer.swift` 신설 `// MARK: - Lifecycle` 섹션 (`// MARK: - Interruption` 다음)
-- 핵심 코드 구조:
-  ```swift
-  // MARK: - Lifecycle
-  /// Phase 6-7 — 앱이 백그라운드로 진입한 직후 시스템이 발행.
-  /// 발생 예: 홈 버튼, 앱 스위처, 제어센터에서 다른 앱 진입, 전화/카톡 알림 클릭.
-  /// 의도성: 사용자 의도(자발적) — interruption(시스템 강제)과 결이 다름.
-  /// Spring `@EventListener` 비유 — 앱 컨테이너의 phase 변경 이벤트를 받아 디스패치.
-  @objc private func handleDidEnterBackground(_ notification: Notification) {
-      guard let player = player else { return }       // 음원 부재 시 자동 noop
-      if player.isPlaying {
-          shouldResumeOnForeground = true             // 복귀 시 깨우라는 메모
-          pause()                                     // 6-6의 private pause() 재사용
-      }
-      // else: 원래 안 울리던 상태 — 플래그 false 유지 (변경 안 함)
-  }
-  ```
-
-### 기능 5: `handleWillEnterForeground(_:)` — 포그라운드 복귀 콜백
-- 설명: 플래그가 true일 때만 `resume()`(= `play()`) 호출, 호출 직후 플래그 false로 리셋. `play()` 내부의 `isPlaying` 가드 + `stopWorkItem.cancel()` + `isFadingOut = false`가 어떤 진입 상태든 흡수.
-- 구현 위치: `BGMPlayer.swift` `// MARK: - Lifecycle` 섹션 내, `handleDidEnterBackground` 다음
-- 핵심 코드 구조:
-  ```swift
-  /// Phase 6-7 — 앱이 곧 포그라운드로 돌아갈 시점에 시스템이 발행
-  /// (UIApplicationWillEnterForeground — active 진입 *직전*, 화면이 사용자에게 보이기 직전).
-  /// shouldResumeOnForeground 비트가 켜져 있을 때만 resume — 의도 없던 재생 금지.
-  /// 호출 직후 플래그 false로 리셋하여 다음 라이프사이클 페어를 깨끗이 시작.
-  @objc private func handleWillEnterForeground(_ notification: Notification) {
-      guard shouldResumeOnForeground else { return }
-      shouldResumeOnForeground = false                // 페어 종료 — 다음 사이클 위한 리셋
-      resume()                                        // 6-6의 private resume() → play() 재사용
-  }
-  ```
-
-### 기능 6: `deinit` 변경 없음
-- 설명: 6-6의 `NotificationCenter.default.removeObserver(self)` 한 줄이 self가 등록한 *모든* 옵저버를 일괄 해제하므로 추가 코드 불필요. 옵저버를 더 등록하더라도 deinit 본문은 그대로.
-- 구현 위치: `BGMPlayer.swift` `// MARK: - Deinit`
-- 핵심 코드 구조:
-  ```swift
-  // 변경 없음 — removeObserver(self)가 6-6 + 6-7 옵저버 3개 모두 일괄 해제.
-  deinit {
-      NotificationCenter.default.removeObserver(self)
-  }
-  ```
-
-## 사용할 Notification 정확히 명시
-
-| 이름 | 발행 시점 | 페어 |
-|---|---|---|
-| `UIApplication.didEnterBackgroundNotification` | 앱이 background phase로 진입 *직후*. `applicationDidEnterBackground(_:)`와 같은 시점. SpriteKit이 이미 `isPaused = true`를 자동 적용한 직후. | ↓ |
-| `UIApplication.willEnterForegroundNotification` | suspended → inactive로 깨어나기 *직전*. 화면이 사용자에게 다시 보이기 직전. `applicationWillEnterForeground(_:)`와 동시점. | ↑ |
-
-페어 관계: 매 백그라운드/복귀 사이클마다 정확히 1쌍 발행됨. 한 사이클의 시작과 끝.
-
-## 백그라운드 진입 시 처리 흐름
-
-```
-1. 사용자 홈 버튼 누름
-2. iOS가 SpriteKit 자동 일시정지 (SKView.isPaused = true)
-3. UIApplication.didEnterBackgroundNotification 발행
-4. BGMPlayer.handleDidEnterBackground(_:) 호출됨
-5. player.isPlaying 확인:
-   - true → shouldResumeOnForeground = true, pause() 호출
-   - false → noop (게임 안 시작했거나, 이미 gameOver 후)
-6. pause() 내부:
-   - player == nil → guard로 즉시 return (음원 부재)
-   - isFadingOut → guard로 즉시 return (페이드 아웃 중 — "끝나는 중인 음악은 그냥 끝나게")
-   - 그 외 → player.pause() (currentTime 보존)
+```swift
+// MARK: - Sparkle Effect (Phase 6-8)
+/// 음표 수집 시 방사되는 sparkle 파편 개수. 8방향 균등 방사 — 정팔각형.
+/// 4면 너무 빈약, 16면 시각 노이즈. 8이 균형점. GDD: 음악=별 미학.
+static let sparkleParticleCount: Int = 8
+/// sparkle 파편 1개의 반지름 (pt). 음표 한 변(16)의 1/8 = 2.0pt. 작은 별빛 입자 톤.
+static let sparkleParticleRadius: CGFloat = 2.0
+/// sparkle 방사 거리 (pt). 노트 중심에서 파편이 도달하는 최대 거리.
+/// 음표 한 변(16)의 ~1.5배 = 24pt. 너무 멀면 인접 음표와 겹침, 가까우면 임팩트 약함.
+static let sparkleSpawnDistance: CGFloat = 24
+/// sparkle 페이드/이동 액션 총 길이 (초). group 액션 묶음의 duration.
+/// 너무 길면 다음 음표 수집과 겹쳐 시각 노이즈. 0.5초가 *반짝*의 적정선.
+static let sparkleFadeDuration: TimeInterval = 0.5
+/// sparkle 파편 zPosition. HUD(100) 아래, Player/Note(0~5) 위 — 노트가 사라진 자리에서 위로 떠오르는 느낌.
+static let sparkleZPosition: CGFloat = 30
+/// sparkle 파편의 끝 스케일. 0.0이면 한 점으로 수렴(별빛 꺼짐), 1.0이면 동일 크기 유지.
+/// 0.2면 페이드아웃 + 살짝 축소 — 별이 멀어지는 느낌.
+static let sparkleEndScale: CGFloat = 0.2
 ```
 
-## 포그라운드 복귀 시 처리 흐름
+**주의**: 매직 넘버 노출 0건. 모든 SparkleEffectNode 내부 수치는 이 상수만 참조.
 
-```
-1. 사용자 앱 스위처에서 다시 앱 선택
-2. UIApplication.willEnterForegroundNotification 발행
-3. BGMPlayer.handleWillEnterForeground(_:) 호출됨
-4. shouldResumeOnForeground 확인:
-   - false → 즉시 return (원래 안 울리던 상태)
-   - true → 플래그 false로 리셋 → resume() 호출
-5. resume() = play() 재호출. play() 내부:
-   - player == nil → guard로 noop
-   - player.isPlaying == true → return (이미 어떤 이유로 살아 있음 — 중복 차단)
-   - 그 외 → stopWorkItem 정리, isFadingOut 리셋, volume=0 → play() → 1.5s 페이드 인
-6. SpriteKit도 view가 다시 active되면 자동 isPaused = false 복원
+---
+
+### 기능 2: SparkleEffectNode 신설 (자가 소멸 노드 4호)
+
+**구현 위치**: 새 파일 `Nodes/SparkleEffectNode.swift`
+
+**책임**:
+- SKNode 컨테이너 (자식으로 SKShapeNode 8개를 보유)
+- emit() 호출 시 각 파편을 8방향(45° 간격)으로 동시에 이동 + 페이드아웃 + 스케일 다운
+- SKAction.group([move, fadeOut, scale])로 *동시 진행* → group 끝나면 컨테이너 자가 제거
+
+**Spring 비유**: `@TransactionalEventListener` 다중 listener — 한 이벤트(= 음표 수집)에 햅틱/사운드/sparkle 3개 listener가 *동시*에 반응. SKAction.group이 바로 동시 실행 컨테이너.
+
+**핵심 코드 구조**:
+
+```swift
+//
+//  SparkleEffectNode.swift
+//  GanhoMusic Shared
+//
+//  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 + 자가 소멸 (시각 폴리싱)
+//
+
+import SpriteKit
+
+/// 음표 수집 시 노트 위치에서 8방향으로 방사되는 sparkle 파편 컨테이너.
+/// PhysicsBody 부착 0 — 순수 시각. SKAction.group(이동 + 페이드 + 스케일)을
+/// 8개 자식 SKShapeNode에 *동시* 실행 → 0.5초 후 컨테이너 자가 제거.
+/// AirplaneNode / AirforceOverlayNode / BombFlashNode 패턴 답습 — 자가 소멸 노드 4회차.
+/// Spring 비유: @TransactionalEventListener 다중 listener — 한 이벤트(노트 수집)에
+/// 햅틱(6-1) + 사운드(6-2) + sparkle(6-8) 3채널 멀티모달 반응.
+final class SparkleEffectNode: SKNode, SelfDismissingNode {
+
+    // MARK: - Init
+    override init() {
+        super.init()
+        name = "sparkle"
+        zPosition = GameConfig.sparkleZPosition
+        buildParticles()
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Particles
+    /// 8개의 SKShapeNode 원형 파편을 자식으로 부착. 모두 (0,0)에서 출발.
+    /// 색은 기존 ColorTokens 또는 SKColor.white — 어두운 BG 위 별빛 톤. 새 ColorTokens 추가 금지.
+    private func buildParticles() {
+        for _ in 0..<GameConfig.sparkleParticleCount {
+            let particle = SKShapeNode(circleOfRadius: GameConfig.sparkleParticleRadius)
+            particle.fillColor = .white               // 또는 .ganhoPaper 등 기존 토큰
+            particle.strokeColor = .clear             // 외곽선 없음 — 순수 별빛
+            particle.position = .zero
+            addChild(particle)
+        }
+    }
+
+    // MARK: - Emit
+    /// 부모(worldNode)에 addChild 직후 호출. 각 파편에 8방향 SKAction.group를 *동시*에 run.
+    /// group 액션은 [move, fadeOut, scale]을 *동시* 진행 — Spring의 CompletableFuture.allOf와 유사.
+    /// 마지막 .removeFromParent()는 컨테이너(self)가 자가 제거.
+    func emit() {
+        let angleStep = (2 * CGFloat.pi) / CGFloat(GameConfig.sparkleParticleCount)
+        for (index, child) in children.enumerated() {
+            let angle = angleStep * CGFloat(index)
+            let dx = cos(angle) * GameConfig.sparkleSpawnDistance
+            let dy = sin(angle) * GameConfig.sparkleSpawnDistance
+            let move  = SKAction.moveBy(x: dx, y: dy, duration: GameConfig.sparkleFadeDuration)
+            let fade  = SKAction.fadeOut(withDuration: GameConfig.sparkleFadeDuration)
+            let scale = SKAction.scale(to: GameConfig.sparkleEndScale,
+                                       duration: GameConfig.sparkleFadeDuration)
+            child.run(.group([move, fade, scale]))
+        }
+        // 컨테이너 자가 제거: group 길이만큼 대기 후 removeFromParent.
+        // child 액션과 동일한 sparkleFadeDuration으로 묶어 정확한 타이밍 보장.
+        let wait    = SKAction.wait(forDuration: GameConfig.sparkleFadeDuration)
+        let cleanup = SKAction.removeFromParent()
+        run(.sequence([wait, cleanup]))
+    }
+}
 ```
 
-## interruption(6-6)과 background(6-7) 교차 시나리오
+**SelfDismissingNode 채택 이유**:
+- 기존 4-R protocol(AirplaneNode/AirforceOverlayNode/BombFlashNode 마커)과 일관성
+- 미래에 protocol extension으로 *공통 동작*(예: didEmit 콜백)을 추가 가능
 
-### 시나리오 A: 전화 옴 → 통화 받으러 화면 전환
-```
-t=0  전화 옴
-t=0  interruption began 발행 → handleInterruption(.began) → pause() 호출
-     · player.pause() 실행됨
-t=0+ 사용자가 통화 받기 탭 → 앱이 백그라운드로
-t=0+ didEnterBackground 발행 → handleDidEnterBackground 호출
-     · player.isPlaying == false (방금 pause됨) → noop, 플래그 false 유지
-t=N  통화 끝, 사용자가 앱으로 복귀
-t=N  willEnterForeground 발행 → handleWillEnterForeground 호출
-     · shouldResumeOnForeground == false → noop (resume 안 함)
-t=N  interruption ended (.shouldResume) 발행 → handleInterruption(.ended)
-     · resume() → play() → 페이드 인 재개  ← 이게 *유일한* 진입점
-```
-→ 결론: 6-6이 책임지고 깨움. 6-7은 끼어들지 않음 (플래그 false 유지). **이중 재생 0**.
+---
 
-### 시나리오 B: 게임 중 홈 버튼 → 다시 복귀
-```
-t=0   게임 정상 진행, player.isPlaying == true
-t=0+  홈 버튼
-t=0+  didEnterBackground → handleDidEnterBackground
-      · isPlaying true → shouldResumeOnForeground = true, pause()
-t=N   앱 재진입
-t=N   willEnterForeground → handleWillEnterForeground
-      · 플래그 true → false로 리셋 → resume() → play() → 페이드 인
-```
-→ 결론: 깔끔한 단일 페어. **6-7만 작동**.
+### 기능 3: GameScene에서 sparkle spawn 트리거
 
-### 시나리오 C: 페이드 아웃 진행 중 백그라운드
-```
-t=0    gameOver → bgm.stop() → isFadingOut = true, stopWorkItem 예약 (1.0초 후 player.stop())
-t=0.5  사용자 홈 버튼 (페이드 아웃 중)
-t=0.5  didEnterBackground → handleDidEnterBackground
-       · player.isPlaying == true (페이드 아웃 중에도 isPlaying=true)
-       · shouldResumeOnForeground = true
-       · pause() 호출 → isFadingOut 가드로 noop ("끝나는 중인 음악은 그냥 끝나게")
-t=1.0  stopWorkItem 실행 → player.stop(), isFadingOut = false
-       ※ 백그라운드에서도 DispatchQueue.main은 일정 시간 살아 있음. 다만 long-suspend 시 보류될 수 있는데, 이 경우 player.stop()이 늦게 실행되어도 isPlaying이 자연스럽게 false로 가는 시점이라 문제 없음.
-t=N    포그라운드 복귀 → handleWillEnterForeground
-       · 플래그 true → false로 리셋 → resume() = play()
-       · play() 내부: isPlaying == false → 정상 재진입 → 페이드 인
-```
-→ 결론: gameOver 직후 백그라운드 가도 *복귀 시 BGM이 살아남*. 의도는? **버그가 아니라 정상**. resume의 의미는 "백그라운드 진입 시점에 살아 있었다면 다시"이므로 페이드 아웃 중도 "살아 있었다"로 친다. 후속 sprint에서 정책 조정 가능 (본 sprint 범위 밖).
+**구현 위치**: `GameScene.swift` → `configureContactRouter()` 메서드 내 `contactRouter.onNoteCollected` 클로저
 
-### 시나리오 D: 통화 중 백그라운드 → 통화 끝 후 복귀
+**개념적 변경 후 (Generator가 실제 코드와 매칭)**:
+```swift
+contactRouter.onNoteCollected = { [weak self] note in
+    guard let self = self else { return }
+    self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
+    self.haptics.light()
+    self.audio.play(.noteCollected)
+    // Phase 6-8 — note 위치에서 sparkle 8방향 방사. note는 worldNode 자식이므로
+    // worldNode 좌표계 위치를 캡처해 같은 worldNode에 sparkle을 부착.
+    // note.position을 *먼저* 캡처 — note.removeFromParent() 후엔 노드가 트리에서 빠짐.
+    let sparkleOrigin = note.position
+    let sparkle = SparkleEffectNode()
+    sparkle.position = sparkleOrigin
+    self.worldNode.addChild(sparkle)
+    sparkle.emit()
+    note.run(.removeFromParent())
+}
 ```
-t=0  전화 → interruption began → pause() (isPlaying false)
-t=0+ 백그라운드 → handleDidEnterBackground
-     · isPlaying false → noop, 플래그 false 유지
-t=N  통화 끝, 앱 재진입
-t=N  willEnterForeground → handleWillEnterForeground
-     · 플래그 false → noop
-t=N  interruption ended → handleInterruption(.ended) → resume()
-```
-→ 결론: 6-6 책임. 6-7은 가만히 있음. **OK**.
 
-## shouldResumeOnForeground 상태 관리 매트릭스
+**주의 — note 좌표 캡처 타이밍**:
+1. `note.position`은 *worldNode 자식*의 좌표 (note의 parent가 worldNode이므로 worldNode 좌표계 기준값)
+2. `.removeFromParent()` 실행 *전에* position을 캡처해야 함 — 제거 후엔 parent가 nil이라 좌표 보장 X
+3. sparkle도 같은 worldNode에 add → 같은 좌표계 → 카메라 follow / 월드 스크롤과 함께 자연스럽게 따라감
 
-| 상황 | 시점 | 플래그 |
-|---|---|---|
-| 초기화 직후 | `init` 끝 | false |
-| 게임 미진입 (TitleScene) | - | false 유지 |
-| 게임 시작, BGM 재생 중 + 백그라운드 진입 | `handleDidEnterBackground` | **true 세팅** |
-| 게임 시작 안 함 + 백그라운드 진입 | `handleDidEnterBackground` | false 유지 (isPlaying false) |
-| gameOver 후 + 백그라운드 진입 | `handleDidEnterBackground` | false 유지 (isPlaying false) |
-| 음원 부재 + 백그라운드 진입 | `handleDidEnterBackground` | false 유지 (guard로 즉시 return) |
-| 포그라운드 복귀, 플래그 true | `handleWillEnterForeground` | **false 리셋** + resume() |
-| 포그라운드 복귀, 플래그 false | `handleWillEnterForeground` | false 유지, noop |
-| 통화로 인한 pause 상태 + 백그라운드 | `handleDidEnterBackground` | false 유지 (isPlaying false) |
+**Generator 유연성**: 실제 onNoteCollected 클로저의 정확한 형태(파라미터 이름, 메서드명)는 GameScene.swift를 읽고 매칭. sparkle 5줄을 *기존 동작 직후, note.removeFromParent() 직전*에 삽입.
+
+**멱등성**:
+- onNoteCollected는 한 노트당 1회만 호출(ContactRouter의 didBegin)
+- 이미 sparkle 8개 동시 add → 같은 음표에 두 번 sparkle 안 만들어짐
+- note.removeFromParent()까지 같은 클로저 안에서 처리 — race 0
+
+---
+
+### 기능 4: pbxproj 4지점 등록
+
+**구현 위치**: `GanhoMusic.xcodeproj/project.pbxproj`
+
+BombFlashNode.swift 등록 패턴을 그대로 답습:
+
+1. **PBXBuildFile 섹션**:
+   ```
+   <NEW_UUID_BUILD> /* SparkleEffectNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = <NEW_UUID_FILE> /* SparkleEffectNode.swift */; };
+   ```
+
+2. **PBXFileReference 섹션**:
+   ```
+   <NEW_UUID_FILE> /* SparkleEffectNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleEffectNode.swift; sourceTree = "<group>"; };
+   ```
+
+3. **Nodes 그룹 children**: SparkleEffectNode.swift 항목 추가
+
+4. **Sources build phase**: SparkleEffectNode.swift in Sources 항목 추가
+
+UUID는 BombFlashNode 패턴 따라 새 24자리 hex 생성. Generator는 BombFlashNode 4지점 등록을 grep해서 패턴을 그대로 복제하면 됨.
+
+---
 
 ## 검증 시나리오
 
 ### (a) 빌드
 - `xcodebuild ... build` → BUILD SUCCEEDED, 경고 0
-- `import UIKit` 추가됨
+- SparkleEffectNode.swift Sources phase에 등록 확인
 
-### (b) 음원 부재 폴백 (회귀 0)
-- `bgm.m4a` 없음 → init 첫 guard에서 player = nil → 옵저버 등록 자체 안 됨
-- handleDidEnterBackground/handleWillEnterForeground 호출 자체 안 일어남
+### (b) 음표 수집 시각 효과
+- 음표 수집 → 그 자리에 8개 흰빛 파편이 8방향으로 펼쳐짐 → 0.5초 안에 페이드아웃 + 축소
+- 카메라 follow 시 sparkle도 worldNode 자식이라 함께 이동
 
-### (c) 6-6 코드 무변경 검증
-- `handleInterruption(_:)` 시그니처/본문 0줄 변경
-- `pause()` 시그니처/본문 0줄 변경
-- `resume()` 시그니처/본문 0줄 변경
+### (c) 회귀 검증
+- ScoreSystem: 점수/콤보 계산 영향 0
+- ContactRouter: onNoteCollected 시그니처 동일, 본문만 5줄 추가
+- SpawnSystem: 스폰 주기 영향 0
+- AudioManager / HapticsManager / BGMPlayer: 변경 0줄
+- 다른 Nodes (Player/Enemy/Projectile/HUD/Card/Airplane/Bomb/AirforceOverlay): 변경 0줄
+- Phase 1~6 회귀: 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터선택/AIRFORCE/사운드/햅틱/BGM 페이드/Interruption/Lifecycle 모두 정상
 
-### (d) 백그라운드 진입 — 재생 중일 때
-- player.isPlaying == true 상태에서 didEnterBackgroundNotification 발행
-- shouldResumeOnForeground = true 세팅
-- pause() 호출 → player.pause() 실행
+### (d) 멱등성/메모리
+- 음표 1개당 sparkle 1회 (clontactRouter didBegin 1회 보장)
+- sparkle 컨테이너 자가 제거 sequence([wait 0.5s, removeFromParent])
+- ARC 자동 해제, 메모리 누수 0
 
-### (e) 포그라운드 복귀 — 플래그 true
-- shouldResumeOnForeground == true 상태에서 willEnterForegroundNotification 발행
-- 플래그 false로 리셋
-- resume() → play() → 페이드 인
+### (e) 성능 (60fps 유지)
+- 음표 수집 빈도 ~1~2/sec
+- 동시 sparkle 컨테이너 최대 ~3~4 = 24~32 SKShapeNode
+- SKShapeNode 도형은 GPU 친화적 경량, 60fps 영향 무시 가능
 
-### (f) 시나리오 A 통화 → 백그라운드 — 6-7 noop
-- 6-6 pause() 후 player.isPlaying = false
-- 백그라운드 진입 시 isPlaying false라 6-7 노op, 플래그 false 유지
-- 포그라운드 복귀 시 플래그 false라 6-7 noop
-- 6-6 ended가 단독으로 resume 책임
+### (f) 음원 부재 / 기타 환경 회귀
+- BGMPlayer 음원 부재 시 sparkle 동작에 영향 0 (독립)
+- 시뮬레이터에서도 정상 동작 (SKShapeNode는 GPU 텍스처 안 필요)
 
-### (g) deinit 무변경
-- removeObserver(self) 한 줄로 3개 옵저버 일괄 해제
-
-### (h) 회귀 0줄
-- GameScene/AudioManager/HapticsManager/GameConfig/TitleScene/ResultScene/Nodes/Systems/Repositories/Models/Protocols 모두 0줄
-
-### (i) Phase 1~6 회귀
-- 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터 선택/AIRFORCE/페이드/Interruption 모두 정상
+---
 
 ## 학습 가치
 
-### 1. UIApplication 라이프사이클 vs AVAudioSession interruption
-| 축 | interruption (6-6) | lifecycle (6-7) |
+### 1. SKAction.group vs sequence
+- **group**: 여러 액션이 *동시*에 진행. 끝나는 시점은 가장 긴 액션이 끝날 때.
+- **sequence**: 액션이 *차례로* 진행. 총 길이는 각 액션 합산.
+- sparkle 1개 파편은 이동 + 페이드 + 스케일이 *동시* → group
+- 컨테이너 자가 제거는 wait → removeFromParent *차례* → sequence
+
+> **Spring 비유**:
+> - group = `CompletableFuture.allOf(...)` — 여러 비동기 작업 동시 진행, 모두 완료 시점 대기
+> - sequence = `CompletableFuture.thenCompose(...)` — 앞 작업 끝나야 다음 시작
+
+### 2. SKShapeNode의 경량성
+- SKSpriteNode는 텍스처 이미지 필요 — GPU 텍스처 캐시 점유
+- SKShapeNode는 도형(원/사각형/path)만으로 GPU 친화적 렌더링
+- 짧게 사라지는 파티클(0.5초)에 적합 — 텍스처 안 만들고 코드만으로 임팩트
+- "별빛 입자"라는 추상 개념을 *가장 단순한 도형*인 원 8개로 표현 — 미니멀리즘
+
+> **Spring 비유**: `@RestController`가 String 1줄 응답하는 것 vs 큰 JSON 객체 응답. 텍스처 안 필요한 단순 도형은 *가벼운 응답*과 비슷.
+
+### 3. SelfDismissingNode 패턴의 확장 — 4호 노드
+- Phase 4-R에서 SelfDismissingNode protocol 추출됨 (AirplaneNode/AirforceOverlayNode/BombFlashNode)
+- 4호 노드 SparkleEffectNode가 같은 패턴 채택
+- 공통 책임: "한 번 등장 → 액션 수행 → 자가 제거". 호출자는 add만 하면 됨, 정리는 노드 본인
+- **노드 책임 분산 패턴의 누적** — 점점 더 많은 효과 노드가 이 패턴으로 통일됨
+
+> **Spring 비유**: `@Async` 메서드가 호출자에게 Future 안 돌려주고 자체 종료. fire-and-forget. 호출자는 부담 0.
+> 또는 자가 정리하는 임시 빈 — `@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)`처럼 요청 끝나면 자동 정리.
+
+### 4. 멀티모달 피드백 3채널 완성
+| 채널 | Phase | 메서드 |
 |---|---|---|
-| 발행자 | AVAudioSession | UIApplication |
-| 트리거 | 전화/Siri/알람 등 *시스템이 오디오 자원을 빼앗을 때* | 홈 버튼/앱 스위처 등 *사용자가 앱을 떠날 때* |
-| 의도성 | 강제 (사용자가 원치 않아도 발생) | 자발적 (사용자가 능동적으로 선택) |
-| 페어 | began ↔ ended (+ shouldResume 비트) | didEnterBackground ↔ willEnterForeground |
-| 복귀 조건 | `.shouldResume` 플래그가 시스템 결정 | `shouldResumeOnForeground`가 *우리* 결정 |
-| Spring 비유 | `@TransactionalEventListener` (시스템 트랜잭션 인터럽트) | `@ServletRequestListener` (request lifecycle) |
+| 햅틱 | 6-1 | `haptics.light()` |
+| 사운드 | 6-2 | `audio.play(.noteCollected)` |
+| **시각** | **6-8** | **`sparkle.emit()`** |
 
-→ "오디오를 뺏긴다"와 "앱이 멀어진다"는 **다른 사건**이지만 BGMPlayer 입장에선 결국 "지금 안 들려야 하는 상황"이라는 점에서 같은 처치(pause)가 정답. 6-5/6-6의 pause/resume 메서드를 DRY로 재사용 가능한 이유.
+한 행동(음표 수집)에 3채널이 *동시*에 반응 — 게임 피드백의 완전체. 사용자 인지 가속:
+- 햅틱: 손끝으로 "맞췄다" 확인
+- 사운드: 귀로 "줍힘" 확인
+- 시각: 눈으로 "별이 터졌다" 확인
 
-### 2. "상태를 기억하는" 패턴 — `shouldResumeOnForeground`
-- **문제**: 백그라운드 진입 시점과 복귀 시점은 *다른 콜백*. 두 콜백을 잇는 데이터가 없으면 복귀 시 "원래 재생 중이었나?" 알 수 없음.
-- **해결**: 인스턴스 변수로 짧은 메모 남김. 일종의 **상태 머신**.
-- Spring 비유:
-  - `@Stateful` 빈처럼 빈 내부에 상태 보관. (Spring 자체 어노테이션은 아니지만 EJB 발상)
-  - 혹은 `scope=session` 빈 — HTTP request 하나가 끝나도 다음 request에서 상태 이어짐
-  - 또는 일종의 *correlation id* — 이벤트 페어를 잇는 식별자
-- 중학생 비유: "엄마가 잠깐 나갔다 들어올 때, 나갈 때 켜져 있던 TV를 다시 켤지 말지 결정하려면 '나갈 때 켜져 있었는지' 메모지에 적어둬야 한다. 메모 없으면 들어와서 알 길이 없다." 그 메모지가 `shouldResumeOnForeground`.
+> **Spring 비유**: `@TransactionalEventListener`에 등록된 다중 리스너가 한 트랜잭션 이벤트에 *동시* 반응 — 알림 발송, 로그 기록, 메트릭 수집 등 채널 분리. 6-8은 그 3번째 채널(시각) 등록.
 
-### 3. 옵저버 패턴의 일반화 — 단일 → 다중
-- 6-6: 옵저버 1개 (interruption)
-- 6-7: 옵저버 +2 → 총 3개 (interruption + didBackground + willForeground)
-- **옵저버 매트릭스**가 됨. 각 옵저버는 *독립적인 콜백*이지만 *공유 자원*(`player`, `isFadingOut`, `shouldResumeOnForeground`)을 읽고 쓴다.
-- 핵심 통찰: `removeObserver(self)` 한 줄이 N개 옵저버를 일괄 해제 → **선언적 정리**. 옵저버 추가할 때마다 deinit을 안 건드려도 됨.
-- Spring 비유: `@EventListener` 메서드를 빈에 여러 개 두면 ApplicationContext가 빈 소멸 시 자동 해제 → 같은 발상.
+### 5. 좌표계 캡처 타이밍의 미묘함
+```swift
+let sparkleOrigin = note.position  // ← 먼저 캡처
+// ...
+note.run(.removeFromParent())      // ← 그 후 제거
+```
+순서가 바뀌면 `note.position`이 *의도와 다른 값*을 반환할 수 있음 — note가 parent에서 빠진 후엔 좌표 의미 불명확.
 
-### 4. 멱등성 + 가드의 누적 가치
-세 phase에 걸쳐 쌓인 가드가 함께 작동:
+> **Spring 비유**: DB 트랜잭션 안에서 값을 *읽어둔 후* 커밋/롤백. 또는 `Optional.map { ... }` 안에서 값 처리 후 *바깥에서* 변경. 자료 수명에 대한 정확한 의식.
 
-| Phase | 가드 | 효과 |
-|---|---|---|
-| 6-5 | `isFadingOut` (stop 중복 차단) | 페이드 아웃 중 stop 다시 들어와도 안전 |
-| 6-5 | `stopWorkItem.cancel()` (play 시) | 페이드 아웃 중 play 들어오면 예약 stop 취소 |
-| 6-6 | `pause()` 내 `isFadingOut` 가드 | "끝나는 중인 음악은 그냥 끝나게" |
-| 6-6 | `play()` 내 `isPlaying` 가드 | 이미 재생 중일 때 중복 play 차단 |
-| **6-7** | **`shouldResumeOnForeground` 플래그** | **의도 없던 백그라운드 → 복귀 시 깨우지 않음** |
+### 6. 음악 = 별의 미학 — 자전적 게임 정체성 완성
+- 사용자가 새벽 병동에서 작곡한 BGM (6-4에서 인프라 완성)
+- 어두운 BG(#1A1B2E) 위 분홍 음표 — 밤하늘 별
+- 음표 수집 시 *별이 터지는* sparkle (6-8)
+- → 게임 정체성의 시각적 완성. "병동에서 작곡하던 새벽, 별빛 같은 음악이 잠시 반짝이고 사라졌다"는 자전적 톤이 사용자에게 직접 전달
 
-→ 어떤 순서로 어떤 이벤트가 와도 (전화 → 백그라운드 → 통화 끝 → 복귀, 또는 페이드 아웃 → 백그라운드 → 복귀 등) **이중 재생 0, 의도 없는 재생 0, 크래시 0**.
+학생 비유: "노래방에서 곡을 부르고 박수받는 순간 → 박수 소리 + 진동 + 마이크 조명 깜빡임이 동시. 만약 박수만 있고 조명이 없으면 뭔가 허전해요. 조명이 sparkle 역할."
 
-### 5. 시스템과의 협력 — "양보"의 누적
-- **6-6**: 시스템 인터럽션에 양보 ("전화가 더 중요하다, 음악은 비키자")
-- **6-7**: 사용자 의도에 양보 ("홈 버튼 누른 사용자가 더 중요하다, 음악은 비키자")
-- 두 phase 모두 BGMPlayer가 *주도하지 않고 응답*하는 패턴. 시스템과 사용자 모두에게 "good citizen"이 되는 길.
-
-### 6. `@PostConstruct` / `@PreDestroy` 페어와 init/deinit 페어
-- 6-7 추가 후 BGMPlayer의 init/deinit 페어는 **3 옵저버 등록 ↔ 1줄 일괄 해제**라는 비대칭 모습.
-- 이게 가능한 이유: `removeObserver(self)`가 self가 등록한 모든 옵저버를 selector/name/object 상관없이 일괄 해제하는 *벌크 API*.
-- 학습 포인트: **API가 벌크 해제를 지원하면 자원 관리가 선언적**이 됨. 추가할 때마다 해제 코드 안 늘어남.
+---
 
 ## 주의사항
 
-- **`UIApplication.didEnterBackgroundNotification` 발행 시점에 `DispatchQueue.main`은 살아 있음** — `handleDidEnterBackground` 안에서 sync/async 디스패치 가능. 다만 본 sprint는 디스패치 안 함(즉시 처리).
-- **앱이 suspend된 후에는 코드 실행 안 됨** — `didEnterBackground` 콜백은 suspend *전*에 호출된다는 점이 보장됨. 그 안에서 pause 처리 시 충분.
-- **시뮬레이터 검증**: Cmd+Shift+H (홈) → 다시 앱 → BGM 일시정지/재개 확인.
-- **실기기 검증 시나리오**:
-  1. 게임 진입(BGM 재생 중) → 홈 → 다시 앱: BGM이 페이드 인하며 살아남
-  2. 타이틀 화면(BGM 없음) → 홈 → 다시 앱: BGM 안 켜짐 (플래그 false)
-  3. gameOver(BGM 페이드 아웃) → 홈 → 복귀: 시나리오 C 결과대로
-  4. 게임 중 전화 → 통화 끝나고 화면 복귀: 6-6/6-7 협력 (resume은 6-6이 책임)
-- **음원 부재 환경**: 옵저버 등록 자체가 안 일어남 → 회귀 0.
-- **빌드 에러 가능성**: `import UIKit` 누락 시 unresolved symbol. → 반드시 추가.
-- **6-6의 동작 보존 검증**: `handleInterruption(_:)`, `pause()`, `resume()` 시그니처/본문은 *손대지 않음*. 6-7은 이들을 *소비*만 함.
+### SpriteKit 특성
+- **SKShapeNode의 가벼움**: 텍스처 없이 원/사각형 등 도형만으로 만들어 텍스처 캐시 부담 0. circleOfRadius는 GPU 친화적 경량 노드. *별빛 입자 8개 × 0.5초만 살아있음*이라 60fps에 거의 부담 없음.
+- **SKAction.group vs sequence**: group은 *동시*에, sequence는 *차례로*. sparkle은 이동 + 페이드 + 스케일이 *동시* 진행되어야 하므로 group. 컨테이너 자가 제거는 wait + removeFromParent의 sequence.
+- **부모 좌표계 일관성**: note는 worldNode 자식이므로 note.position도 worldNode 기준. sparkle도 worldNode에 add → 같은 좌표계 → 카메라 follow 시 sparkle도 같이 이동.
+- **note 제거 순서**: `note.position` 캡처 → sparkle add → note.removeFromParent(). 순서 바뀌면 좌표 lost.
+
+### 회귀 안전성
+- **ScoreSystem 영향 0**: recordNoteHit 호출 위치/인자 동일. score/combo 계산 변경 0.
+- **ContactRouter 영향 0**: onNoteCollected 시그니처 동일. 콜백 본문만 5줄 추가.
+- **SpawnSystem 영향 0**: 음표 스폰 주기/개수 변경 0. noteMaxConcurrent와 무관.
+- **성능**: sparkle 1회당 8 SKShapeNode + 8 SKAction = 16 객체. 음표 수집 빈도 ~1~2/sec. 동시 sparkle 컨테이너 최대 ~3~4 = 24~32 노드 → 60fps 유지 가능.
+- **메모리**: 각 sparkle 0.5초 후 자가 제거 → 누적 0. ARC가 자동 해제.
+
+### Swift / SpriteKit 규칙 준수
+- 강제 언래핑 `!` 0건
+- `guard let self = self else { return }` 패턴 유지
+- `[weak self]` 캡처 유지
+- Timer 미사용 — SKAction만
+- 매직 넘버 0건 — GameConfig 상수 6개 신설
+- 한국어 변수명 0건. 주석은 한국어 OK.
+
+### 빌드 에러 가능성
+- pbxproj UUID 충돌: BombFlashNode 등 기존 UUID와 안 겹치는 새 24자리 hex 사용
+- `import SpriteKit` 누락: SparkleEffectNode.swift 맨 위 명시
+- `SKColor` vs `UIColor`: SpriteKit 코드는 import SpriteKit 시 SKColor 사용. iOS에서 UIColor == SKColor.
+
+---
+
+## Generator 체크리스트 (구현 후 자체 검증)
+
+- [ ] `Config/GameConfig.swift` 맨 아래 Sparkle Effect 섹션 6개 상수 추가
+- [ ] `Nodes/SparkleEffectNode.swift` 신설 — SelfDismissingNode 채택, SKNode 상속, 8개 SKShapeNode 자식
+- [ ] `buildParticles()`는 init 시점에만 호출 — update 안 addChild 0건
+- [ ] `emit()` 안 SKAction.group([move, fade, scale]) 패턴 정확히 적용
+- [ ] 컨테이너 자가 제거 sequence([wait, removeFromParent]) 적용
+- [ ] `GameScene.swift` onNoteCollected 클로저에 sparkle spawn 5줄 추가, `note.position` 캡처를 `.removeFromParent()` *이전*에 수행
+- [ ] sparkle은 `self.worldNode`에 addChild (cameraNode 아님 — note와 같은 좌표계)
+- [ ] pbxproj 4지점 등록 (BombFlashNode 패턴 grep으로 확인)
+- [ ] 강제 언래핑 `!` 0건
+- [ ] Timer 0건, SKAction만 사용
+- [ ] 매직 넘버 0건 (모든 수치는 GameConfig 경유)
+- [ ] `[weak self]` 캡처 유지
+- [ ] 새 색/효과음/햅틱/PhysicsCategory 추가 0건
+- [ ] GameScene / ContactRouter / ScoreSystem / SpawnSystem 시그니처 변경 0건
+- [ ] 빌드 클린 + 시뮬레이터에서 음표 수집 시 흰빛 8방향 sparkle 확인

@@ -263,4 +263,22 @@ enum GameConfig {
     /// Phase 6-5 — BGM 페이드 아웃 길이 (초). stop() 호출 시 현재 volume → 0 보간.
     /// ResultScene 전환 페이드(0.4)보다 길어 두 페이드가 겹치며 끝나도록 1.0초.
     static let bgmFadeOutDuration: TimeInterval = 1.0
+
+    // MARK: - Sparkle Effect (Phase 6-8)
+    /// 음표 수집 시 방사되는 sparkle 파편 개수. 8방향 균등 방사 — 정팔각형.
+    /// 4면 너무 빈약, 16면 시각 노이즈. 8이 균형점. GDD: 음악=별 미학.
+    static let sparkleParticleCount: Int = 8
+    /// sparkle 파편 1개의 반지름 (pt). 음표 한 변(16)의 1/8 = 2.0pt. 작은 별빛 입자 톤.
+    static let sparkleParticleRadius: CGFloat = 2.0
+    /// sparkle 방사 거리 (pt). 노트 중심에서 파편이 도달하는 최대 거리.
+    /// 음표 한 변(16)의 ~1.5배 = 24pt. 너무 멀면 인접 음표와 겹침, 가까우면 임팩트 약함.
+    static let sparkleSpawnDistance: CGFloat = 24
+    /// sparkle 페이드/이동 액션 총 길이 (초). group 액션 묶음의 duration.
+    /// 너무 길면 다음 음표 수집과 겹쳐 시각 노이즈. 0.5초가 *반짝*의 적정선.
+    static let sparkleFadeDuration: TimeInterval = 0.5
+    /// sparkle 파편 zPosition. HUD(100) 아래, Player/Note(0~5) 위 — 노트가 사라진 자리에서 위로 떠오르는 느낌.
+    static let sparkleZPosition: CGFloat = 30
+    /// sparkle 파편의 끝 스케일. 0.0이면 한 점으로 수렴(별빛 꺼짐), 1.0이면 동일 크기 유지.
+    /// 0.2면 페이드아웃 + 살짝 축소 — 별이 멀어지는 느낌.
+    static let sparkleEndScale: CGFloat = 0.2
 }
