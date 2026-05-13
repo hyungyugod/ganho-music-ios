@@ -1,231 +1,302 @@
-# Phase 6-8 — 음표 수집 시 sparkle 파티클 효과
+# Phase 6-9 — F 투사체 피격 시 카메라 셰이크 + 화면 빨간 깜빡임
 
 ## 개요
-현재 음표를 먹으면 점수가 오르고 효과음(`audio.play(.noteCollected)`) + 햅틱(`haptics.light()`)만 나오고 시각 변화는 0이다. Phase 6-8은 음표 수집 순간에 8방향으로 튀어나오는 작은 sparkle 파편(SKShapeNode 원형)을 음표 위치에 spawn 시켜 *수집 만족감 + 음악=별의 미학*을 시각적으로 완성한다. Phase 6-1~6-7의 사운드/햅틱/BGM 시리즈에 이어 첫 *시각 폴리싱* sprint.
+F 투사체에 맞으면 화면이 짧게 흔들리고 빨간색이 잠깐 깜빡인다. Phase 6-1에서 이미 발화하는 `haptics.heavy()` 진동 위에 *시각 임팩트* 두 채널을 더해 피격의 물리적 충격감을 3채널(진동+셰이크+플래시)로 전달한다. Phase 6-8 sparkle(긍정)의 대척점에 위치하는 *부정 피드백*.
 
 ## 변경 유형
-**폴리싱 / 시각 임팩트** (Evaluator는 비주얼 트랙으로 채점 — 게임 로직/점수 계산 영향 0, 새 SKShapeNode 도형 패턴 + SKAction.group 학습이 핵심)
+**폴리싱 / 시각 임팩트 / 부정 피드백** (game-design + visual 혼합 평가 기준)
 
 ## 게임 경험 의도
-사용자가 새벽 병동에서 작곡한 BGM이 깔린 가운데, 음표를 먹는 순간이 *별이 터지는 순간*처럼 느껴져야 한다. 8개의 작은 흰빛 파편이 8방향으로 퍼지며 0.5초 안에 사라지는 — 짧지만 또렷한 *반짝*. "음악 = 별"이라는 자전적 미학(밤하늘 같은 어두운 BG #1A1B2E 위에 분홍 음표가 별처럼 떠 있던 화면)을 한 단계 더 끌어올린다. 한 행동(=음표 수집)에 햅틱(6-1) + 사운드(6-2) + sparkle(6-8) 3채널 멀티모달 피드백을 완성하는 마지막 퍼즐.
+- 수간호사한테 F 학점을 맞으면 머리가 한 번 *띵*하고 흔들리는 느낌. 시야가 빨갛게 잠깐 물든다. 진동(이미 있음) + 흔들림 + 빨간 플래시 = "맞았다"를 몸·눈·시각으로 동시에 인지.
+- Phase 6-8 sparkle(노트 수집 → 흰빛 8방향 방사)와 *디자인 대칭*. 긍정=별이 퍼짐 / 부정=화면이 흔들리고 빨갛게 물듦. 같은 패턴(자가 소멸 노드)을 정반대 톤에 적용해 시청각 어휘를 확장.
+- 학생 비유: 평소 노트 차곡차곡 모으다 갑자기 수간호사한테 *F!* 맞으면 정신이 번쩍 나는 그 순간. 게임오버 transition으로 *컷*되기 전 마지막 0.3초가 가장 강렬한 인상이 됨.
 
 ## Sprint 범위 계약
 
-### 허용 (필수 연동 변경만)
-- 새 파일 `Nodes/SparkleEffectNode.swift` 신설 (SelfDismissingNode protocol 채택)
-- `Config/GameConfig.swift`에 `// MARK: - Sparkle Effect (Phase 6-8)` 섹션 신설 + 6개 상수 추가
-- `GameScene.swift`의 `configureContactRouter()` 안 `onNoteCollected` 클로저에 sparkle spawn 5줄 추가 (note 위치를 worldNode 좌표로 캡처해 sparkle 부착)
-- 파일 상단 주석에 `Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)` 한 줄 추가
-- `GanhoMusic.xcodeproj/project.pbxproj`에 `SparkleEffectNode.swift` 4지점 등록 (PBXBuildFile, PBXFileReference, Nodes 그룹 children, Sources build phase)
+### 허용
+- 새 파일 `Nodes/HitFlashNode.swift` 신설 (자가 소멸 5호 — SparkleEffectNode/BombFlashNode 패턴 답습)
+- 새 파일 `Systems/CameraShakeAction.swift` 신설 (SKAction 헬퍼 — `enum CameraShakeAction` 네임스페이스에 `static func make(...) -> SKAction`)
+- `GameConfig.swift`에 셰이크/플래시 상수 추가 (`// MARK: - Hit Feedback (Phase 6-9)`)
+- `GameScene.swift`의 `configureContactRouter()` 안 `onProjectileHitPlayer` 콜백에 트리거 추가 (셰이크 1줄 + 플래시 부착 3줄)
+- 헤더 주석에 `Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)` 1줄 추가
+- `project.pbxproj`에 두 새 파일 등록 (SparkleEffectNode 등록 형식 답습)
 
-### 금지 (Sprint 범위 위반 시 자동 감점)
-- 외부 SKEmitterNode / `.sks` 파티클 파일 사용 — **코드만**으로 SKShapeNode 사용
-- `GameScene` / `ContactRouter` / `ScoreSystem` / `SpawnSystem`의 *시그니처/책임 경계* 변경
-- 새 PhysicsCategory 추가, sparkle에 PhysicsBody 부착 (파티클은 충돌 0)
-- 새 효과음 / 햅틱 / BGM 트리거 추가 (이번은 *시각만*)
-- `HighScoreRepository` / `StatisticsRepository` / `CharacterPreferenceRepository` / `BGMPlayer` / `AudioManager` / `HapticsManager` 변경
-- 새 GameScene 진입점 / 새 Scene 신설 / 캐릭터 시스템 변경
-- 매직 넘버 하드코딩 (모든 상수는 GameConfig 경유)
-- 강제 언래핑 `!` / `Timer` 사용 / `update()` 안 `addChild()` 호출
-- ColorTokens.swift에 새 색 추가 (기존 토큰 또는 `SKColor.white` 사용 — 흰빛 파편)
+### 금지
+- `BombFlashNode` 변경 (AIRFORCE 전용 — 폭탄 누런 섬광 vs F 빨간 셰이크는 톤이 다름. 별도 sprint에서 추출 검토)
+- 새 효과음/햅틱 추가 (6-1 `haptics.heavy()` 그대로 활용 — 이미 `endGame()` 안에서 발화 중)
+- `endGame()` 호출 순서/로직 변경 (멱등 가드, presentScene 등 손대지 않음)
+- 새 `PhysicsCategory` 추가 (충돌 분기는 ContactRouter 그대로)
+- 새 ColorTokens 추가 (`UIColor.ganhoBloodAccent` 재사용 — assets.md에 "피격 플래시"로 *이미 정의*)
+- `BGMPlayer`/`AudioManager`/`HapticsManager` 변경
+- `ResultScene`, `ScoreSystem`, `EnemyNode`, `ProjectileNode` 변경
+- `update()` 안에 새 로직 추가 (셰이크는 액션 1회로 끝나므로 update 불필요)
 
 ### 판단 기준
-> "이 변경이 없으면 sparkle이 음표 위치에서 안 보이는가?" → YES면 허용, NO면 금지.
+"이 변경이 없으면 SPEC 기능(피격 시 화면 흔들림 + 빨간 깜빡임)이 동작하지 않는가?" → YES면 허용, NO면 금지.
 
 ---
 
 ## 변경 범위
 
 ### 수정할 파일
-- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
-  - `// MARK: - Sparkle Effect (Phase 6-8)` 섹션 신설, 상수 6개 추가
-- `GanhoMusic/GanhoMusic Shared/GameScene.swift`
-  - `configureContactRouter()` 내 `contactRouter.onNoteCollected` 클로저에 sparkle spawn 코드 3~5줄 추가 (note 위치 캡처 → SparkleEffectNode 생성 → worldNode에 addChild → emit 호출)
-  - 파일 상단 주석에 `Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)` 한 줄 추가
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj`
-  - SparkleEffectNode.swift 4지점 등록 (BombFlashNode.swift 등록 패턴 답습)
+- `GanhoMusic Shared/GameScene.swift`: `configureContactRouter()` 안 `onProjectileHitPlayer` 콜백에 셰이크 1줄 + HitFlashNode 부착 3줄 추가, 헤더 주석 1줄
+- `GanhoMusic Shared/Config/GameConfig.swift`: `// MARK: - Hit Feedback (Phase 6-9)` 섹션 추가 (셰이크 3 상수 + 플래시 4 상수)
+- `GanhoMusic.xcodeproj/project.pbxproj`: 새 파일 2개 등록
 
 ### 추가할 파일
-- `GanhoMusic/GanhoMusic Shared/Nodes/SparkleEffectNode.swift`
-  - SKNode 컨테이너. 자식으로 8개의 SKShapeNode 원형 파편. SelfDismissingNode 채택.
+- `GanhoMusic Shared/Systems/CameraShakeAction.swift`: 카메라 셰이크용 `SKAction` 빌더 enum 네임스페이스
+- `GanhoMusic Shared/Nodes/HitFlashNode.swift`: 화면 전체 빨간 플래시 자가 소멸 노드. `SelfDismissingNode` 채택 (자가 소멸 5호)
+
+---
+
+## 핵심 결정 포인트 (사전 확정)
+
+### a. 카메라 노드 존재 여부
+**확정**: GameScene에 `let cameraNode = SKCameraNode()` 이미 존재. `self.camera = cameraNode`로 attach됨. **카메라 노드에 SKAction.sequence 적용 — worldNode 대안 채택 안 함.** 카메라가 흔들리면 worldNode 자식(player/enemy/note) + HUD/D-Pad(cameraNode 자식)가 *함께* 흔들려 화면 전체가 진동하는 효과.
+
+### b. 셰이크 알고리즘
+**확정**: 단순 SKAction.sequence — 좌→우→좌→우 진폭 보간 반복. sin파 random 떨림이 아닌 *예측 가능한 직선 이동*. 마지막 단계는 반드시 *원위치 복귀* 액션.
+
+```
+moveBy(+amp, 0, dur=stepDur)
+moveBy(-2*amp, 0, dur=stepDur)
+moveBy(+2*amp, 0, dur=stepDur)
+... (cameraShakeStepCount회 반복)
+moveBy(±amp, 0, dur=stepDur)  ← 원위치 복귀 (count 짝/홀에 따라 부호 결정)
+```
+
+수동 검산 (count=6):
+```
+i=0: +amp   (누적 +amp)
+i=1: -2amp  (누적 -amp)
+i=2: +2amp  (누적 +amp)
+i=3: -2amp  (누적 -amp)
+i=4: +2amp  (누적 +amp)
+i=5: -2amp  (누적 -amp)
+복귀:+amp   (누적   0) ✓
+```
+
+일반화: count 짝수 → 누적 -amp → 복귀 +amp / count 홀수 → 복귀 -amp.
+
+### c. 플래시 노드
+**확정**: 화면 전체 덮는 빨간 SKSpriteNode. cameraNode 자식으로 부착 → scene.size로 풀스크린 → fadeIn → fadeOut → 자가 제거. **BombFlashNode와 거의 같은 구조이지만 색·타이밍·zPosition이 달라 별도 클래스로 분리.** 공통 추출(BaseFlashNode)은 Rule of three(3개 등장) 시점까지 보류.
+
+### d. 트리거 지점
+**확정**: `configureContactRouter()` 안 `onProjectileHitPlayer` 클로저. 시각 효과 → 상태 전환 *순서*:
+
+```swift
+contactRouter.onProjectileHitPlayer = { [weak self] in
+    guard let self = self else { return }
+    self.cameraNode.run(CameraShakeAction.make())     // 신규
+    let flash = HitFlashNode()                          // 신규
+    self.cameraNode.addChild(flash)                     // 신규
+    flash.flash(sceneSize: self.size)                   // 신규
+    self.endGame()
+}
+```
+
+**중요 — 호출 순서 고정**:
+1. 셰이크/플래시 트리거가 `endGame()` *이전*에 들어가야 함
+2. 이유: endGame 호출 순간 `gameState = .gameOver`로 전환 → 다음 프레임부터 `update()` early return → 카메라 follow 정지 → 셰이크 액션이 단독으로 cameraNode.position 변경. 셰이크 액션 자체는 *별개 큐*라 endGame과 무관하게 진행.
+3. **트리거를 endGame 안으로 옮기지 말 것**: 시간 만료 endGame에서도 빨간 플래시가 떠 *의미 혼동*. 피격 전용 피드백은 피격 콜백에서만.
+
+### e. 멱등성
+**확정**: 현재 F 1발 → 즉시 endGame → ResultScene 전환. 같은 GameScene 인스턴스에서 두 번째 onProjectileHitPlayer 호출은 endGame 멱등 가드에서 차단(시각 효과는 두 번 발화 가능하지만 같은 프레임이라 시각적 차이 0). 본 sprint는 *시각 효과 자체*의 멱등 가드 없음 — endGame에 위임.
+
+### f. zPosition
+**확정**: `hitFlashZPosition = 200` (HUD 100 위, BombFlash 250 아래). HUD 위에 두는 이유: 점수가 가려질 만큼 *임팩트* 강조. 0.3초만 떠 있으므로 점수 가려도 게임플레이 방해 없음. BombFlash(250)보다 낮은 건 *AIRFORCE 폭탄이 더 큰 사건*이라는 위계.
 
 ---
 
 ## 기능 상세
 
-### 기능 1: GameConfig 상수 6개 추가
+### 기능 1: GameConfig — Hit Feedback 상수 추가
 
-**구현 위치**: `Config/GameConfig.swift` 파일 맨 아래 (`bgmFadeOutDuration` 다음)
+**구현 위치**: `Config/GameConfig.swift` 끝에 `// MARK: - Hit Feedback (Phase 6-9)` 섹션 추가
 
 ```swift
-// MARK: - Sparkle Effect (Phase 6-8)
-/// 음표 수집 시 방사되는 sparkle 파편 개수. 8방향 균등 방사 — 정팔각형.
-/// 4면 너무 빈약, 16면 시각 노이즈. 8이 균형점. GDD: 음악=별 미학.
-static let sparkleParticleCount: Int = 8
-/// sparkle 파편 1개의 반지름 (pt). 음표 한 변(16)의 1/8 = 2.0pt. 작은 별빛 입자 톤.
-static let sparkleParticleRadius: CGFloat = 2.0
-/// sparkle 방사 거리 (pt). 노트 중심에서 파편이 도달하는 최대 거리.
-/// 음표 한 변(16)의 ~1.5배 = 24pt. 너무 멀면 인접 음표와 겹침, 가까우면 임팩트 약함.
-static let sparkleSpawnDistance: CGFloat = 24
-/// sparkle 페이드/이동 액션 총 길이 (초). group 액션 묶음의 duration.
-/// 너무 길면 다음 음표 수집과 겹쳐 시각 노이즈. 0.5초가 *반짝*의 적정선.
-static let sparkleFadeDuration: TimeInterval = 0.5
-/// sparkle 파편 zPosition. HUD(100) 아래, Player/Note(0~5) 위 — 노트가 사라진 자리에서 위로 떠오르는 느낌.
-static let sparkleZPosition: CGFloat = 30
-/// sparkle 파편의 끝 스케일. 0.0이면 한 점으로 수렴(별빛 꺼짐), 1.0이면 동일 크기 유지.
-/// 0.2면 페이드아웃 + 살짝 축소 — 별이 멀어지는 느낌.
-static let sparkleEndScale: CGFloat = 0.2
+// MARK: - Hit Feedback (Phase 6-9)
+/// 카메라 셰이크 진폭 (pt). 좌우 한 방향 이동량. 6~10pt 범위에서 8 채택.
+/// 너무 크면 어지러움, 너무 작으면 안 보임. 학생 머리 *띵* 흔들림.
+static let cameraShakeAmplitude: CGFloat = 8
+/// 카메라 좌우 흔들림 반복 횟수. 6회 → 좌·우·좌·우·좌·우 (마지막 원위치 별도).
+/// 총 모션 = stepDuration × (count + 1).
+static let cameraShakeStepCount: Int = 6
+/// 카메라 셰이크 한 스텝 길이 (초). 6 × 0.04 + 0.04 = 0.28초 ≈ haptics.heavy 체감 길이.
+static let cameraShakeStepDuration: TimeInterval = 0.04
+/// 피격 플래시 alpha 피크 (0~1). 0.55 = 반투명 빨강 — 시야 차단 방지, *맞았다* 명확.
+static let hitFlashPeakAlpha: CGFloat = 0.55
+/// 피격 플래시 fadeIn 길이 (초). 빠르게 등장 — *번쩍* 임팩트.
+static let hitFlashFadeInDuration: TimeInterval = 0.05
+/// 피격 플래시 fadeOut 길이 (초). 천천히 사라짐 — *잔상* 효과.
+/// 총 노출 = fadeIn(0.05) + fadeOut(0.25) = 0.30초 ≈ 셰이크(0.28) 동기.
+static let hitFlashFadeOutDuration: TimeInterval = 0.25
+/// 피격 플래시 zPosition. HUD(100) 위, BombFlash(250) 아래.
+/// 점수 라벨을 잠깐 덮어 임팩트 강조 — 0.3초만 가려지므로 게임플레이 무방해.
+static let hitFlashZPosition: CGFloat = 200
 ```
-
-**주의**: 매직 넘버 노출 0건. 모든 SparkleEffectNode 내부 수치는 이 상수만 참조.
 
 ---
 
-### 기능 2: SparkleEffectNode 신설 (자가 소멸 노드 4호)
+### 기능 2: CameraShakeAction — SKAction 빌더 enum 네임스페이스
 
-**구현 위치**: 새 파일 `Nodes/SparkleEffectNode.swift`
-
-**책임**:
-- SKNode 컨테이너 (자식으로 SKShapeNode 8개를 보유)
-- emit() 호출 시 각 파편을 8방향(45° 간격)으로 동시에 이동 + 페이드아웃 + 스케일 다운
-- SKAction.group([move, fadeOut, scale])로 *동시 진행* → group 끝나면 컨테이너 자가 제거
-
-**Spring 비유**: `@TransactionalEventListener` 다중 listener — 한 이벤트(= 음표 수집)에 햅틱/사운드/sparkle 3개 listener가 *동시*에 반응. SKAction.group이 바로 동시 실행 컨테이너.
-
-**핵심 코드 구조**:
+**구현 위치**: 새 파일 `Systems/CameraShakeAction.swift`
 
 ```swift
 //
-//  SparkleEffectNode.swift
+//  CameraShakeAction.swift
 //  GanhoMusic Shared
 //
-//  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 + 자가 소멸 (시각 폴리싱)
+//  Phase 6-9 · 카메라 셰이크 SKAction 빌더 (피격 시각 임팩트)
 //
 
 import SpriteKit
 
-/// 음표 수집 시 노트 위치에서 8방향으로 방사되는 sparkle 파편 컨테이너.
-/// PhysicsBody 부착 0 — 순수 시각. SKAction.group(이동 + 페이드 + 스케일)을
-/// 8개 자식 SKShapeNode에 *동시* 실행 → 0.5초 후 컨테이너 자가 제거.
-/// AirplaneNode / AirforceOverlayNode / BombFlashNode 패턴 답습 — 자가 소멸 노드 4회차.
-/// Spring 비유: @TransactionalEventListener 다중 listener — 한 이벤트(노트 수집)에
-/// 햅틱(6-1) + 사운드(6-2) + sparkle(6-8) 3채널 멀티모달 반응.
-final class SparkleEffectNode: SKNode, SelfDismissingNode {
+/// 카메라(또는 임의 SKNode)에 적용 가능한 좌우 셰이크 SKAction을 만들어주는
+/// 순수 팩토리 네임스페이스. case 없는 enum으로 인스턴스화 차단.
+/// Spring 비유: 정적 빌더 — 상태 없음, side-effect 없음, 입력 없이 SKAction 1개 반환.
+/// 사용: cameraNode.run(CameraShakeAction.make())
+enum CameraShakeAction {
+
+    // MARK: - Make
+    /// 좌→우→좌→우 직선 이동을 cameraShakeStepCount회 반복 후 *원위치 복귀*.
+    /// 진폭은 GameConfig.cameraShakeAmplitude, 스텝당 길이는 cameraShakeStepDuration.
+    /// 마지막 복귀 단계는 누적 변위 0이 되도록 부호 결정 (count 짝/홀).
+    /// 학생 비유: 머리를 좌·우·좌·우·좌·우 흔든 뒤 정면으로 *딱* 복귀.
+    static func make() -> SKAction {
+        let amp = GameConfig.cameraShakeAmplitude
+        let dur = GameConfig.cameraShakeStepDuration
+        let count = GameConfig.cameraShakeStepCount
+
+        // 첫 이동(+amp), 그 후 (count-1)회 ±2amp 토글, 마지막 ±amp로 원위치.
+        var steps: [SKAction] = []
+        steps.append(SKAction.moveBy(x: +amp, y: 0, duration: dur))
+        for i in 1..<count {
+            let dx: CGFloat = (i % 2 == 0) ? +2 * amp : -2 * amp
+            steps.append(SKAction.moveBy(x: dx, y: 0, duration: dur))
+        }
+        // 원위치 복귀: count 짝수면 누적 -amp → 복귀 +amp / 홀수면 누적 +amp → 복귀 -amp.
+        let returnDx: CGFloat = (count % 2 == 0) ? +amp : -amp
+        steps.append(SKAction.moveBy(x: returnDx, y: 0, duration: dur))
+        return SKAction.sequence(steps)
+    }
+}
+```
+
+---
+
+### 기능 3: HitFlashNode — 빨간 풀스크린 자가 소멸 노드
+
+**구현 위치**: 새 파일 `Nodes/HitFlashNode.swift`
+
+```swift
+//
+//  HitFlashNode.swift
+//  GanhoMusic Shared
+//
+//  Phase 6-9 · F 피격 시 화면 빨간 풀스크린 플래시 + 자가 소멸
+//
+
+import SpriteKit
+
+/// F 투사체 피격 시 화면 전체를 빨갛게 덮는 자가 소멸 플래시.
+/// PhysicsBody 부착 0 — 순수 시각. BombFlashNode 패턴 답습이나 색·타이밍·zPosition 차이로
+/// 별도 클래스. 공통 추출(BaseFlashNode)은 Rule of three(3개 등장) 시점까지 보류.
+/// Spring 비유: 같은 인터페이스(SelfDismissingNode)를 따르는 두 번째 구현체 —
+/// BombFlashNode가 누런 폭탄 잔상이라면 HitFlashNode는 붉은 피격 잔상.
+final class HitFlashNode: SKSpriteNode, SelfDismissingNode {
 
     // MARK: - Init
-    override init() {
-        super.init()
-        name = "sparkle"
-        zPosition = GameConfig.sparkleZPosition
-        buildParticles()
+    init() {
+        // ColorTokens.ganhoBloodAccent — assets.md에 "피격 플래시" 용도로 이미 정의됨(재사용).
+        super.init(texture: nil, color: .ganhoBloodAccent, size: .zero)
+        name = "hitFlash"
+        zPosition = GameConfig.hitFlashZPosition
+        alpha = 0
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Particles
-    /// 8개의 SKShapeNode 원형 파편을 자식으로 부착. 모두 (0,0)에서 출발.
-    /// 색은 기존 ColorTokens 또는 SKColor.white — 어두운 BG 위 별빛 톤. 새 ColorTokens 추가 금지.
-    private func buildParticles() {
-        for _ in 0..<GameConfig.sparkleParticleCount {
-            let particle = SKShapeNode(circleOfRadius: GameConfig.sparkleParticleRadius)
-            particle.fillColor = .white               // 또는 .ganhoPaper 등 기존 토큰
-            particle.strokeColor = .clear             // 외곽선 없음 — 순수 별빛
-            particle.position = .zero
-            addChild(particle)
-        }
-    }
-
-    // MARK: - Emit
-    /// 부모(worldNode)에 addChild 직후 호출. 각 파편에 8방향 SKAction.group를 *동시*에 run.
-    /// group 액션은 [move, fadeOut, scale]을 *동시* 진행 — Spring의 CompletableFuture.allOf와 유사.
-    /// 마지막 .removeFromParent()는 컨테이너(self)가 자가 제거.
-    func emit() {
-        let angleStep = (2 * CGFloat.pi) / CGFloat(GameConfig.sparkleParticleCount)
-        for (index, child) in children.enumerated() {
-            let angle = angleStep * CGFloat(index)
-            let dx = cos(angle) * GameConfig.sparkleSpawnDistance
-            let dy = sin(angle) * GameConfig.sparkleSpawnDistance
-            let move  = SKAction.moveBy(x: dx, y: dy, duration: GameConfig.sparkleFadeDuration)
-            let fade  = SKAction.fadeOut(withDuration: GameConfig.sparkleFadeDuration)
-            let scale = SKAction.scale(to: GameConfig.sparkleEndScale,
-                                       duration: GameConfig.sparkleFadeDuration)
-            child.run(.group([move, fade, scale]))
-        }
-        // 컨테이너 자가 제거: group 길이만큼 대기 후 removeFromParent.
-        // child 액션과 동일한 sparkleFadeDuration으로 묶어 정확한 타이밍 보장.
-        let wait    = SKAction.wait(forDuration: GameConfig.sparkleFadeDuration)
+    // MARK: - Flash
+    /// 부모(cameraNode)에 addChild 직후 호출. scene.size로 풀스크린 크기 부여 →
+    /// fadeIn(빠름) → fadeOut(느림, peakAlpha부터) → 자가 제거.
+    /// peakAlpha 미만으로 페이드 — 시야 완전 차단 방지(플레이어가 상황 인지 가능).
+    /// self 미사용 — [weak self] 캡처 불필요.
+    func flash(sceneSize: CGSize) {
+        size = sceneSize
+        position = .zero
+        let fadeIn = SKAction.fadeAlpha(to: GameConfig.hitFlashPeakAlpha,
+                                        duration: GameConfig.hitFlashFadeInDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.hitFlashFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
-        run(.sequence([wait, cleanup]))
+        run(.sequence([fadeIn, fadeOut, cleanup]))
     }
 }
 ```
 
-**SelfDismissingNode 채택 이유**:
-- 기존 4-R protocol(AirplaneNode/AirforceOverlayNode/BombFlashNode 마커)과 일관성
-- 미래에 protocol extension으로 *공통 동작*(예: didEmit 콜백)을 추가 가능
+**BombFlashNode와의 차이 표**:
+
+| 항목 | BombFlashNode | HitFlashNode |
+|---|---|---|
+| 색 | `.ganhoPaper` (누런 흰빛) | `.ganhoBloodAccent` (붉은) |
+| 시작 지연 | `wait(2.1)` 후 점등 | 즉시 점등 |
+| fadeIn 최대 alpha | 1.0 (완전 차단) | `peakAlpha=0.55` (반투명) |
+| zPosition | 250 | 200 |
+| 트리거 이벤트 | AIRFORCE 이스터에그 | F 투사체 피격 |
+| fadeIn 길이 | 0.07 | 0.05 |
+| fadeOut 길이 | 0.35 | 0.25 |
 
 ---
 
-### 기능 3: GameScene에서 sparkle spawn 트리거
+### 기능 4: GameScene — `onProjectileHitPlayer` 콜백 확장
 
-**구현 위치**: `GameScene.swift` → `configureContactRouter()` 메서드 내 `contactRouter.onNoteCollected` 클로저
-
-**개념적 변경 후 (Generator가 실제 코드와 매칭)**:
+**변경 전**:
 ```swift
-contactRouter.onNoteCollected = { [weak self] note in
-    guard let self = self else { return }
-    self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
-    self.haptics.light()
-    self.audio.play(.noteCollected)
-    // Phase 6-8 — note 위치에서 sparkle 8방향 방사. note는 worldNode 자식이므로
-    // worldNode 좌표계 위치를 캡처해 같은 worldNode에 sparkle을 부착.
-    // note.position을 *먼저* 캡처 — note.removeFromParent() 후엔 노드가 트리에서 빠짐.
-    let sparkleOrigin = note.position
-    let sparkle = SparkleEffectNode()
-    sparkle.position = sparkleOrigin
-    self.worldNode.addChild(sparkle)
-    sparkle.emit()
-    note.run(.removeFromParent())
+contactRouter.onProjectileHitPlayer = { [weak self] in
+    self?.endGame()
 }
 ```
 
-**주의 — note 좌표 캡처 타이밍**:
-1. `note.position`은 *worldNode 자식*의 좌표 (note의 parent가 worldNode이므로 worldNode 좌표계 기준값)
-2. `.removeFromParent()` 실행 *전에* position을 캡처해야 함 — 제거 후엔 parent가 nil이라 좌표 보장 X
-3. sparkle도 같은 worldNode에 add → 같은 좌표계 → 카메라 follow / 월드 스크롤과 함께 자연스럽게 따라감
+**변경 후 (Phase 6-9)**:
+```swift
+contactRouter.onProjectileHitPlayer = { [weak self] in
+    guard let self = self else { return }
+    // Phase 6-9 — 시각 임팩트 2채널: 카메라 셰이크 + 빨간 플래시.
+    // haptics.heavy() (6-1) + audio.play(.gameOver) (6-2) + BGM stop (6-4)은
+    // endGame() 내부에서 이미 발화 — 3채널 멀티모달 피격 피드백 완성.
+    // 시각 효과 → 상태 전환 순서: 피격 콜백에서 시각만 일으키고,
+    // gameOver 상태 전환은 endGame이 전담(책임 분리).
+    self.cameraNode.run(CameraShakeAction.make())
+    let flash = HitFlashNode()
+    self.cameraNode.addChild(flash)
+    flash.flash(sceneSize: self.size)
+    self.endGame()
+}
+```
 
-**Generator 유연성**: 실제 onNoteCollected 클로저의 정확한 형태(파라미터 이름, 메서드명)는 GameScene.swift를 읽고 매칭. sparkle 5줄을 *기존 동작 직후, note.removeFromParent() 직전*에 삽입.
-
-**멱등성**:
-- onNoteCollected는 한 노트당 1회만 호출(ContactRouter의 didBegin)
-- 이미 sparkle 8개 동시 add → 같은 음표에 두 번 sparkle 안 만들어짐
-- note.removeFromParent()까지 같은 클로저 안에서 처리 — race 0
+**Generator 유연성**: 실제 onProjectileHitPlayer 클로저 이름이 다를 수 있음. GameScene.swift를 읽고 정확히 매칭 — F 투사체 피격 콜백 1지점.
 
 ---
 
-### 기능 4: pbxproj 4지점 등록
+### 기능 5: project.pbxproj 등록
 
-**구현 위치**: `GanhoMusic.xcodeproj/project.pbxproj`
+새 파일 2개를 SparkleEffectNode 등록 라인 4곳 형식으로 추가:
 
-BombFlashNode.swift 등록 패턴을 그대로 답습:
+1. **HitFlashNode.swift** (Nodes 그룹)
+   - PBXBuildFile
+   - PBXFileReference
+   - Nodes 그룹 children
+   - Sources build phase
 
-1. **PBXBuildFile 섹션**:
-   ```
-   <NEW_UUID_BUILD> /* SparkleEffectNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = <NEW_UUID_FILE> /* SparkleEffectNode.swift */; };
-   ```
+2. **CameraShakeAction.swift** (Systems 그룹)
+   - PBXBuildFile
+   - PBXFileReference
+   - Systems 그룹 children (없으면 신규 생성하지 말고 Sources 그룹에 자유 배치)
+   - Sources build phase
 
-2. **PBXFileReference 섹션**:
-   ```
-   <NEW_UUID_FILE> /* SparkleEffectNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleEffectNode.swift; sourceTree = "<group>"; };
-   ```
-
-3. **Nodes 그룹 children**: SparkleEffectNode.swift 항목 추가
-
-4. **Sources build phase**: SparkleEffectNode.swift in Sources 항목 추가
-
-UUID는 BombFlashNode 패턴 따라 새 24자리 hex 생성. Generator는 BombFlashNode 4지점 등록을 grep해서 패턴을 그대로 복제하면 됨.
+**UUID**: 기존 패턴(`A1C0F1Axxxxxxxxxxxxxxxxxx`, `A1C0F1Bxxxxxxxxxxxxxxxxxx`) 답습. 충돌 안 나는 새 hex 2쌍 생성.
 
 ---
 
@@ -233,143 +304,147 @@ UUID는 BombFlashNode 패턴 따라 새 24자리 hex 생성. Generator는 BombFl
 
 ### (a) 빌드
 - `xcodebuild ... build` → BUILD SUCCEEDED, 경고 0
-- SparkleEffectNode.swift Sources phase에 등록 확인
+- 새 파일 2개 Sources phase에 등록 확인
 
-### (b) 음표 수집 시각 효과
-- 음표 수집 → 그 자리에 8개 흰빛 파편이 8방향으로 펼쳐짐 → 0.5초 안에 페이드아웃 + 축소
-- 카메라 follow 시 sparkle도 worldNode 자식이라 함께 이동
+### (b) F 피격 시 3채널 동시 발화
+- 시뮬레이터에서 F 맞춤 → 진동(heavy) + 화면 흔들림 + 빨간 깜빡임 동시
+- 콘솔 print 없이 육안 확인
 
-### (c) 회귀 검증
-- ScoreSystem: 점수/콤보 계산 영향 0
-- ContactRouter: onNoteCollected 시그니처 동일, 본문만 5줄 추가
-- SpawnSystem: 스폰 주기 영향 0
-- AudioManager / HapticsManager / BGMPlayer: 변경 0줄
-- 다른 Nodes (Player/Enemy/Projectile/HUD/Card/Airplane/Bomb/AirforceOverlay): 변경 0줄
-- Phase 1~6 회귀: 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터선택/AIRFORCE/사운드/햅틱/BGM 페이드/Interruption/Lifecycle 모두 정상
+### (c) 카메라 원위치 정확
+- 셰이크 직후 카메라 X 좌표 = 셰이크 직전 X 좌표(±0.01pt)
+- 누적 변위 0 보장 (count=6 수동 검산 통과)
 
-### (d) 멱등성/메모리
-- 음표 1개당 sparkle 1회 (clontactRouter didBegin 1회 보장)
-- sparkle 컨테이너 자가 제거 sequence([wait 0.5s, removeFromParent])
-- ARC 자동 해제, 메모리 누수 0
+### (d) 메모리 누수 0
+- HitFlashNode `removeFromParent` 자가 호출
+- ResultScene 전환 시 GameScene → cameraNode → flash 자식 ARC 자동 해제
+- CameraShakeAction은 노드 아님 — SKAction 반환만, 누수 가능성 없음
 
-### (e) 성능 (60fps 유지)
-- 음표 수집 빈도 ~1~2/sec
-- 동시 sparkle 컨테이너 최대 ~3~4 = 24~32 SKShapeNode
-- SKShapeNode 도형은 GPU 친화적 경량, 60fps 영향 무시 가능
+### (e) ResultScene 전환 안전
+- presentScene fade(0.4초)가 셰이크(0.28초) + 플래시(0.30초)를 덮음
+- 크래시 위험 0
 
-### (f) 음원 부재 / 기타 환경 회귀
-- BGMPlayer 음원 부재 시 sparkle 동작에 영향 0 (독립)
-- 시뮬레이터에서도 정상 동작 (SKShapeNode는 GPU 텍스처 안 필요)
+### (f) 시간 만료 endGame은 영향 없음
+- 시간 만료는 update 내 endGame 직접 호출
+- onProjectileHitPlayer 콜백 우회 → 시각 효과 미발화
+- *피격 전용* 피드백 책임 분리 보존
+
+### (g) enemy 접촉 endGame도 영향 없음
+- onEnemyHit 콜백은 그대로 self?.endGame() — 시각 효과 미발화
+- 수간호사 직접 접촉 vs F 투사체 피격 디자인 분리
+
+### (h) 회귀 0줄
+- AudioManager / HapticsManager / BGMPlayer / ScoreSystem / ContactRouter 시그니처 / SpawnSystem
+- TitleScene / ResultScene / 기존 Nodes (NoteNode/Player/Enemy/Projectile/HUD/Card/Airplane/Bomb/AirforceOverlay/Sparkle)
+- Repositories / Models / Protocols 모두 0줄
+
+### (i) Phase 1~6 회귀
+- 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터선택/AIRFORCE/사운드/햅틱/BGM/Interruption/Lifecycle/sparkle 모두 정상
 
 ---
 
 ## 학습 가치
 
-### 1. SKAction.group vs sequence
-- **group**: 여러 액션이 *동시*에 진행. 끝나는 시점은 가장 긴 액션이 끝날 때.
-- **sequence**: 액션이 *차례로* 진행. 총 길이는 각 액션 합산.
-- sparkle 1개 파편은 이동 + 페이드 + 스케일이 *동시* → group
-- 컨테이너 자가 제거는 wait → removeFromParent *차례* → sequence
+### 1. SKCameraNode 활용 — UIKit ViewController 비유
+이미 `cameraNode`가 있고 player를 follow 중. *그 카메라에 SKAction을 직접 run*하는 게 셰이크의 핵심.
 
-> **Spring 비유**:
-> - group = `CompletableFuture.allOf(...)` — 여러 비동기 작업 동시 진행, 모두 완료 시점 대기
-> - sequence = `CompletableFuture.thenCompose(...)` — 앞 작업 끝나야 다음 시작
+UIKit 비유: `UIView.animate`로 `transform.translate`를 흔드는 것 ≈ SpriteKit에서 cameraNode에 `moveBy`.
 
-### 2. SKShapeNode의 경량성
-- SKSpriteNode는 텍스처 이미지 필요 — GPU 텍스처 캐시 점유
-- SKShapeNode는 도형(원/사각형/path)만으로 GPU 친화적 렌더링
-- 짧게 사라지는 파티클(0.5초)에 적합 — 텍스처 안 만들고 코드만으로 임팩트
-- "별빛 입자"라는 추상 개념을 *가장 단순한 도형*인 원 8개로 표현 — 미니멀리즘
+> **Spring 비유**: ViewController가 view 전체를 흔드는 게 아니라 *Camera가* 흔든다 — SpriteKit은 View ↔ Camera 분리(MVVM의 View ↔ ViewModel과 흡사). 카메라가 뷰포트의 *대리인* 역할.
 
-> **Spring 비유**: `@RestController`가 String 1줄 응답하는 것 vs 큰 JSON 객체 응답. 텍스처 안 필요한 단순 도형은 *가벼운 응답*과 비슷.
+### 2. 셰이크 알고리즘의 단순성
+sin파 random 떨림은 *생물학적*으로 자연스럽지만, *직선 sequence*는 *예측 가능 + 디버깅 쉬움 + 코드 짧음*. 학습 단계에선 random보다 sequence가 압도적으로 유리.
 
-### 3. SelfDismissingNode 패턴의 확장 — 4호 노드
-- Phase 4-R에서 SelfDismissingNode protocol 추출됨 (AirplaneNode/AirforceOverlayNode/BombFlashNode)
-- 4호 노드 SparkleEffectNode가 같은 패턴 채택
-- 공통 책임: "한 번 등장 → 액션 수행 → 자가 제거". 호출자는 add만 하면 됨, 정리는 노드 본인
-- **노드 책임 분산 패턴의 누적** — 점점 더 많은 효과 노드가 이 패턴으로 통일됨
+> **Spring 비유**: 단순 fixed-rate scheduler vs cron expression — 본 sprint는 fixed-rate. 단순함이 학습 단계에서 가치 ↑.
 
-> **Spring 비유**: `@Async` 메서드가 호출자에게 Future 안 돌려주고 자체 종료. fire-and-forget. 호출자는 부담 0.
-> 또는 자가 정리하는 임시 빈 — `@Scope(value = "request", proxyMode = ScopedProxyMode.TARGET_CLASS)`처럼 요청 끝나면 자동 정리.
+random 셰이크는 Phase 7+ 폴리싱에서 검토.
 
-### 4. 멀티모달 피드백 3채널 완성
-| 채널 | Phase | 메서드 |
+### 3. 부정 피드백 vs 긍정 피드백의 디자인 대칭
+
+| | 긍정 (6-8 sparkle) | 부정 (6-9 hit) |
 |---|---|---|
-| 햅틱 | 6-1 | `haptics.light()` |
-| 사운드 | 6-2 | `audio.play(.noteCollected)` |
-| **시각** | **6-8** | **`sparkle.emit()`** |
+| 색 | 흰빛 (별빛) | 빨강 (혈색) |
+| 방향 | 노트에서 *밖으로* 방사 | 화면 전체 *덮음* |
+| 시간 | 0.5초 (여운) | 0.30초 (즉발) |
+| 위치 | worldNode (월드 좌표) | cameraNode (화면 좌표) |
+| 이벤트 | 음표 수집 (반복) | F 피격 (1회) |
+| 햅틱 | light (6-1) | heavy (6-1, 기존) |
 
-한 행동(음표 수집)에 3채널이 *동시*에 반응 — 게임 피드백의 완전체. 사용자 인지 가속:
-- 햅틱: 손끝으로 "맞췄다" 확인
-- 사운드: 귀로 "줍힘" 확인
-- 시각: 눈으로 "별이 터졌다" 확인
+같은 *자가 소멸 노드* 패턴을 정반대 의미에 적용하는 게 *코드 어휘 재사용*의 진수.
 
-> **Spring 비유**: `@TransactionalEventListener`에 등록된 다중 리스너가 한 트랜잭션 이벤트에 *동시* 반응 — 알림 발송, 로그 기록, 메트릭 수집 등 채널 분리. 6-8은 그 3번째 채널(시각) 등록.
+### 4. 화면 좌표 vs 월드 좌표
+- worldNode 자식(SparkleEffectNode) = *월드 좌표* — 카메라가 움직이면 같이 움직임
+- cameraNode 자식(HitFlashNode) = *화면 좌표* — 카메라가 흔들리면 같이 흔들림 + 화면에 고정
 
-### 5. 좌표계 캡처 타이밍의 미묘함
-```swift
-let sparkleOrigin = note.position  // ← 먼저 캡처
-// ...
-note.run(.removeFromParent())      // ← 그 후 제거
-```
-순서가 바뀌면 `note.position`이 *의도와 다른 값*을 반환할 수 있음 — note가 parent에서 빠진 후엔 좌표 의미 불명확.
+본 sprint에서 HitFlashNode를 cameraNode에 두는 이유: 플래시는 *화면을 덮는* 효과이므로 월드와 무관. 카메라 셰이크와 *함께 흔들림* → 흔들림이 더 강하게 체감됨 (영리한 부작용).
 
-> **Spring 비유**: DB 트랜잭션 안에서 값을 *읽어둔 후* 커밋/롤백. 또는 `Optional.map { ... }` 안에서 값 처리 후 *바깥에서* 변경. 자료 수명에 대한 정확한 의식.
+> **Spring 비유**: HTTP request scope vs application scope — 본 sprint에선 "화면(=session)에 묶인 노드" vs "세상(=global state)에 묶인 노드".
 
-### 6. 음악 = 별의 미학 — 자전적 게임 정체성 완성
-- 사용자가 새벽 병동에서 작곡한 BGM (6-4에서 인프라 완성)
-- 어두운 BG(#1A1B2E) 위 분홍 음표 — 밤하늘 별
-- 음표 수집 시 *별이 터지는* sparkle (6-8)
-- → 게임 정체성의 시각적 완성. "병동에서 작곡하던 새벽, 별빛 같은 음악이 잠시 반짝이고 사라졌다"는 자전적 톤이 사용자에게 직접 전달
+### 5. HapticsManager + 시각 임팩트 = 멀티모달 피격 피드백 5채널
 
-학생 비유: "노래방에서 곡을 부르고 박수받는 순간 → 박수 소리 + 진동 + 마이크 조명 깜빡임이 동시. 만약 박수만 있고 조명이 없으면 뭔가 허전해요. 조명이 sparkle 역할."
+게임오버 0.3초 동안 *동시* 발화하는 채널:
+- haptics.heavy() (6-1) — 진동
+- audio.play(.gameOver) (6-2) — 청각 (효과음)
+- bgm.stop() (6-4) — 청각 (정지)
+- cameraNode.run(shake) (6-9) — 운동감
+- HitFlashNode (6-9) — 시각
+
+5채널이 endGame 멱등 가드 안쪽에서 *동시* 발화 — 게임오버 0.3초가 게임의 *가장 풍부한 감각 입력 순간*. 폴리싱의 정체.
+
+> **Spring 비유**: `@TransactionalEventListener`에 등록된 다중 리스너가 한 이벤트(피격)에 *동시* 반응 — 알림 + 로그 + 메트릭 + ... 채널 분리.
+
+### 6. enum 네임스페이스로 정적 팩토리 만들기
+`CameraShakeAction`은 case 없는 enum. 인스턴스화 차단 + `static func`만 노출. Swift에서 *namespace* 역할.
+
+> **Spring 비유**: `@Component`가 아닌 `@UtilityClass`(Lombok) 혹은 static factory 메서드만 가진 final class. 상태 없는 순수 함수 집합.
+
+### 7. Rule of Three — "두 번까지는 별개"
+HitFlashNode와 BombFlashNode가 *비슷하지만 다른* 풀스크린 플래시. 공통 추출(BaseFlashNode protocol/superclass)을 *지금* 하지 않음. **Rule of Three** — 같은 패턴이 *3개* 등장하면 그때 추출.
+
+> **Spring 비유**: 두 개의 비슷한 컨트롤러 메서드를 미리 abstract 컨트롤러로 묶지 말 것. 세 번째 등장 시 *진짜 공통점*이 드러남. premature abstraction 회피.
 
 ---
 
 ## 주의사항
 
-### SpriteKit 특성
-- **SKShapeNode의 가벼움**: 텍스처 없이 원/사각형 등 도형만으로 만들어 텍스처 캐시 부담 0. circleOfRadius는 GPU 친화적 경량 노드. *별빛 입자 8개 × 0.5초만 살아있음*이라 60fps에 거의 부담 없음.
-- **SKAction.group vs sequence**: group은 *동시*에, sequence는 *차례로*. sparkle은 이동 + 페이드 + 스케일이 *동시* 진행되어야 하므로 group. 컨테이너 자가 제거는 wait + removeFromParent의 sequence.
-- **부모 좌표계 일관성**: note는 worldNode 자식이므로 note.position도 worldNode 기준. sparkle도 worldNode에 add → 같은 좌표계 → 카메라 follow 시 sparkle도 같이 이동.
-- **note 제거 순서**: `note.position` 캡처 → sparkle add → note.removeFromParent(). 순서 바뀌면 좌표 lost.
+### 시뮬레이터 동작
+- **시뮬레이터 햅틱 noop**: 시각 효과는 *반드시* 시뮬레이터에서도 확인 가능 — 햅틱과 달리 셰이크/플래시는 노드 액션이라 모든 환경에서 작동.
 
-### 회귀 안전성
-- **ScoreSystem 영향 0**: recordNoteHit 호출 위치/인자 동일. score/combo 계산 변경 0.
-- **ContactRouter 영향 0**: onNoteCollected 시그니처 동일. 콜백 본문만 5줄 추가.
-- **SpawnSystem 영향 0**: 음표 스폰 주기/개수 변경 0. noteMaxConcurrent와 무관.
-- **성능**: sparkle 1회당 8 SKShapeNode + 8 SKAction = 16 객체. 음표 수집 빈도 ~1~2/sec. 동시 sparkle 컨테이너 최대 ~3~4 = 24~32 노드 → 60fps 유지 가능.
-- **메모리**: 각 sparkle 0.5초 후 자가 제거 → 누적 0. ARC가 자동 해제.
+### 카메라 follow와 셰이크 간섭
+- 검증 시나리오 (c) 참조
+- 호출 순서가 *셰이크 → flash → endGame*인 점이 *핵심* — 절대 순서 바꾸지 말 것
+- `endGame()` 먼저 호출 시 update의 cameraNode.position 덮어쓰기가 *그 한 프레임* 안에 셰이크 첫 스텝을 잠식 가능 → 순서 고정
 
-### Swift / SpriteKit 규칙 준수
-- 강제 언래핑 `!` 0건
-- `guard let self = self else { return }` 패턴 유지
-- `[weak self]` 캡처 유지
-- Timer 미사용 — SKAction만
-- 매직 넘버 0건 — GameConfig 상수 6개 신설
-- 한국어 변수명 0건. 주석은 한국어 OK.
+### GameScene+Setup.swift 미수정
+본 sprint는 GameScene 본체의 *콜백 1개*만 확장. setup 로직 미접촉.
 
 ### 빌드 에러 가능성
-- pbxproj UUID 충돌: BombFlashNode 등 기존 UUID와 안 겹치는 새 24자리 hex 사용
-- `import SpriteKit` 누락: SparkleEffectNode.swift 맨 위 명시
-- `SKColor` vs `UIColor`: SpriteKit 코드는 import SpriteKit 시 SKColor 사용. iOS에서 UIColor == SKColor.
+- `CameraShakeAction` enum 네임스페이스 — `CameraShakeAction.make()` 호출 형태 정확히
+- `HitFlashNode`가 `SelfDismissingNode` 채택 — 프로토콜이 marker라 추가 메서드 구현 불필요
+- pbxproj UUID 충돌 시 빌드 실패 — 기존 UUID와 *정확히* 다른 hex 사용
+- `ganhoBloodAccent` 토큰 존재 확인 — ColorTokens.swift에서 확인 후 재사용
+
+### Swift / SpriteKit 규칙 준수
+- 강제 언래핑 `!` 0건 (`guard let self = self else { return }` 적용)
+- 매직 넘버 0건 (모든 수치 GameConfig 상수화)
+- `Timer` 미사용 (SKAction.sequence만)
+- update 안 addChild 0건 (콜백 안 addChild는 *이벤트 기반*이라 매 프레임 아님)
+- weak self 캡처 적용 (`onProjectileHitPlayer = { [weak self] in ... }`)
+
+### Sprint 범위 위반 자가 점검
+SPEC에 *없는* "셰이크 강도를 콤보 수에 비례", "플래시 색을 콤보 등급별로 변경" 등 추가 *금지*. 이번 sprint는 셰이크 1가지 + 플래시 1가지로 충분.
 
 ---
 
-## Generator 체크리스트 (구현 후 자체 검증)
+## Generator 체크리스트
 
-- [ ] `Config/GameConfig.swift` 맨 아래 Sparkle Effect 섹션 6개 상수 추가
-- [ ] `Nodes/SparkleEffectNode.swift` 신설 — SelfDismissingNode 채택, SKNode 상속, 8개 SKShapeNode 자식
-- [ ] `buildParticles()`는 init 시점에만 호출 — update 안 addChild 0건
-- [ ] `emit()` 안 SKAction.group([move, fade, scale]) 패턴 정확히 적용
-- [ ] 컨테이너 자가 제거 sequence([wait, removeFromParent]) 적용
-- [ ] `GameScene.swift` onNoteCollected 클로저에 sparkle spawn 5줄 추가, `note.position` 캡처를 `.removeFromParent()` *이전*에 수행
-- [ ] sparkle은 `self.worldNode`에 addChild (cameraNode 아님 — note와 같은 좌표계)
-- [ ] pbxproj 4지점 등록 (BombFlashNode 패턴 grep으로 확인)
-- [ ] 강제 언래핑 `!` 0건
-- [ ] Timer 0건, SKAction만 사용
-- [ ] 매직 넘버 0건 (모든 수치는 GameConfig 경유)
-- [ ] `[weak self]` 캡처 유지
-- [ ] 새 색/효과음/햅틱/PhysicsCategory 추가 0건
-- [ ] GameScene / ContactRouter / ScoreSystem / SpawnSystem 시그니처 변경 0건
-- [ ] 빌드 클린 + 시뮬레이터에서 음표 수집 시 흰빛 8방향 sparkle 확인
+- [ ] `Config/GameConfig.swift` 끝에 Hit Feedback 섹션 + 상수 7개 추가
+- [ ] `Systems/CameraShakeAction.swift` 신설 — enum 네임스페이스, static func make()
+- [ ] `Nodes/HitFlashNode.swift` 신설 — SelfDismissingNode 채택, SKSpriteNode 상속
+- [ ] HitFlashNode.flash(sceneSize:) 메서드 sequence([fadeIn, fadeOut, removeFromParent])
+- [ ] CameraShakeAction.make() 마지막 복귀 단계 누적 변위 0 검산 통과
+- [ ] `GameScene.swift` onProjectileHitPlayer 콜백 5줄로 확장 (셰이크 → flash 부착 → endGame 순서)
+- [ ] 헤더 주석 1줄 추가
+- [ ] pbxproj 4지점 × 2파일 = 8지점 등록 (UUID 충돌 0)
+- [ ] 빌드 BUILD SUCCEEDED + 경고 0
+- [ ] 회귀 0줄 (검증 시나리오 (h) 항목 git diff 통과)
+- [ ] 강제 언래핑 0, 매직 넘버 0, Timer 0

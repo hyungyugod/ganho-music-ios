@@ -1,53 +1,81 @@
-# QA 검수 보고서 — Phase 6-8 음표 수집 sparkle 파티클
+# QA 검수 보고서 — Phase 6-9 · F 피격 카메라 셰이크 + 빨간 화면 플래시
 
 ## SPEC 기능 검증
 
-- [PASS] **기능 1 — GameConfig Sparkle 상수 6개**: `Config/GameConfig.swift` L267~283 에 `// MARK: - Sparkle Effect (Phase 6-8)` 섹션 신설. 6개 상수(sparkleParticleCount=8, sparkleParticleRadius=2.0, sparkleSpawnDistance=24, sparkleFadeDuration=0.5, sparkleZPosition=30, sparkleEndScale=0.2) 모두 GDD 근거 주석 첨부.
-- [PASS] **기능 2 — SparkleEffectNode 신설 (자가 소멸 4호)**: `Nodes/SparkleEffectNode.swift` 신규 68줄. `final class SparkleEffectNode: SKNode, SelfDismissingNode` — protocol 채택. `buildParticles()`는 init에서만 호출, 8 SKShapeNode(circleOfRadius=2.0) 자식. `emit()`은 `SKAction.group([move, fade, scale])` 동시 실행 + 컨테이너 `sequence([wait 0.5s, removeFromParent])` 자가 제거.
-- [PASS] **기능 3 — GameScene onNoteCollected sparkle 트리거**: `GameScene.swift` L214~221, `note.position` 캡처 후 `note.removeFromParent()` 호출(순서 정확). sparkle은 `self.worldNode.addChild`로 부착 — cameraNode 아님(좌표계 일관). 헤더에 Phase 6-8 한 줄 추가.
-- [PASS] **기능 4 — pbxproj 4지점 등록**: PBXBuildFile(L32) / PBXFileReference(L65) / Nodes 그룹 children(L212) / Sources build phase(L478). UUID `028` 신규 — 4회 출현(중복 0). BombFlashNode 패턴 답습.
+| # | 기능 | 결과 |
+|---|---|---|
+| 1 | GameConfig 상수 7개 추가 | PASS — `Config/GameConfig.swift:285-303`에 `// MARK: - Hit Feedback (Phase 6-9)` 섹션 + 7개 상수, 모든 상수 한국어 doc comment로 trade-off 명시 |
+| 2 | CameraShakeAction enum 네임스페이스 | PASS — `enum CameraShakeAction { static func make() -> SKAction }` case 없음, 인스턴스화 차단 |
+| 3 | HitFlashNode 자가 소멸 5호 | PASS — `final class HitFlashNode: SKSpriteNode, SelfDismissingNode`, `flash(sceneSize:)`가 `sequence([fadeIn, fadeOut, removeFromParent])` |
+| 4 | GameScene 콜백 확장 | PASS — `GameScene.swift:204-216`, 호출 순서 `cameraNode.run(shake) → addChild(flash) → flash.flash() → endGame()` 고정, 헤더 주석 1줄 추가 |
+| 5 | pbxproj 8지점 등록 | PASS — PBXBuildFile×2, PBXFileReference×2, Group children×2, Sources phase×2 = 8지점. UUID 029/030, 충돌 0 |
 
 ## 빌드 검증
 
-- **결과**: ✅ BUILD SUCCEEDED
-- **명령**: `xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" -scheme "GanhoMusic iOS" -destination 'generic/platform=iOS Simulator' -configuration Debug build`
-- **경고**: 0건 (`warning:` grep 매칭 0)
-- **에러**: 0건 (`error:` grep 매칭 0)
-- **비고**: SparkleEffectNode.swift Sources phase 등록 후 정상 컴파일.
+- **결과**: BUILD SUCCEEDED
+- **명령**: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
+- **컴파일 에러**: 0
+- **컴파일 경고**: 0
 
-## 회귀 0줄 강제 항목 검증 — git diff
+## 회귀 0줄 검증 (`git diff`)
 
-| 영역 | 상태 |
-|---|---|
-| `Managers/` (AudioManager / HapticsManager / BGMPlayer) | ✅ 미변경 |
-| `Systems/` (ScoreSystem / ContactRouter / SpawnSystem) | ✅ 미변경 |
-| `Scenes/` (TitleScene / ResultScene) | ✅ 미변경 |
-| `Repositories/` (HighScore / Statistics / CharacterPreference) | ✅ 미변경 |
-| `Models/` | ✅ 미변경 |
-| `Protocols/SelfDismissingNode.swift` | ✅ 미변경 (채택만, 정의 변경 0) |
-| `Nodes/` 기존 노드 (Player/Enemy/Note/Projectile/HUD/DPad/StoneGuard/Airplane/AirforceOverlay/BombFlash/CharacterCard) | ✅ 미변경 (SparkleEffectNode만 신규) |
-| `Config/ColorTokens.swift` | ✅ 미변경 (SKColor.white 직접 사용) |
-| `Config/PhysicsCategory.swift` | ✅ 미변경 (sparkle PhysicsBody 0) |
-| `Errors/` | ✅ 미변경 |
+`git diff --stat HEAD` 결과:
+- **수정**: `Config/GameConfig.swift` +20, `GameScene.swift` +13/-1, `project.pbxproj` +8
+- **신규**: `Systems/CameraShakeAction.swift` (48줄), `Nodes/HitFlashNode.swift` (46줄)
 
-`git diff --stat`: GameConfig +18 / GameScene +9 / pbxproj +4 / SparkleEffectNode 신규 68줄. SPEC 4지점 정확 일치.
+**0줄 미접촉 (20개 파일 일괄 검증)**:
+- 매니저: AudioManager / HapticsManager / BGMPlayer
+- 시스템: ScoreSystem / ContactRouter (시그니처 0줄, 콜백 등록 측만 변경) / SpawnSystem
+- 씬: TitleScene / ResultScene
+- 노드: SparkleEffectNode / BombFlashNode / PlayerNode / EnemyNode / NoteNode / ProjectileNode / HUDNode / CharacterCardNode / AirplaneNode / AirforceOverlayNode
+- 인프라: SelfDismissingNode / ColorTokens
 
-## 핵심 검증 사항 추적
+→ SPEC §금지 항목 100% 준수.
 
-| # | 항목 | 결과 |
+## count=6 누적 변위 검산
+
+| step | dx | 누적 |
 |---|---|---|
-| 1 | SparkleEffectNode가 SelfDismissingNode 채택 (4호 노드) | ✅ L16 `final class SparkleEffectNode: SKNode, SelfDismissingNode` |
-| 2 | 8개 SKShapeNode 자식, init에서 buildParticles() 호출, 원형(circleOfRadius) | ✅ L23 `buildParticles()`, L36 `SKShapeNode(circleOfRadius:)` |
-| 3 | emit()에서 SKAction.group([move, fade, scale]) 동시 실행 | ✅ L59 `child.run(.group([move, fade, scale]))` |
-| 4 | 컨테이너 자가 제거 sequence([wait, removeFromParent]) | ✅ L63~65 `run(.sequence([wait, cleanup]))` |
-| 5 | GameConfig 상수 6개 모두 사용 | ✅ Count(L22), Radius(L36), Distance(L53~54), FadeDuration(L55~57, L63), ZPosition(L22), EndScale(L57) |
-| 6 | note.position 캡처가 removeFromParent 이전 | ✅ GameScene L217 캡처 → L222 removeFromParent |
-| 7 | sparkle이 self.worldNode에 addChild (cameraNode 아님) | ✅ GameScene L220 `self.worldNode.addChild(sparkle)` |
-| 8 | pbxproj 4지점 등록, UUID 충돌 0 | ✅ UUID `028` 4회 정확 출현, BombFlashNode 패턴 답습 |
-| 9 | 매직 넘버 0 (모든 수치 GameConfig 경유) | ✅ 유일한 수치 리터럴 `2 * CGFloat.pi`는 *수학 정의*(원 한 바퀴) — 상수화 대상 아님 |
-| 10 | 강제 언래핑 0, Timer 0, 새 PhysicsCategory 0, 새 색 0, 새 효과음/햅틱 0 | ✅ grep 결과 모두 0 |
-| 11 | BUILD SUCCEEDED + 경고 0 | ✅ warning/error grep 0건 |
-| 12 | 회귀 0줄 (Managers/Systems/Scenes/Repositories/Models/Protocols/Errors/기존 Nodes) | ✅ git diff 0건 |
+| 0 (+amp) | +8 | +8 |
+| i=1 (홀, −2amp) | −16 | −8 |
+| i=2 (짝, +2amp) | +16 | +8 |
+| i=3 (홀, −2amp) | −16 | −8 |
+| i=4 (짝, +2amp) | +16 | +8 |
+| i=5 (홀, −2amp) | −16 | **−8** |
+| 복귀 (count%2==0 → +amp) | +8 | **0 ✓** |
+
+총 스텝 7, 총 시간 0.28초. 셰이크 후 카메라 원위치 100% 보장.
+
+## 정적 패턴 검증
+
+| 항목 | 결과 |
+|---|---|
+| 강제 언래핑 `!` (코드) | **0건** (신규 2파일 grep, `fatalError("init(coder:)...")`는 SpriteKit 표준 패턴) |
+| `Timer.scheduledTimer` | **0건** |
+| `DispatchQueue` 신규 사용 | **0건** |
+| 매직 넘버 | **0건** (모든 수치 GameConfig 경유, 산술 표현식 인덱스만 raw) |
+| `private` 캡슐화 | 적용 (HitFlashNode 내부 메서드, CameraShakeAction은 namespace) |
+| MARK 섹션 구분 | 신설 (`// MARK: - Hit Feedback (Phase 6-9)`, `// MARK: - Make`, `// MARK: - Init`, `// MARK: - Flash`) |
+| 새 public API | HitFlashNode/CameraShakeAction만 — SPEC 허용 |
+| 새 ColorTokens | **0건** (ganhoBloodAccent 재사용) |
+| 새 PhysicsCategory | **0건** |
+| 새 효과음/햅틱 | **0건** (haptics.heavy() 그대로 활용) |
+| update 안 addChild | **0건** (이벤트 기반 콜백) |
+| `[weak self] + guard let self` | 적용 (`GameScene.swift:204-205`) |
+
+## 검증 시나리오 (a)~(i) 정적 추적
+
+| # | 시나리오 | 결과 |
+|---|---|---|
+| (a) | 빌드 BUILD SUCCEEDED, 경고 0 | PASS |
+| (b) | F 피격 시 3채널 동시 (haptics.heavy + shake + flash) | PASS (트리거 순서 코드 확인) |
+| (c) | 카메라 원위치 정확 | PASS (count=6 검산 0) |
+| (d) | 메모리 누수 0 | PASS (HitFlashNode self-removeFromParent, SKAction 노드 아님) |
+| (e) | ResultScene 전환 안전 | PASS (transition fade 0.4 > shake 0.28 / flash 0.30) |
+| (f) | 시간 만료 endGame 영향 없음 | PASS (콜백 우회) |
+| (g) | enemy 접촉 endGame 영향 없음 | PASS (onEnemyHit 미변경) |
+| (h) | 회귀 0줄 | PASS (위 §회귀 검증) |
+| (i) | Phase 1~6 회귀 정상 | PASS (관련 시스템 0줄) |
 
 ## 검수 결과 요약
 
@@ -57,57 +85,37 @@
 | P1 중요 | **0건** |
 | P2 권장 | **0건** |
 
-## 통과 항목 (전 영역)
+## 통과 항목 (강점)
 
-### Swift 패턴
-- 강제 언래핑 `!` 0건 (`fatalError("init(coder:)")` 메시지 내 `!`는 문자열 리터럴, 코드 아님)
-- `Timer` / `DispatchQueue` 0건 — SKAction만 사용
-- 매직 넘버 0건 — 모든 수치는 GameConfig 6개 상수 경유
-- `MARK:` 섹션 구분(Init / Particles / Emit) 사용
-- 함수 단일 책임: `buildParticles()` = 자식 추가, `emit()` = 액션 실행
-- 네이밍 컨벤션 준수 (UpperCamelCase / lowerCamelCase / 한국어 변수 0)
-
-### SpriteKit 패턴
-- 자식 추가는 init 시점에만 (`update()` 안 `addChild()` 0건)
-- 부모 좌표계 일관성: note는 worldNode 자식 → sparkle도 worldNode 자식 → 카메라 follow 자연 동기
-- SKAction.group(동시) vs sequence(차례) 적용 정확
-- PhysicsBody 부착 0 — 순수 시각, 충돌 회귀 0
-
-### 게임 로직
-- `onNoteCollected` 시그니처 불변, 본문만 8줄 추가 (주석 3 + 코드 5)
-- `note.position` 캡처 → addChild → emit() → removeFromParent 순서 정확
-- 멱등성: ContactRouter.didBegin 1회 → sparkle 1회 (중복 발화 0)
-
-### 성능 & 안정성
-- ARC 자가 해제: 0.5초 후 `removeFromParent` → 메모리 누수 0
-- `[weak self]` 캡처: GameScene onNoteCollected 클로저 유지. SparkleEffectNode.emit() 내부는 self 미사용 → 캡처 불필요(정확한 판단)
-- 동시 sparkle 최대 ~3~4개 = 24~32 SKShapeNode → 60fps 영향 무시
-
-### 기능 완성도
-- SPEC 4개 기능 모두 구현
-- SPEC "금지" 항목 0건 위반 (SKEmitterNode 미사용 / 새 PhysicsCategory 0 / 새 색 0 / 새 효과음/햅틱 0 / Manager·System 변경 0)
-- Sprint 범위 계약 정확 준수
+- **트리거 순서 고정**: `cameraNode.run(shake) → addChild(flash) → flash.flash() → endGame()` — 셰이크/플래시 발화 후에야 endGame이 `.gameOver` 전환 → update가 다음 프레임부터 early return → 카메라 follow가 셰이크 잠식 안 함.
+- **count=6 누적 변위 0**: 셰이크 후 카메라 원위치 수학적 보장. 부호 로직 일반화(count 짝/홀).
+- **자가 소멸 5호**: SparkleEffectNode → BombFlashNode → AirplaneNode → AirforceOverlayNode → HitFlashNode. SelfDismissingNode marker protocol 패턴 누적.
+- **부정/긍정 피드백 디자인 대칭**: 6-8 sparkle(긍정, 흰빛, 월드 좌표, 0.5s) ↔ 6-9 hit(부정, 빨강, 화면 좌표, 0.30s). 같은 자가 소멸 패턴을 정반대 의미에 적용.
+- **Rule of Three 준수**: HitFlashNode가 BombFlashNode와 비슷하지만 색·타이밍·zPosition·트리거가 달라 별도 클래스. 공통 추출(BaseFlashNode)은 3번째 등장 시점까지 보류 — premature abstraction 회피.
+- **enum 네임스페이스 패턴**: CameraShakeAction은 case 없는 enum + static func — Swift 관용 idiom. 인스턴스화 차단.
+- **ColorTokens 재사용**: `.ganhoBloodAccent`(HEX #D8315B)가 assets.md에 "피격 플래시"로 이미 정의됨. 새 색 추가 0.
+- **endGame 멱등성 신뢰 위임**: 시각 효과 자체에 멱등 가드 안 둠. endGame의 `.gameOver` 가드에 위임 — 책임 분리.
 
 ## 채점
 
-**항목별 점수**:
-- **Swift 패턴 일관성**: **10/10** → 강제 언래핑 0, Timer 0, 매직 넘버 0. MARK 섹션 / guard / weak self / 네이밍 모두 준수. 한국어 변수 0건, 주석은 풍부한 한국어.
-- **게임 로직 완성도**: **10/10** → ContactRouter 시그니처 보존, note.position 캡처 순서 정확, sparkle worldNode 좌표계 일관, group/sequence 정확 적용.
-- **성능 & 안정성**: **10/10** → 빌드 클린 + 경고 0, ARC 자가 해제, weak self 정확 판단, PhysicsBody 0, update() 안 addChild 0.
-- **기능 완성도**: **10/10** → SPEC 4기능 모두 구현, "금지" 0건 위반, 회귀 0줄(Managers/Systems/Scenes/Repositories/Models/Protocols/기존 Nodes).
+| 항목 | 점수 | 코멘트 |
+|---|---:|---|
+| Swift 패턴 일관성 (35%) | **10/10** | enum 네임스페이스, MARK, 매직 넘버 0, 강제 언래핑 0, weak self+guard let, 단일 책임, doc comment 한국어 trade-off 명시 |
+| 게임 로직 완성도 (30%) | **10/10** | 트리거 순서 고정, count=6 검산 0, 자가 소멸 5호 패턴 일관성, cameraNode/worldNode 책임 분리, Rule of Three 준수 |
+| 성능 & 안정성 (20%) | **10/10** | BUILD SUCCEEDED + 경고 0, weak self 적용, removeFromParent 자가 호출, flash() 내 self 미캡처, ResultScene 전환 안전 |
+| 기능 완성도 (15%) | **10/10** | SPEC 기능 5개 전부 구현, 회귀 0줄 20파일 검증, pbxproj 8지점 정확, UUID 충돌 0 |
 
-**가중 점수**: 10.0 × 0.35 + 10.0 × 0.30 + 10.0 × 0.20 + 10.0 × 0.15 = **10.0 / 10.0**
+**가중 점수**: (10×0.35) + (10×0.30) + (10×0.20) + (10×0.15) = **10.0 / 10**
 
-## 최종 판정: ✅ **합격** (10.0 / 10.0)
+## 최종 판정: ✅ **합격**
 
-**관대함 자가 검증**:
-- "이 정도면 괜찮지 않나"로 넘어간 항목: 없음
-- 모든 §3 체크리스트 항목 + SPEC 12개 핵심 검증 + 빌드 + git diff 회귀 모두 PASS
-- 트집 잡을 만한 P2 후보 재검토:
-  - `2 * CGFloat.pi`의 `2`? — 원 한 바퀴를 의미하는 *수학 정의*. 상수화 시 의미 흐려짐 → 합격
-  - `SKColor.white` 직접 참조? — SPEC §"금지" "ColorTokens.swift에 새 색 추가" 회피 위한 정확한 선택, SPEC 명시 패턴 → 합격
-  - `fatalError("init(coder:) has not been implemented")` 강제 미구현? — Apple 표준 패턴, 모든 final SKNode 서브클래스에 동일 → 합격
-- Phase 6-1 / 6-2 / 6-4 와 동일한 *Manager 패턴* 진입 직후의 *시각 폴리싱* 첫 sprint로서, 패턴 일관성 + 회귀 0줄 + 빌드 클린 + SPEC 정확 일치 4박자 완성.
+**개선 지시**: 없음.
 
-**구체적 개선 지시**: 없음. 현 상태 그대로 다음 Phase 진행 권장.
+본 sprint는 SPEC 1회차에 그대로 구현하면서:
+1. 자가 소멸 5호 패턴 누적으로 코드베이스 규범화
+2. 5채널 멀티모달 피격 피드백(haptics.heavy + audio.gameOver + bgm.stop + shake + flash) 동시 발화 완성
+3. count=6 누적 변위 0 수학적 보장으로 카메라 follow 안전
+4. Rule of Three에 따라 BombFlashNode/HitFlashNode 공통 추출 보류 — premature abstraction 회피
+5. 회귀 0줄 (20파일 검증) — SPEC §금지 항목 100% 준수
 
+게임오버 0.3초가 게임에서 가장 풍부한 감각 입력 순간이 됨. Phase 6의 *시각 폴리싱 시리즈* 두 번째(6-8 긍정 / 6-9 부정)로 디자인 대칭 완성.

@@ -31,6 +31,7 @@
 //  Phase 6-2 · AudioManager 신설 + 노트 수집/게임오버 사운드 트리거 2지점
 //  Phase 6-4 · BGMPlayer 신설 + 게임 시작/종료 시 BGM 재생/정지
 //  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)
+//  Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)
 //
 
 import SpriteKit
@@ -201,7 +202,17 @@ class GameScene: SKScene {
             self?.endGame()
         }
         contactRouter.onProjectileHitPlayer = { [weak self] in
-            self?.endGame()
+            guard let self = self else { return }
+            // Phase 6-9 — 시각 임팩트 2채널: 카메라 셰이크 + 빨간 플래시.
+            // haptics.heavy() (6-1) + audio.play(.gameOver) (6-2) + BGM stop (6-4)은
+            // endGame() 내부에서 이미 발화 — 5채널 멀티모달 피격 피드백 완성.
+            // 시각 효과 → 상태 전환 순서: 피격 콜백에서 시각만 일으키고,
+            // gameOver 상태 전환은 endGame이 전담(책임 분리).
+            self.cameraNode.run(CameraShakeAction.make())
+            let flash = HitFlashNode()
+            self.cameraNode.addChild(flash)
+            flash.flash(sceneSize: self.size)
+            self.endGame()
         }
         contactRouter.onProjectileHitWall = { node in
             node.run(.removeFromParent())

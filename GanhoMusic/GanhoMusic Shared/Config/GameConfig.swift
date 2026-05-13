@@ -281,4 +281,24 @@ enum GameConfig {
     /// sparkle 파편의 끝 스케일. 0.0이면 한 점으로 수렴(별빛 꺼짐), 1.0이면 동일 크기 유지.
     /// 0.2면 페이드아웃 + 살짝 축소 — 별이 멀어지는 느낌.
     static let sparkleEndScale: CGFloat = 0.2
+
+    // MARK: - Hit Feedback (Phase 6-9)
+    /// 카메라 셰이크 진폭 (pt). 좌우 한 방향 이동량. 6~10pt 범위에서 8 채택.
+    /// 너무 크면 어지러움, 너무 작으면 안 보임. 학생 머리 *띵* 흔들림.
+    static let cameraShakeAmplitude: CGFloat = 8
+    /// 카메라 좌우 흔들림 반복 횟수. 6회 → 좌·우·좌·우·좌·우 (마지막 원위치 별도).
+    /// 총 모션 = stepDuration × (count + 1).
+    static let cameraShakeStepCount: Int = 6
+    /// 카메라 셰이크 한 스텝 길이 (초). 6 × 0.04 + 0.04 = 0.28초 ≈ haptics.heavy 체감 길이.
+    static let cameraShakeStepDuration: TimeInterval = 0.04
+    /// 피격 플래시 alpha 피크 (0~1). 0.55 = 반투명 빨강 — 시야 차단 방지, *맞았다* 명확.
+    static let hitFlashPeakAlpha: CGFloat = 0.55
+    /// 피격 플래시 fadeIn 길이 (초). 빠르게 등장 — *번쩍* 임팩트.
+    static let hitFlashFadeInDuration: TimeInterval = 0.05
+    /// 피격 플래시 fadeOut 길이 (초). 천천히 사라짐 — *잔상* 효과.
+    /// 총 노출 = fadeIn(0.05) + fadeOut(0.25) = 0.30초 ≈ 셰이크(0.28) 동기.
+    static let hitFlashFadeOutDuration: TimeInterval = 0.25
+    /// 피격 플래시 zPosition. HUD(100) 위, BombFlash(250) 아래.
+    /// 점수 라벨을 잠깐 덮어 임팩트 강조 — 0.3초만 가려지므로 게임플레이 무방해.
+    static let hitFlashZPosition: CGFloat = 200
 }
