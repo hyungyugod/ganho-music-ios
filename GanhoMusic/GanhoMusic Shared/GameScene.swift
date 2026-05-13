@@ -32,6 +32,7 @@
 //  Phase 6-4 · BGMPlayer 신설 + 게임 시작/종료 시 BGM 재생/정지
 //  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)
 //  Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)
+//  Phase 6-10 · 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙 텍스트 팝업 (시각 폴리싱)
 //
 
 import SpriteKit
@@ -70,6 +71,11 @@ class GameScene: SKScene {
     // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
     // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
     private var airforceTriggered: Bool = false
+
+    // Phase 6-10 — 한 판 내 이미 발화된 콤보 마일스톤 추적. 멱등성 보장.
+    // GameScene 인스턴스는 한 판 = 1개 → 새 게임 시작 시 빈 Set로 자동 리셋.
+    // Spring 비유: idempotency-key — 같은 마일스톤 key는 한 트랜잭션 내 1회만 처리.
+    private var triggeredComboMilestones: Set<Int> = []
 
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
@@ -230,6 +236,16 @@ class GameScene: SKScene {
             sparkle.position = sparkleOrigin
             self.worldNode.addChild(sparkle)
             sparkle.emit()
+            // Phase 6-10 — 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 1회 발화 (멱등성).
+            // recordNoteHit 직후의 combo 값을 폴링 — ScoreSystem 시그니처 미변경(옵션 B).
+            let currentCombo = self.scoreSystem.combo
+            if GameConfig.comboMilestones.contains(currentCombo),
+               !self.triggeredComboMilestones.contains(currentCombo) {
+                self.triggeredComboMilestones.insert(currentCombo)
+                let popup = ComboPopupNode(milestone: currentCombo)
+                self.cameraNode.addChild(popup)
+                popup.animate()
+            }
             note.run(.removeFromParent())
         }
         contactRouter.onStoneGuardContact = { [weak self] in

@@ -1,153 +1,200 @@
-# 자체 점검 — Phase 6-9 (F 피격 카메라 셰이크 + 빨간 플래시)
+# 자체 점검 — Phase 6-10 콤보 마일스톤 텍스트 팝업
 
-## 1. SPEC 기능 5개 구현 확인
+전략: 1회차 — SPEC 그대로 옵션 B(폴링) + SelfDismissingNode 6호 + 멱등 Set 가드. 신규 SPEC이라 케이스 분류 무관.
 
-| # | 기능 | 구현 위치 | 상태 |
+---
+
+## 1. SPEC 기능 5개 구현 확인 표
+
+| # | SPEC 항목 | 구현 위치 | 확인 |
 |---|---|---|---|
-| 1 | GameConfig 상수 7개 추가 (`// MARK: - Hit Feedback (Phase 6-9)`) | `Config/GameConfig.swift` 끝 | OK — `cameraShakeAmplitude`/`cameraShakeStepCount`/`cameraShakeStepDuration`/`hitFlashPeakAlpha`/`hitFlashFadeInDuration`/`hitFlashFadeOutDuration`/`hitFlashZPosition` 7개 정확히 추가 |
-| 2 | CameraShakeAction (enum 네임스페이스 + static func make()) | `Systems/CameraShakeAction.swift` 신설 | OK — case 없는 enum, `static func make() -> SKAction` 1개. amp/dur/count GameConfig 경유 |
-| 3 | HitFlashNode (SKSpriteNode + SelfDismissingNode, 자가 소멸 5호) | `Nodes/HitFlashNode.swift` 신설 | OK — `final class HitFlashNode: SKSpriteNode, SelfDismissingNode`. `flash(sceneSize:)` 메서드 fadeIn→fadeOut→removeFromParent |
-| 4 | GameScene `onProjectileHitPlayer` 콜백 5줄로 확장 + 헤더 주석 1줄 | `GameScene.swift` | OK — `guard let self` + 셰이크/flash/endGame 순서 고정. 헤더 `Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)` 1줄 추가 |
-| 5 | pbxproj 8지점 등록 (2파일 × 4지점) | `GanhoMusic.xcodeproj/project.pbxproj` | OK — PBXBuildFile 2, PBXFileReference 2, Group children 2 (Nodes+Systems), Sources phase 2 = 총 8지점 |
+| 1 | ComboPopupNode 신설 (SelfDismissingNode 6호) | `Nodes/ComboPopupNode.swift` 신설 (77줄) | OK |
+| 2 | GameConfig Combo Popup 상수 6개 | `Config/GameConfig.swift` §Combo Popup (+18줄) | OK |
+| 3 | GameScene `triggeredComboMilestones: Set<Int>` 프로퍼티 1개 | `GameScene.swift` Properties (airforceTriggered 아래) | OK |
+| 4 | `onNoteCollected` 클로저에 마일스톤 검사 5+ 줄 (sparkle.emit() 이후, note.removeFromParent() 이전) | `GameScene.swift` configureContactRouter() 내부 | OK |
+| 5 | pbxproj 4지점 등록 (UUID 0031) | PBXBuildFile / PBXFileReference / Nodes group / Sources phase | OK |
+
+추가 미세항목:
+- 헤더 주석 Phase 6-10 1줄 추가 — OK
+- `Set<Int>` 기본값 `[]` (한 판 = 1 인스턴스, reset 미필요) — OK
+
+---
 
 ## 2. 빌드 결과
 
-- **BUILD SUCCEEDED** (확인됨)
-- 경고: **0개** — `xcodebuild ... 2>&1 | grep -iE "warning:|error:"` 출력 비어 있음 (Metadata extraction skipped는 빌드 시스템 노이즈로 무관)
-- 새 파일 2개 모두 Sources phase에 등록 확인
+- **결과**: `** BUILD SUCCEEDED **`
+- **에러**: 0건
+- **경고**: 0건 (warning/error grep 결과 빈 출력 — appintentsmetadataprocessor 제외)
+- **명령어**: `xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" -scheme "GanhoMusic iOS" -destination 'generic/platform=iOS Simulator' -configuration Debug build`
 
-## 3. 회귀 0줄 강제 항목 (git status 검증)
+---
+
+## 3. 회귀 0줄 강제 항목 git diff 확인
 
 ```
-modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift     ← SPEC 허용
-modified:   GanhoMusic/GanhoMusic Shared/GameScene.swift             ← SPEC 허용
-modified:   GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj          ← SPEC 허용
-새 파일:    GanhoMusic/GanhoMusic Shared/Nodes/HitFlashNode.swift    ← SPEC 허용
-새 파일:    GanhoMusic/GanhoMusic Shared/Systems/CameraShakeAction.swift  ← SPEC 허용
+modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift    +18 -0
+modified:   GanhoMusic/GanhoMusic Shared/GameScene.swift            +16 -0
+modified:   GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj         +4  -0
+new file:   GanhoMusic/GanhoMusic Shared/Nodes/ComboPopupNode.swift +77
 ```
 
-**미접촉 (회귀 0줄 확인)**:
-- `Managers/AudioManager.swift`, `Managers/HapticsManager.swift`, `Managers/BGMPlayer.swift` — 0줄
-- `Systems/ScoreSystem.swift`, `Systems/ContactRouter.swift`, `Systems/SpawnSystem.swift` — 0줄 (ContactRouter 시그니처 변경 0)
-- `Scenes/TitleScene.swift`, `Scenes/ResultScene.swift` — 0줄
-- `Repositories/HighScoreRepository.swift`, `Repositories/StatisticsRepository.swift`, `Repositories/CharacterPreferenceRepository.swift` — 0줄
-- `Models/GameStats.swift`, `Models/CharacterID.swift` — 0줄
-- `Protocols/SelfDismissingNode.swift` — 0줄 (marker protocol 그대로 채택)
-- `Config/ColorTokens.swift`, `Config/PhysicsCategory.swift`, `Config/GameState.swift` — 0줄
-- 기존 Nodes (NoteNode/PlayerNode/EnemyNode/ProjectileNode/HUDNode/CharacterCardNode/AirplaneNode/BombFlashNode/AirforceOverlayNode/SparkleEffectNode/StoneGuardNode/DPadNode) — 0줄
+회귀 0줄 강제 항목 모두 **변경 0**:
 
-`git diff --stat`: GameConfig +20, GameScene +12/-1 — 최소 변경.
+| 영역 | 변경 줄 |
+|---|---|
+| `Systems/ScoreSystem.swift` | 0 |
+| `Nodes/HUDNode.swift` | 0 |
+| `Managers/AudioManager.swift` | 0 |
+| `Managers/HapticsManager.swift` | 0 |
+| `Managers/BGMPlayer.swift` | 0 |
+| `Nodes/SparkleEffectNode.swift` | 0 |
+| `Nodes/HitFlashNode.swift` | 0 |
+| `Nodes/BombFlashNode.swift` | 0 |
+| `Systems/CameraShakeAction.swift` | 0 |
+| `Systems/ContactRouter.swift` | 0 |
+| `Systems/SpawnSystem.swift` | 0 |
+| `Scenes/TitleScene.swift` | 0 |
+| `Scenes/ResultScene.swift` | 0 |
+| `Repositories/*` | 0 |
+| `Models/*` | 0 |
+| `Protocols/SelfDismissingNode.swift` | 0 (재사용만) |
+| `Config/ColorTokens.swift` | 0 (재사용만) |
+| `Nodes/PlayerNode/EnemyNode/NoteNode/ProjectileNode/AirplaneNode/AirforceOverlayNode/CharacterCardNode/DPadNode/StoneGuardNode` | 0 |
+| GameScene `update()` / `endGame()` | 0 |
+| `Config/GameConfig.swift` 기존 상수 | 0 (추가만) |
+| `Config/PhysicsCategory.swift` | 0 |
+| `Errors/*` | 0 |
+
+GameScene.swift도 `update()` / `endGame()` / `didMove()` / `triggerAirforceEasterEgg()` / 다른 콜백 모두 **무손**. `onNoteCollected` 단일 클로저 안 +10줄과 헤더 1줄 + 프로퍼티 4줄만 추가.
+
+---
 
 ## 4. 특별 검증
 
-| 항목 | 결과 |
-|---|---|
-| 강제 언래핑 `!` 0건 | OK — `guard let self = self else { return }` 적용. fatalError(coder)는 SpriteKit 관용 패턴(BombFlashNode 답습) |
-| `Timer` 0건, SKAction만 사용 | OK — CameraShakeAction은 `SKAction.sequence([moveBy ...])`만, HitFlashNode는 `SKAction.sequence([fadeIn, fadeOut, removeFromParent])`만 |
-| 매직 넘버 0건 (모든 수치 GameConfig 경유) | OK — amp/dur/count/peakAlpha/fadeIn/fadeOut/zPosition 7개 모두 GameConfig.swift 상수 |
-| HitFlashNode가 SelfDismissingNode 채택 | OK — `final class HitFlashNode: SKSpriteNode, SelfDismissingNode` — 자가 소멸 5호 |
-| CameraShakeAction이 enum 네임스페이스 + static func make() | OK — `enum CameraShakeAction { static func make() -> SKAction { ... } }`. case 0개로 인스턴스화 차단 |
-| 트리거 순서 고정 (셰이크 → flash 부착/발화 → endGame) | OK — 정확히: `cameraNode.run(shake)` → `cameraNode.addChild(flash)` → `flash.flash(sceneSize:)` → `endGame()` 순서 |
-| 새 ColorTokens 추가 0 (`ganhoBloodAccent` 재사용) | OK — ColorTokens.swift 0줄 변경. HitFlashNode init이 `.ganhoBloodAccent` 재사용 |
-| 새 효과음/햅틱/PhysicsCategory 0 | OK — AudioManager/HapticsManager/PhysicsCategory 미접촉 |
-| `update()` 안 `addChild` 0건 | OK — flash 부착은 콜백 안 (`onProjectileHitPlayer` 클로저), update 미접촉 |
-| `[weak self]` 캡처 유지 | OK — 콜백 `{ [weak self] in guard let self = self else { return } ... }` 패턴 정확히 유지 |
+### 4-1. 강제 언래핑 0
+- ComboPopupNode: `!` 없음. `init(coder:)`만 표준 fatalError(다른 자가 소멸 노드 패턴 동일).
+- GameScene 추가 코드: `self.scoreSystem.combo` 정상 접근, `?` / `!` 없음.
+
+### 4-2. 매직 넘버 0
+- ComboPopupNode 모든 수치는 GameConfig 경유:
+  - `GameConfig.comboPopupZPosition` / `comboPopupFontSize` / `comboPopupFlyUpDistance` / `comboPopupDuration` / `comboPopupEndScale`
+- GameScene 추가 코드: `GameConfig.comboMilestones` 경유.
+- 텍스트 `"x\(milestone)"`은 SPEC 명시 포맷 (Int 변수 보간만, 매직 넘버 아님).
+
+### 4-3. Timer 0, SKAction만
+- ComboPopupNode.animate(): `SKAction.group([moveBy, fadeOut, scale])` → `SKAction.sequence([group, removeFromParent])`. Timer/DispatchQueue/CADisplayLink 0.
+
+### 4-4. SelfDismissingNode 채택 (6호)
+- 선언: `final class ComboPopupNode: SKNode, SelfDismissingNode`
+- 자가 제거: `sequence`의 마지막 단계 `SKAction.removeFromParent()` — 호출자(GameScene)는 cleanup 0줄.
+- 6호 누적: Airplane(1) → AirforceOverlay(2) → BombFlash(3) → Sparkle(4) → HitFlash(5) → **ComboPopup(6)**.
+
+### 4-5. [weak self] + guard let self 유지
+- GameScene `onNoteCollected` 클로저 기존 `[weak self]` + `guard let self = self else { return }` 무손.
+- 추가 코드는 모두 `self.` 명시 접근(이미 unwrap된 self 사용).
+- ComboPopupNode.animate() 내부는 self 미사용 — [weak self] 캡처 불필요(BombFlash/HitFlash 패턴 동형).
+
+### 4-6. 색 토큰 정확한 이름 사용 (ColorTokens.swift 실제 정의 확인)
+ColorTokens.swift grep 결과 — SPEC 명시 4개 토큰 모두 실재:
+
+| SPEC 명시 | ColorTokens.swift 실제 | 일치 |
+|---|---|---|
+| `.ganhoPaper` | `static let ganhoPaper` (line 22) | OK |
+| `.ganhoPinkNote` | `static let ganhoPinkNote` (line 31) | OK |
+| `.ganhoYellowF` | `static let ganhoYellowF` (line 46) | OK |
+| `.ganhoBloodAccent` | `static let ganhoBloodAccent` (line 41) | OK |
+
+ColorTokens.swift 변경 0건. 모두 기존 토큰 재사용. fallback은 `.ganhoPaper` (graceful — 미래 마일스톤 추가 대비).
+
+### 4-7. 멱등성 가드 (triggeredComboMilestones Set)
+- 프로퍼티: `private var triggeredComboMilestones: Set<Int> = []`
+- 가드 패턴:
+  ```swift
+  if GameConfig.comboMilestones.contains(currentCombo),
+     !self.triggeredComboMilestones.contains(currentCombo) {
+      self.triggeredComboMilestones.insert(currentCombo)
+      ...
+  }
+  ```
+- 검사 순서: `contains(milestones)` AND `!contains(triggered)` → 둘 다 충족 시에만 insert + popup.
+- 멱등 효과: 콤보 3 도달 후 콤보 윈도우 만료(0)로 떨어졌다 다시 3 도달해도 재발화 X (Set에 3이 이미 있음).
+- 인스턴스 단위 리셋: GameScene은 한 판당 새 인스턴스 → Set는 자동 빈 상태로 시작.
+
+### 4-8. 마일스톤 검사 위치 정확성
+GameScene `onNoteCollected` 클로저 시퀀스 (원문 + 추가):
+
+```
+self.scoreSystem.recordNoteHit(at:)
+self.haptics.light()
+self.audio.play(.noteCollected)
+let sparkleOrigin = note.position
+let sparkle = SparkleEffectNode()
+sparkle.position = sparkleOrigin
+self.worldNode.addChild(sparkle)
+sparkle.emit()                                           ← (A) 이 라인 이후
+// Phase 6-10 — 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 1회 발화 (멱등성).
+let currentCombo = self.scoreSystem.combo
+if GameConfig.comboMilestones.contains(currentCombo),
+   !self.triggeredComboMilestones.contains(currentCombo) {
+    self.triggeredComboMilestones.insert(currentCombo)
+    let popup = ComboPopupNode(milestone: currentCombo)
+    self.cameraNode.addChild(popup)
+    popup.animate()
+}
+note.run(.removeFromParent())                            ← (B) 이 라인 이전
+```
+
+(A) sparkle.emit() **이후**, (B) note.removeFromParent() **이전** 정확 위치. SPEC 명시 위치 일치.
+
+### 4-9. ColorTokens 변경 0건
+git diff 출력에 `Config/ColorTokens.swift` 미등장. 모든 색은 기존 토큰 재사용.
+
+### 4-10. 새 효과음/햅틱/PhysicsCategory 0
+- AudioManager/HapticsManager 호출 0건 — *시각 only* SPEC 준수.
+- PhysicsCategory.swift 변경 0건 — ComboPopupNode는 PhysicsBody 미부착(순수 시각).
+
+---
 
 ## 5. 검증 시나리오 정적 추적
 
-### (a) 빌드
-- `xcodebuild ... build` → BUILD SUCCEEDED, 경고 0
-- 새 파일 2개 Sources phase 등록 확인 (`A1C0F1B00000000000000029`, `A1C0F1B00000000000000030`)
-
-### (b) F 피격 시 5채널 동시 발화 정적 추적
-콜백 진입 시점:
-1. `cameraNode.run(CameraShakeAction.make())` → 카메라 셰이크 (6-9 시각 운동감)
-2. `HitFlashNode()` + `addChild(flash)` + `flash.flash(sceneSize:)` → 빨간 플래시 (6-9 시각)
-3. `self.endGame()` → 내부에서:
-   - `haptics.heavy()` (6-1, 진동)
-   - `audio.play(.gameOver)` (6-2, 효과음)
-   - `bgm.stop()` (6-4, BGM 정지)
-   - `spawnSystem.stop()`, velocity=.zero 정리
-   - `presentScene(resultScene, transition: .fade(0.4))` 전환
-
-→ 5채널(진동+효과음+BGM정지+셰이크+플래시) 모두 멱등 가드 안쪽에서 1회만 발화. SPEC §1.5 학습 가치 충족.
-
-### (c) 카메라 원위치 정확 (count=6 수동 검산 표 — 6.항 참조)
-- 누적 변위 0 → 셰이크 후 cameraNode.position.x == 시작 x ±0.01pt
-
-### (d) 메모리 누수 0
-- HitFlashNode `removeFromParent` 자가 호출 (sequence 마지막 단계)
-- CameraShakeAction은 SKAction 반환만 — 노드 0, 누수 0
-- `[weak self]` 캡처로 GameScene 참조 사이클 없음
-- ResultScene 전환 시 GameScene → cameraNode → flash 자식 ARC 자동 해제
-
-### (e) ResultScene 전환 안전
-- 셰이크(0.04 × 7 = 0.28초) + 플래시(0.05 + 0.25 = 0.30초) 모두 ResultScene fade(0.4초) 안에 종료
-- presentScene 호출은 endGame 마지막 줄 — 시각 효과는 *부모(cameraNode)와 함께 해제* 또는 자가 제거. 크래시 위험 0
-
-### (f) 시간 만료 endGame — 시각 효과 미발화
-- 시간 만료는 GameScene `update()` 안 `endGame()` 직접 호출 (line 169 부근)
-- onProjectileHitPlayer 콜백 우회 → 셰이크/플래시 발화 0
-- *피격 전용* 피드백 책임 분리 보존
-
-### (g) enemy 직접 접촉 endGame — 시각 효과 미발화
-- `contactRouter.onEnemyHit = { [weak self] in self?.endGame() }` 그대로 (변경 0줄)
-- 셰이크/플래시 발화 0 — F 투사체 피격과 디자인 분리
-
-### (h) 회귀 0줄 (위 §3에서 git status로 검증 완료)
-
-### (i) Phase 1~6 회귀
-- 이동/수집/점수/HUD/적/F/게임오버/ResultScene/캐릭터선택/AIRFORCE/사운드/햅틱/BGM/Interruption/Lifecycle/sparkle 모두 미접촉
-- BombFlashNode (Phase 4-5)와 HitFlashNode 별개 클래스 — AIRFORCE 폭탄은 그대로 누런 톤
-- SparkleEffectNode (Phase 6-8)와 HitFlashNode 별개 — 음표 수집 sparkle은 worldNode, HitFlash는 cameraNode
-
-## 6. count=6 누적 변위 0 수동 검산
-
-`cameraShakeStepCount = 6` 기준 CameraShakeAction.make() 시퀀스:
-
-| step (i) | dx 부호 식 | dx | 누적 변위 |
+| # | 시나리오 | 정적 추적 | 결과 |
 |---|---|---|---|
-| 0 (첫 이동) | +amp | +8 | +8 |
-| 1 | i=1 홀수 → -2amp | -16 | -8 |
-| 2 | i=2 짝수 → +2amp | +16 | +8 |
-| 3 | i=3 홀수 → -2amp | -16 | -8 |
-| 4 | i=4 짝수 → +2amp | +16 | +8 |
-| 5 | i=5 홀수 → -2amp | -16 | **-8** |
-| 복귀 | count=6 짝수 → +amp | +8 | **0** ✓ |
+| a | 콤보 2 (음표 2개) | `currentCombo=2`. `comboMilestones=[3,5,10,20]`에 2 미포함 → 가드 통과 X | 팝업 미발화 ✓ |
+| b | 콤보 3 도달 | `currentCombo=3`, milestones 포함, triggered 미포함 → insert {3}, `ComboPopupNode(milestone:3)`, color=.ganhoPaper, "x3" 1초 fly-up + fadeOut + scale 1.4 → removeFromParent | `.ganhoPaper` "x3" 1초 후 소멸 ✓ |
+| c | 콤보 5 도달 (x3 발화 후) | `currentCombo=5`, milestones 포함, triggered={3}에 5 미포함 → insert {3,5}, "x5" `.ganhoPinkNote`. 콤보 5는 이미 3을 거쳐서 발화했지만 x3 재발화는 안 됨(이 시점 currentCombo=5라 `contains(5)`만 검사) | "x5" 분홍 팝업 ✓, "x3" 재발화 X ✓ |
+| d | 콤보 10 → 윈도우 만료 → 다시 3 | 10 발화 시 triggered={3,5,10}. ScoreSystem.tickComboExpiry로 combo=0. 새 음표 3개 수집 → combo=3 → milestones 포함, *triggered={3,5,10}에 3 포함* → 가드 false | "x3" 재발화 X ✓ |
+| e | 마일스톤 + 피격 동시 | onNoteCollected는 NoteNode 충돌만 처리(분기 독립). 같은 프레임에 onProjectileHitPlayer 별도 호출 → HitFlash + 셰이크 + endGame. ComboPopup은 cameraNode 자식 — endGame() 후 presentScene 시 cameraNode 트리째 ARC 해제(자동 정리). 명시적 cleanup 호출 0 | 팝업 + HitFlash + 셰이크 모두 작동, ResultScene 전환 시 자동 정리 ✓ |
+| f | 새 게임 시작 | `GameScene.newGameScene(characterID:)`가 새 인스턴스 생성 → `triggeredComboMilestones: Set<Int> = []` 초기값 — 모든 마일스톤 재발화 가능 | 빈 Set, 다시 처음부터 발화 ✓ |
+| g | 콤보 50 도달 | combo 1→2→...→50. milestones는 3,5,10,20만. 콤보 갱신마다 `contains(currentCombo)` 검사 — 3,5,10,20 도달 시점에만 true. 각각 1회씩 insert. 4,6,11,21 등은 milestones 미포함이라 false | 마일스톤 4단계 모두 1회씩 발화 후 추가 발화 0 ✓ |
+| h | 빌드 | BUILD SUCCEEDED, 경고 0 (위 §2) | OK ✓ |
 
-총 스텝 수: 7 (count + 1). 총 시간: 7 × 0.04 = 0.28초.
+---
 
-코드:
-```swift
-steps.append(SKAction.moveBy(x: +amp, y: 0, duration: dur))                                  // step 0
-for i in 1..<count {                                                                          // i=1..5
-    let dx: CGFloat = (i % 2 == 0) ? +2 * amp : -2 * amp                                      // 짝수=+2amp, 홀수=-2amp
-    steps.append(SKAction.moveBy(x: dx, y: 0, duration: dur))
-}
-let returnDx: CGFloat = (count % 2 == 0) ? +amp : -amp                                        // 6 짝수 → +amp
-steps.append(SKAction.moveBy(x: returnDx, y: 0, duration: dur))
-```
+## 6. Swift 패턴 준수
 
-**검산 통과** — 누적 변위 0, 시작점 정확 복귀.
+- 강제 언래핑 미사용: 준수
+- guard let 옵셔널 처리: 준수 (`guard let self = self else { return }` 기존 패턴 유지)
+- MARK 섹션 구분: 준수 (Properties / Init / Animate / Configure / Color Mapping)
+- GameConfig 상수 사용: 준수 (모든 수치)
+- weak self 캡처: 준수 (onNoteCollected 클로저 기존 패턴, ComboPopupNode 내부 self 미사용)
 
-추가 검증 (count=5 홀수 case, 향후 튜닝 대비):
-- step 0: +8 (+8)
-- i=1: -16 (-8)
-- i=2: +16 (+8)
-- i=3: -16 (-8)
-- i=4: +16 (+8)
-- 복귀: count=5 홀수 → -amp = -8 (0) ✓
+## 7. SpriteKit 패턴 준수
 
-홀수 case도 누적 변위 0 보장 — 일반화 식 정확.
+- didMove(to:)에서 초기화: 준수 (변경 없음)
+- dt 기반 이동: 해당 없음 (정적 팝업, SKAction.moveBy 사용)
+- SKAction 스폰 패턴: 준수 (group + sequence + removeFromParent)
+- 충돌 후 노드 즉시 삭제 없음: 준수 (note.run(.removeFromParent())로 액션 큐 경유, ComboPopupNode 자체는 자가 제거)
+- HUD 노드 분리: 준수 (ComboPopupNode는 cameraNode 자식, HUDNode와 독립)
 
-## 7. 범위 외 미구현 항목
+## 8. 범위 외 미구현 항목
 
-없음. SPEC "Sprint 범위 계약 — 금지" 항목 모두 미접촉:
-- BombFlashNode 변경 0
-- 새 효과음/햅틱 0
-- endGame 호출 순서/로직 변경 0
-- 새 PhysicsCategory 0
-- 새 ColorTokens 0
-- BGMPlayer/AudioManager/HapticsManager 변경 0
-- ResultScene/ScoreSystem/EnemyNode/ProjectileNode 변경 0
-- update 안 새 로직 0
+없음. SPEC "허용" 항목 100% 구현, "금지" 항목 0건 침범.
+
+- ScoreSystem 시그니처 미변경 (옵션 B 폴링) ✓
+- HUDNode 미변경 ✓
+- ContactRouter 시그니처 미변경 ✓
+- AudioManager/HapticsManager/BGMPlayer 호출 0 ✓ (시각 only)
+- Sparkle/HitFlash/BombFlash 미변경 ✓
+- 마일스톤 [3,5,10,20] 외 분기 0 ✓
+- 멱등 가드(triggered Set)로 재발화 차단 ✓
+- "콤보!" "GREAT!" 등 SPEC 외 텍스트 0 ✓

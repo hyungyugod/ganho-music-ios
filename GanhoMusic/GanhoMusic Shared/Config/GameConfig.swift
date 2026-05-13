@@ -301,4 +301,22 @@ enum GameConfig {
     /// 피격 플래시 zPosition. HUD(100) 위, BombFlash(250) 아래.
     /// 점수 라벨을 잠깐 덮어 임팩트 강조 — 0.3초만 가려지므로 게임플레이 무방해.
     static let hitFlashZPosition: CGFloat = 200
+
+    // MARK: - Combo Popup (Phase 6-10)
+    /// 콤보 마일스톤 발화 임계값 목록. 한 판 내 같은 마일스톤은 1회만 발화(멱등).
+    /// 3 = 첫 환호 / 5 = 정착 / 10 = 황금기 / 20 = 클라이맥스. 자전적 곡 클라이맥스 모델.
+    static let comboMilestones: [Int] = [3, 5, 10, 20]
+    /// 콤보 팝업 텍스트 폰트 크기 (pt). HUD(18)의 ~2.7배 — *임팩트 강조*.
+    static let comboPopupFontSize: CGFloat = 48
+    /// 콤보 팝업이 위로 떠오르는 거리 (pt). 별이 하늘로 올라가는 톤.
+    static let comboPopupFlyUpDistance: CGFloat = 80
+    /// 팝업 1회 표시 총 길이 (초). group 액션(move + fade + scale) 묶음 duration.
+    /// sparkle(0.5)보다 길고 airforceOverlay(1.5)보다 짧음 — 마일스톤 강조와 게임플레이 방해의 균형점.
+    static let comboPopupDuration: TimeInterval = 1.0
+    /// 팝업 끝 스케일. 1.0 시작 → 1.4 끝 = 페이드아웃과 동시에 *별이 터지듯* 확대.
+    /// SparkleEndScale(0.2 축소)과 반대 — 마일스톤은 *확산*되는 느낌, sparkle은 *수렴*되는 입자.
+    static let comboPopupEndScale: CGFloat = 1.4
+    /// 팝업 zPosition. HUD(100) 위 — 라벨을 잠깐 덮어 임팩트.
+    /// HitFlash(200) 아래 — 피격 플래시는 더 우선(생존 직결).
+    static let comboPopupZPosition: CGFloat = 150
 }
