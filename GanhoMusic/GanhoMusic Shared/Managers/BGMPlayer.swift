@@ -5,9 +5,11 @@
 //  Phase 6-4 · 자작 BGM 무한 루프 재생 인프라 (graceful fallback)
 //  Phase 6-5 · play/stop에 페이드 인(1.5s) / 아웃(1.0s) 적용
 //  Phase 6-6 · Interruption 처리 — 전화/Siri/타이머 등 시스템 인터럽션 시 BGM 자동 일시정지/복귀
+//  Phase 6-7 · 백그라운드/포그라운드 라이프사이클 — 홈 버튼/앱 스위처 시 BGM 일시정지/재개
 //
 
 import AVFoundation
+import UIKit  // Phase 6-7 — UIApplication.*Notification 사용
 
 /// 배경음악 재생을 캡슐화한 매니저. Bundle에 bgm.m4a가 있을 때만 활성화.
 /// 없으면 player = nil, 모든 메서드 noop. AudioManager(.ambient)와의 카테고리 분리도
@@ -24,6 +26,11 @@ final class BGMPlayer {
     /// Phase 6-5 — 페이드 아웃 완료 후 player.stop()을 호출할 예약 작업.
     /// 새 stop/play 진입 시 cancel 후 재예약/해제. [weak self] 캡처로 인스턴스 해제 안전.
     private var stopWorkItem: DispatchWorkItem?
+    /// Phase 6-7 — 백그라운드 진입 시점에 player.isPlaying이 true였는지 기록.
+    /// 포그라운드 복귀 시 이 비트가 켜져 있을 때만 resume() 호출.
+    /// 게임 미진입/gameOver 후/음원 부재 등 *원래 안 울리던* 상황은 false 유지.
+    /// Spring `@Stateful`(혹은 scope=session 빈)의 짧은 변형 — 라이프사이클 페어를 잇는 일회용 메모.
+    private var shouldResumeOnForeground: Bool = false
 
     // MARK: - Init
     /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
@@ -60,6 +67,24 @@ final class BGMPlayer {
             selector: #selector(handleInterruption(_:)),
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
+        )
+
+        // Phase 6-7 — 앱 라이프사이클 옵저버 페어.
+        // 페어 관계: didEnterBackground(앱이 background phase로 진입한 직후 발행)
+        //         ↔ willEnterForeground(suspended→inactive로 깨어나기 직전 발행).
+        // selector 일관성: 6-6과 동일하게 selector 방식. block 방식과 섞으면 deinit 정리가 복잡.
+        // object: nil — 시스템이 단 하나의 UIApplication.shared만 발행하므로 필터 불필요.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDidEnterBackground(_:)),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWillEnterForeground(_:)),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
         )
     }
 
@@ -167,5 +192,29 @@ final class BGMPlayer {
     /// 별도 페이드 인 코드 작성 안 함 — 6-5의 페이드 인을 *재사용*하는 게 6-6의 우아함(DRY).
     private func resume() {
         play()
+    }
+
+    // MARK: - Lifecycle
+    /// Phase 6-7 — 앱이 백그라운드로 진입한 직후 시스템이 발행.
+    /// 발생 예: 홈 버튼, 앱 스위처, 제어센터에서 다른 앱 진입, 전화/카톡 알림 클릭.
+    /// 의도성: 사용자 의도(자발적) — interruption(시스템 강제)과 결이 다름.
+    /// Spring `@EventListener` 비유 — 앱 컨테이너의 phase 변경 이벤트를 받아 디스패치.
+    @objc private func handleDidEnterBackground(_ notification: Notification) {
+        guard let player = player else { return }       // 음원 부재 시 자동 noop
+        if player.isPlaying {
+            shouldResumeOnForeground = true             // 복귀 시 깨우라는 메모
+            pause()                                     // 6-6의 private pause() 재사용
+        }
+        // else: 원래 안 울리던 상태 — 플래그 false 유지 (변경 안 함)
+    }
+
+    /// Phase 6-7 — 앱이 곧 포그라운드로 돌아갈 시점에 시스템이 발행
+    /// (UIApplicationWillEnterForeground — active 진입 *직전*, 화면이 사용자에게 보이기 직전).
+    /// shouldResumeOnForeground 비트가 켜져 있을 때만 resume — 의도 없던 재생 금지.
+    /// 호출 직후 플래그 false로 리셋하여 다음 라이프사이클 페어를 깨끗이 시작.
+    @objc private func handleWillEnterForeground(_ notification: Notification) {
+        guard shouldResumeOnForeground else { return }
+        shouldResumeOnForeground = false                // 페어 종료 — 다음 사이클 위한 리셋
+        resume()                                        // 6-6의 private resume() → play() 재사용
     }
 }
