@@ -1,262 +1,93 @@
-# Phase 6-10 — 콤보 마일스톤 텍스트 팝업 (자가 소멸 6호)
+# SPEC.md — Phase 6-11: 콤보 마일스톤 도달 시 사운드 + 햅틱 (3감각 완성)
 
 ## 개요
-
-콤보 X3 / X5 / X10 / X20 도달 시 화면 중앙에 "x3" 텍스트가 떠올라 1초간 fly-up + 페이드아웃 후 자가 제거되는 폴리싱. 현재 HUD 콤보 라벨은 조용히 숫자만 올라가는데, 마일스톤마다 *시각적 환호*를 추가해 "잘하고 있어!" 격려 신호를 명확히 전달한다. 6-8/6-9에서 다진 자가 소멸 노드 패턴(4호 Sparkle, 5호 HitFlash)을 답습한 **6호** 적용.
+Phase 6-10에서 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙 텍스트 팝업을 시각 단독으로 마무리했다. 이번 6-11은 동일 순간에 **사운드(AudioManager)**와 **햅틱(HapticsManager)**을 추가해 시각/청각/촉각 3감각이 동시 발화하는 환호 완성 sprint. 노트 수집(6-1/6-2)과 게임오버(6-1/6-2)에 이어 **세 번째 멀티모달 이벤트** — 멀티모달 패턴의 굳히기.
 
 ## 변경 유형
-
-**폴리싱 / 시각 임팩트 / 긍정 강조** — 게임 로직(점수 계산, 충돌, 스폰)에 일체 손대지 않는 *순수 시각 보강*. SPEC 4항목 모두에서 회귀 0 보장.
+**혼합** — 표면적으로는 사운드/햅틱 추가지만, "콤보 마일스톤 도달"이라는 게임플레이 이벤트의 *피드백 채널 확장*이라 게임플레이 톤 변화를 수반한다. 비주얼-only(6-10) 결과물에 청각/촉각 트리거 2채널이 같은 게이트(`triggeredComboMilestones` 멱등성 가드) 안쪽에 들어간다. → Evaluator는 게임플레이 + 비주얼 양쪽 기준을 함께 본다.
 
 ## 게임 경험 의도
-
-새벽 작곡 자전적 톤에서, 콤보 누적은 *곡이 클라이맥스로 가는 과정* 그 자체다. 단조롭게 증가하던 콤보 라벨에 마일스톤 도달 시 큰 텍스트가 떠올라 *별빛처럼 위로 흩어지듯* 사라지면, 플레이어는 "내 연주가 한 단계 올라갔다"는 보상감을 받는다. 색을 마일스톤 등급별로 차등(흰→분홍→황금→빨강)해 *시각적 위계*로 클라이맥스 곡선을 표현한다.
-
----
+플레이어가 콤보 5를 달성한 순간 화면 중앙에 분홍 "x5"가 떠오를 뿐 아니라, 손끝에 짧은 "톡!" 진동이 오고 귀에 가벼운 "딩!" 효과음이 들린다. 콤보 20을 달성하는 클라이맥스 순간엔 묵직한 "툭!"과 함께 빨간 "x20"이 폭발하듯 떠오른다. **시각만으로는 "잘하고 있어!"가 조용하지만, 3감각이 동시 발화하면 환호로 변한다** — 자전적 곡 클라이맥스의 *육체적 체감*. 마일스톤 등급이 올라갈수록 강도가 점진적으로 강해져, 플레이어가 자신의 성취가 *커지고 있다*는 신호를 글자 없이도 인지한다.
 
 ## Sprint 범위 계약
-
-### 허용 (SPEC 정상 동작 필수 최소 연동)
-
-- `Nodes/ComboPopupNode.swift` 신설 — 자가 소멸 6호 (SelfDismissingNode 채택)
-- `Config/GameConfig.swift`에 콤보 팝업 상수 6개 추가
-- `GameScene.swift`의 `onNoteCollected` 클로저에 마일스톤 검사 3~5줄 추가 (콤보 *읽기*만, ScoreSystem 미변경)
-- `GameScene.swift` 클래스 프로퍼티 `triggeredComboMilestones: Set<Int>` 1개 신설 (멱등성 보장)
-- 헤더 주석에 Phase 6-10 1줄 추가
-- `GanhoMusic.xcodeproj/project.pbxproj` 4지점 등록 (HitFlashNode 패턴 답습)
-
-### 금지 (Sprint 범위 외)
-
-- ScoreSystem 시그니처/내부 변경 — 콜백 추가, 마일스톤 추적 옮기기 등 일체 금지
-- HUDNode 변경 — comboLabel 색 바꾸기, 폰트 키우기 등 일체 금지
-- ContactRouter 시그니처 변경
-- AudioManager/HapticsManager/BGMPlayer 호출 추가 — *시각 only*. 사운드/햅틱은 6-11 이후 별도 sprint
-- Sparkle/HitFlash/BombFlash 노드 수정
-- 마일스톤 배열 외 X4/X7 등 별도 분기 추가
-- 콤보 *떨어졌다가* 다시 올라갈 때 재발화 (멱등성 위반)
-- "콤보!" "GREAT!" 등 SPEC 외 텍스트 추가
-
-### 판단 기준
-
-"이 변경 없이 콤보 마일스톤 팝업이 정상 동작하는가?" → NO면 허용, YES면 금지.
+- **허용**:
+  - `GameConfig` 하단에 콤보 마일스톤 사운드/햅틱 매핑 상수 추가
+  - `AudioManager.SFX`에 마일스톤 사운드 케이스 2개 추가 (light/heavy 톤)
+  - `HapticsManager`에 `medium()` 메서드 1개 추가 (light/heavy 사이 중간 톤)
+  - `GameScene.configureContactRouter()` 내부 콤보 마일스톤 분기 안쪽에 사운드/햅틱 호출 2줄 추가
+  - 마일스톤 → 사운드/햅틱 매핑을 결정하는 helper 또는 switch 분기 (GameScene 또는 ComboPopupNode 내부)
+- **금지**:
+  - ComboPopupNode 시각 코드 (라벨/애니메이션/색상) 변경
+  - ScoreSystem / ContactRouter / SpawnSystem / HUDNode / BGMPlayer / Repositories / Models / Protocols / 기존 Nodes / Scenes / ColorTokens / TitleScene / ResultScene 변경
+  - `GameConfig.comboMilestones` 배열 자체 변경 (3/5/10/20 그대로 유지)
+  - 새 SKAction / SKNode 노드 생성 (사운드/햅틱은 매니저 호출만)
+  - `triggeredComboMilestones` Set의 멱등성 가드 *위치 또는 의미* 변경 — 가드 안쪽에서만 사운드/햅틱 발화
+  - BGM 페이드 인/아웃 / 인터럽션 / 라이프사이클 로직 변경
+- **판단 기준**: "이 변경이 없으면 마일스톤 도달 시 3감각 동시 발화가 안 되는가?" → YES면 허용, NO면 금지.
 
 ---
 
-## 핵심 결정 포인트
+## 마일스톤별 사운드/햅틱 강도 매핑 결정 표
 
-### a. 콤보 변경 감지 메커니즘: **옵션 B (폴링) 채택**
+| 마일스톤 | 시각 (6-10 기존) | **햅틱 (신규)** | **사운드 (신규)** | 강도 의미 |
+|---|---|---|---|---|
+| x3 (첫 환호) | `.ganhoPaper` 흰빛 | `light()` (재사용) | `.comboMilestoneSoft` (1057 Tink — 노트와 동일 톤) | 가벼운 환호 — 노트 수집(light/Tink)과 유사한 톤. 첫 마일스톤 → *조용한 인정* |
+| x5 (정착) | `.ganhoPinkNote` 분홍 | `light()` (재사용) | `.comboMilestoneSoft` (1057 Tink) | 가벼운 환호 유지 — 너무 빠르게 강도 올리면 클라이맥스 헛김 |
+| x10 (황금기) | `.ganhoYellowF` 황금 | `medium()` (신규) | `.comboMilestoneStrong` (1025 NewMail 또는 1115 — 좀 더 묵직한 메탈릭) | 중간 강도 — 황금기 진입의 신호 |
+| x20 (클라이맥스) | `.ganhoBloodAccent` 빨강 | `heavy()` (재사용) | `.comboMilestoneStrong` (1025) | 묵직한 환호 — gameOver(heavy/Boop)와 같은 무게지만 톤은 긍정 |
 
-ScoreSystem은 현재 콤보 변경 시 콜백이 *없다*. 두 가지 선택지:
-
-- **옵션 A (콜백)**: ScoreSystem에 `onComboReached: (Int) -> Void` 클로저 추가, `recordNoteHit`에서 콤보 갱신 후 호출.
-- **옵션 B (폴링)**: `onNoteCollected` 클로저(GameScene) 내부에서 `scoreSystem.recordNoteHit(...)` 직후 `scoreSystem.combo` 값을 읽어 마일스톤 검사.
-
-**채택: 옵션 B** — 회귀 위험 0. ScoreSystem 코드 변경 없음. `onNoteCollected`는 *수집 시점*마다 1회 호출되므로 콤보 갱신 직후 동일 트랜잭션에서 검사 가능. ScoreSystem의 단일 책임(상태 + 점수 계산)을 보존.
-
-**Spring 비유**:
-- 옵션 A = `@EventListener(ApplicationEvent)` — 이벤트 발행자(ScoreSystem)가 발행 책임을 짐
-- 옵션 B = 호출자가 메서드 호출 직후 상태 폴링 — 컨트롤러가 서비스 호출 결과 보고 분기 (가장 간단)
-
-옵션 B는 "이미 일어난 일을 매 호출마다 확인" 패턴. 콜백보다 결합도 낮고 ScoreSystem 단위 테스트도 안 깨짐.
-
-### b. 마일스톤 정책: **[3, 5, 10, 20] 4단계 + 멱등성 보장 (한 판 내 1회만)**
-
-- 배열: `GameConfig.comboMilestones: [Int] = [3, 5, 10, 20]`
-- 멱등성: `triggeredComboMilestones: Set<Int>` 프로퍼티로 *이미 트리거된 마일스톤*을 기억 → 콤보가 3 → 4 → 콤보 윈도우 만료로 0 → 다시 3 도달해도 X3 재발화 **안 함**
-- 한 판 종료 시 `triggeredComboMilestones`는 *새 GameScene 인스턴스 생성* 시 빈 Set로 자동 리셋
-
-**근거**:
-- 콤보 라벨 자체가 매번 증가/리셋을 보여줌(HUD). 팝업까지 매번 떠오르면 *시각 노이즈*. 마일스톤은 *특별*해야 한다.
-- 자전적 톤: 곡의 클라이맥스는 한 곡에 한 번. 같은 클라이맥스를 두 번 치지 않는다.
-
-**Spring 비유**: idempotency-key 기반 결제 중복 방지. 같은 마일스톤 key에 대해 한 판(=1 GameScene 인스턴스) 안에서 1회만 처리.
-
-### c. 팝업 텍스트 & 폰트
-
-- 텍스트 포맷: `"x\(milestone)"` (예: `"x3"`, `"x10"`)
-- 폰트: SKLabelNode 시스템 폰트 (`SKLabelNode(text:)` 기본). 둥근모꼴 폰트는 아직 프로젝트에 임포트되지 않은 상태(별도 sprint).
-- 폰트 크기: `GameConfig.comboPopupFontSize: CGFloat = 48` (HUD 18보다 크고 GAME OVER 32과 비슷 — 임팩트 강조)
-- 텍스트 정렬: 중앙 (`horizontalAlignmentMode = .center`, `verticalAlignmentMode = .center`)
-
-### d. 표시 위치: **cameraNode 자식 (화면 중앙)**
-
-- 부착 위치: `cameraNode.addChild(popup)` — 카메라 follow 무관 *항상 화면 중앙*
-- 좌표: `position = .zero` (cameraNode 자식 좌표계는 (0,0)=화면 중앙)
-
-**근거**:
-- 마일스톤은 *특별*해야 함. 노트 위치 부착(worldNode) 시 카메라 이동/노트 위치 산만함으로 임팩트 분산.
-- AirforceOverlayNode 패턴 답습 → 일관성.
-
-**트레이드오프 수용**: 화면 중앙 일부 가림(1초). 플레이어가 잠시 못 보지만 마일스톤 = *큰 보상 순간*이라 게임플레이 방해보다 환호 효과가 크다.
-
-### e. 애니메이션: SKAction.group 동시 액션 + sequence 정리
-
-```swift
-let moveUp  = SKAction.moveBy(x: 0, y: comboPopupFlyUpDistance, duration: comboPopupDuration)
-let fadeOut = SKAction.fadeOut(withDuration: comboPopupDuration)
-let scaleUp = SKAction.scale(to: comboPopupEndScale, duration: comboPopupDuration)
-let group   = SKAction.group([moveUp, fadeOut, scaleUp])
-let cleanup = SKAction.removeFromParent()
-run(.sequence([group, cleanup]))
-```
-
-- fly-up 거리: `comboPopupFlyUpDistance: CGFloat = 80` (위로 떠오름 — 별이 올라가는 느낌)
-- 총 길이: `comboPopupDuration: TimeInterval = 1.0` (sparkle 0.5보다 길게 — 마일스톤은 1초 머묾이 적정)
-- 끝 스케일: `comboPopupEndScale: CGFloat = 1.4` (커지면서 사라짐 — 별이 *터지듯*)
-
-**Spring 비유**: `CompletableFuture.allOf(moveTask, fadeTask, scaleTask)` — 3개의 비동기 작업이 *동시* 진행되고 모두 끝났을 때 cleanup 실행.
-
-### f. 색상: 마일스톤별 차등 (ColorTokens 활용)
-
-| 마일스톤 | 색 토큰 | HEX | 의도 |
-|---|---|---|---|
-| x3 | `.ganhoPaper` | `#F4F1DE` | 흰빛 — 첫 도달, 깔끔한 환호 |
-| x5 | `.ganhoPinkNote` | `#F6A6B2` | 분홍 — 음표 본체 색, 음악과 동기 |
-| x10 | `.ganhoYellowF` | `#FFD23F` | 황금 — 노트의 황금기 |
-| x20 | `.ganhoBloodAccent` | `#D8315B` | 빨강 — 클라이맥스, 강렬함 |
-
-**색 결정 위치**: ComboPopupNode 내부에 `private static func color(for milestone: Int) -> UIColor` 함수로 매핑. 기본값 `.ganhoPaper` (마일스톤 미일치 시 graceful fallback — 미래 마일스톤 추가 대비).
-
-**ColorTokens 변경 0건**: 모두 기존 토큰 재사용.
-
-> **Generator 주의**: 색 토큰 이름은 ColorTokens.swift 실제 정의와 일치해야 함. 위 이름이 다르면 가까운 토큰으로 매핑(예: `.ganhoYellowF` 없으면 `.ganhoMustard` 또는 노란 계열).
-
-### g. 자가 소멸 6호 패턴
-
-`ComboPopupNode: SKNode, SelfDismissingNode` 채택. 5호 HitFlashNode 패턴 답습 — 외부 호출자가 `addChild` 직후 `animate()` 호출. 메모리 정리는 노드 본인.
+**결정 근거**:
+- **광역 그룹화 (2-2-2 매핑)**: x3/x5 → light+soft, x10 → medium+strong, x20 → heavy+strong. 4 마일스톤 × 2 채널 = 8 상수가 아니라, 강도 2~3 단계로 그룹화해 인지 부담 감소.
+- **light/heavy 재사용**: HapticsManager는 light/heavy 이미 존재 → light/heavy를 *재사용*하고 `medium()` 1개만 신규 추가. 4 마일스톤마다 별개 강도 만들면 과잉.
+- **시스템 사운드 ID 1025/1057 선정**: 1057(Tink)은 noteCollected와 동일 → x3/x5는 노트 수집의 *연장선*임을 청각으로 전달. 1025(NewMail)는 더 묵직한 알림 톤 → x10/x20은 *별개 사건*임을 표현. gameOver(1073 Boop)와는 다른 톤이어야 환호 vs 종료가 혼동 안 됨.
+- **6-10 색상 등급(흰→분홍→황금→빨강)과 정합**: 시각이 4단계 차등인데 햅틱/사운드는 2~3단계. 시각이 *세밀*하고 청각/촉각이 *광역*인 건 인간 지각 특성 일치 (색은 미세 구분 가능, 진동/소리는 거친 카테고리).
 
 ---
 
-## 변경 범위
+## AudioManager / HapticsManager 기존 API 호출 vs 신규 API 추가 결정
 
-### 추가할 파일 (1개)
+### AudioManager — **신규 SFX 케이스 2개 추가** (기존 API 시그니처 유지)
+- 기존 `SFX.noteCollected` / `SFX.gameOver`를 재사용하지 *않는다*. 이유:
+  - 노트 수집 = 자주 발생(초당 ~1회), 마일스톤 = 한 판에 ~4회. 청각 차별화 필요 — 사용자가 "이번 건 *마일스톤*"임을 즉시 인지해야 함.
+  - 시스템 사운드 ID만 다른 새 케이스라 enum 확장 비용 최소.
+- 추가할 케이스:
+  ```swift
+  enum SFX {
+      case noteCollected
+      case gameOver
+      case comboMilestoneSoft      // 신규 — x3 / x5
+      case comboMilestoneStrong    // 신규 — x10 / x20
+  }
+  ```
+- `fileName` / `systemSoundID` switch 양쪽에 케이스 매핑 추가 (exhaustive switch 유지 — `default` 금지). `fileName`은 `nil` 또는 `"combosoft"` / `"combostrong"` 둘 다 가능하지만 본 sprint는 음원 파일 부재를 가정 → `nil` 반환 → systemSoundID 폴백 경로로 자연 처리. 이후 sprint에서 자작 음원 추가 시 fileName만 갈아끼우면 됨(OCP).
+- `play(_:)` 메서드 시그니처 미변경 — 호출부에서 `audio.play(.comboMilestoneSoft)`처럼 자연 확장.
+- `init`의 `allCases` 배열은 `[.noteCollected, .gameOver, .comboMilestoneSoft, .comboMilestoneStrong]`로 확장 (Bundle 로딩 실패는 graceful — fileName nil이면 `for` 루프에서 자동 continue, 회귀 0).
 
-- **`Nodes/ComboPopupNode.swift`** — 자가 소멸 6호
+### HapticsManager — **medium() 메서드 1개 신규 + light/heavy 재사용**
+- 기존 `light()` / `heavy()` 그대로 유지.
+- `medium()` 신규 추가:
+  ```swift
+  private let mediumGenerator: UIImpactFeedbackGenerator
+  // init: mediumGenerator = UIImpactFeedbackGenerator(style: .medium); mediumGenerator.prepare()
+  func medium() {
+      mediumGenerator.impactOccurred()
+      mediumGenerator.prepare()
+  }
+  ```
+- `UIImpactFeedbackGenerator.FeedbackStyle.medium`은 light/heavy 사이 강도 — Apple 표준이라 별도 튜닝 불필요.
+- `prepare()` 캐시 워밍 패턴(6-1 학습 노트)을 동일하게 적용 — init에서 1회 + medium() 호출 직후마다.
 
-### 수정할 파일 (3개)
-
-#### 1. `Config/GameConfig.swift`
-`// MARK: - Combo Popup (Phase 6-10)` 섹션 + 6개 상수
-
-#### 2. `GameScene.swift`
-- 헤더 주석 1줄
-- Properties: `triggeredComboMilestones: Set<Int>` 1개
-- `onNoteCollected` 클로저: 마일스톤 검사 5줄 (`sparkle.emit()` 이후, `note.removeFromParent()` 이전)
-
-#### 3. `GanhoMusic.xcodeproj/project.pbxproj`
-- 4지점 등록 (식별자 `0031`)
+**결정 근거**: HapticsManager는 light/medium/heavy 3단계가 *완성형* 매핑. AudioManager는 케이스 enum이라 SFX 늘리는 게 자연. 두 매니저의 *확장 방식*이 다른 건 각자의 인터페이스 모양이 다르기 때문(enum-driven vs method-driven). 일관성보다 *자연스러움* 우선.
 
 ---
 
-## 기능 상세
+## 멱등성 — `triggeredComboMilestones` Set과의 관계
 
-### 기능 1: ComboPopupNode 신설
+**핵심 원칙**: 사운드/햅틱은 **반드시** 6-10에서 검증된 멱등성 가드 *안쪽*에서 발화. 가드 밖에서 호출하면 한 판에 콤보 3을 여러 번 도달할 때마다 "딩!" 진동이 반복돼 시각 팝업과 *비대칭*이 발생.
 
+### 6-10 패턴 재사용
 ```swift
-//
-//  ComboPopupNode.swift
-//  GanhoMusic Shared
-//
-//  Phase 6-10 · 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 + 자가 소멸 (시각 폴리싱)
-//
-
-import SpriteKit
-
-/// 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙에 떠오르는 자가 소멸 텍스트.
-/// PhysicsBody 부착 0 — 순수 시각. cameraNode 자식으로 화면 중앙 고정.
-/// SparkleEffectNode / HitFlashNode 패턴 답습 — 자가 소멸 노드 6회차.
-/// Spring 비유: HTTP 상태 코드 색상 매핑 — 마일스톤 등급별 시각적 위계.
-final class ComboPopupNode: SKNode, SelfDismissingNode {
-
-    // MARK: - Properties
-    private let label: SKLabelNode
-
-    // MARK: - Init
-    /// 마일스톤 값(3/5/10/20 등)을 받아 텍스트와 색을 결정.
-    init(milestone: Int) {
-        self.label = SKLabelNode(text: "x\(milestone)")
-        super.init()
-        name = "comboPopup"
-        zPosition = GameConfig.comboPopupZPosition
-        configureLabel(color: Self.color(for: milestone))
-        addChild(label)
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    // MARK: - Animate
-    /// 부모(cameraNode)에 addChild 직후 호출. 1초간 fly-up + fadeOut + scale → 자가 제거.
-    /// SKAction.group은 [move, fade, scale] 3개를 *동시* 실행 — CompletableFuture.allOf 패턴.
-    /// self 미사용 — [weak self] 캡처 불필요.
-    func animate() {
-        let moveUp  = SKAction.moveBy(x: 0,
-                                       y: GameConfig.comboPopupFlyUpDistance,
-                                       duration: GameConfig.comboPopupDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.comboPopupDuration)
-        let scaleUp = SKAction.scale(to: GameConfig.comboPopupEndScale,
-                                      duration: GameConfig.comboPopupDuration)
-        let group   = SKAction.group([moveUp, fadeOut, scaleUp])
-        let cleanup = SKAction.removeFromParent()
-        run(.sequence([group, cleanup]))
-    }
-
-    // MARK: - Configure
-    /// 라벨 스타일 — 마일스톤 색상, 중앙 정렬. cameraNode 자식 (0,0) = 화면 중앙.
-    private func configureLabel(color: UIColor) {
-        label.fontSize = GameConfig.comboPopupFontSize
-        label.fontColor = color
-        label.verticalAlignmentMode = .center
-        label.horizontalAlignmentMode = .center
-        label.position = .zero
-    }
-
-    // MARK: - Color Mapping
-    /// 마일스톤 값 → ColorTokens 매핑. 미일치 시 기본 .ganhoPaper로 graceful fallback.
-    /// 색은 등급이 올라갈수록 강렬해진다 (HTTP 상태 코드 색상 위계와 동형).
-    private static func color(for milestone: Int) -> UIColor {
-        switch milestone {
-        case 3:  return .ganhoPaper        // 흰빛 — 첫 도달
-        case 5:  return .ganhoPinkNote     // 분홍 — 음악 본체 색
-        case 10: return .ganhoYellowF      // 황금 — 노트의 황금기
-        case 20: return .ganhoBloodAccent  // 빨강 — 클라이맥스
-        default: return .ganhoPaper        // 미래 마일스톤 대비
-        }
-    }
-}
-```
-
-> **색 토큰 미존재 대응**: `.ganhoYellowF`가 ColorTokens.swift에 없으면 가장 가까운 노란/황금 톤(예: `.ganhoMustard`) 사용. Generator가 ColorTokens.swift 확인 후 결정.
-
-### 기능 2: GameConfig 상수 6개
-
-```swift
-// MARK: - Combo Popup (Phase 6-10)
-/// 콤보 마일스톤 발화 임계값 목록. 한 판 내 같은 마일스톤은 1회만 발화(멱등).
-/// 3 = 첫 환호 / 5 = 정착 / 10 = 황금기 / 20 = 클라이맥스. 자전적 곡 클라이맥스 모델.
-static let comboMilestones: [Int] = [3, 5, 10, 20]
-/// 콤보 팝업 텍스트 폰트 크기 (pt). HUD(18)의 ~2.7배 — *임팩트 강조*.
-static let comboPopupFontSize: CGFloat = 48
-/// 콤보 팝업이 위로 떠오르는 거리 (pt). 별이 하늘로 올라가는 톤.
-static let comboPopupFlyUpDistance: CGFloat = 80
-/// 팝업 1회 표시 총 길이 (초). group 액션(move + fade + scale) 묶음 duration.
-/// sparkle(0.5)보다 길고 airforceOverlay(1.5)보다 짧음 — 마일스톤 강조와 게임플레이 방해의 균형점.
-static let comboPopupDuration: TimeInterval = 1.0
-/// 팝업 끝 스케일. 1.0 시작 → 1.4 끝 = 페이드아웃과 동시에 *별이 터지듯* 확대.
-/// SparkleEndScale(0.2 축소)과 반대 — 마일스톤은 *확산*되는 느낌, sparkle은 *수렴*되는 입자.
-static let comboPopupEndScale: CGFloat = 1.4
-/// 팝업 zPosition. HUD(100) 위 — 라벨을 잠깐 덮어 임팩트.
-/// HitFlash(200) 아래 — 피격 플래시는 더 우선(생존 직결).
-static let comboPopupZPosition: CGFloat = 150
-```
-
-### 기능 3: GameScene 마일스톤 검사 클로저
-
-`onNoteCollected` 클로저 안, `sparkle.emit()` 이후 `note.removeFromParent()` 이전에 5줄 삽입:
-
-```swift
-// Phase 6-10 — 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 1회 발화 (멱등성)
+// 현재 (6-10):
 let currentCombo = self.scoreSystem.combo
 if GameConfig.comboMilestones.contains(currentCombo),
    !self.triggeredComboMilestones.contains(currentCombo) {
@@ -265,141 +96,219 @@ if GameConfig.comboMilestones.contains(currentCombo),
     self.cameraNode.addChild(popup)
     popup.animate()
 }
+
+// 6-11 후 (가드 안쪽에 2줄 추가):
+let currentCombo = self.scoreSystem.combo
+if GameConfig.comboMilestones.contains(currentCombo),
+   !self.triggeredComboMilestones.contains(currentCombo) {
+    self.triggeredComboMilestones.insert(currentCombo)
+    // 신규 — 시각보다 먼저 (촉각 → 청각 → 시각 순서)
+    self.haptics.medium()                  // helper로 마일스톤 → light/medium/heavy 분기
+    self.audio.play(.comboMilestoneSoft)   // helper로 마일스톤 → soft/strong 분기
+    // 기존 시각 (6-10):
+    let popup = ComboPopupNode(milestone: currentCombo)
+    self.cameraNode.addChild(popup)
+    popup.animate()
+}
 ```
 
-> **Generator 유연성**: `scoreSystem.combo` 프로퍼티 이름이 다르면 실제 ScoreSystem.swift 확인 후 매칭. `currentCombo`가 *수집 직후 갱신된 값*이어야 함.
+### 자동 리셋 신뢰
+- `triggeredComboMilestones: Set<Int> = []`는 GameScene 새 인스턴스에서 빈 Set로 자동 초기화 (6-10 학습 노트 §"자동 리셋의 우아함" 참조).
+- 사운드/햅틱은 *상태 없음* — 호출하면 즉시 발화 후 사라짐 (side-effect). 별도 리셋 코드 필요 0.
+- `endGame()`이나 `didMove(to:)`에 추가 정리 로직 **추가 금지** — 인스턴스 라이프사이클 신뢰가 6-10의 결정. 6-11도 같은 결정을 유지해야 패턴 일관성.
 
-### 기능 4: triggeredComboMilestones 프로퍼티
-
-GameScene Properties 섹션에 추가:
-
-```swift
-// Phase 6-10 — 한 판 내 이미 발화된 콤보 마일스톤 추적. 멱등성 보장.
-// GameScene 인스턴스는 한 판 = 1개 → 새 게임 시작 시 빈 Set로 자동 리셋.
-private var triggeredComboMilestones: Set<Int> = []
-```
-
-**리셋 처리 미필요 근거**: GameScene은 한 판당 새 인스턴스. `endGame()`에 `removeAll()` 추가하면 *과잉 안전망*이며 SPEC 범위 외.
-
-### 기능 5: pbxproj 4지점 등록
-
-HitFlashNode 등록 패턴 답습:
-1. PBXBuildFile 섹션
-2. PBXFileReference 섹션
-3. Nodes 그룹 children
-4. Sources build phase
-
-식별자: `A1C0F1A00000000000000031` / `A1C0F1B00000000000000031` (0030 다음). 충돌 확인 후 부여.
-
-> **참고**: Nodes/ 폴더가 PBXFileSystemSynchronizedRootGroup이면 자동 등록될 수 있음. 그러나 HitFlashNode가 명시 등록되어 있으면 동일 패턴 답습.
+### Spring 비유
+- `triggeredComboMilestones` = `idempotency-key` 헤더로 같은 요청을 중복 처리하지 않는 결제 API.
+- 가드 안쪽에 *부수효과 호출 N개*를 두는 건 결제 성공 시 (1) DB 기록 + (2) 이메일 발송 + (3) SMS 발송 + (4) 푸시 알림 — 모두 *같은 트랜잭션 안쪽*에서 발화하는 것과 동형. 트랜잭션 밖이면 중복 위험.
 
 ---
 
-## 회귀 안전성
+## ComboPopupNode와의 호출 순서 결정
 
-| 영역 | 변경 | 회귀 위험 |
-|---|---|---|
-| ScoreSystem | 0건 (콤보 *읽기*만) | 0 |
-| ContactRouter 시그니처 | 0건 | 0 |
-| HUDNode | 0건 (별도 노드) | 0 |
-| HapticsManager / AudioManager / BGMPlayer | 0건 | 0 |
-| Sparkle / HitFlash / BombFlash | 0건 | 0 |
-| EnemyNode / PlayerNode / NoteNode | 0건 | 0 |
-| GameScene `update()` / `endGame()` | 0건 | 0 |
-| GameConfig | 추가만, 기존 수정 0 | 0 |
-| PhysicsCategory | 0건 | 0 |
+**채택 순서**: `haptics.medium()` → `audio.play(.comboMilestoneSoft)` → `popup.animate()` (시각이 *마지막*)
 
----
+### 근거
+1. **6-1/6-2 패턴 답습**: 노트 수집에서도 `haptics.light()` → `audio.play(.noteCollected)` → (시각: sparkle.emit()) 순서. 6-2 학습 노트 §"코드 순서: 햅틱 → 사운드 (의미상)"에서 "촉각(즉각·물리적) → 청각(논리적·살짝 지연) → 시각" 규칙 확립됨.
+2. **인간 지각 시간축**:
+   - 촉각: 0~10ms (가장 즉각, 신체 표면)
+   - 청각: ~30ms (음파 전달)
+   - 시각: 60ms+ (망막 → 시각 피질, SKAction 1프레임)
+   - 코드 순서가 *체감 순서*와 일치하면 한 사건이 일관된 임팩트로 도달.
+3. **한 프레임 내 동시성**: 셋 다 한 `update()` 사이클 안 (1/60초)이라 사람은 차이 못 느낌. 그래도 *약속*을 굳히는 게 미래의 일관성.
+4. **6-10 시각 코드는 마지막에 위치** — 6-11이 가드 안쪽에 *prepend*하는 형태로 추가되어 기존 시각 흐름 보존 (회귀 0).
 
-## 검증 시나리오
-
-| # | 시나리오 | 기대 결과 |
-|---|---|---|
-| a | 음표 2개 연속 수집 (콤보 2) | 팝업 미발화 |
-| b | 음표 3개 연속 수집 (콤보 3 도달) | `.ganhoPaper` "x3" 팝업, 1초 후 사라짐 |
-| c | 음표 5개 연속 수집 (콤보 5) | `.ganhoPinkNote` "x5" 팝업, "x3"은 재발화 X |
-| d | 콤보 10 → 윈도우 만료 → 다시 3 도달 | "x3" 재발화 X (멱등성 보장) |
-| e | 마일스톤 도달과 피격(F) 동시 | 팝업 + HitFlash + 셰이크 모두 작동, ResultScene 전환 시 자동 정리 |
-| f | 새 게임 시작 | `triggeredComboMilestones` 빈 Set, 다시 처음부터 발화 가능 |
-| g | 콤보 50까지 도달 | 마일스톤 4단계 모두 1회씩 발화 후 추가 발화 0 |
-| h | 빌드 | BUILD SUCCEEDED, 경고 0 |
+### Spring 비유
+- 한 이벤트에 다중 listener가 등록된 경우 `@Order` 어노테이션으로 실행 순서 지정 — 우리도 코드 라인 순서가 곧 실행 순서.
+- 촉각 listener (`@Order(1)`) → 청각 listener (`@Order(2)`) → 시각 listener (`@Order(3)`).
 
 ---
 
-## 학습 가치
+## 변경 범위
 
-### 1. 폴링 vs 콜백 — 옵션 A vs B 선택의 의미
-- 옵션 A (콜백) = `@EventListener` — 결합도 ↑, 확장성 ↑
-- 옵션 B (폴링) = 컨트롤러가 서비스 호출 직후 상태 조회 — 결합도 ↓, 단순함 ↑
+### 수정할 파일
+- `GanhoMusic/GanhoMusic Shared/Managers/AudioManager.swift` — `SFX` enum에 `.comboMilestoneSoft` / `.comboMilestoneStrong` 케이스 2개 + `fileName`/`systemSoundID` switch 매핑 + `init` 내 `allCases` 배열 확장.
+- `GanhoMusic/GanhoMusic Shared/Managers/HapticsManager.swift` — `mediumGenerator` 프로퍼티 1개 + `init` 워밍 1줄 + `medium()` 메서드 1개 추가.
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — `// MARK: - Combo Milestone Feedback (Phase 6-11)` 섹션 신설, 마일스톤 → 햅틱/사운드 매핑 상수 또는 helper 결정에 필요한 enum/배열 추가 (아래 §"기능 상세" 참조).
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift` — `configureContactRouter()` 내 `onNoteCollected` 콜백 안쪽의 마일스톤 분기에 햅틱/사운드 호출 2줄 추가. 헤더 주석에 `// Phase 6-11 ...` 한 줄 추가.
 
-이번엔 옵션 B 채택. 한 곳에서만 듣는다면 폴링이 단순.
+### 추가할 파일
+- **없음**. 모든 변경은 기존 4개 파일 안쪽 확장. 매니저 패턴(6-1/6-2)이 *확장에 열려 있고* 변경에 닫혀 있는(OCP) 형태로 설계되어 있어 enum case + 메서드 추가만으로 충분.
 
-### 2. 멱등성과 마일스톤 추적
-`Set<Int>`로 *이미 본 마일스톤*을 기억. Spring idempotency-key, Redis SETNX와 같은 사고방식.
+---
 
-학생 비유: 출석부에 한 번 체크하면 두 번 체크 안 함.
+## 기능 상세
 
-### 3. 자가 소멸 6호 — 패턴 누적 가치
-1호 Airplane → 2호 AirforceOverlay → 3호 BombFlash → 4호 Sparkle → 5호 HitFlash → **6호 ComboPopup**.
+### 기능 1: AudioManager.SFX 케이스 2개 추가
+- **설명**: 마일스톤 사운드를 노트 수집/게임오버와 분리. 클라이맥스 마일스톤(x10/x20)은 더 묵직한 톤.
+- **구현 위치**: `Managers/AudioManager.swift` — `enum SFX` 본체 + `init`의 `allCases` 배열.
+- **핵심 코드 구조**:
+  ```swift
+  enum SFX {
+      case noteCollected
+      case gameOver
+      case comboMilestoneSoft     // Phase 6-11 — x3 / x5 (가벼운 환호)
+      case comboMilestoneStrong   // Phase 6-11 — x10 / x20 (묵직한 환호)
 
-같은 *생애주기 패턴*을 6회 답습. 호출자는 `addChild → 메서드 호출` 두 줄로 끝.
+      var fileName: String? {
+          switch self {
+          case .noteCollected:        return "note"
+          case .gameOver:             return "gameover"
+          case .comboMilestoneSoft:   return nil   // 음원 부재 — systemSoundID 폴백
+          case .comboMilestoneStrong: return nil
+          }
+          // exhaustive switch — default 없음 (6-2 학습 노트 §"enum + computed property" 정책)
+      }
 
-### 4. SKAction.group의 동시 액션
-`sequence` = 순차 (`chainedFuture.thenCompose`) / `group` = 병렬 (`CompletableFuture.allOf`).
+      var systemSoundID: SystemSoundID {
+          switch self {
+          case .noteCollected:        return 1057  // Tink — 짧고 밝은 메탈릭 (기존)
+          case .gameOver:             return 1073  // Boop — 묵직한 종료감 (기존)
+          case .comboMilestoneSoft:   return 1057  // Tink — 노트 수집과 동일 (연장선 톤)
+          case .comboMilestoneStrong: return 1025  // NewMail — 묵직하지만 긍정 (gameOver 1073과 차별)
+          }
+      }
+  }
 
-ComboPopup은 group으로 "위로 이동 + 페이드 + 확대" 3채널을 *같은 1초 동안 동시* 진행.
+  // init 내 allCases 배열 확장:
+  let allCases: [SFX] = [.noteCollected, .gameOver, .comboMilestoneSoft, .comboMilestoneStrong]
+  ```
+- **주의**: `default` 절 금지 (Phase 6-2 학습 노트 §"매직 넘버 정책" 정책 — 새 케이스 누락을 컴파일러가 강제 검출). 시스템 사운드 ID(1025, 1057, 1073)는 Apple 도메인 상수이므로 GameConfig가 아닌 enum 내부에 유지 (6-2 학습 노트 §"매직 넘버 정책의 미묘함").
 
-### 5. 시각 위계 — 마일스톤 등급별 색 차등
-HTTP 상태 코드 색상 비유와 동형:
-- 2xx 흰색 / 3xx 분홍 / 4xx 노랑 / 5xx 빨강
+### 기능 2: HapticsManager.medium() 추가
+- **설명**: light/heavy 사이 중간 강도 햅틱. x10 마일스톤 전용.
+- **구현 위치**: `Managers/HapticsManager.swift`.
+- **핵심 코드 구조**:
+  ```swift
+  final class HapticsManager {
+      // MARK: - Properties
+      private let lightGenerator: UIImpactFeedbackGenerator
+      private let mediumGenerator: UIImpactFeedbackGenerator   // Phase 6-11 신규
+      private let heavyGenerator: UIImpactFeedbackGenerator
 
-색이 *등급*을 1초 안에 전달. 텍스트는 *읽어야* 알지만, 색은 *느낀다*. 인지 비용 차이.
+      // MARK: - Init
+      init() {
+          lightGenerator  = UIImpactFeedbackGenerator(style: .light)
+          mediumGenerator = UIImpactFeedbackGenerator(style: .medium)   // Phase 6-11
+          heavyGenerator  = UIImpactFeedbackGenerator(style: .heavy)
+          lightGenerator.prepare()
+          mediumGenerator.prepare()   // Phase 6-11 — 캐시 워밍 동일 패턴
+          heavyGenerator.prepare()
+      }
 
-### 6. HUD 라벨 vs 팝업 — 정보 vs 임팩트 분리
-- HUD comboLabel = *지속 정보* (read API)
-- ComboPopupNode = *일회성 임팩트* (event listener)
+      // MARK: - Triggers
+      func light() { lightGenerator.impactOccurred();  lightGenerator.prepare() }
+      /// Phase 6-11 — 콤보 마일스톤 x10(황금기) 전용 중간 강도.
+      func medium() { mediumGenerator.impactOccurred(); mediumGenerator.prepare() }
+      func heavy() { heavyGenerator.impactOccurred();  heavyGenerator.prepare() }
+  }
+  ```
+- **주의**: 시뮬레이터는 햅틱 미지원이라 UIKit이 자동 noop — 빌드/실행 어느 환경에서도 크래시 없음 (Phase 6-1 학습 노트 §"시뮬레이터에서 시험하면?"). `prepare()` 호출 패턴은 light/heavy와 100% 동형.
 
-두 채널 분리 — HUD에 임팩트 섞으면 평소 *조용*해야 할 정보가 시끄러워짐.
+### 기능 3: GameScene — 마일스톤 피드백 매핑 helper
+- **설명**: 마일스톤 값(3/5/10/20) → 햅틱 단계 + 사운드 케이스 매핑을 GameScene 분기 길이를 줄이는 helper로 표현.
+- **구현 위치**: `Scenes/GameScene.swift` 내 private 메서드 (ComboPopupNode.color(for:) 패턴 대칭).
+- **핵심 코드 구조**:
+  ```swift
+  // GameScene 안 private 메서드로 두는 게 가장 단순 (6-10의 ComboPopupNode.color(for:) static 패턴 답습)
+  private func playComboMilestoneFeedback(for milestone: Int) {
+      switch milestone {
+      case 3, 5:
+          haptics.light()
+          audio.play(.comboMilestoneSoft)
+      case 10:
+          haptics.medium()
+          audio.play(.comboMilestoneSoft)
+      case 20:
+          haptics.heavy()
+          audio.play(.comboMilestoneStrong)
+      default:
+          haptics.light()   // graceful fallback — 미래 마일스톤 대비 (6-10 색상 매핑과 동일 정책)
+          audio.play(.comboMilestoneSoft)
+      }
+  }
+  ```
+
+- **결정**: GameConfig가 아닌 GameScene 내부 helper로 둔다. 이유:
+  1. ComboPopupNode의 `color(for:)` 정적 메서드와 *위치/형태 대칭* — 한 곳은 시각 매핑, 한 곳은 피드백 매핑.
+  2. GameScene private 메서드로 두면 콤보 콜백 안쪽이 1줄(`self.playComboMilestoneFeedback(for: currentCombo)`)로 깨끗.
+  3. 매핑 변경 시 한 곳만 수정.
+  4. GameConfig는 *수치 상수* 보관소 — *제어 흐름*은 가능한 노출 안 시키는 게 6-10까지의 결정.
+
+- **주의**: `default` 절은 6-10 `color(for:)`와 마찬가지로 **graceful fallback** 의도로 포함 (미래 마일스톤 추가 대비 + 만약 `comboMilestones` 배열에 새 값을 넣었는데 switch를 안 업데이트한 경우 크래시 방지). 단, `comboMilestones` 배열 자체는 이번 sprint에서 변경 금지 → default는 안전망일 뿐 실행 경로 아님.
+
+### 기능 4: GameScene 콜백 가드 안쪽 통합
+- **설명**: 6-10이 만든 멱등성 가드 안쪽에 햅틱/사운드 호출을 시각 *앞*에 prepend.
+- **구현 위치**: `Scenes/GameScene.swift` — `configureContactRouter()` 내 `contactRouter.onNoteCollected` 클로저.
+- **핵심 코드 구조**:
+  ```swift
+  // 기존 (6-10 산출물):
+  let currentCombo = self.scoreSystem.combo
+  if GameConfig.comboMilestones.contains(currentCombo),
+     !self.triggeredComboMilestones.contains(currentCombo) {
+      self.triggeredComboMilestones.insert(currentCombo)
+      let popup = ComboPopupNode(milestone: currentCombo)
+      self.cameraNode.addChild(popup)
+      popup.animate()
+  }
+
+  // 6-11 후:
+  let currentCombo = self.scoreSystem.combo
+  if GameConfig.comboMilestones.contains(currentCombo),
+     !self.triggeredComboMilestones.contains(currentCombo) {
+      self.triggeredComboMilestones.insert(currentCombo)
+      // Phase 6-11 — 가드 안쪽에서 3감각 동시 발화. 촉각→청각→시각 순서.
+      // 회귀 0: 6-10의 시각 코드는 마지막 그대로, 앞에 1줄 prepend.
+      self.playComboMilestoneFeedback(for: currentCombo)
+      let popup = ComboPopupNode(milestone: currentCombo)
+      self.cameraNode.addChild(popup)
+      popup.animate()
+  }
+  ```
+- **헤더 주석 추가**: `GameScene.swift` 상단 Phase 주석 목록에 한 줄 추가:
+  ```
+  //  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)
+  ```
+- **주의**:
+  - `[weak self]` 캡처 유지 (기존 클로저 시그니처 변경 0).
+  - `self.haptics.medium()` 호출은 시뮬레이터에서 noop이라 빌드/실행 모두 안전.
+  - `endGame()` 내부의 `haptics.heavy()` / `audio.play(.gameOver)`와 *간섭 없음* — 노트 수집 콜백 안쪽이라 gameOver와 별개 경로.
+  - 콤보 마일스톤 발화 직후 같은 클로저 안에서 `note.run(.removeFromParent())` 라인이 이미 존재 — 시각 코드 *뒤*에 위치 → 6-11 변경이 노트 제거 순서에 영향 0.
 
 ---
 
 ## 주의사항
 
-### 빌드 에러 가능성
-- pbxproj 식별자 0031 충돌 확인
-- SelfDismissingNode 채택 시 별도 import 불필요(같은 모듈)
-- `.ganhoYellowF` 등 색 토큰 이름이 실제 ColorTokens.swift와 일치 확인
-
-### SpriteKit 특성
-- `SKLabelNode(text:)` 기본 생성자 = 시스템 폰트. 둥근모꼴 도입은 별도 sprint.
-- alpha/scale 기본값 1.0 → 별도 초기화 불필요
-
-### Swift 규칙
-- 강제 언래핑 0
-- 매직 넘버 0 (모든 수치 GameConfig)
-- `[weak self]` + `guard let self` (기존 onNoteCollected 패턴 유지)
-
-### Sprint 범위 위반 자동 감점 위험
-Generator가 다음 추가 시 SPEC 위반:
-- 콤보 팝업 사운드/햅틱 — 별도 sprint
-- ScoreSystem onComboReached 콜백 — 옵션 B 채택과 모순
-- HUDNode 변경 — 금지 명시
-- 마일스톤 배열 외 추가
-- 색 차등 정책 위반
-
----
-
-## Generator 체크리스트
-
-- [ ] `Nodes/ComboPopupNode.swift` 신설 — SelfDismissingNode 채택
-- [ ] `Config/GameConfig.swift` 끝에 Combo Popup 섹션 + 상수 6개
-- [ ] `GameScene.swift` Properties `triggeredComboMilestones: Set<Int> = []` 추가
-- [ ] `GameScene.swift` onNoteCollected 클로저에 마일스톤 검사 5줄 (sparkle.emit() 이후, note.removeFromParent() 이전)
-- [ ] 헤더 주석 1줄 추가
-- [ ] pbxproj 4지점 등록 (UUID 0031, 충돌 0)
-- [ ] 빌드 BUILD SUCCEEDED + 경고 0
-- [ ] 회귀 0줄 git diff (ScoreSystem/HUDNode/AudioManager/HapticsManager/BGMPlayer/Sparkle/HitFlash/BombFlash/Player/Enemy/Note/Projectile/Repositories/Models/Protocols/ContactRouter/SpawnSystem 등)
-- [ ] 강제 언래핑 0, 매직 넘버 0, Timer 0
-- [ ] [weak self] + guard let self 패턴 유지
-- [ ] ColorTokens.swift 변경 0 (색 토큰 재사용)
-- [ ] 새 효과음/햅틱/PhysicsCategory 0
+- **시뮬레이터 검증 한계**: 햅틱은 시뮬레이터에서 noop. 사운드는 시뮬레이터에서도 재생됨 (시스템 사운드는 macOS 사운드 채널로 출력). 빌드 통과 + 콤보 마일스톤 도달 시 콘솔 에러 0 + 사운드 재생 확인까지가 Generator의 검증 범위. 실기기 햅틱 확인은 사용자 몫.
+- **6-2의 정책 일관성 유지**:
+  - 시스템 사운드 ID는 GameConfig에 *넣지 않는다* (Apple 도메인 상수). 6-2 학습 노트 §"매직 넘버 정책의 미묘함" 참조.
+  - `default` 절 없는 exhaustive switch 유지 — 새 SFX 케이스 추가 시 컴파일러가 강제로 매핑 추가 요구.
+- **사운드 ID 1025(NewMail) 검증**: 1000~1500 범위 안전. 만약 1025가 짧지 않거나 환호 톤과 안 맞으면 Generator는 1112(Anticipate) / 1117(BeginRecording) / 1325(Tweet 알림) 등 대안 시도 가능 — 단 SFX 케이스 분리(soft/strong) 구조는 유지.
+- **`triggeredComboMilestones` Set는 절대 건드리지 않는다**: 6-10에서 이미 한 판 인스턴스 라이프사이클로 자동 리셋되도록 설계됨. `endGame()`에 `removeAll()` 추가 금지 (6-10 학습 노트 §"자동 리셋의 우아함").
+- **AudioManager 카테고리(.ambient) 유지**: BGMPlayer의 .playback 카테고리는 BGM 음원 로딩 *성공* 시에만 덮어쓰는 구조(6-4). AudioManager init이 .ambient를 시도하는 건 .playback 덮어쓰기 *전* 호출 순서일 수 있음 — `GameScene.let audio = AudioManager(); let bgm = BGMPlayer()` 초기화 순서 상 audio가 먼저라 .ambient 후 .playback이 덮음. 회귀 0 유지.
+- **CaseIterable 미채택 정책 유지**: 6-2의 결정 — enum 본체에 `CaseIterable` 채택 안 함, init의 명시 배열로 모든 케이스 나열. 새 케이스 추가 시 init의 `allCases` 배열에 *수동* 추가 의무. Generator가 빠뜨리면 Bundle 로딩 시도가 안 됨(폴백 경로만 동작) — 실제 음원 추가 시점에 발견 가능한 소프트 실수.
+- **빌드 에러 가능성**:
+  - `UIImpactFeedbackGenerator(style: .medium)`은 iOS 10+ 표준 API — iOS 16+ 타겟이라 안전.
+  - HapticsManager에 import UIKit이 이미 있음 — 추가 import 0.
+  - AudioManager의 systemSoundID는 SystemSoundID(UInt32) 타입 — 1025 정수 리터럴 자동 변환 OK.
+- **pbxproj 미변경**: 기존 4개 파일 *수정*만 — 새 파일 0건이므로 project.pbxproj 변경 0건. Phase 6-10에서 pbxproj 4지점 등록한 ComboPopupNode와 다른 결.
+- **Sprint 회귀 0 보장 영역** (이 sprint가 절대 건드리면 안 되는 곳): ScoreSystem / ContactRouter / SpawnSystem / HUDNode / BGMPlayer / Repositories / Models / Protocols / 기존 Nodes (PlayerNode/EnemyNode/NoteNode 등) / 기존 Scenes (TitleScene/ResultScene) / ColorTokens / SelfDismissingNode / ComboPopupNode 시각 코드 — **20개 영역 미접촉 검증 필수**.

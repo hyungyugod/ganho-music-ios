@@ -33,6 +33,7 @@
 //  Phase 6-8 · 음표 수집 시 sparkle 8방향 방사 (시각 폴리싱)
 //  Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)
 //  Phase 6-10 · 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙 텍스트 팝업 (시각 폴리싱)
+//  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)
 //
 
 import SpriteKit
@@ -242,6 +243,11 @@ class GameScene: SKScene {
             if GameConfig.comboMilestones.contains(currentCombo),
                !self.triggeredComboMilestones.contains(currentCombo) {
                 self.triggeredComboMilestones.insert(currentCombo)
+                // Phase 6-11 — 가드 안쪽에서 3감각 동시 발화. 촉각→청각→시각 순서로 prepend.
+                // 회귀 0: 6-10의 시각 코드(ComboPopupNode)는 마지막 위치 그대로 유지.
+                // 멱등성 신뢰: triggeredComboMilestones Set이 한 판 1회만 통과시키므로
+                // 사운드/햅틱도 시각과 동일하게 1회만 발화 — 비대칭 0.
+                self.playComboMilestoneFeedback(for: currentCombo)
                 let popup = ComboPopupNode(milestone: currentCombo)
                 self.cameraNode.addChild(popup)
                 popup.animate()
@@ -250,6 +256,34 @@ class GameScene: SKScene {
         }
         contactRouter.onStoneGuardContact = { [weak self] in
             self?.triggerAirforceEasterEgg()
+        }
+    }
+
+    // MARK: - Combo Milestone Feedback (Phase 6-11)
+    /// 콤보 마일스톤(3/5/10/20) 도달 시 햅틱/사운드를 등급별로 발화.
+    /// 시각(ComboPopupNode.color(for:)) 4단계와 다르게 청각/촉각은 2~3단계로 광역 그룹화:
+    /// x3/x5 → light + soft (노트 수집 연장선), x10 → medium + soft (황금기 진입 신호),
+    /// x20 → heavy + strong (gameOver와 같은 무게지만 톤은 긍정).
+    /// 인간 지각상 색은 미세 구분 가능, 진동/소리는 거친 카테고리라 시각이 *세밀*하고
+    /// 청각/촉각이 *광역*인 비대칭이 자연스럽다.
+    /// default는 graceful fallback — 미래 `comboMilestones` 배열 확장 시 크래시 방지 안전망.
+    /// (이번 sprint는 배열 변경 금지라 default는 실행 경로 아님.)
+    /// ComboPopupNode.color(for:) static 메서드와 위치/형태 대칭 — 한 곳은 시각 매핑, 한 곳은 피드백 매핑.
+    private func playComboMilestoneFeedback(for milestone: Int) {
+        switch milestone {
+        case 3, 5:
+            haptics.light()
+            audio.play(.comboMilestoneSoft)
+        case 10:
+            haptics.medium()
+            audio.play(.comboMilestoneSoft)
+        case 20:
+            haptics.heavy()
+            audio.play(.comboMilestoneStrong)
+        default:
+            // 미래 마일스톤 추가 대비 안전망. 6-10 color(for:)와 동일한 graceful fallback 정책.
+            haptics.light()
+            audio.play(.comboMilestoneSoft)
         }
     }
 
