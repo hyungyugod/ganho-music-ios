@@ -370,4 +370,26 @@ enum GameConfig {
     /// HUDNode timeLabel 깜빡임 SKAction 키. 중복 호출 시 자동 교체(멱등) 보장.
     /// withKey로 부착하면 SpriteKit이 같은 키의 이전 액션을 자동 제거 → 자연 멱등.
     static let tensionBlinkActionKey: String = "tensionBlink"
+
+    // MARK: - New Best (Phase 6-15)
+    /// 화면 중앙 "NEW BEST!" 폰트 크기 (pt). resultScoreFontSize(24)보다 큼, countdownFontSize(96)보단 작음.
+    static let newBestFontSize: CGFloat = 56
+    /// frame.midY 기준 NewBest! 라벨 Y 오프셋. 0 = 정중앙. bestLabel과 같은 y지만 zPosition으로 위에 겹침.
+    static let newBestOffsetY: CGFloat = 0
+    /// NewBest! 라벨 zPosition. comboPopupZPosition(150)과 동급 — ResultScene 기본 z=0 위.
+    static let newBestZPosition: CGFloat = 150
+    /// ResultScene 진입 후 NewBest! 발화까지 지연 (초). fade transition(0.4s) 끝나고 score 인지 후 등장.
+    static let newBestRevealDelay: TimeInterval = 0.3
+    /// NewBest! fade-in 길이 (초).
+    static let newBestFadeInDuration: TimeInterval = 0.3
+    /// NewBest! scale pulse 한 사이클 총 길이 (초). up(0.4) + down(0.4) = 0.8.
+    static let newBestScalePulseDuration: TimeInterval = 0.8
+    /// NewBest! scale pulse 정점 스케일 (1.0 → 1.2 → 1.0).
+    static let newBestEndScalePeak: CGFloat = 1.2
+    /// bestLabel 황금 깜빡임 최소 alpha. 1.0 ↔ 0.5 사이 보간.
+    static let newBestBlinkMinAlpha: CGFloat = 0.5
+    /// bestLabel 황금 깜빡임 한 색 머무는 시간 (초). tensionBlinkHalfPeriod(0.5)와 동일.
+    static let newBestBlinkHalfPeriod: TimeInterval = 0.5
+    /// bestLabel 황금 깜빡임 SKAction 키. 같은 키 재호출 시 자동 교체로 자연 멱등.
+    static let newBestBlinkActionKey: String = "newBestBlink"
 }

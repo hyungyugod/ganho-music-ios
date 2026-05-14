@@ -1,292 +1,285 @@
-# SPEC.md — Phase 6-14 타이머 긴박감 (5초 이하 BGM 피치 상승 + HUD 깜빡임 + 매초 햅틱)
+# SPEC.md — Phase 6-15: 뉴베스트 폴리싱 (NEW BEST! 결과 화면 영광)
 
 ## 개요
-게임 타이머가 5초 이하로 떨어지면 BGM 재생속도(rate)를 1.0 → 1.15로 *서서히* 끌어올려 피치를 함께 상승시키고, HUD `timeLabel`은 빨강(`ganhoBloodAccent`) ↔ 원래색(`ganhoPaper`) 사이를 1초 주기로 깜빡이며, 매초 정수가 바뀔 때(5→4→3→2→1) `haptics.light()`로 카운트의 *심장박동*을 더한다. 0초 도달 시 기존 `endGame()` 경로가 그대로 발화한다 — 새 종료 로직 0건.
+ResultScene 진입 시점에 이번 판 점수가 기존 최고 기록을 초과했을 때, 화면 중앙 "NEW BEST!" 큰 황금 라벨 + heavy 햅틱 + NewMail 사운드 + 기존 bestLabel의 황금 깜빡임으로 *결과의 영광*을 3감각 멀티모달로 마감한다. Phase 6-13(시작 카운트다운) ↔ Phase 6-14(끝 긴박감)의 시작/끝 대칭에 이어, *판 결과*의 클라이맥스를 채운다.
 
 ## 변경 유형
-**혼합** — 청각(BGM rate ramp) + 시각(HUD 라벨 깜빡임) + 촉각(매초 light) 3채널 동시 발화 + 게임 진행 톤 변화. Evaluator는 게임플레이/비주얼 양쪽 기준을 함께 적용.
+**혼합** (시각 + 청각 + 촉각 + 결과 화면 임팩트)
 
 ## 게임 경험 의도
-6-13 *카운트다운*이 출발의 *개봉감*을 줬다면, 6-14는 끝의 *긴박감*을 채워 **시작과 끝의 톤이 대칭**을 이루도록 한다. 5초 구간은 한 판의 결정적 *클라이맥스* — 점수 한 톨이라도 더 줍거나, F를 피해 마지막 콤보를 잇는 시간. BGM이 *빨리 감기*처럼 차오르고, 빨강과 원래색을 오가는 시계가 *심박*처럼 뛰면서, 매초 손끝의 톡 — 새벽 작곡 자전 톤에서 *마감 직전 박자가 흐트러지는 순간*을 멀티모달로 체화한다.
+지금까지 신기록일 때 ResultScene은 `★ NEW BEST! ★` 텍스트로만 바뀌었다 — *조용한 갱신*. 6-15는 그 갱신을 *축포*로 바꾼다: 화면 중앙 큰 황금 라벨 등장 + heavy 햅틱(도달의 무게) + NewMail 사운드(긍정·묵직) + 기존 bestLabel 황금 깜빡임. 자전적 톤에서 *작곡 끝낸 새벽에 곡이 완성됐다는 자각의 순간*과 동형 — 한 판 끝에 *내가 새 기록을 세웠다*는 사실이 시각/청각/촉각으로 동시 통보된다.
 
 ## Sprint 범위 계약
-- **허용** (SPEC 기능의 정상 동작에 필수적인 최소 연동 변경):
-  - `BGMPlayer`에 신규 API 2개: `setRate(_ rate: Float)`, `resetRate()` (재시작/stop 시 1.0 복원)
-  - `BGMPlayer.init`에서 `player.enableRate = true` 1줄
-  - `HUDNode`에 신규 API 2개: `startTensionBlink()`, `stopTensionBlink()` (timeLabel 깜빡임 액션 부착/제거)
-  - `GameConfig`에 신규 상수 5~6개 (임계값/최대 rate/blink 주기/blink 액션 키 등)
-  - `GameScene.update` 안에 5초 *진입* 감지 + 매초 정수 변화 감지 + rate 보간 갱신 (3가지 폴링이 같은 if 블록 안에서 함께 처리)
-  - `GameScene.endGame` 안에 `hud.stopTensionBlink()` 1줄 (멱등 가드 안쪽)
-- **금지** (SPEC에 없는 독립 기능):
-  - 카운트다운(6-13) 시점에서의 rate 변경 — `.playing` 외 상태에서는 절대 발화 금지
-  - AVAudioEngine + AVAudioUnitTimePitch 전환 (BGMPlayer 전면 개편) — 본 sprint는 `AVAudioPlayer.rate`만 사용
-  - 새 ColorTokens 추가 (빨강은 기존 `ganhoBloodAccent` 재사용)
-  - 새 Manager / Node / System 파일 신설
-  - 5초 외 다른 구간 시각 효과 (이미 6-13/6-8/6-9/6-10/6-11/6-12로 다른 구간은 채워짐)
-  - 카운트다운 스킵 / 일시정지 등 별개 기능
-- **판단 기준**: "이 변경이 없으면 5초 긴박감이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지
+- **허용**:
+  - `ResultScene.swift` 내부에 `newBestLabel: SKLabelNode` 1개 신설 (옵션 B — 신규 파일 0건 정책)
+  - `ResultScene.didMove` 진입 후 `isNewBest == true` 일 때만 발화하는 시퀀스 (시각 + 햅틱 + 사운드 + 기존 bestLabel 황금 전환)
+  - `GameConfig.swift`에 NewBest 관련 상수 10개 신설 (`MARK: - New Best (Phase 6-15)` 섹션)
+  - `ResultScene`이 `HapticsManager` / `AudioManager` 인스턴스 1개씩 신규 보유 (stored property)
+  - `GameScene.endGame()`의 ResultScene 생성 인자 변경 0건 (`isNewBest` 이미 주입 중)
+- **금지**:
+  - 신규 노드 파일 신설 (NewBestNode 등 — 옵션 A 기각)
+  - 신규 SFX 케이스 추가 (`AudioManager.SFX`에 `.newBest` 신설 금지 — `.comboMilestoneStrong` 재사용)
+  - 신규 ColorTokens 추가 (`.ganhoYellowF` 재사용)
+  - `HighScoreRepository.swift` API 변경 (현행 `record(_:) -> Bool` 그대로 활용 — 이미 신기록 신호 반환 중)
+  - `GameScene.swift` / `TitleScene.swift` / `Models/*` / `Protocols/*` / 자가 소멸 노드 8개 / `HUDNode` / `Systems/*` 미접촉
+  - `ResultScene.bestLabel.text` 분기 로직 변경 (현행 `isNewBest ? "★ NEW BEST! ★" : "BEST 🏆 \(bestScore)"` 그대로 — 추가 시각만 얹음)
+  - Timer / DispatchQueue.main.asyncAfter 사용 (Swift 규칙 9) — 지연은 SKAction.wait 패턴
+- **판단 기준**: "이 변경이 없으면 NEW BEST 폴리싱이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지
 
-## BGM rate 변경 메커니즘 결정
+## 핵심 결정 사항
 
-| 항목 | 결정 | 사유 |
-|---|---|---|
-| API | `AVAudioPlayer.rate` (`enableRate = true` 필수) | 6-4 `BGMPlayer` 구조 *유지*. AVAudioEngine + AVAudioUnitTimePitch는 전면 개편 → Sprint 범위 초과 |
-| 피치 분리 | 분리 안 함 (rate↑ → 피치↑ 동시) | iOS `AVAudioPlayer.rate`의 자연 특성. *영상 빨리감기* 톤 = 마감 직전의 가속감과 의미적으로 일치 |
-| rate 범위 | 1.0 → 1.15 (선형, dt 기반 보간) | 0.5~2.0이 안전 구간. 1.15는 *체감되지만 곡 식별성 유지* 균형점 |
-| 보간 방식 | 매 프레임 (1.0 + 0.15 × (5 - remainingTime) / 4) | 정수초 점프(0.03씩)보다 매끄러움. dt 기반 이동 정책과 동형 |
-| 멱등성 | 같은 rate를 매 프레임 반복 set OK | `AVAudioPlayer.rate` setter는 idempotent (Apple 문서). 별도 dirty-check 불필요 |
-| 음원 부재 | guard let player → noop | 6-4 graceful fallback 정책 그대로 |
+### 1. 뉴베스트 감지 — 위치 결정
+**결정: 기존 흐름 유지**. `GameScene.endGame()`에서 이미 `highScoreRepo.record(score)`가 `Bool`을 반환하고 그 값이 `isNewBest`로 `ResultScene`에 init 주입되고 있다. `ResultScene`은 새 비교 로직 0건 — `self.isNewBest` 프로퍼티만 보고 분기한다.
+- 회귀 0: `HighScoreRepository.record(_:) -> Bool` API 미접촉
+- 회귀 0: `GameScene.endGame()`의 record/current 4줄 미접촉
+- ResultScene 책임은 *진입 시점 표현*에만 한정 (단일 책임)
 
-## 5초 진입 감지 + lastRemainingTime 추적
+### 2. 라벨 구조 — 옵션 B 채택
+**결정: ResultScene 내부 라벨 (옵션 B)**.
+- 신규 파일 0건 (Phase 6-14의 *가장 작은 sprint* 정책 답습)
+- `NewBestNode`(옵션 A) 기각 이유: CountdownNode/ComboBreakNode는 *재사용 가능한 일반 위젯*이었지만 NewBest는 ResultScene *전용 1회 표현* — 별도 노드로 추출할 재사용성 없음
+- 새 라벨 `newBestLabel: SKLabelNode`을 ResultScene stored property로 1개 추가, `isNewBest`일 때만 `addChild` + 애니메이션 발화
 
-`GameScene` 프로퍼티 2개 추가:
-```swift
-/// Phase 6-14 — 5초 긴박감 1회 가드. 같은 판 1회만 setup 발화.
-/// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
-private var tensionStarted: Bool = false
-/// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
-/// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
-private var lastRemainingTimeSecond: Int = -1
-```
+### 3. 시각 표현
+- **텍스트**: `"NEW BEST!"` (영어, 기존 `★ NEW BEST! ★`와 동형 — 단 별 기호 제거 + 폰트 자체로 임팩트)
+- **색**: `.ganhoYellowF` (황금 — `ComboPopupNode.color(for: 10)` 황금기와 동일 톤. Phase 6-10 색 어휘 재사용)
+- **폰트 크기**: `GameConfig.newBestFontSize = 56` (resultTitleFontSize=32, resultScoreFontSize=24보다 큼 — 화면 중앙 단독 강조. countdownFontSize=96보단 작음 — ResultScene은 정적 표시이므로 카운트다운만큼 강조 불필요)
+- **위치**: `frame.midY + GameConfig.newBestOffsetY = 0` — 화면 정중앙. 기존 5개 라벨(+115/+80/+40/0/-40/-80) 중 `bestLabel(0)`과 겹치는 좌표지만 zPosition을 높여 위에 띄움 + fade-in으로 등장 → bestLabel은 그대로 보이고 NewBest!가 그 위에 겹치며 영광 강조
+- **zPosition**: `GameConfig.newBestZPosition = 150` (comboPopupZPosition=150과 동급 — ResultScene 라벨들의 기본 z=0 위)
+- **애니메이션**: fade-in (alpha 0→1, 0.3s) + scale pulse (1.0→1.2→1.0, 0.8s) — 정적 표시(영구 노출), 자가 소멸 없음 (탭으로 TitleScene 복귀 시 씬 해제로 자동 정리)
 
-`update(_:)`의 `remainingTime = max(0, remainingTime - dt)` *직후*, `endGame()` early return 전에 *긴박감 폴링 블록* 1개 삽입:
-- 5초 진입 (`remainingTime <= tensionWindow && remainingTime > 0`)에서만 동작
-- 첫 진입 시 (`!tensionStarted`) 1회만 setup: `hud.startTensionBlink()`. BGM rate는 매 프레임 보간이 자연스럽게 set
-- 매 프레임 rate 보간 갱신 (`bgm.setRate(currentRate)`)
-- 매초 정수 변화 감지: `let now = max(0, Int(ceil(remainingTime)))` → `if now != lastRemainingTimeSecond && now in 1...4 { haptics.light() }` (5→4부터 4→3, 3→2, 2→1까지 정확히 4회)
-- `lastRemainingTimeSecond = now` 갱신
+### 4. 사운드/햅틱 채널 결정
+- **햅틱**: `haptics.heavy()` 1회. 게임오버(endGame)도 heavy지만 이미 *씬 전환 시점*에 다른 씬에서 발화됨 → ResultScene 진입 시점은 *새 씬*에서 새 헵틱 인스턴스로 발화하므로 톤 충돌 없음. heavy = 도달의 무게감 정확.
+- **사운드**: `audio.play(.comboMilestoneStrong)` — NewMail 1025 ID. 6-11(콤보 x20) / 6-13(GO!) 재사용. *긍정·묵직* 톤이 영광에 정확. 신규 SFX 케이스 0건 (Sprint 범위 최소화).
+- **타이밍**: 햅틱 → 사운드 순서 (`onNoteCollected` 6-8 패턴 답습)
 
-> **5초 진입 멱등성 결정**: 새 Bool 가드 `tensionStarted` 추가 — `airforceTriggered` 같은 *1회 가드* 패턴 답습. 단순/안전/회귀 0.
+### 5. 기존 bestLabel 황금 전환
+- `bestLabel`은 ResultScene에 이미 존재 (`init` 5개 라벨 중 1개)
+- 신기록일 때 현재 `text = "★ NEW BEST! ★"`로 분기되어 있음 → 여기에 *황금 색 전환 + 깜빡임* 추가
+- 구현: `isNewBest` 분기 안에서 `bestLabel.fontColor = .ganhoYellowF` 즉시 변경 + `SKAction.sequence([fadeAlpha, fadeAlpha])`을 `repeatForever`로 부착. `withKey: "newBestBlink"` — 멱등 + cleanup 필요 시 키로 제거 가능 (단 ResultScene은 한 판 1회만 표시되므로 cleanup 불필요)
+- 깜빡임은 alpha만 변경 (1.0 ↔ `GameConfig.newBestBlinkMinAlpha = 0.5`) — 색은 황금 고정 유지. Phase 6-14 HUD `tensionBlink` 패턴(fontColor 직접 교체) 답습 변형
+- 한 색 머무는 시간: `GameConfig.newBestBlinkHalfPeriod = 0.5` (6-14 `tensionBlinkHalfPeriod`와 동일 — 시간축 대칭)
 
-## HUD timerLabel 깜빡임 위치 결정
+### 6. 회귀 0 영역 (Phase 6-14까지의 자산 미접촉 보장)
+다음 영역은 본 sprint에서 1줄도 건드리지 않는다:
+- `GameScene.swift` (endGame은 인자 변경 0건 — ResultScene 생성 시그니처 그대로)
+- `HighScoreRepository.swift` API
+- `StatisticsRepository.swift`, `CharacterPreferenceRepository.swift`
+- `Models/GameStats.swift`, `Models/CharacterID.swift`
+- `Protocols/SelfDismissingNode.swift`
+- 자가 소멸 노드 8개 (Airplane/AirforceOverlay/BombFlash/Sparkle/HitFlash/ComboPopup/ComboBreak/Countdown)
+- `TitleScene.swift` (BEST 표시는 그대로 — ResultScene 전용 폴리싱)
+- `Managers/AudioManager.swift` API (`.comboMilestoneStrong` 재사용으로 SFX enum 미변경)
+- `Managers/HapticsManager.swift` API (`heavy()` 재사용)
+- `Managers/BGMPlayer.swift` (BGM은 endGame에서 이미 fadeOut 중)
+- `Systems/*` 4개 파일
+- Phase 6-14 tension 로직 (`tensionStarted`, `tensionWindow`, BGM rate 보간)
+- Phase 6-13 카운트다운 로직 (`CountdownNode`, `gameState .countdown`, `startGameProperly`)
+- `HUDNode.swift` (`startTensionBlink`/`stopTensionBlink` 그대로)
+- `ColorTokens.swift` (`.ganhoYellowF` 재사용)
+- `Config/PhysicsCategory.swift`, `Config/GameState.swift`
+- `GameScene+Setup.swift`
 
-**결정: HUDNode 본문에 신규 메서드** `startTensionBlink()` / `stopTensionBlink()`로 캡슐화.
-
-사유:
-1. `timeLabel`은 `HUDNode`의 `private` 프로퍼티 → 외부에서 직접 SKAction 부착 불가 (캡슐화 깨면 안 됨)
-2. 깜빡임 액션은 *timeLabel 자체*의 colorize SKAction → HUDNode의 도메인 책임
-3. `GameScene`은 *언제* 시작/종료할지만 결정 (오케스트레이션) — Manager-같은 책임 경계
-4. 6-13 `CountdownNode.start(...)` 콜백 패턴과 동형 — 노드가 시각 동작 자체 책임
-
-구현:
-- `startTensionBlink()`: `timeLabel.run(repeatForever([colorize to ganhoBloodAccent (0.5s), colorize to ganhoPaper (0.5s)]), withKey: "tensionBlink")` — `withKey` 사용으로 중복 부착 방지 (SKAction은 같은 key 재부착 시 이전 액션 자동 제거 → 멱등 자연 보장)
-- `stopTensionBlink()`: `timeLabel.removeAction(forKey: "tensionBlink")` + `timeLabel.fontColor = .ganhoPaper` (즉시 원색 복원 — 깜빡이는 중간색에서 멈추는 시각 잔상 0)
-
-## BGMPlayer 신규 API
-
-```swift
-// MARK: - Tension (Phase 6-14)
-/// 재생 속도(피치 포함) 설정. 1.0 = 원본, 1.15 = 5초 긴박감 최대치.
-/// enableRate=true가 init에서 켜져 있어야 동작. 음원 부재 시 noop.
-/// AVAudioPlayer.rate setter는 idempotent → 매 프레임 호출 안전.
-/// 멱등 가드 없음 — 같은 값 반복 set은 Apple이 차단.
-/// 0.5 ~ 2.0 범위 권장 (Apple 문서). 본 sprint는 1.0~1.15만 사용.
-func setRate(_ rate: Float) {
-    guard let player = player else { return }
-    player.rate = rate
-}
-
-/// rate를 1.0으로 즉시 복원. stop() 안에서도 호출되도록 stop() 본문에 1줄 추가 권장.
-/// 재시작 시 새 BGMPlayer 인스턴스라 1.0 자동 시작이지만, 같은 인스턴스 *재진입* 시나리오 안전망.
-func resetRate() {
-    setRate(1.0)
-}
-```
-
-`init()` 변경 1줄 (음원 로딩 성공 *후*):
-```swift
-p.enableRate = true   // Phase 6-14 — rate 변경 활성화 (피치 포함). 6-5 페이드 보간과 독립.
-p.numberOfLoops = -1
-// ... 기존 라인
-```
-
-`stop()` 본문에 1줄 추가 (DispatchWorkItem 안쪽, `player.stop()` 다음):
-```swift
-self.player?.stop()
-self.player?.rate = 1.0   // Phase 6-14 — 다음 라이프사이클 대비 rate 복원 (같은 인스턴스 재진입 안전망)
-```
+### 7. 타이밍 — 지연 발화
+**결정: scoreLabel 표시 후 0.3초 지연 후 발화** (드라마틱 타이밍).
+- 이유: ResultScene fade transition(0.4s)이 끝나고 사용자가 *score 라벨을 인지한 후* "NEW BEST!"가 등장해야 임팩트. 즉시 발화 시 fade와 겹쳐 흐릿함.
+- 구현: `didMove(to:) → setupLabels()` 끝에서 `isNewBest`이면 `run(SKAction.sequence([wait(0.3), run { showNewBestSequence() }]))` (씬 자체에 SKAction 부착 — `SKScene`도 SKNode이므로 가능). `Timer` / `DispatchQueue.main.asyncAfter` 사용 금지 (Swift 패턴 9 위반).
+- `GameConfig.newBestRevealDelay: TimeInterval = 0.3`
 
 ## 변경 범위
 
 ### 수정할 파일
-- `Config/GameConfig.swift`: MARK Tension (Phase 6-14) 추가, 상수 5개
-- `Managers/BGMPlayer.swift`: `init`에 `enableRate = true` 1줄, `stop()`에 rate 복원 1줄, MARK Tension 섹션에 `setRate`/`resetRate` 2개 메서드
-- `Nodes/HUDNode.swift`: MARK Tension 섹션에 `startTensionBlink()`/`stopTensionBlink()` 2개 메서드, `timeLabel` 접근만 — `scoreLabel`/`comboLabel`/`nameLabel`은 미접촉
-- `GameScene.swift`: 헤더 주석 1줄, 프로퍼티 2개(`lastRemainingTimeSecond`, `tensionStarted`), `update(_:)` 안 긴박감 폴링 블록 ~12줄, `endGame()` 안 `hud.stopTensionBlink()` 1줄 (멱등 가드 안쪽)
+- **`GanhoMusic Shared/Scenes/ResultScene.swift`** (+약 60줄):
+  - 헤더 주석에 Phase 6-15 줄 1개 추가
+  - `private let newBestLabel = SKLabelNode(text: "NEW BEST!")` stored property 추가
+  - `private let haptics = HapticsManager()` + `private let audio = AudioManager()` 2개 추가
+  - `setupLabels()` 끝에서 `if isNewBest { configureNewBestLabel(); scheduleNewBestReveal() }` 분기 1개
+  - `private func configureNewBestLabel()` 메서드 신설 — newBestLabel 스타일 설정 (font/color/position/alpha=0)
+  - `private func scheduleNewBestReveal()` 메서드 신설 — `SKAction.sequence([wait, run])` 부착
+  - `private func revealNewBest()` 메서드 신설 — fade-in/scale pulse 액션 + haptics.heavy() + audio.play(.comboMilestoneStrong) + bestLabel 황금 전환 + 깜빡임 시작
+  - `private func startBestLabelGoldBlink()` 메서드 신설
+  - `layoutLabels()`에 newBestLabel 위치 1줄 추가
+- **`GanhoMusic Shared/Config/GameConfig.swift`** (+약 12줄):
+  - `// MARK: - New Best (Phase 6-15)` 섹션 신설, 상수 10개
 
 ### 추가할 파일
-없음. 본 sprint는 *기존 파일만* 수정.
+**없음** (Phase 6-14의 신규 파일 0건 정책 답습).
 
 ## 기능 상세
 
-### 기능 1: BGMPlayer rate API
-- 설명: AVAudioPlayer의 `enableRate`를 켜고 `rate`를 외부에서 설정 가능하게 함. 피치도 함께 변함 (Sprint 내 의도된 동작).
-- 구현 위치: `Managers/BGMPlayer.swift` — MARK Tension (Phase 6-14) 신규 섹션
+### 기능 1: NewBest 라벨 등장 (시각 1채널)
+- 설명: ResultScene 진입 후 0.3초 지연 → 화면 정중앙에 "NEW BEST!" 황금 라벨이 fade-in (alpha 0→1, 0.3s) + scale pulse (1.0→1.2→1.0, 0.8s).
+- 구현 위치: `ResultScene.swift` `// MARK: - New Best (Phase 6-15)` 새 섹션
 - 핵심 코드 구조:
   ```swift
-  // init() 안 — 3) 카테고리 설정 다음, 4) numberOfLoops 전
-  p.enableRate = true   // Phase 6-14
+  // MARK: - New Best (Phase 6-15)
 
-  // stop()의 DispatchWorkItem 안 — player.stop() 다음
-  self.player?.rate = 1.0   // Phase 6-14 — 인스턴스 재진입 안전망
-
-  // MARK: - Tension (Phase 6-14)
-  func setRate(_ rate: Float) {
-      guard let player = player else { return }
-      player.rate = rate
+  /// 신기록 진입 시점에만 발화. setupLabels() 끝에서 isNewBest 분기로 호출됨.
+  /// 라벨 스타일(font/color/alpha=0)을 미리 설정만 하고, 등장은 scheduleNewBestReveal이 담당.
+  private func configureNewBestLabel() {
+      newBestLabel.fontSize = GameConfig.newBestFontSize
+      newBestLabel.fontColor = .ganhoYellowF      // 황금 — ComboPopup x10 황금기와 동일 톤
+      newBestLabel.horizontalAlignmentMode = .center
+      newBestLabel.verticalAlignmentMode = .center
+      newBestLabel.alpha = 0                      // fade-in 시작점
+      newBestLabel.zPosition = GameConfig.newBestZPosition  // bestLabel 위로 겹침
+      newBestLabel.position = CGPoint(
+          x: frame.midX,
+          y: frame.midY + GameConfig.newBestOffsetY
+      )
+      addChild(newBestLabel)
   }
-  func resetRate() { setRate(1.0) }
-  ```
 
-### 기능 2: HUDNode 깜빡임 API
-- 설명: `timeLabel`을 빨강↔원래색 1초 주기로 깜빡이게 하는 시작/종료 API. 액션 키로 멱등 보장.
-- 구현 위치: `Nodes/HUDNode.swift` — MARK Tension (Phase 6-14) 신규 섹션
-- 핵심 코드 구조:
-  ```swift
-  // MARK: - Tension (Phase 6-14)
-  /// timeLabel을 빨강↔원래색 1초 주기로 깜빡이게 한다. 같은 key로 중복 호출 시 자동 교체(멱등).
-  func startTensionBlink() {
-      let toRed = SKAction.run { [weak self] in
-          self?.timeLabel.fontColor = .ganhoBloodAccent
+  /// SKScene 자체에 SKAction 부착 — Timer/DispatchQueue 사용 금지(Swift 규칙 9).
+  /// [weak self] 캡처 — 씬 해제 가능성 대비.
+  private func scheduleNewBestReveal() {
+      let wait = SKAction.wait(forDuration: GameConfig.newBestRevealDelay)
+      let reveal = SKAction.run { [weak self] in
+          self?.revealNewBest()
       }
-      let toBase = SKAction.run { [weak self] in
-          self?.timeLabel.fontColor = .ganhoPaper
-      }
-      let wait = SKAction.wait(forDuration: GameConfig.tensionBlinkHalfPeriod)
-      let cycle = SKAction.sequence([toRed, wait, toBase, wait])
-      timeLabel.run(.repeatForever(cycle), withKey: GameConfig.tensionBlinkActionKey)
-  }
-  /// 액션 제거 + 색 즉시 원색 복원 (잔상 0).
-  func stopTensionBlink() {
-      timeLabel.removeAction(forKey: GameConfig.tensionBlinkActionKey)
-      timeLabel.fontColor = .ganhoPaper
+      run(.sequence([wait, reveal]))
   }
   ```
-- 주의: SKLabelNode의 `colorize` 액션은 `colorBlendFactor` 이슈로 동작이 일관되지 않음 → **fontColor 직접 교체** 패턴 채택 (SKAction.run + wait 4단 반복). 더 안전하고 일관됨.
 
-### 기능 3: GameScene 5초 긴박감 폴링
-- 설명: `update(_:)` 안에서 5초 진입을 감지하고, 첫 진입에 1회 setup(HUD blink 시작), 매 프레임 rate 보간 갱신, 매초 정수 변화 시 light 햅틱 발화.
-- 구현 위치: `Scenes/GameScene.swift` — `update(_:)` 본문 안, `remainingTime` 감소 *직후* / `endGame()` 호출 *전*. MARK: Game Loop 영역.
+### 기능 2: heavy 햅틱 + NewMail 사운드 + 시각 발화 (3채널 동시)
+- 설명: revealNewBest() 진입 즉시 햅틱→사운드 발화 (`onNoteCollected` 순서 답습), 동시에 fade-in + scale pulse.
+- 구현 위치: `ResultScene.swift` `revealNewBest()` 메서드
 - 핵심 코드 구조:
   ```swift
-  // Properties 섹션 (기존 lastComboValue 인접)
-  /// Phase 6-14 — 5초 긴박감 1회 가드. 같은 판 1회만 setup 발화.
-  /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
-  private var tensionStarted: Bool = false
-  /// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
-  /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
-  private var lastRemainingTimeSecond: Int = -1
-
-  // update(_:) — remainingTime 감소 직후, endGame early return 전
-  remainingTime = max(0, remainingTime - dt)
-  if remainingTime <= 0 {
-      endGame()
-      return
+  /// 0.3초 지연 후 호출. 시각 등장 + 햅틱 + 사운드 + bestLabel 황금 전환을 한 묶음으로 발화.
+  /// 자가 소멸 노드와 달리 newBestLabel은 ResultScene 자체와 함께 정리됨 — 씬 해제 시 ARC가 처리.
+  private func revealNewBest() {
+      // 1) 촉각: heavy = 도달의 무게감. ResultScene 새 인스턴스라 endGame heavy와 톤 충돌 없음.
+      haptics.heavy()
+      // 2) 청각: NewMail 1025 — 긍정·묵직. 6-11/6-13 재사용으로 신규 SFX 0건.
+      audio.play(.comboMilestoneStrong)
+      // 3) 시각: fade-in + scale pulse. group으로 동시 실행.
+      let fadeIn = SKAction.fadeIn(withDuration: GameConfig.newBestFadeInDuration)
+      let scaleUp = SKAction.scale(to: GameConfig.newBestEndScalePeak,
+                                    duration: GameConfig.newBestScalePulseDuration / 2)
+      let scaleDown = SKAction.scale(to: 1.0,
+                                      duration: GameConfig.newBestScalePulseDuration / 2)
+      let pulse = SKAction.sequence([scaleUp, scaleDown])
+      newBestLabel.run(SKAction.group([fadeIn, pulse]))
+      // 4) bestLabel 황금 전환 + 깜빡임 시작
+      startBestLabelGoldBlink()
   }
-
-  // Phase 6-14 — 5초 긴박감 폴링 (.playing 상태에서만, 위 guard 통과 후).
-  // 카운트다운(.countdown) 중에는 위 guard에서 이미 차단 → BGM 미재생 상태와 시간 비교차 0.
-  if remainingTime <= GameConfig.tensionWindow {
-      // 첫 진입 1회 setup
-      if !tensionStarted {
-          tensionStarted = true
-          hud.startTensionBlink()
-          // bgm rate는 아래 보간이 매 프레임 set하므로 별도 setup 호출 불필요
-      }
-      // 매 프레임 rate 보간: 1.0 + 0.15 × (5 - remainingTime) / 5
-      let progress = Float((GameConfig.tensionWindow - remainingTime) / GameConfig.tensionWindow)
-      let clamped = max(0, min(1, progress))
-      let rate = GameConfig.tensionRateBase + (GameConfig.tensionRateMax - GameConfig.tensionRateBase) * clamped
-      bgm.setRate(rate)
-      // 매초 정수 변화 시 light 햅틱 (5→4, 4→3, 3→2, 2→1 = 4회)
-      let now = max(0, Int(ceil(remainingTime)))
-      if now != lastRemainingTimeSecond {
-          lastRemainingTimeSecond = now
-          if now >= 1 && now <= 4 {
-              haptics.light()
-          }
-      }
-  }
-
-  // 기존 콤보 윈도우 만료 검사 / D-Pad / player 갱신 / 카메라 follow / enemy 추적 / HUD 갱신 / 콤보 끊김 폴링 (변경 0)
   ```
 
-### 기능 4: endGame 정리
-- 설명: `endGame()` 멱등 가드 안쪽에 `hud.stopTensionBlink()` 1줄 추가. 0초 만료 / F 피격 / enemy 접촉 어느 경로든 깜빡임 즉시 종료.
-- 구현 위치: `Scenes/GameScene.swift` — `endGame()` 본문, `bgm.stop()` 다음 줄
+### 기능 3: 기존 bestLabel 황금 깜빡임 (시각 보조 채널)
+- 설명: bestLabel을 황금 색으로 즉시 전환 + alpha 1.0↔0.5 깜빡임 무한 반복. Phase 6-14 `tensionBlink` 패턴 답습.
+- 구현 위치: `ResultScene.swift` `startBestLabelGoldBlink()` 신설
 - 핵심 코드 구조:
   ```swift
-  audio.play(.gameOver)
-  bgm.stop()                   // 6-4 — rate는 stop 내부 DispatchWorkItem에서 1.0 복원
-  hud.stopTensionBlink()       // Phase 6-14 — 깜빡임 즉시 종료 (잔상 0)
-  spawnSystem.stop()
-  // ... 이하 기존 그대로
+  /// bestLabel을 황금으로 전환 + alpha 깜빡임 무한 반복.
+  /// withKey 패턴(6-14 tensionBlink 답습) — 같은 키 재호출 시 자동 교체로 자연 멱등.
+  /// 씬 해제 시 ARC가 액션 정리하므로 명시적 stop 불필요.
+  private func startBestLabelGoldBlink() {
+      bestLabel.fontColor = .ganhoYellowF   // 황금 색 즉시 전환
+      let fadeOut = SKAction.fadeAlpha(to: GameConfig.newBestBlinkMinAlpha,
+                                        duration: GameConfig.newBestBlinkHalfPeriod)
+      let fadeIn  = SKAction.fadeAlpha(to: 1.0,
+                                        duration: GameConfig.newBestBlinkHalfPeriod)
+      let cycle = SKAction.sequence([fadeOut, fadeIn])
+      bestLabel.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
+  }
   ```
-- `bgm.stop()`의 페이드아웃 1초가 끝난 *후* DispatchWorkItem이 rate=1.0 복원 — 페이드아웃 중에는 rate가 1.15 유지된 채 볼륨이 줄어 자연스럽게 사그라듦.
 
-### 기능 5: GameConfig 상수 5개
-- 설명: 매직 넘버 0건 정책 유지. 모든 신규 값은 GameConfig.
-- 구현 위치: `Config/GameConfig.swift` — 파일 끝부분에 새 MARK 섹션
+### 기능 4: setupLabels 분기 + Managers 보유
+- 설명: ResultScene에 HapticsManager / AudioManager 인스턴스 1개씩 stored property로 보유. setupLabels() 끝에서 `isNewBest`일 때만 NewBest 시퀀스 시작.
+- 구현 위치: `ResultScene.swift` Properties 섹션 + setupLabels() 끝부분
 - 핵심 코드 구조:
   ```swift
-  // MARK: - Tension (Phase 6-14)
-  /// 5초 긴박감 발화 시작 임계값 (초). remainingTime이 이 값 이하로 떨어지면 폴링 진입.
-  static let tensionWindow: TimeInterval = 5.0
-  /// BGM rate 시작값 (1.0 = 원본).
-  static let tensionRateBase: Float = 1.0
-  /// BGM rate 최대값 (1.15 = 영상 빨리감기 톤, 피치 포함). 0.5~2.0 권장 범위 중 안전.
-  static let tensionRateMax: Float = 1.15
-  /// 깜빡임 한 색 머무는 길이 (초). 총 1초 주기 = 빨강 0.5 + 원색 0.5.
-  static let tensionBlinkHalfPeriod: TimeInterval = 0.5
-  /// HUDNode timeLabel 깜빡임 SKAction 키. 중복 호출 시 자동 교체(멱등) 보장.
-  static let tensionBlinkActionKey: String = "tensionBlink"
+  // MARK: - Properties (기존 섹션 마지막에 추가)
+  private let haptics = HapticsManager()   // Phase 6-15 — 신기록 heavy 발화
+  private let audio = AudioManager()       // Phase 6-15 — NewMail 사운드 발화
+  private let newBestLabel = SKLabelNode(text: "NEW BEST!")   // Phase 6-15
+
+  // MARK: - Setup (기존 setupLabels 마지막에 분기 추가)
+  private func setupLabels() {
+      // ... 기존 라벨 6개 setup 그대로 ...
+      addChild(promptLabel)
+      layoutLabels()
+      // Phase 6-15 — 신기록일 때만 NewBest 시퀀스 시작.
+      if isNewBest {
+          configureNewBestLabel()
+          scheduleNewBestReveal()
+      }
+  }
   ```
 
-## 6-13까지의 회귀 0 영역
+### 기능 5: layoutLabels 확장
+- 설명: `didChangeSize` 시 newBestLabel 위치도 재계산. 단 newBestLabel은 isNewBest일 때만 addChild되므로 parent 검사 후 위치 갱신.
+- 구현 위치: `ResultScene.swift` `layoutLabels()`
+- 핵심 코드 구조:
+  ```swift
+  private func layoutLabels() {
+      // ... 기존 6개 라벨 position 6줄 그대로 ...
+      // Phase 6-15 — newBestLabel은 isNewBest일 때만 부착됨. 부착 여부 무관하게 위치 set 안전(SKNode 기본 동작).
+      newBestLabel.position = CGPoint(
+          x: frame.midX,
+          y: frame.midY + GameConfig.newBestOffsetY
+      )
+  }
+  ```
 
-본 sprint가 *미접촉*해야 하는 영역 (Evaluator가 grep 검증):
-
-- **자가 소멸 노드 8개 전체** (AirplaneNode / AirforceOverlayNode / BombFlashNode / SparkleEffectNode / HitFlashNode / ComboPopupNode / ComboBreakNode / CountdownNode) — Sprint 본문에서 import / 호출 0건
-- **ContactRouter** — 충돌 분기 변경 0
-- **ScoreSystem / SpawnSystem** — 시그니처/본문 변경 0
-- **PlayerNode / EnemyNode / DPadNode / NoteNode / ProjectileNode / StoneGuardNode** — 변경 0
-- **TitleScene / ResultScene** — 변경 0
-- **AudioManager / HapticsManager** — 시그니처/본문 변경 0 (기존 `haptics.light()` 호출만 추가)
-- **Repositories / Models / Protocols / Errors** — 변경 0
-- **ColorTokens** — 신규 색 추가 0 (`ganhoBloodAccent`/`ganhoPaper` 재사용만)
-- **GameScene+Setup** — 변경 0 (setup 함수는 모두 미접촉)
-- **HUDNode 기존 4 라벨** — `scoreLabel`/`comboLabel`/`nameLabel`/`init`/`update`/`setCharacterName`/`configure` 변경 0. *추가 메서드만* 신설.
-- **BGMPlayer 6-5/6-6/6-7 로직** — 페이드 / Interruption / 라이프사이클 변경 0. `init`에 `enableRate=true` 1줄 + `stop()`에 rate 복원 1줄 + 신규 메서드 2개만.
-- **카운트다운(6-13) 시간 비교차 0**: 카운트다운 중에는 `.countdown` 상태 → `update`의 `guard gameState == .playing` 가드가 모든 폴링을 *자동 차단*. 5초 폴링도 동일 가드 *안쪽*에 위치하므로 카운트다운 중 rate 변경 무의미·발화 불가 보장. BGM 미재생 상태와 시간상 *완전 비교차*.
+### 기능 6: GameConfig 상수 10개
+- 구현 위치: `Config/GameConfig.swift` 끝부분
+- 핵심 코드 구조:
+  ```swift
+  // MARK: - New Best (Phase 6-15)
+  /// 화면 중앙 "NEW BEST!" 폰트 크기 (pt). resultScoreFontSize(24)보다 큼, countdownFontSize(96)보단 작음.
+  static let newBestFontSize: CGFloat = 56
+  /// frame.midY 기준 NewBest! 라벨 Y 오프셋. 0 = 정중앙. bestLabel과 같은 y지만 zPosition으로 위에 겹침.
+  static let newBestOffsetY: CGFloat = 0
+  /// NewBest! 라벨 zPosition. comboPopupZPosition(150)과 동급 — ResultScene 기본 z=0 위.
+  static let newBestZPosition: CGFloat = 150
+  /// ResultScene 진입 후 NewBest! 발화까지 지연 (초). fade transition(0.4s) 끝나고 score 인지 후 등장.
+  static let newBestRevealDelay: TimeInterval = 0.3
+  /// NewBest! fade-in 길이 (초).
+  static let newBestFadeInDuration: TimeInterval = 0.3
+  /// NewBest! scale pulse 한 사이클 총 길이 (초). up(0.4) + down(0.4) = 0.8.
+  static let newBestScalePulseDuration: TimeInterval = 0.8
+  /// NewBest! scale pulse 정점 스케일 (1.0 → 1.2 → 1.0).
+  static let newBestEndScalePeak: CGFloat = 1.2
+  /// bestLabel 황금 깜빡임 최소 alpha. 1.0 ↔ 0.5 사이 보간.
+  static let newBestBlinkMinAlpha: CGFloat = 0.5
+  /// bestLabel 황금 깜빡임 한 색 머무는 시간 (초). tensionBlinkHalfPeriod(0.5)와 동일.
+  static let newBestBlinkHalfPeriod: TimeInterval = 0.5
+  /// bestLabel 황금 깜빡임 SKAction 키. 같은 키 재호출 시 자동 교체로 자연 멱등.
+  static let newBestBlinkActionKey: String = "newBestBlink"
+  ```
 
 ## 주의사항
 
-### 기존 코드와 충돌 가능성
+### Swift / SpriteKit 패턴
+- **Timer 금지 (Swift 규칙 9)**: 0.3초 지연은 반드시 `SKAction.wait(forDuration:)` + `SKAction.run` 시퀀스로 구현. `Timer.scheduledTimer` / `DispatchQueue.main.asyncAfter` 사용 시 자동 감점.
+- **매직 넘버 금지**: 0.3 / 0.5 / 0.8 / 56 / 1.2 등 모든 수치는 `GameConfig` 상수로 정의 후 참조.
+- **`[weak self]` 캡처**: `SKAction.run { ... }` 안에서 self 사용 시 반드시 `[weak self]` + `self?.` 또는 `guard let self = self else { return }`.
+- **`SKScene`도 SKNode**: `self.run(SKAction.sequence([wait, run]))` 호출이 합법 — `cameraNode` 부착 불필요(ResultScene은 카메라 없음).
+- **강제 언래핑(`!`) 금지**: `bestLabel`, `newBestLabel` 등은 stored property로 non-optional이라 언래핑 자체가 불필요.
 
-1. **`update(_:)` 폴링 순서**: 5초 폴링은 `remainingTime -= dt` *직후*, `endGame()` early return *전*, 콤보 만료 검사 *전*에 배치. 0초 도달 시 폴링 *없이* 즉시 endGame — 4→1 햅틱 발화 후 0 도달이라 정확히 light × 4회 (5→4, 4→3, 3→2, 2→1).
-2. **`hud.update(...)` 매 프레임 호출**: 기존 코드가 `comboLabel.alpha`를 조건부로 갱신하지만 `timeLabel`은 매 프레임 `text`만 갱신. `fontColor` 변경은 SKAction이 백그라운드에서 처리하며 `text` 갱신과 독립. 단, `update(score:remainingTime:combo:)` 본문은 변경 0.
-3. **6-13 카운트다운 동시 발생 0**: 카운트다운 중 `remainingTime` 감소 차단됨 → 5초 폴링 미발화 보장. 카운트다운(2~3초) + 5초 윈도우(5초) = 시간상 *겹칠 일 0*.
-4. **6-12 콤보 끊김 폴링과 동시 발생 OK**: 한 프레임에 콤보 끊김 + 5초 진입이 동시 발생 가능 — 두 폴링은 다른 if 블록, 다른 채널(콤보 = heavy + ComboBreakNode / 긴박감 = light + BGM rate + HUD 깜빡임). 충돌 없음.
-
-### SpriteKit 특성상 주의할 점
-
-5. **SKLabelNode colorize 회피**: 일부 SpriteKit 버전에서 `SKLabelNode`의 `colorize` 액션이 폰트 색 보간이 일관되지 않음. **fontColor 직접 교체** 패턴 채택 (SKAction.run + wait 4단 반복). 더 안전하고 일관됨.
-6. **`SKAction.repeatForever` + `withKey` 멱등**: 같은 키로 재호출 시 SpriteKit이 이전 액션을 자동 제거하고 새 액션 부착. 별도 `tensionStarted` 가드와 *이중* 멱등 — 안전.
-7. **`AVAudioPlayer.rate`와 `setVolume(fadeDuration:)` 독립**: 페이드 보간(볼륨)과 rate(속도)는 별개 채널. 동시 적용 가능. `stop()`의 페이드아웃 1초 동안 rate=1.15 유지 → 페이드아웃 끝에 rate=1.0 복원이 자연스러움.
+### 회귀 위험 차단
+- `HighScoreRepository.record(_:) -> Bool` API 호출은 `GameScene.endGame()`에 이미 있고 `isNewBest`로 주입 중 — ResultScene은 *수신만* (DTO 패턴 답습).
+- `bestLabel.text`의 기존 분기 (`isNewBest ? "★ NEW BEST! ★" : "BEST 🏆 \(bestScore)"`)는 *그대로 유지*. 색만 황금으로 변경 + 깜빡임 추가 → 텍스트는 미접촉.
+- `setupLabels()`의 기존 6개 라벨(title/score/best/stats/character/prompt)의 폰트/색/정렬/위치 일체 미접촉. NewBest 분기는 *마지막 줄에 추가*만.
+- `layoutLabels()`의 기존 6개 라벨 position 6줄 미접촉. newBestLabel 1줄만 *마지막에 추가*.
 
 ### 빌드 에러 가능성
+- `HapticsManager()` / `AudioManager()` init는 인자 없음. ResultScene에 stored property로 추가 시 `let` 기본값 형태 (`private let haptics = HapticsManager()`)로 추가.
+- 기존 `init(size:score:bestScore:isNewBest:stats:characterName:)` 시그니처 변경 0건 — `GameScene.endGame()` 호출부 미접촉 보장.
 
-8. **`AVAudioPlayer.enableRate` 위치**: `numberOfLoops = -1` 라인 *전*에 두면 안전. `prepareToPlay()` *전*에 설정. Apple 문서 권장 순서.
-9. **`Float` vs `CGFloat` 혼용 주의**: `AVAudioPlayer.rate`는 `Float` 타입. `tensionRateBase`/`tensionRateMax`는 `Float`로 선언. `progress` 계산 시 `TimeInterval`(Double) → `Float` 캐스팅 필요 (`Float(progress)`).
-10. **`Int(ceil(remainingTime))` 캐스팅**: `remainingTime`이 `TimeInterval` (Double). `ceil` 후 `Int` 변환 — overflow 위험 0 (45 이하 양수).
-11. **신규 파일 0개**: pbxproj 변경 0건 — 4지점 등록 불필요. Generator 작업 부담 감소.
+### 시뮬레이터/실기기 검증 포인트
+- 햅틱 heavy는 실기기에서만 체감 — 시뮬레이터에서는 noop.
+- NewMail 1025 사운드는 시뮬레이터/실기기 모두 발화.
+- 깜빡임은 `repeatForever` — ResultScene이 TitleScene으로 전환되며 ARC로 정리됨. 명시적 `removeAction(forKey:)` 불필요.
+- 신기록 아닐 때 (`isNewBest == false`): NewBest 시퀀스 0건 발화 — `setupLabels()` 분기에서 자연 차단. 회귀 0 자동 보장.
 
-### 시각 검증 (사용자 시뮬레이터에서)
+### 멀티모달 가족 확장 (참고)
+| 이벤트 | 촉각 | 청각 | 시각 |
+|---|---|---|---|
+| 시작 카운트다운 (6-13) | light×3 + heavy | NewMail (GO!) | CountdownNode |
+| 5초 긴박감 (6-14) | light×4 (매초) | BGM rate 1.0→1.15 | HUD 빨강 깜빡임 |
+| **신기록 (6-15)** | **heavy×1** | **NewMail** | **NEW BEST! 황금 + bestLabel 깜빡임** |
 
-- [ ] 5초 진입 *순간* HUD timeLabel 빨강으로 즉시 전환 시작
-- [ ] 5초~1초 동안 BGM이 점점 빨라지고 살짝 높아짐 (음원 부재 시 noop OK)
-- [ ] 매초(5→4, 4→3, 3→2, 2→1) 실기기에서 light 진동 4회
-- [ ] 0초 도달 → endGame → 빨강 깜빡임 즉시 멈춤, BGM 페이드아웃 1초
-- [ ] ResultScene 진입 후 BGM 완전 정지, 다음 게임 진입 시 rate=1.0으로 정상 시작
-- [ ] F 피격으로 5초 이전 게임오버 → 깜빡임 발화 0, rate 변경 0 (회귀 0)
-- [ ] 5초 진입 후 F 피격 → 깜빡임 즉시 멈춤 + 페이드아웃 중 rate 자연 정지
+6-13/6-14/6-15가 *시작·끝·결과*의 3대 클라이맥스로 자리잡으며 Phase 6의 *피드백 시스템*이 의도된 형태로 완성된다.

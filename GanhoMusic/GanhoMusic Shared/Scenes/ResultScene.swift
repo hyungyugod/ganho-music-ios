@@ -6,6 +6,7 @@
 //  Phase 3-4 · bestScore / isNewBest 주입 + bestLabel 신설 (라벨 4개 재배치)
 //  Phase 3-5 · GameStats 주입 + statsLabel 신설 (라벨 5개 재배치, "PLAYS N / TOTAL N")
 //  Phase 5-7 · 캐릭터 이름 라벨 추가 (init 6번째 인자 characterName)
+//  Phase 6-15 · 신기록 시 "NEW BEST!" 황금 라벨 + heavy 햅틱 + NewMail 사운드 + bestLabel 황금 깜빡임
 //
 
 import SpriteKit
@@ -38,6 +39,12 @@ final class ResultScene: SKScene {
     /// Phase 5-7 — title(+80) 위쪽에 표시되는 캐릭터 라벨. 텍스트는 setupLabels에서 합성.
     private let characterLabel = SKLabelNode(text: "")
     private let promptLabel = SKLabelNode(text: "TAP TO RETURN")
+    /// Phase 6-15 — 신기록 시 화면 정중앙에 등장하는 황금 라벨. isNewBest일 때만 addChild.
+    private let newBestLabel = SKLabelNode(text: "NEW BEST!")
+    /// Phase 6-15 — 신기록 진입 시 heavy 햅틱 발화 (도달의 무게감).
+    private let haptics = HapticsManager()
+    /// Phase 6-15 — 신기록 진입 시 NewMail 사운드 발화 (긍정·묵직).
+    private let audio = AudioManager()
 
     // MARK: - Factory
     /// 점수/최고 점수/신기록 여부/누적 통계를 주입받아 ResultScene 인스턴스 생성. .resizeFill로 view 크기에 자동 맞춤.
@@ -120,6 +127,11 @@ final class ResultScene: SKScene {
         addChild(characterLabel)
         addChild(promptLabel)
         layoutLabels()
+        // Phase 6-15 — 신기록일 때만 NewBest 시퀀스 시작. false면 0건 발화로 자연 차단.
+        if isNewBest {
+            configureNewBestLabel()
+            scheduleNewBestReveal()
+        }
     }
 
     /// 6개 라벨 공통 스타일. TitleScene과 동일 패턴.
@@ -157,6 +169,11 @@ final class ResultScene: SKScene {
             x: frame.midX,
             y: frame.midY + GameConfig.resultPromptOffsetY
         )
+        // Phase 6-15 — newBestLabel은 isNewBest일 때만 addChild되지만, 위치 set은 부착 여부 무관하게 안전(SKNode 기본 동작).
+        newBestLabel.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.newBestOffsetY
+        )
     }
 
     // MARK: - Touch
@@ -169,5 +186,73 @@ final class ResultScene: SKScene {
         let titleScene = TitleScene.newTitleScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(titleScene, transition: fade)
+    }
+
+    // MARK: - New Best (Phase 6-15)
+
+    /// 신기록 진입 시점에만 발화. setupLabels() 끝에서 isNewBest 분기로 호출됨.
+    /// 라벨 스타일(font/color/alpha=0)을 미리 설정만 하고, 등장은 scheduleNewBestReveal이 담당.
+    private func configureNewBestLabel() {
+        newBestLabel.fontSize = GameConfig.newBestFontSize
+        newBestLabel.fontColor = .ganhoYellowF      // 황금 — ComboPopup x10 황금기와 동일 톤
+        newBestLabel.horizontalAlignmentMode = .center
+        newBestLabel.verticalAlignmentMode = .center
+        newBestLabel.alpha = 0                      // fade-in 시작점
+        newBestLabel.zPosition = GameConfig.newBestZPosition  // bestLabel 위로 겹침
+        newBestLabel.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.newBestOffsetY
+        )
+        addChild(newBestLabel)
+    }
+
+    /// SKScene 자체에 SKAction 부착 — Timer/DispatchQueue 사용 금지(Swift 규칙 9).
+    /// [weak self] 캡처 — 씬 해제 가능성 대비.
+    private func scheduleNewBestReveal() {
+        let wait = SKAction.wait(forDuration: GameConfig.newBestRevealDelay)
+        let reveal = SKAction.run { [weak self] in
+            self?.revealNewBest()
+        }
+        run(.sequence([wait, reveal]))
+    }
+
+    /// 0.3초 지연 후 호출. 시각 등장 + 햅틱 + 사운드 + bestLabel 황금 전환을 한 묶음으로 발화.
+    /// newBestLabel은 ResultScene 자체와 함께 정리됨 — 씬 해제 시 ARC가 처리(자가 소멸 노드와 달리 명시적 cleanup 불필요).
+    private func revealNewBest() {
+        // 1) 촉각: heavy = 도달의 무게감. ResultScene 새 인스턴스라 endGame heavy와 톤 충돌 없음.
+        haptics.heavy()
+        // 2) 청각: NewMail 1025 — 긍정·묵직. 6-11/6-13 재사용으로 신규 SFX 0건.
+        audio.play(.comboMilestoneStrong)
+        // 3) 시각: fade-in + scale pulse. group으로 동시 실행.
+        let fadeIn = SKAction.fadeIn(withDuration: GameConfig.newBestFadeInDuration)
+        let scaleUp = SKAction.scale(
+            to: GameConfig.newBestEndScalePeak,
+            duration: GameConfig.newBestScalePulseDuration / 2
+        )
+        let scaleDown = SKAction.scale(
+            to: 1.0,
+            duration: GameConfig.newBestScalePulseDuration / 2
+        )
+        let pulse = SKAction.sequence([scaleUp, scaleDown])
+        newBestLabel.run(SKAction.group([fadeIn, pulse]))
+        // 4) bestLabel 황금 전환 + 깜빡임 시작
+        startBestLabelGoldBlink()
+    }
+
+    /// bestLabel을 황금으로 전환 + alpha 깜빡임 무한 반복.
+    /// withKey 패턴(6-14 tensionBlink 답습) — 같은 키 재호출 시 자동 교체로 자연 멱등.
+    /// 씬 해제 시 ARC가 액션 정리하므로 명시적 stop 불필요.
+    private func startBestLabelGoldBlink() {
+        bestLabel.fontColor = .ganhoYellowF   // 황금 색 즉시 전환 (fontColor 직접 교체)
+        let fadeOut = SKAction.fadeAlpha(
+            to: GameConfig.newBestBlinkMinAlpha,
+            duration: GameConfig.newBestBlinkHalfPeriod
+        )
+        let fadeIn = SKAction.fadeAlpha(
+            to: 1.0,
+            duration: GameConfig.newBestBlinkHalfPeriod
+        )
+        let cycle = SKAction.sequence([fadeOut, fadeIn])
+        bestLabel.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
     }
 }
