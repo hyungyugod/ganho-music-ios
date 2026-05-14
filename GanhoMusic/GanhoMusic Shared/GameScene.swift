@@ -34,6 +34,7 @@
 //  Phase 6-9 · 피격 카메라 셰이크 + 빨간 플래시 (시각 폴리싱)
 //  Phase 6-10 · 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙 텍스트 팝업 (시각 폴리싱)
 //  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)
+//  Phase 6-12 · 콤보 10+ 끊김 시 화면 중앙 BREAK 팝업 + heavy 햅틱 (실망 2감각, 사운드 제외)
 //
 
 import SpriteKit
@@ -77,6 +78,13 @@ class GameScene: SKScene {
     // GameScene 인스턴스는 한 판 = 1개 → 새 게임 시작 시 빈 Set로 자동 리셋.
     // Spring 비유: idempotency-key — 같은 마일스톤 key는 한 트랜잭션 내 1회만 처리.
     private var triggeredComboMilestones: Set<Int> = []
+
+    // Phase 6-12 — 콤보 끊김 발화 추적. 같은 콤보 값 끊김은 한 판 1회만 발화 (멱등).
+    // 6-11 triggeredComboMilestones와 완전 분리 — 환호와 실망은 독립 가드.
+    // lastComboValue: 직전 프레임의 콤보값 추적 — 0으로 떨어진 *순간*을 감지하는 폴링 기준점.
+    // 첫 프레임에는 0 시작이라 임계값(10) 가드로 노이즈 차단.
+    private var lastComboValue: Int = 0
+    private var triggeredComboBreaks: Set<Int> = []
 
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
@@ -198,6 +206,16 @@ class GameScene: SKScene {
 
         // 5) HUD 라벨 갱신 (Phase 2-4) — Phase 2-12: ScoreSystem에서 값 조회
         hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
+
+        // 6) Phase 6-12 — 콤보 끊김 폴링. tickComboExpiry(콤보 윈도우 만료)가 같은 프레임에
+        // 콤보를 0으로 떨어뜨린 직후를 캡처. F 피격 경로는 별도 분기(configureContactRouter).
+        // playing 상태에서만 실행 — gameOver 전환 후엔 위 guard에서 이미 차단됨.
+        // ScoreSystem 시그니처 미변경(옵션 B 폴링) — 6-10 환호 폴링과 같은 패턴.
+        let currentCombo = scoreSystem.combo
+        if lastComboValue >= GameConfig.comboBreakThreshold, currentCombo == 0 {
+            triggerComboBreak(brokenAt: lastComboValue)
+        }
+        lastComboValue = currentCombo
     }
 
     // MARK: - Contact Router
@@ -219,6 +237,9 @@ class GameScene: SKScene {
             let flash = HitFlashNode()
             self.cameraNode.addChild(flash)
             flash.flash(sceneSize: self.size)
+            // Phase 6-12 — F 피격 시점에 콤보 10+이면 BREAK 발화 (endGame 직전).
+            // endGame이 gameState를 .gameOver로 전환하면 update 폴링이 차단되므로 여기서 강제 검사.
+            self.checkAndTriggerComboBreak()
             self.endGame()
         }
         contactRouter.onProjectileHitWall = { node in
@@ -284,6 +305,35 @@ class GameScene: SKScene {
             // 미래 마일스톤 추가 대비 안전망. 6-10 color(for:)와 동일한 graceful fallback 정책.
             haptics.light()
             audio.play(.comboMilestoneSoft)
+        }
+    }
+
+    // MARK: - Combo Break Feedback (Phase 6-12)
+    /// 콤보 10+ 상태에서 0으로 떨어진 순간 호출. 시각(ComboBreakNode) + 햅틱(heavy) 2채널 발화.
+    /// 사운드는 본 sprint 범위 외 — 환호(6-11)와의 의도적 비대칭(실망은 *침묵의 한숨* 톤).
+    /// 멱등 가드: 같은 끊김 값은 한 판 1회만 발화. 6-11 환호 가드와 동일 패턴, 완전 분리된 Set 사용.
+    /// 호출 경로 2개: update 폴링 / onProjectileHitPlayer 클로저 (endGame 직전).
+    /// 두 경로가 같은 helper를 호출 → DRY + 같은 값 2회 발화 방지(Set.contains 가드).
+    private func triggerComboBreak(brokenAt brokenValue: Int) {
+        if triggeredComboBreaks.contains(brokenValue) { return }
+        triggeredComboBreaks.insert(brokenValue)
+        // 부정 이벤트 → 게임오버와 동일 강도(heavy). 6-11 환호(light/medium/heavy)와 의도적 대칭.
+        // light/medium은 노트 수집·콤보 환호에 점유됨 → 실망은 heavy가 자연.
+        haptics.heavy()
+        let breakNode = ComboBreakNode(brokenCombo: brokenValue)
+        cameraNode.addChild(breakNode)
+        breakNode.animate()
+    }
+
+    /// F 피격 분기에서 호출. 콤보 임계값 미달이면 noop.
+    /// endGame() 전 *마지막* 발화 기회 — endGame이 gameState를 .gameOver로 바꾸면
+    /// update 폴링이 `guard gameState == .playing` 이후 차단되므로 여기서 강제 검사.
+    /// 폴링 경로(update)와 분리된 이유: F 피격은 SpriteKit physics callback에서 발생 →
+    /// update 흐름 밖이라 폴링으로 못 잡힘. 두 경로 모두 triggerComboBreak로 수렴.
+    private func checkAndTriggerComboBreak() {
+        let combo = scoreSystem.combo
+        if combo >= GameConfig.comboBreakThreshold {
+            triggerComboBreak(brokenAt: combo)
         }
     }
 

@@ -319,4 +319,20 @@ enum GameConfig {
     /// 팝업 zPosition. HUD(100) 위 — 라벨을 잠깐 덮어 임팩트.
     /// HitFlash(200) 아래 — 피격 플래시는 더 우선(생존 직결).
     static let comboPopupZPosition: CGFloat = 150
+
+    // MARK: - Combo Break (Phase 6-12)
+    /// 콤보 끊김 시 BREAK 시각 발화 임계값. 이 값 이상의 콤보에서 0으로 떨어졌을 때만 발화.
+    /// 1→0, 2→0은 평범한 흐름이라 무시. 10 = 콤보 마일스톤 "황금기" 톤과 일치 — 손실감이 *체감*되는 지점.
+    static let comboBreakThreshold: Int = 10
+    /// BREAK 라벨 폰트 크기 (pt). comboPopupFontSize(48)와 동일 — 환호/실망 시각 강도 대칭.
+    static let comboBreakFontSize: CGFloat = 48
+    /// BREAK가 아래로 떨어지는 거리 (pt). comboPopupFlyUpDistance(80)보다 짧음 — *떨어짐*은 짧고 단호.
+    static let comboBreakFallDistance: CGFloat = 60
+    /// BREAK 1회 표시 총 길이 (초). comboPopupDuration(1.0)과 동일 — 환호/실망 시간축 대칭.
+    static let comboBreakDuration: TimeInterval = 1.0
+    /// BREAK 끝 스케일. 1.0 시작 → 0.7 끝. comboPopupEndScale(1.4 확대)와 반대 — 실망은 *축소*(수축의 톤).
+    static let comboBreakEndScale: CGFloat = 0.7
+    /// BREAK zPosition. comboPopupZPosition(150) 아래 — 환호 위에 끊김이 덮이지 않도록.
+    /// HUD(100) 위는 유지 — 임팩트 강조. HitFlash(200) 아래.
+    static let comboBreakZPosition: CGFloat = 140
 }

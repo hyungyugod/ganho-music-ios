@@ -1,144 +1,118 @@
-# 자체 점검 — Phase 6-11 (콤보 마일스톤 햅틱/사운드 추가, 3감각 완성)
+# 자체 점검 — Phase 6-12 콤보 끊김 피드백 (시각 + 햅틱)
 
 ## SPEC 기능 체크
 
-- [x] **기능 1: AudioManager.SFX 케이스 2개 추가** — `comboMilestoneSoft` (Tink 1057), `comboMilestoneStrong` (NewMail 1025) 신규. `fileName` switch는 둘 다 `nil` 반환 → systemSoundID 폴백 경로 자연 사용. `init`의 `allCases` 배열도 4개로 확장.
-- [x] **기능 2: HapticsManager.medium() 추가** — `mediumGenerator` 프로퍼티 1개 + `init` 워밍 1줄 + `medium()` 메서드 1개. light/heavy와 100% 동형(`impactOccurred` 후 `prepare()`).
-- [x] **기능 3: GameScene helper `playComboMilestoneFeedback(for:)`** — GameScene private 메서드로 추가 (옵션 A 채택). switch 4-way: 3/5 → light+Soft, 10 → medium+Soft, 20 → heavy+Strong, default → light+Soft (graceful fallback, 미래 마일스톤 안전망). `// MARK: - Combo Milestone Feedback (Phase 6-11)` 섹션 신설, `// MARK: - Easter Egg` 직전 위치.
-- [x] **기능 4: GameScene 콜백 가드 안쪽 통합** — `configureContactRouter().onNoteCollected` 클로저 내 마일스톤 가드 안쪽에 `self.playComboMilestoneFeedback(for: currentCombo)` 1줄 prepend. 6-10의 시각 코드(ComboPopupNode 생성/addChild/animate) 3줄은 위치/순서 그대로 유지 — 호출 순서: 촉각→청각→시각.
-- [x] **헤더 주석**: GameScene.swift 상단에 `//  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)` 한 줄 추가.
+- [x] **기능 1 — ComboBreakNode 신규 (자가 소멸 7호)**: `Nodes/ComboBreakNode.swift` 새 파일 67줄. `SKNode + SelfDismissingNode` 채택, `SKLabelNode` 자식 1개, `init(brokenCombo: Int)` → `animate()` 3단계 사용법, `group(moveBy(-y) + fadeOut + scale(0.7))` + `removeFromParent()` 자가 소멸. `ganhoCrimsonNurse` 색 재사용(ColorTokens 추가 0).
+- [x] **기능 2 — GameConfig 상수 6개 추가**: `Combo Break (Phase 6-12)` MARK 섹션 신설. `comboBreakThreshold(10)`, `comboBreakFontSize(48)`, `comboBreakFallDistance(60)`, `comboBreakDuration(1.0)`, `comboBreakEndScale(0.7)`, `comboBreakZPosition(140)`. ComboPopup 상수 바로 아래 위치 — 대칭 가독성.
+- [x] **기능 3-1 — Properties 2개 추가**: `lastComboValue: Int = 0` + `triggeredComboBreaks: Set<Int> = []` — `triggeredComboMilestones` 바로 아래 배치(6-11 가드와 시각적 인접, 의미적 분리).
+- [x] **기능 3-2 — update() 폴링 5줄 추가**: `hud.update(...)` 직후 6번 step. `lastComboValue >= 10 && currentCombo == 0` 검사 후 `triggerComboBreak(brokenAt:)` 호출 + `lastComboValue` 갱신. SPEC §"폴링 타이밍 함정" 준수.
+- [x] **기능 3-3 — onProjectileHitPlayer 1줄 추가**: `flash.flash(...)` 다음, `self.endGame()` *직전* `self.checkAndTriggerComboBreak()` 1줄. SPEC D6 그대로 따름.
+- [x] **기능 3-4 — helper 2개 신설**: `Combo Break Feedback (Phase 6-12)` MARK 섹션. `triggerComboBreak(brokenAt:)` (멱등 가드 + haptics.heavy + ComboBreakNode 발화) + `checkAndTriggerComboBreak()` (피격 경로 진입점). 두 경로 모두 `triggerComboBreak`로 수렴 — DRY.
+- [x] **기능 3-5 — 헤더 주석 1줄 추가**: `Phase 6-12 · 콤보 10+ 끊김 시 화면 중앙 BREAK 팝업 + heavy 햅틱 (실망 2감각, 사운드 제외)`.
+- [x] **기능 4 — pbxproj 4지점 등록 (UUID 0032)**: ComboPopupNode(0031) 패턴 그대로 답습. PBXBuildFile(line 43) / PBXFileReference(line 80) / PBXGroup `Nodes` (line 223) / PBXSourcesBuildPhase (line 494) 모두 등록.
 
-## 수정한 파일 (3개) + 각 변경 라인 수
+## 파일별 변경 라인 수
 
-| 파일 | +라인 | -라인 | 비고 |
-|---|---|---|---|
-| `GanhoMusic Shared/GameScene.swift` | 34 | 0 | 헤더 주석 1줄 + 가드 안쪽 helper 호출(+주석) 5줄 + helper 메서드 28줄 |
-| `GanhoMusic Shared/Managers/AudioManager.swift` | 15 | 7 | 헤더 주석 1줄 + SFX 케이스 2개 + fileName/systemSoundID 매핑 4지점 + `allCases` 배열 1지점 |
-| `GanhoMusic Shared/Managers/HapticsManager.swift` | 14 | 2 | 헤더 주석 1줄 + 헤더 doc-comment 1줄 + `mediumGenerator` 프로퍼티 1개 + init 2줄 + `medium()` 메서드 7줄 |
-
-**GameConfig.swift 미변경** — SPEC §"기능 3"에서 결정 옵션 A(helper를 GameScene 내부)를 채택했으므로 GameConfig는 0건 수정. SPEC §"수정할 파일" 목록에 GameConfig가 있었지만 본문 §"기능 3" 결정의 결과로 자연 미수정 — SPEC 본문 결정과 일관.
-
-## Sprint 회귀 0 보장 영역 — 20개 영역 미접촉 확인
-
-`git diff --name-only`로 변경된 파일 목록을 직접 검사한 결과:
-
-| # | 영역 | 미접촉 확인 |
+| 파일 | 변경 | 라인 수 |
 |---|---|---|
-| 1 | `ScoreSystem` | OK — `Systems/` 변경 0건 |
-| 2 | `ContactRouter` | OK — `Systems/` 변경 0건 |
-| 3 | `SpawnSystem` | OK — `Systems/` 변경 0건 |
-| 4 | `CameraShakeAction` | OK — `Systems/` 변경 0건 |
-| 5 | `HUDNode` | OK — `Nodes/` 변경 0건 |
-| 6 | `BGMPlayer` | OK — `Managers/BGMPlayer.swift` 변경 0건 |
-| 7 | `HighScoreRepository` | OK — `Repositories/` 변경 0건 |
-| 8 | `StatisticsRepository` | OK — `Repositories/` 변경 0건 |
-| 9 | `CharacterPreferenceRepository` | OK — `Repositories/` 변경 0건 |
-| 10 | `Models` (GameStats, CharacterID) | OK — `Models/` 변경 0건 |
-| 11 | `Protocols` (SelfDismissingNode) | OK — `Protocols/` 변경 0건 |
-| 12 | `PlayerNode` / `EnemyNode` / `NoteNode` / `ProjectileNode` / `StoneGuardNode` / `DPadNode` / `AirplaneNode` / `AirforceOverlayNode` / `BombFlashNode` / `HitFlashNode` / `SparkleEffectNode` / `CharacterCardNode` | OK — `Nodes/` 변경 0건 |
-| 13 | `ComboPopupNode` (시각 코드 — 라벨/애니메이션/색상) | OK — `Nodes/ComboPopupNode.swift` 변경 0건 |
-| 14 | `TitleScene` | OK — `Scenes/` 변경 0건 |
-| 15 | `ResultScene` | OK — `Scenes/` 변경 0건 |
-| 16 | `ColorTokens` | OK — `Config/` 변경 0건 |
-| 17 | `GameConfig` (특히 `comboMilestones` 배열) | OK — `Config/` 변경 0건 |
-| 18 | `PhysicsCategory` / `GameState` | OK — `Config/` 변경 0건 |
-| 19 | `GameScene+Setup.swift` (setup/add 9개 메서드) | OK — 변경 0건 |
-| 20 | `project.pbxproj` (새 파일 0건이라 등록 변경 없음) | OK — `*.pbxproj` 변경 0건 |
-
-검증 명령:
-```
-git diff --name-only -- 'GanhoMusic/GanhoMusic Shared/Systems/' \
-                        'GanhoMusic/GanhoMusic Shared/Repositories/' \
-                        'GanhoMusic/GanhoMusic Shared/Models/' \
-                        'GanhoMusic/GanhoMusic Shared/Protocols/' \
-                        'GanhoMusic/GanhoMusic Shared/Nodes/' \
-                        'GanhoMusic/GanhoMusic Shared/Scenes/' \
-                        'GanhoMusic/GanhoMusic Shared/Config/' \
-                        'GanhoMusic/GanhoMusic Shared/Managers/BGMPlayer.swift'
-→ 출력 0줄 (빈 결과)
-
-git diff --name-only -- '*.pbxproj'
-→ 출력 0줄 (빈 결과)
-```
-
-## `triggeredComboMilestones` Set 미변경 확인
-
-GameScene.swift 내 grep 결과 — 4지점 모두 6-10 패턴 그대로:
-- Line 79 — 선언: `private var triggeredComboMilestones: Set<Int> = []`
-- Line 244 — 가드 조건: `!self.triggeredComboMilestones.contains(currentCombo)`
-- Line 245 — 가드 통과 시 insert: `self.triggeredComboMilestones.insert(currentCombo)`
-- Line 248 — 신규 추가된 주석에서 변수명 언급 (멱등성 신뢰 설명)
-
-**Set의 위치/의미/리셋 정책 변경 0건.** `endGame()`이나 `didMove(to:)`에 `removeAll()` 추가 없음 — 6-10의 "자동 리셋의 우아함"(GameScene 인스턴스 라이프사이클 신뢰) 정책 유지.
-
-## `default` 절 미포함 확인 (AudioManager의 두 switch)
-
-`grep -n "default:" "Managers/AudioManager.swift"` → 출력 0줄.
-- `SFX.fileName` switch: 4 케이스 exhaustive. default 없음.
-- `SFX.systemSoundID` switch: 4 케이스 exhaustive. default 없음.
-
-새 SFX 케이스 추가 시 컴파일러가 매핑 강제 — 6-2의 "매직 넘버 정책의 미묘함" 정책 유지.
-
-(참고: GameScene의 `playComboMilestoneFeedback(for:)` switch에는 `default` 포함 — Int 타입이라 exhaustive 불가능하고, SPEC §"기능 3"에서 graceful fallback 안전망으로 의도적 포함이 명시됨. 6-10 `ComboPopupNode.color(for:)`와 동일 정책.)
+| `Nodes/ComboBreakNode.swift` | **신규** | 67줄 (헤더 6 + import 1 + 클래스 60) |
+| `Config/GameConfig.swift` | 수정 | +16줄 (MARK 1 + 상수 6 + 주석 9) |
+| `GameScene.swift` | 수정 | +50줄 (헤더 1 + Properties 6 + update 8 + onProjectileHitPlayer 2 + helper 섹션 33) |
+| `GanhoMusic.xcodeproj/project.pbxproj` | 수정 | +4줄 (4지점 각 1줄) |
 
 ## Swift 패턴 준수
 
-- 강제 언래핑 미사용: 준수 (`!` 신규 도입 0건)
-- guard let 옵셔널 처리: 준수 (`onProjectileHitPlayer` / `onNoteCollected` 등 기존 `guard let self` 그대로 유지)
-- MARK 섹션 구분: 준수 (`// MARK: - Combo Milestone Feedback (Phase 6-11)` 신설)
-- GameConfig 상수 사용: N/A — 본 sprint는 GameConfig 미수정. 시스템 사운드 ID(1025)는 SPEC §"주의사항"에 따라 Apple 도메인 상수라 AudioManager.SFX enum 내부에 유지(6-2 정책 일관).
-- weak self 캡처: 준수 — 기존 `[weak self]` 클로저 시그니처 변경 0건. `playComboMilestoneFeedback` 호출은 `self.` 명시(이미 weak self가 unwrap된 클로저 안).
-- 네이밍 (lowerCamelCase): 준수 — `comboMilestoneSoft` / `comboMilestoneStrong` / `mediumGenerator` / `medium()` / `playComboMilestoneFeedback`
-- 한국어 변수명 미사용 / 주석은 한국어 허용: 준수
-- 함수 작은 단위 분리: 준수 — helper `playComboMilestoneFeedback` 28줄 단일 책임(마일스톤→피드백 분기)
+- **강제 언래핑 미사용**: 준수. `!` 0건. `cameraNode`, `scoreSystem`은 let 비옵셔널이라 unwrap 불필요. `self.view` 부분은 기존 `endGame()`이 이미 `guard let view`로 처리(미접촉).
+- **guard let 옵셔널 처리**: 준수. 신규 코드에 옵셔널 도입 없음 — Set/Int/scoreSystem.combo 모두 비옵셔널.
+- **MARK 섹션 구분**: 준수. `GameConfig`에 `// MARK: - Combo Break (Phase 6-12)` 신설. `GameScene`에 `// MARK: - Combo Break Feedback (Phase 6-12)` 신설 (Combo Milestone Feedback 아래, Easter Egg 위).
+- **GameConfig 상수 사용**: 준수. 매직 넘버 0건 — `comboBreakThreshold/FontSize/FallDistance/Duration/EndScale/ZPosition` 6개 전부 GameConfig 경유.
+- **weak self 캡처**: 준수. 기존 `onProjectileHitPlayer = { [weak self] in ... }` 캡처 유지 — `self.checkAndTriggerComboBreak()` 호출도 같은 캡처 안에서 사용. `ComboBreakNode.animate()`는 self 미사용 → 캡처 불필요(SPEC §"Swift 패턴" 명시).
 
 ## SpriteKit 패턴 준수
 
-- `didMove(to:)`에서 초기화: 준수 (변경 0건)
-- dt 기반 이동: N/A (이번 sprint 이동 로직 미접촉)
-- SKAction 스폰 패턴: N/A (스폰 미접촉)
-- 충돌 후 노드 즉시 삭제 없음: 준수 — 기존 `note.run(.removeFromParent())` 패턴(SKAction 경유) 그대로 유지. helper는 부수효과(haptic/audio)만 호출, SKNode 추가/삭제 0건.
-- HUD 노드 분리: 준수 (HUDNode 변경 0건)
-- 새 SKAction / SKNode 노드 생성 0건: 준수 (SPEC §"금지" 항목 — 사운드/햅틱은 매니저 호출만)
+- **didMove(to:)에서 초기화**: N/A (씬 초기화 변경 없음).
+- **dt 기반 이동**: 준수. `ComboBreakNode.animate()`는 `SKAction.moveBy + duration` 사용 (SKAction 내부 dt 자동 처리).
+- **SKAction 스폰 패턴**: 준수. `update()`에서 `addChild`는 *조건부 1회* (콤보 10+→0 임계만), 매 프레임 X. `triggerComboBreak`도 Set.contains 가드로 한 판 1회 보장.
+- **충돌 후 노드 즉시 삭제 없음**: 준수. ComboBreakNode는 PhysicsBody 부착 0 — 충돌 콜백 미진입. `removeFromParent()`는 `SKAction.sequence` 마지막 단계로 *프레임 끝*에 실행.
+- **HUD 노드 분리**: 준수. `hud.comboLabel` 미접촉. ComboBreakNode는 `cameraNode` 자식 (HUD `cameraNode` 자식과 다른 인스턴스). zPosition 140 — HUD(100) 위, ComboPopup(150) 아래.
 
 ## 빌드 상태
 
-명령:
+- **빌드 명령**: `xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination "platform=iOS Simulator,name=iPhone 17" -configuration Debug build`
+- **결과**: **BUILD SUCCEEDED**
+- **예상 빌드 에러**: 없음
+- **주의 필요 경고**: 없음
+
+## pbxproj 4지점 UUID 0032 등록 확인
+
 ```
-cd "GanhoMusic" && xcodebuild -project GanhoMusic.xcodeproj \
-  -scheme "GanhoMusic iOS" \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -configuration Debug build
+43:  A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = ... // PBXBuildFile
+80:  A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = ...            // PBXFileReference
+223:        A1C0F1A00000000000000032 /* ComboBreakNode.swift */,          // PBXGroup (Nodes)
+494:        A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */, // PBXSourcesBuildPhase
+```
+ComboPopupNode(0031) 4지점과 1:1 대응. UUID 충돌 0건.
+
+## Sprint 회귀 0 보장 영역 22개 미접촉 확인
+
+git diff로 검증 — 신규 1 + 수정 3 (Config / GameScene / pbxproj) 외에 **단 한 줄도 변경 없음**:
+
+| 영역 | 미접촉 |
+|---|---|
+| 1. ScoreSystem | OK — 시그니처/콜백 변경 0건 (옵션 B 폴링 정책 답습) |
+| 2. ContactRouter | OK — 콜백 등록 위치(GameScene)에서만 1줄 추가, ContactRouter 본체 미접촉 |
+| 3. SpawnSystem | OK |
+| 4. HUDNode | OK — `comboLabel` 미접촉 ("정보 채널 vs 임팩트 채널" 분리 원칙) |
+| 5. BGMPlayer | OK |
+| 6. AudioManager | OK — **SFX enum 케이스 추가 0건** (사운드 제외 정책 준수) |
+| 7. Repositories (HighScore/Statistics/CharacterPreference) | OK |
+| 8. Models (Score/GameStats/CharacterID 등) | OK |
+| 9. Protocols (SelfDismissingNode) | OK — 채택만 추가, protocol 본체 미접촉 |
+| 10. PlayerNode | OK |
+| 11. EnemyNode | OK |
+| 12. NoteNode | OK |
+| 13. ProjectileNode | OK |
+| 14. StoneGuardNode | OK |
+| 15. DPadNode | OK |
+| 16. AirplaneNode | OK |
+| 17. AirforceOverlayNode | OK |
+| 18. BombFlashNode | OK |
+| 19. HitFlashNode | OK |
+| 20. SparkleEffectNode | OK |
+| 21. CharacterCardNode | OK |
+| 22. **ComboPopupNode** | OK — 6-10 산출물 0줄 변경 (대칭 신설만) |
+| (보너스) TitleScene / ResultScene | OK |
+| (보너스) ColorTokens | OK — `ganhoCrimsonNurse` 재사용, 새 색 추가 0 |
+| (보너스) `triggeredComboMilestones` Set | OK — 의미/위치/리셋 정책 미접촉, 신규 Set는 *완전 분리* |
+| (보너스) CameraShakeAction | OK |
+
+## 멱등 가드 분리 확인 (6-11 vs 6-12)
+
+```swift
+// 6-11 (환호 가드, Properties)
+private var triggeredComboMilestones: Set<Int> = []
+
+// 6-12 (실망 가드, Properties — 신규)
+private var lastComboValue: Int = 0
+private var triggeredComboBreaks: Set<Int> = []
 ```
 
-결과: **BUILD SUCCEEDED**
-- 예상 빌드 에러: **없음** — `** BUILD SUCCEEDED **` 확인.
-- 주의 필요 경고: **없음** — `grep -E "(warning:|error:)"` → 컴파일 경고 0건 (`note: Building targets...` 두 줄만 출력, 이건 빌드 정보 메시지).
+- 두 Set는 *물리적*으로 다른 메모리, *의미적*으로 독립 이벤트(환호/실망).
+- 코드 위치: 환호 가드는 `onNoteCollected` 클로저 안 / 실망 가드는 `update()` 끝 + `onProjectileHitPlayer` 안.
+- 한 줄도 겹치지 않음. 상호 영향 0.
 
-(주: 기본 `iPhone 15` 시뮬레이터는 환경에 없어 `iPhone 17`로 대체 — 시뮬레이터 명만 다를 뿐 iOS 16+ 빌드 검증은 동일.)
+## HUD comboLabel 미접촉 확인
 
-## 호출 순서 검증 (촉각 → 청각 → 시각)
+`HUDNode.swift` 변경 0건. `hud.update(score:remainingTime:combo:)` 시그니처 변경 0건. 끊김 시각은 *별도 임팩트 노드* (ComboBreakNode)로 분리 — "정보 채널 vs 임팩트 채널" 책임 분리 원칙(6-10 학습 노트) 답습.
 
-`playComboMilestoneFeedback(for:)` 내부 — 각 case에서:
-```
-haptics.{light|medium|heavy}()   // 1단계 촉각
-audio.play(.combo*)               // 2단계 청각
-```
-가드 안쪽 호출 순서 — `onNoteCollected` 클로저:
-```
-self.playComboMilestoneFeedback(for: currentCombo)  // 1+2단계 (촉각/청각)
-let popup = ComboPopupNode(milestone: currentCombo)
-self.cameraNode.addChild(popup)
-popup.animate()                                       // 3단계 시각
-```
-인간 지각 시간축(촉각 0~10ms → 청각 ~30ms → 시각 60ms+)과 코드 라인 순서 일치. 6-2 학습 노트 §"코드 순서: 햅틱 → 사운드" 정책 답습.
+## AudioManager.SFX 케이스 추가 0건 확인
+
+`Managers/AudioManager.swift` 변경 0건. `audio.play(.comboMilestoneSoft/.comboMilestoneStrong)` 호출은 6-11 기존 코드 — 본 sprint에서 미접촉. 끊김 사운드는 *의도적 제외* (SPEC D3 — 환호와의 비대칭, 다음 sprint 여지).
+
+## 전략적 방향 판단
+
+1회차 — Case 판정 미적용.
 
 ## 범위 외 미구현 항목
 
-- **없음.** SPEC §"Sprint 범위 계약"의 "허용" 6개 항목 중 5개를 구현(허용 1번 — `GameConfig` 하단 상수 추가 — 은 §"기능 3" 결정에 따라 helper를 GameScene에 두며 미사용). "금지" 항목 모두 준수.
-- 헤더 주석에 BGMPlayer 관련 Phase 6-5/6-6/6-7 라인은 처음부터 GameScene 헤더에 없었으므로 6-10 라인 바로 뒤에 6-11을 자연 추가.
-- `print()` 디버그 코드 도입 0건.
-
-## 필수 연동 변경
-
-- **없음.** 4개 영역(헤더 주석, 가드 안쪽 prepend, helper 메서드, 매니저 API 확장)은 모두 SPEC §"기능 1~4"의 직접 항목. SPEC 범위 외 변경 0건.
+없음. SPEC 항목 100% 구현. SPEC 외 변경 0건.
