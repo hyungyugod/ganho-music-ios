@@ -35,6 +35,7 @@
 //  Phase 6-10 · 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙 텍스트 팝업 (시각 폴리싱)
 //  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)
 //  Phase 6-12 · 콤보 10+ 끊김 시 화면 중앙 BREAK 팝업 + heavy 햅틱 (실망 2감각, 사운드 제외)
+//  Phase 6-13 · 게임 시작 카운트다운 3→2→1→GO! (gameState .countdown 신설 + startGameProperly 분리)
 //
 
 import SpriteKit
@@ -122,6 +123,47 @@ class GameScene: SKScene {
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         configureContactRouter()                       // Phase 2-11 — 콜백 4개 등록
         physicsWorld.contactDelegate = contactRouter   // Phase 2-11 — 분기는 ContactRouter가 담당
+
+        // Phase 6-13 — 게임 시작 전 카운트다운. .countdown 상태는 update의 모든
+        // 시스템 로직(스폰/타이머/이동/카메라/적/콤보 폴링)을 자동 차단한다
+        // (기존 `guard gameState == .playing` 가드 1개로 7개 시스템 동시 정지).
+        // SpawnSystem.start / bgm.play / gameState = .playing 3개는 GO! 콜백
+        // 시점(startGameProperly)에 이전 — 카운트다운 동안 *어떤 시스템도 돌지 않는다*.
+        gameState = .countdown
+        showCountdown()
+    }
+
+    // MARK: - Countdown (Phase 6-13)
+    /// CountdownNode 생성 + cameraNode 부착 + start 진입점 호출.
+    /// - onTick: 매 숫자(3/2/1) 표시 직후 light 햅틱 (사운드 없음 — *조용한 카운팅* 톤).
+    /// - onGo: GO! 표시 직후 heavy 햅틱 + `comboMilestoneStrong` 사운드 (NewMail 1025 — 긍정 묵직).
+    /// - onComplete: GO! 페이드아웃 + 노드 제거 직후 startGameProperly() — 실제 게임 시동.
+    /// 콜백 3개 모두 [weak self] 캡처 — 카운트다운 진행 중 씬 전환 가능성 대비 (안전한 해제 의미).
+    /// CountdownNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
+    private func showCountdown() {
+        let node = CountdownNode()
+        cameraNode.addChild(node)
+        node.start(
+            onTick: { [weak self] _ in
+                self?.haptics.light()
+            },
+            onGo: { [weak self] in
+                guard let self = self else { return }
+                self.haptics.heavy()
+                self.audio.play(.comboMilestoneStrong)
+            },
+            onComplete: { [weak self] in
+                self?.startGameProperly()
+            }
+        )
+    }
+
+    /// GO! 카운트다운 종료 직후 호출. 실제 게임 시스템을 가동.
+    /// 기존 didMove 끝의 3줄(spawnSystem.start / gameState = .playing / bgm.play)을 이쪽으로 이동 —
+    /// 코드 자체는 *완전 동일*, 호출 시점만 늦춤. gameState .countdown → .playing 전환 시
+    /// update의 `guard gameState == .playing else { return }` 한 줄이 자동 해제되어
+    /// 7개 시스템(타이머/이동/카메라/적/콤보폴링/끊김폴링/score)이 동시 가동된다.
+    private func startGameProperly() {
         // Phase 2-10 — spawn / fire 두 루프를 SpawnSystem으로 위임. 진행률 closure로 공급.
         spawnSystem.start(
             scene: self,

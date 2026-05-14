@@ -335,4 +335,23 @@ enum GameConfig {
     /// BREAK zPosition. comboPopupZPosition(150) 아래 — 환호 위에 끊김이 덮이지 않도록.
     /// HUD(100) 위는 유지 — 임팩트 강조. HitFlash(200) 아래.
     static let comboBreakZPosition: CGFloat = 140
+
+    // MARK: - Countdown (Phase 6-13)
+    /// 카운트다운 숫자/GO! 폰트 크기 (pt). comboPopup(48)의 2배 — 화면 중앙 단독 강조.
+    static let countdownFontSize: CGFloat = 96
+    /// 한 단계(3/2/1/GO!) fadeIn 길이 (초). 빠르게 등장.
+    static let countdownFadeInDuration: TimeInterval = 0.1
+    /// 한 단계 *holding* 길이 (초). 또렷이 보이는 구간.
+    static let countdownHoldDuration: TimeInterval = 0.7
+    /// 한 단계 fadeOut 길이 (초). 다음 단계 등장 전 사라짐.
+    static let countdownFadeOutDuration: TimeInterval = 0.2
+    /// GO! 단계의 scale 펄스 끝값. 1.0 → 1.3 확대 → 페이드아웃과 동시 종료.
+    static let countdownGoEndScale: CGFloat = 1.3
+    /// GO! 단계 fadeOut 길이 (초). 일반 단계보다 살짝 길게 — 시작의 잔향.
+    static let countdownGoFadeOutDuration: TimeInterval = 0.4
+    /// GO! holding 길이 (초). 일반(0.7)보다 짧게 — 스케일 펄스 + 빠른 페이드아웃이 시간 채움.
+    static let countdownGoHoldDuration: TimeInterval = 0.5
+    /// CountdownNode zPosition. HitFlash(200) 위, BombFlash(250)와 동급/이하.
+    /// 카운트다운 동안 어떤 UI도 덮는다 — 게임이 아직 시작 안 했으므로.
+    static let countdownZPosition: CGFloat = 250
 }

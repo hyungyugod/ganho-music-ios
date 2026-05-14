@@ -1,201 +1,316 @@
-# Phase 6-12 — 콤보 끊김 피드백 (실망의 시각/햅틱)
+# Phase 6-13 — 게임 시작 카운트다운 (3 → 2 → 1 → GO!)
 
 ## 개요
-콤보 10+ 상태에서 F 피격이나 음표 놓침으로 콤보가 0으로 떨어지는 *그 순간* 시각/햅틱 반응을 추가한다. 6-10/6-11이 "환호(긍정)" 3감각을 완성했으니, 6-12는 그 대칭인 "실망(부정)"을 추가해 멀티모달 피드백 시스템의 양극을 완성한다. 콤보 변화 폴링 패턴(6-10 답습) + Set 기반 멱등 가드(6-10 답습) + 자가 소멸 노드 패턴(6-10 답습)을 그대로 재사용한다.
+TitleScene에서 GameScene으로 전환된 직후 게임이 *즉시* 시작하던 흐름을 바꾼다. 화면 중앙에 큰 숫자 3 → 2 → 1 → GO!가 1초 간격으로 차례로 떠올랐다 사라지고, GO! 직후에야 노트 스폰·45초 타이머·플레이어 입력·BGM·적 추적 AI가 본격 시동된다. 매 숫자에 light 햅틱, GO!에 heavy 햅틱 + 사운드(`comboMilestoneStrong` 재사용). 자가 소멸 노드 8호.
 
 ## 변경 유형
-**혼합 (시각 + 햅틱)** — 새로운 자가 소멸 노드(시각) + HapticsManager 재사용(촉각). 사운드는 이번 sprint에서 제외 (Sprint 범위 최소화 + 환호와의 *비대칭 의도* — 실망은 청각보다 시각·촉각이 자연스러움).
+**게임플레이** — 게임 시작 흐름(상태 전환 + 시스템 가동 타이밍)이 바뀌므로. 비주얼 효과(카운트다운 노드)는 게임플레이 변경의 *수단*일 뿐, 본 sprint의 핵심 가치는 "GO! 이전에는 어떤 시스템도 돌지 않는다"는 **흐름 재설계**다.
 
 ## 게임 경험 의도
-플레이어가 콤보 10+에 도달해 곡의 클라이맥스에 올라타는 순간, F 피격이나 음표 놓침으로 콤보가 0이 되면 *지금까지 쌓아온 흐름이 끊겼다*는 *체감*이 와야 한다. 환호(6-10/6-11)가 "잘하고 있어!"라면, 6-12는 "아, 끊겼다"의 *시각적 한숨*. 화면 중앙에 깨진 콤보 숫자가 *떨어지며* 푸르스름하게 사라지고, 동시에 묵직한 진동(heavy)이 신체에 즉시 도달 — 환호가 *위로 떠오름*이라면 실망은 *아래로 떨어짐*. 이 대칭이 멀티모달 피드백 시스템의 양극(긍정/부정)을 완성한다.
+1. **개봉감**: 라운드 시작 직후 3초의 "심호흡" — TitleScene 탭 → 갑작스러운 음표 폭격이 아닌, 플레이어가 손가락을 D-Pad에 얹고 화면을 살피며 마음을 가다듬는 시간을 제공한다.
+2. **명확한 출발 신호**: GO!가 떠야 게임이 시작됐다는 명시적 신호 — 노트 스폰·타이머 시작이 GO!와 청각·촉각으로 동기화돼 "이제부터 진짜다"가 신체로 전달된다.
+3. **BGM의 예의 보존**: 자작 BGM이 GO!와 함께 페이드인되어 시작 — 카운트다운 동안 음악이 미리 켜지면 *심호흡*의 정적이 깨진다. 6-5에서 만든 1.5초 페이드인의 자연 안착점.
 
 ## Sprint 범위 계약
-- **허용**:
-  - `ComboBreakNode` (Nodes/) 신규 1개 — 자가 소멸 7호. SelfDismissingNode 채택.
-  - `GameConfig` 콤보 끊김 관련 상수 5~6개 추가 (임계값/폰트/낙하거리/duration/색/zPosition).
-  - `GameScene` Properties에 `lastComboValue: Int = 0` 추적 변수 1개 + Properties에 `triggeredComboBreaks: Set<Int>` 멱등 가드 1개.
-  - `GameScene update()` 끝부분에 콤보 끊김 감지 폴링 5~8줄 추가 (`hud.update` 직후).
-  - `HapticsManager.heavy()` 호출 (이미 존재 — 재사용).
-  - pbxproj에 `ComboBreakNode.swift` 4지점 등록 (UUID 0032, HitFlashNode 0030 / ComboPopupNode 0031 답습).
 
-- **금지**:
-  - `triggeredComboMilestones` (6-11 환호 가드) **절대 미접촉**.
-  - `ComboPopupNode` 시각 코드 미접촉 (6-10 산출물 보존).
-  - `ScoreSystem` 시그니처/콜백 변경 **절대 금지** (6-10에서 옵션 B 폴링으로 확정된 정책 답습).
-  - `ContactRouter` 변경 금지 — 끊김 감지는 GameScene이 폴링.
-  - `AudioManager.SFX` 케이스 추가 금지 — 사운드는 본 sprint 범위 외 (다음 sprint에서 필요시 OCP 확장).
-  - `endGame` 분기 추가 금지 — 콤보 끊김은 게임 종료가 아니라 *진행 중* 이벤트.
-  - HUD `comboLabel` 깜빡임 추가 금지 — *정보(HUD) vs 임팩트(팝업)* 책임 분리 원칙(6-10 학습 노트 §"HUD 라벨 vs 팝업").
-  - 새 ColorTokens 색 추가 금지 — 기존 색(`.ganhoCrimsonNurse` 또는 `.ganhoBloodAccent`) 재사용. Sprint 최소화.
+- **허용** (SPEC 기능의 정상 동작에 필수적인 최소 연동 변경):
+  - `GameState.countdown` case 추가
+  - `GameScene.didMove(to:)` 흐름 재구성 (모든 시스템 가동을 `startGameProperly()`로 이동)
+  - `CountdownNode` 신규 (자가 소멸 노드 8호)
+  - `GameConfig` 카운트다운 관련 상수 신규
+  - `update()`의 `gameState == .playing` 가드는 그대로 유지 — `.countdown`에서도 자동 차단됨
+- **금지** (SPEC에 없는 독립 기능):
+  - 카운트다운 *스킵* 기능 (탭으로 건너뛰기) — 사용자 요청에 따라 강제 시청
+  - 카운트다운 숫자 다국어/난이도별 차등
+  - 카운트다운 동안 캐릭터 이름 우측 상단 라벨 변경
+  - ColorTokens 신규 색 추가 (기존 토큰 재사용)
+  - AudioManager.SFX 신규 케이스 추가 (`comboMilestoneStrong` 재사용)
+  - BGMPlayer / SpawnSystem / ScoreSystem / HUDNode / DPadNode / EnemyNode / ContactRouter / Repositories / Models / ResultScene / TitleScene / 기존 자가 소멸 노드 7개 미접촉
+- **판단 기준**: "이 변경이 없으면 카운트다운 → GO! 흐름이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
 
-- **판단 기준**: "이 변경이 없으면 콤보 끊김의 *시각적 한숨*이 플레이어에게 전달되지 않는가?" → YES면 허용, NO면 금지.
+## 핵심 결정 1 — GameState 확장 (.countdown 추가)
 
-## 핵심 결정
+**결정**: 새 case `countdown`을 `GameState` enum에 추가한다 (플래그 방식 거부).
 
-### D1. 콤보 끊김 감지 메커니즘: 폴링 (옵션 B 답습)
+**이유**:
+- 기존 `update()` 가드는 `guard gameState == .playing else { return }` — `.countdown`은 자동으로 *모든 프레임별 로직 차단* (타이머 감소·플레이어 이동·카메라 follow·enemy 추적·콤보 만료 폴링·끊김 폴링까지 한 번에 멈춤).
+- 플래그(`var isInCountdown: Bool`) 방식이라면 update 안에 새 가드 추가가 필요해 *6-12까지의 모든 회귀 영역 위험*. enum 확장은 *추가만 하고 기존 분기 미수정*이라 회귀 0.
+- Spring 비유: 상태 머신(`@Getter State`)에 새 enum 값 추가 vs 보조 flag 추가. 단일 책임 원칙상 전자가 깔끔.
 
-```
-[옵션 A: ScoreSystem 콜백]                [옵션 B: GameScene 폴링] ← 채택
-ScoreSystem.onComboBreak = { prev in ... }   매 프레임 update 끝에
-                                              currentCombo < lastComboValue 검사
-                                              (특히 currentCombo == 0 시)
-```
-
-**채택 이유**:
-1. **6-10 정책 일관성**: 콤보 *증가* 마일스톤도 폴링으로 처리 → *감소* 끊김도 같은 패턴이 코드베이스 통일성.
-2. **ScoreSystem 회귀 0**: 6-10에서 확정된 결정 — Score 시스템은 *순수 상태 보관*, 이벤트 발행 책임 없음. 콜백을 추가하면 6-10 결정을 뒤집는 셈.
-3. **listener 1개**: 끊김 이벤트를 듣는 곳은 GameScene 한 곳뿐 — 다수 listener가 필요한 시점까지 콜백 도입 보류.
-4. **결합도 ↓**: ScoreSystem이 "누가 듣는지" 알 필요 없음.
-
-**폴링 위치**: `update()` 함수의 *마지막* (hud.update 직후). 이유:
-- `scoreSystem.tickComboExpiry(currentTime:)`가 이미 update 안에서 콤보 0으로 떨어뜨림 → 그 *직후* 같은 프레임에서 감지해야 시점 일치.
-- F 피격 분기(`onProjectileHitPlayer`)는 endGame을 호출 — 콤보가 직접 0이 되진 않지만, hud.update(combo: 0)이 endGame 안에서 호출됨. 그러나 endGame은 gameState를 .gameOver로 바꾸므로 `guard gameState == .playing else { return }` 이후 폴링은 *실행 안 됨*. → F 피격 시 끊김 피드백은 *별도 분기* 필요. **D6 참조**.
-
-### D2. 임계값: 콤보 10 이상
-
+**변경**:
 ```swift
-static let comboBreakThreshold: Int = 10
-```
-
-**채택 이유**:
-- 콤보 1→0, 2→0은 *늘 일어나는 자연스러운 흐름* — 시각 노이즈만 늘림.
-- 6-10 마일스톤 배열 [3, 5, 10, 20] 중 *10*이 "황금기" 톤. 10 이상에서 끊겼을 때만 *체감되는 손실*.
-- 마일스톤 배열과 *연동*하지 않는다 — 끊김은 임계값 1개로 단순화. (마일스톤은 등급별 시각이지만 끊김은 단일 톤.)
-
-**구현**:
-```swift
-guard lastComboValue >= GameConfig.comboBreakThreshold,
-      scoreSystem.combo == 0 else { ... }
-```
-
-### D3. 피드백 채널: 시각 + 햅틱 (2채널)
-
-| 채널 | 발화 | 강도 | 톤 |
-|---|---|---|---|
-| 시각 | ComboBreakNode 자가 소멸 | 화면 중앙 큰 텍스트 | 푸르스름한 *떨어짐* |
-| 촉각 | `haptics.heavy()` | 묵직한 한 방 | 게임오버와 동일 강도 |
-| ~~청각~~ | 본 sprint 제외 | — | — |
-
-**왜 사운드 제외?**
-- **Sprint 범위 최소화**: AudioManager.SFX 케이스 추가는 OCP로 언제든 가능. 본 sprint는 *시각 + 촉각의 대칭 완성*에 집중.
-- **환호와의 의도적 비대칭**: 환호(6-11)는 청각이 본질(BGM 위 환호음) — *축하*는 소리로 표현. 실망은 *침묵의 한숨*이 자연 — 사운드 추가 시 게임오버 사운드와 톤 충돌 우려.
-- **다음 sprint 여지**: 6-13에서 *콤보 끊김 사운드*만 추가 가능 (enum 케이스 1 + helper 1줄). 단일 책임 sprint 분리.
-
-**왜 햅틱은 heavy?**
-- light/medium은 이미 6-1/6-11에서 *긍정 이벤트*(노트 수집/콤보 마일스톤)에 점유됨.
-- heavy는 게임오버에서 *부정 이벤트*에 점유됨 — 콤보 끊김도 부정 이벤트라 같은 강도 자연.
-- 새 강도 도입 금지 (Apple 표준 3단 완성형 — 6-11 학습 노트 §4-2).
-
-### D4. 시각 표현: 자가 소멸 7호 노드 (ComboBreakNode)
-
-```
-환호(6-10): ComboPopupNode "x5" 위로 떠오르며 페이드아웃 + 확대
-실망(6-12): ComboBreakNode  "x12 BREAK" 아래로 떨어지며 페이드아웃 + 축소
-                                                  ↑ 대칭점
-```
-
-**채택 이유 (HUD 깜빡임 vs 자가 소멸 노드)**:
-1. **6-10 책임 분리 원칙 답습**: HUD = 항상 표시되는 정보, 자가 소멸 노드 = 일회성 임팩트. HUD 깜빡임은 *정보 채널에 임팩트 섞기*라 6-10 학습 노트 §"HUD 라벨 vs 팝업" 위반.
-2. **자가 소멸 패턴 7회차 누적**: 6호(ComboPopupNode)와 정확히 대칭 — 같은 cameraNode 부모, 같은 SelfDismissingNode 채택, 같은 3단계 사용법(생성 → addChild → animate).
-3. **회귀 0**: HUD 코드 1글자도 미접촉.
-
-**ComboPopupNode와의 대칭 설계**:
-
-| 항목 | ComboPopupNode (환호) | ComboBreakNode (실망) |
-|---|---|---|
-| 부모 | `cameraNode` | `cameraNode` (동일) |
-| zPosition | `comboPopupZPosition` (150) | `comboBreakZPosition` (140, 마일스톤보다 낮게) |
-| 이동 방향 | `+y` (위로) | `-y` (아래로) |
-| 이동 거리 | `comboPopupFlyUpDistance` (80) | `comboBreakFallDistance` (60) |
-| Scale 방향 | 1.0 → 1.4 (확대) | 1.0 → 0.7 (축소) |
-| 페이드 | fadeOut | fadeOut (동일) |
-| Duration | 1.0초 | 1.0초 (동일) |
-| 색 | 등급별 4색 | 단일 톤 (`ganhoCrimsonNurse` 재사용) |
-| 텍스트 | `"x{milestone}"` | `"x{prevCombo} BREAK"` |
-
-**텍스트 결정**: `"x\(lastComboValue) BREAK"` — 끊긴 콤보 수치를 *증거*로 남겨 손실감 강화. 단순 "BREAK"보다 "x12 BREAK"가 *내가 잃은 것*을 명확히 보여줌.
-
-**색 결정**: **옵션 A 채택** — `.ganhoCrimsonNurse` 재사용 (붉은 톤, 위험·손실 시그널). 색 추가 0건이 Sprint 최소화 원칙에 부합. 다음 sprint에서 색 분화 가능.
-
-### D5. 멱등성 가드: triggeredComboBreaks (Set<Int>)
-
-```swift
-private var triggeredComboBreaks: Set<Int> = []
-```
-
-**왜 또 Set? 왜 그냥 Bool 플래그가 아닌가?**
-- 한 판에서 콤보 10 도달 → 끊김 → 다시 10 도달 → 또 끊김 같은 마일스톤 *값*마다 1회 발화 정책.
-- 단순 `hasComboBroken: Bool`로는 첫 끊김 이후 영영 재발화 불가.
-- 그러나 한 판 안에서 콤보 *값별* 끊김은 의미 있음 — 10에서 끊겼다가 15까지 회복 후 또 끊기면 *15 BREAK*가 새 이벤트로 자연.
-
-**채택: 마일스톤 *값별* 1회 발화 (Set<Int>)** — 6-11 환호 가드와 대칭. 같은 *값*은 한 판 1회만 발화.
-- 임계값(10) 단일이지만 *끊겼을 때의 콤보 값*은 10, 11, 12, ..., 20+ 다양 — 각 값을 키로 사용.
-- 예: 콤보 12에서 끊김 → "x12 BREAK" 발화 → Set에 12 insert. 다시 콤보 12 도달 후 끊김 → 차단. 그러나 콤보 15까지 회복 후 끊김 → "x15 BREAK" 발화 (12와 다른 값).
-
-### D6. F 피격 분기: 별도 발화 경로
-
-`onProjectileHitPlayer`는 endGame을 호출 → gameState .gameOver → update의 폴링 비실행. 따라서 F 피격 시점에 *직접* ComboBreakNode 발화 필요.
-
-**구현 위치**: `configureContactRouter()` 안 `onProjectileHitPlayer` 클로저, `self.endGame()` *직전*:
-
-```swift
-contactRouter.onProjectileHitPlayer = { [weak self] in
-    guard let self = self else { return }
-    // Phase 6-9 셰이크/플래시는 유지
-    self.cameraNode.run(CameraShakeAction.make())
-    let flash = HitFlashNode()
-    self.cameraNode.addChild(flash)
-    flash.flash(sceneSize: self.size)
-    // Phase 6-12 — F 피격 시점에 콤보 10+이면 BREAK 발화 (endGame 직전).
-    // gameState .gameOver 전환되면 update 폴링이 멈추므로 여기서 강제 발화.
-    self.checkAndTriggerComboBreak()
-    self.endGame()
+// Config/GameState.swift
+enum GameState {
+    case waiting
+    case countdown   // ⭐ Phase 6-13 신규 — 카운트다운 진행 중. 모든 시스템 정지.
+    case playing
+    case paused
+    case gameOver
 }
 ```
 
-**6-11 패턴 일관성**: 콤보 마일스톤도 가드 *안쪽*에서 발화 → 끊김도 *조건 검사 후 발화* helper로 단일화. 폴링과 F 피격 두 경로가 같은 helper 호출 → DRY.
+## 핵심 결정 2 — 카운트다운 동안 정지되는 것들
 
-### D7. 6-11 멱등성 가드와의 관계
+| 시스템 | 어떻게 정지하는가 | 비고 |
+|---|---|---|
+| **노트 스폰** (SpawnSystem) | `spawnSystem.start(...)` 호출을 GO! 콜백까지 지연 | SpawnSystem 미수정 — 시작 *시점*만 늦춤 |
+| **F 투사체 발사** (SpawnSystem) | 동일 — `start()` 호출 자체를 지연 | spawnNotes + fireProjectiles 두 액션 모두 시작 안 됨 |
+| **45초 타이머** | `update()` 안 `remainingTime -= dt`는 `guard .playing` 뒤에 있음 → `.countdown`에서 자동 정지 | HUD는 시작값 "00:45"을 표시 |
+| **D-Pad 입력 → 플레이어 이동** | `update()` 안 `player.currentDirection = dpad.currentDirection`은 `guard .playing` 뒤 → 자동 정지 | DPadNode 자체는 정상 작동(스크롤 가능). 하지만 player에 반영 안 됨 |
+| **카메라 follow** | `update()` 안 `cameraNode.position = player.position`은 `guard .playing` 뒤 → 자동 정지 | 카운트다운 동안 카메라는 시작 위치 고정 |
+| **적 추적 AI** | `update()` 안 `enemy.update(...)`은 `guard .playing` 뒤 → 자동 정지 | enemy도 시작 위치 고정 (velocity 미부여) |
+| **콤보 만료 폴링 + 끊김 폴링** | `update()` 안 폴링 코드도 `guard .playing` 뒤 → 자동 정지 | 카운트다운 중 `lastComboValue` 변동 0 → 안전 |
+| **BGM** | `bgm.play()` 호출을 GO! 콜백까지 지연 | 6-5의 1.5초 페이드인이 GO! 시점부터 시작 — 첫 노트 스폰(1.5초 후)과 자연 동기 |
 
-**완전 분리**. 두 Set은 독립:
-- `triggeredComboMilestones: Set<Int>` — 환호 가드 (6-10/6-11). 콤보 3/5/10/20 *증가 도달* 시 발화 차단.
-- `triggeredComboBreaks: Set<Int>` — 실망 가드 (6-12 신설). 콤보 10+ *끊김* 시 발화 차단.
+**핵심 통찰**: 기존 `guard gameState == .playing else { return }` 가드 *한 줄*이 자동으로 7개 시스템을 모두 차단한다. `.countdown` case 추가만으로 모든 정지가 공짜로 따라온다. *추가 가드 코드 한 줄도 안 쓴다.*
 
-**상호 영향 0**: 환호 발화 시 끊김 가드 변경 0건, 끊김 발화 시 환호 가드 변경 0건. 두 이벤트는 시간축에서 *교차*하지만 (콤보 10 도달→환호 → 끊김 →실망 → 다시 콤보 10 도달→환호 차단 / 끊김 시 같은 값 차단), 각 Set는 *자기 사건만* 추적.
+## 핵심 결정 3 — 카운트다운 노드 구조 (단일 노드 SKAction.sequence)
 
-**새 게임 시작 시 리셋**: 두 Set 모두 GameScene 인스턴스 프로퍼티 → 새 인스턴스 자동 빈 Set. 별도 reset 코드 0.
+**결정**: 단일 `CountdownNode` 클래스가 3 → 2 → 1 → GO! 4단계를 *자체 SKAction.sequence*로 관리한다. GameScene은 노드 1개 생성 + `start(onComplete:)` 1회 호출만 한다.
+
+**이유**:
+- 자가 소멸 노드 7회차까지 누적된 fire-and-forget 패턴(`AirplaneNode.crossScreen` / `ComboPopupNode.animate` / `ComboBreakNode.animate`)을 *그대로* 답습. 호출자 책임 = `addChild` + `start(...)` 두 줄.
+- 4개 독립 노드 + GameScene이 `SKAction.run`으로 차례 발화하는 방식은 *호출자가 시퀀스를 알아야* 하므로 책임 분산. 노드가 자기 시퀀스를 안다 = 응집도 높음.
+- 단계별 햅틱·사운드 발화는 각 `SKAction.run` 안에서 *호출자가 주입한 콜백*으로 처리 (이유: 햅틱/사운드는 Manager에 의존 → 노드가 직접 알면 결합도 ↑).
+
+**구조**:
+```swift
+// Nodes/CountdownNode.swift — 신규
+final class CountdownNode: SKNode, SelfDismissingNode {
+    private let label: SKLabelNode
+
+    init() { /* zPosition 설정 + label 자식 추가 */ }
+
+    /// 외부 진입점. 4단계 시퀀스를 자체 SKAction.sequence로 실행.
+    /// - onTick: 매 숫자(3/2/1) 발화 직후 호출 — GameScene이 light 햅틱
+    /// - onGo: GO! 표시 직후 호출 — GameScene이 heavy 햅틱 + 사운드
+    /// - onComplete: GO! 페이드아웃 직후 호출 — GameScene이 startGameProperly()
+    func start(
+        onTick: @escaping (Int) -> Void,
+        onGo: @escaping () -> Void,
+        onComplete: @escaping () -> Void
+    )
+}
+```
+
+**SKAction.sequence 내부 구조** (의사코드):
+```
+sequence([
+    showText("3", color: .ganhoBloodAccent), run { onTick(3) }, animateStep(),
+    showText("2", color: .ganhoYellowF),    run { onTick(2) }, animateStep(),
+    showText("1", color: .ganhoPinkNote),   run { onTick(1) }, animateStep(),
+    showText("GO!", color: .ganhoMint),     run { onGo() },    animateGoStep(),
+    .removeFromParent(),
+    .run { onComplete() }
+])
+```
+
+- `animateStep()` = fadeIn(0.1) → wait(0.7) → fadeOut(0.2) = 1.0초/단계
+- `animateGoStep()` = fadeIn(0.1) → scale 펄스(1.0 → 1.3) → wait(0.5) → fadeOut(0.4) = 1.0초
+
+**왜 `onComplete`는 `removeFromParent` *뒤*?**: 노드 제거 직후 호출돼야 GameScene이 새 시스템을 켤 때 카운트다운 노드가 *이미 트리에서 빠진* 상태가 보장됨 (시각 잔상 0).
+
+## 핵심 결정 4 — 시각 디자인
+
+| 항목 | 값 | 근거 |
+|---|---|---|
+| **폰트 크기** | 96pt (GameConfig.countdownFontSize) | comboPopup(48)의 2배 — 화면 중앙 단독 강조. HUD/콤보팝업과 위계 차별. |
+| **색 (3)** | `.ganhoBloodAccent` (#D8315B 빨강) | "주의 환기" — 가장 강한 색을 첫 단계에. |
+| **색 (2)** | `.ganhoYellowF` (#FFD23F 노랑) | "준비 완료" — F 투사체와 같은 색이지만 다른 맥락(시작 직전). |
+| **색 (1)** | `.ganhoPinkNote` (#F6A6B2 분홍) | "직전" — 음악 본체 색 (1 다음이 음악 시작). |
+| **색 (GO!)** | `.ganhoMint` (#7DCFB6 민트) | "출발" — 김간호 머리띠 색, 긍정/시작 톤. |
+| **펄스 애니메이션** | fadeIn(0.1) + wait(0.7) + fadeOut(0.2) per 숫자 | 총 1초 — 사용자 요청 "1초씩". GO!는 scale 펄스 추가(0.5초 holding) → 임팩트 강조. |
+| **zPosition** | 250 (GameConfig.countdownZPosition) | HitFlash(200) 위, HUD(100) 위 — 카운트다운 동안 모든 UI를 덮는다. BombFlash와 충돌 안 함 (이스터에그는 게임 진행 중이라 시간상 겹침 0). |
+| **부모** | `cameraNode` 자식 | 화면 중앙 고정 — worldNode 좌표계의 카메라 변동과 무관. ComboPopupNode와 같은 부착 정책. |
+
+**ColorTokens 추가 0건** — 기존 4색을 *기능적 의미*에 맞춰 재사용. Sprint 범위 최소화. **단**, 위 4색이 실제로 `ColorTokens.swift`에 정의되어 있는지 Generator가 사전 확인할 것 — 만약 `.ganhoMint`나 `.ganhoBloodAccent` 등이 없으면 가장 가까운 기존 색으로 대체 (예: `.ganhoMint` 부재 시 `.ganhoYellowF` 또는 `.ganhoPaper`).
+
+## 핵심 결정 5 — 사운드 / 햅틱 채널
+
+| 단계 | 햅틱 | 사운드 |
+|---|---|---|
+| 3 / 2 / 1 | `haptics.light()` (3회) | (없음 — *조용한 카운팅* 톤) |
+| GO! | `haptics.heavy()` (1회) | `audio.play(.comboMilestoneStrong)` (1회) |
+
+**왜 GO!에 `comboMilestoneStrong` 재사용?**:
+- 기존 SFX 케이스: `noteCollected`(Tink 1057) / `gameOver`(Boop 1073) / `comboMilestoneSoft`(Tink 1057) / `comboMilestoneStrong`(NewMail 1025).
+- `gameOver`는 1073(Boop) → 부정/종료 톤이라 *부적합*.
+- `comboMilestoneStrong`은 NewMail 1025 → 긍정·묵직 톤. *출발* 의도와 정확히 일치.
+- AudioManager.SFX 신규 케이스 추가는 *Sprint 범위 외* — 6-12의 학습 노트 §3 정책(채널 추가는 단일 책임 sprint에서) 답습.
+
+**왜 3/2/1에는 사운드 없음?**:
+- 햅틱만으로 *카운팅* 채널 분리. 시각(숫자) + 촉각(light) = 2채널.
+- GO!에서야 청각이 추가돼 3채널 → 첫 음악 시작의 *임팩트 강조*.
+
+## 핵심 결정 6 — 호출 흐름
+
+### Before (현재)
+```
+didMove(to:)
+├── setupBackground()
+├── setupWorld()
+├── setupPlayer()
+├── setupCamera()
+├── setupDPad()
+├── setupHUD()
+├── setupEnemy()
+├── setupStoneGuard()
+├── physicsWorld.gravity = .zero
+├── configureContactRouter()
+├── physicsWorld.contactDelegate = contactRouter
+├── spawnSystem.start(...)        ⬅ 시작
+├── gameState = .playing          ⬅ 게임 시작
+└── bgm.play()                    ⬅ 음악 시작
+```
+
+### After (Phase 6-13)
+```
+didMove(to:)
+├── setupBackground()
+├── setupWorld()
+├── setupPlayer()
+├── setupCamera()
+├── setupDPad()
+├── setupHUD()
+├── setupEnemy()
+├── setupStoneGuard()
+├── physicsWorld.gravity = .zero
+├── configureContactRouter()
+├── physicsWorld.contactDelegate = contactRouter
+├── gameState = .countdown        ⬅ 카운트다운 상태 (모든 update 로직 차단)
+└── showCountdown()               ⬅ CountdownNode 생성 + 시작
+
+showCountdown()
+└── CountdownNode 생성 + cameraNode.addChild
+    └── node.start(
+            onTick: { [weak self] _ in self?.haptics.light() },
+            onGo:   { [weak self] in
+                self?.haptics.heavy()
+                self?.audio.play(.comboMilestoneStrong)
+            },
+            onComplete: { [weak self] in self?.startGameProperly() }
+        )
+
+startGameProperly()      ⬅ 신규 메서드 — GO! 이후 실제 게임 시동
+├── spawnSystem.start(...)        ⬅ 노트/F 스폰 시작
+├── gameState = .playing          ⬅ update의 모든 시스템 해방
+└── bgm.play()                    ⬅ 1.5초 페이드인으로 BGM 시작
+```
+
+**핵심 통찰**: `setupBackground` ~ `configureContactRouter`까지의 13줄은 *위치 미변경*. 마지막 3줄(`spawnSystem.start` + `gameState = .playing` + `bgm.play`)만 새 helper `startGameProperly()`로 이동 + `gameState = .countdown` + `showCountdown()` 2줄이 그 자리에 들어간다. 변경량 최소.
+
+## 핵심 결정 7 — 카운트다운 중 *터치 처리*
+
+**결정**: 강제 시청 (3초 통째로 봐야 한다). 카운트다운 중 화면 탭은 noop.
+
+**이유**:
+- 사용자 요청에서 명시: "강제 시청 (3초가 게임의 *심호흡* 시간)".
+- DPadNode는 `isUserInteractionEnabled = true`인 채로 둔다 — touch 자체는 받지만 `update()`의 `guard .playing`이 player 반영을 차단.
+- 추가 가드 코드 0줄. 자연 차단.
+- 만약 미래에 *스킵* 기능이 필요해지면 별도 sprint(6-14 후보)에서 `touchesBegan`에 카운트다운 노드의 `removeAllActions()` + `startGameProperly()` 즉시 호출을 추가하면 됨. 본 sprint는 미포함.
+
+## 핵심 결정 8 — 6-12까지의 회귀 0 영역
+
+본 sprint 미접촉 (회귀 0 보장):
+
+| 영역 | 보존 사유 |
+|---|---|
+| **ComboBreakNode** (6-12) | 자가 소멸 7호 그대로. CountdownNode가 8호로 *다음 자리*에 들어옴. |
+| **ComboPopupNode** (6-10) | 6-10 색 매핑 / animate 메서드 그대로. CountdownNode 시각 디자인은 *별도 GameConfig*. |
+| **콤보 마일스톤 환호 / 끊김 실망 폴링** | `update()` 안 폴링 코드 그대로. `.countdown` 상태에서는 `guard .playing`이 자동 차단. |
+| **SparkleEffectNode / HitFlashNode** (6-8/6-9) | 음표 수집 / F 피격 시 시각 효과 그대로. 카운트다운 중에는 *발생 자체 0*이라 충돌 0. |
+| **BGMPlayer** (6-4 ~ 6-7) | 페이드인/페이드아웃/Interruption/Background 처리 그대로. `bgm.play()` 호출 시점만 *늦춤*. |
+| **HapticsManager / AudioManager** (6-1 ~ 6-3 + 6-11) | API 미수정. `light()` / `heavy()` / `play(.comboMilestoneStrong)` *재사용*. |
+| **SpawnSystem / ContactRouter / ScoreSystem** | API 미수정. SpawnSystem.start() 호출 *시점*만 늦춤. |
+| **HUDNode** | 라벨 위치/스타일/setCharacterName 그대로. 카운트다운 중 HUD는 *그대로 노출*(시간 00:45, 점수 🎵 0). |
+| **TitleScene / ResultScene** | 미접촉. TitleScene→GameScene 전환 후 GameScene 내부에서만 변경. |
+| **Repositories / Models / Protocols** | 미접촉. |
+| **EnemyNode / PlayerNode / StoneGuardNode / NoteNode / ProjectileNode / DPadNode** | API + 본문 미접촉. `.countdown` 상태에서는 update가 자동 차단. |
+| **AIRFORCE 이스터에그 체계** (4-3 ~ 4-7) | 미접촉. `airforceTriggered` 가드 그대로. |
+| **CharacterID / 캐릭터 카드** (5-1 ~ 5-7) | 미접촉. |
 
 ## 변경 범위
 
 ### 수정할 파일
-- `Config/GameConfig.swift`: 콤보 끊김 관련 상수 6개 추가 (`comboBreakThreshold`, `comboBreakFontSize`, `comboBreakFallDistance`, `comboBreakDuration`, `comboBreakEndScale`, `comboBreakZPosition`).
-- `GameScene.swift`:
-  - Properties: `lastComboValue: Int = 0` + `triggeredComboBreaks: Set<Int> = []` 추가.
-  - `update()` 마지막에 폴링 5~8줄 (hud.update 직후).
-  - `configureContactRouter()`의 `onProjectileHitPlayer` 클로저에 `checkAndTriggerComboBreak()` 호출 1줄 (endGame 직전).
-  - 새 private helper `triggerComboBreak(brokenAt:)` + `checkAndTriggerComboBreak()` 메서드 (15~20줄).
-  - 헤더 주석에 `Phase 6-12` 1줄 추가.
-- `GanhoMusic.xcodeproj/project.pbxproj`: ComboBreakNode.swift 4지점 등록 (UUID 0032, ComboPopupNode 0031 패턴 답습).
+
+- **`Config/GameState.swift`** (+1줄): `countdown` case 1개 추가.
+- **`Config/GameConfig.swift`** (+10줄): 카운트다운 관련 상수 8개 추가 (MARK 섹션 1개).
+- **`GameScene.swift`** (~+25줄, -3줄): `didMove`의 마지막 3줄(spawnSystem.start / gameState=playing / bgm.play)을 `startGameProperly()` helper로 이동 + `gameState = .countdown` + `showCountdown()` 2줄 추가. 헤더 주석에 Phase 6-13 한 줄 추가.
 
 ### 추가할 파일
-- `Nodes/ComboBreakNode.swift`: 자가 소멸 7호 노드. SelfDismissingNode 채택. SKNode + SKLabelNode 자식 구조.
+
+- **`Nodes/CountdownNode.swift`** (신규, ~75줄): 자가 소멸 노드 8호. `SelfDismissingNode` 채택. `start(onTick:onGo:onComplete:)` 진입점 1개.
+- **`GanhoMusic.xcodeproj/project.pbxproj`** (+4줄): UUID 0033 4지점 (ComboBreakNode UUID 0032 패턴 답습).
+
+### 미접촉 파일 (회귀 0)
+
+- 모든 Systems / Managers / Repositories / Models / Protocols / Errors
+- TitleScene / ResultScene
+- 기존 Nodes 14개 (PlayerNode / EnemyNode / NoteNode / ProjectileNode / StoneGuardNode / DPadNode / HUDNode / AirplaneNode / AirforceOverlayNode / BombFlashNode / SparkleEffectNode / HitFlashNode / ComboPopupNode / ComboBreakNode / CharacterCardNode)
+- ColorTokens / PhysicsCategory
 
 ## 기능 상세
 
-### 기능 1: ComboBreakNode (자가 소멸 7호)
-- **설명**: 콤보 끊김 시 화면 중앙에서 *아래로 떨어지며* 페이드아웃 + 축소되는 텍스트 노드. ComboPopupNode와 완전 대칭 (방향만 반전).
-- **구현 위치**: `GanhoMusic Shared/Nodes/ComboBreakNode.swift` (신규)
+### 기능 1: GameState.countdown case 추가
+
+- **설명**: 카운트다운 진행 중 상태. update()의 모든 프레임별 로직을 자동 차단한다.
+- **구현 위치**: `Config/GameState.swift`
+- **핵심 코드**:
+  ```swift
+  enum GameState {
+      case waiting
+      case countdown   // Phase 6-13 — 3→2→1→GO! 진행 중. update의 모든 시스템 정지.
+      case playing
+      case paused
+      case gameOver
+  }
+  ```
+
+**주의 — exhaustive switch 검증**: GameState를 exhaustive하게 다루는 switch가 있으면 `.countdown` 처리 강제됨. Generator는 `grep -rn "case .playing" --include="*.swift"`로 모든 switch 위치를 확인하고, `default` 없는 switch에는 `.countdown` 케이스 추가(noop으로 처리하거나 `.waiting`과 동일 동작).
+
+### 기능 2: GameConfig 카운트다운 상수 8개 추가
+
+- **설명**: CountdownNode의 폰트 크기·각 단계 길이·페이드 시간·zPosition을 매직 넘버 회피로 분리.
+- **구현 위치**: `Config/GameConfig.swift` — MARK 섹션 `// MARK: - Countdown (Phase 6-13)` 신규 (Combo Break 다음 위치).
+- **핵심 상수**:
+  ```swift
+  // MARK: - Countdown (Phase 6-13)
+  /// 카운트다운 숫자/GO! 폰트 크기 (pt). comboPopup(48)의 2배 — 화면 중앙 단독 강조.
+  static let countdownFontSize: CGFloat = 96
+  /// 한 단계(3/2/1/GO!) fadeIn 길이 (초). 빠르게 등장.
+  static let countdownFadeInDuration: TimeInterval = 0.1
+  /// 한 단계 *holding* 길이 (초). 또렷이 보이는 구간.
+  static let countdownHoldDuration: TimeInterval = 0.7
+  /// 한 단계 fadeOut 길이 (초). 다음 단계 등장 전 사라짐.
+  static let countdownFadeOutDuration: TimeInterval = 0.2
+  /// GO! 단계의 scale 펄스 끝값. 1.0 → 1.3 확대 → 페이드아웃과 동시 종료.
+  static let countdownGoEndScale: CGFloat = 1.3
+  /// GO! 단계 fadeOut 길이 (초). 일반 단계보다 살짝 길게 — 시작의 잔향.
+  static let countdownGoFadeOutDuration: TimeInterval = 0.4
+  /// GO! holding 길이 (초). 일반(0.7)보다 짧게 — 스케일 펄스 + 빠른 페이드아웃이 시간 채움.
+  static let countdownGoHoldDuration: TimeInterval = 0.5
+  /// CountdownNode zPosition. HitFlash(200) 위, BombFlash(250)와 동급/이하.
+  /// 카운트다운 동안 어떤 UI도 덮는다 — 게임이 아직 시작 안 했으므로.
+  static let countdownZPosition: CGFloat = 250
+  ```
+
+### 기능 3: CountdownNode 신규 (자가 소멸 노드 8호)
+
+- **설명**: 3 → 2 → 1 → GO! 4단계를 단일 SKNode가 자체 SKAction.sequence로 진행한다. 매 단계 텍스트/색이 바뀌고, GO!는 scale 펄스 추가. 외부 콜백 3개(onTick / onGo / onComplete)로 햅틱·사운드·완료 알림.
+- **구현 위치**: `Nodes/CountdownNode.swift` (신규 파일)
 - **핵심 코드 구조**:
   ```swift
-  // ComboBreakNode.swift
-  final class ComboBreakNode: SKNode, SelfDismissingNode {
+  final class CountdownNode: SKNode, SelfDismissingNode {
+
+      // MARK: - Properties
       private let label: SKLabelNode
 
-      init(brokenCombo: Int) {
-          self.label = SKLabelNode(text: "x\(brokenCombo) BREAK")
+      // MARK: - Init
+      override init() {
+          self.label = SKLabelNode(text: "")
           super.init()
-          name = "comboBreak"
-          zPosition = GameConfig.comboBreakZPosition
+          name = "countdown"
+          zPosition = GameConfig.countdownZPosition
           configureLabel()
           addChild(label)
       }
@@ -204,23 +319,78 @@ contactRouter.onProjectileHitPlayer = { [weak self] in
           fatalError("init(coder:) has not been implemented")
       }
 
-      // 부모(cameraNode)에 addChild 직후 호출. group(move + fade + scale) 동시 → 자가 제거.
-      // self 미사용 — [weak self] 캡처 불필요.
-      func animate() {
-          let moveDown = SKAction.moveBy(x: 0,
-                                          y: -GameConfig.comboBreakFallDistance,
-                                          duration: GameConfig.comboBreakDuration)
-          let fadeOut  = SKAction.fadeOut(withDuration: GameConfig.comboBreakDuration)
-          let scaleDown = SKAction.scale(to: GameConfig.comboBreakEndScale,
-                                          duration: GameConfig.comboBreakDuration)
-          let group   = SKAction.group([moveDown, fadeOut, scaleDown])
+      // MARK: - Start
+      /// 부모(cameraNode)에 addChild 직후 호출. 4단계 시퀀스를 자체 실행.
+      /// - onTick(n): 숫자 n(3/2/1) 표시 직후. 호출자가 light 햅틱.
+      /// - onGo: GO! 표시 직후. 호출자가 heavy 햅틱 + 사운드.
+      /// - onComplete: GO! 페이드아웃 + 노드 제거 직후. 호출자가 startGameProperly().
+      func start(
+          onTick: @escaping (Int) -> Void,
+          onGo: @escaping () -> Void,
+          onComplete: @escaping () -> Void
+      ) {
+          let step3 = stepAction(text: "3", color: .ganhoBloodAccent,
+                                  beforeAnimate: { [weak self] in
+                                      self?.label.setScale(1.0)
+                                      onTick(3)
+                                  })
+          let step2 = stepAction(text: "2", color: .ganhoYellowF,
+                                  beforeAnimate: { [weak self] in
+                                      self?.label.setScale(1.0)
+                                      onTick(2)
+                                  })
+          let step1 = stepAction(text: "1", color: .ganhoPinkNote,
+                                  beforeAnimate: { [weak self] in
+                                      self?.label.setScale(1.0)
+                                      onTick(1)
+                                  })
+          let stepGo = goAction(onGo: onGo)
           let cleanup = SKAction.removeFromParent()
-          run(.sequence([group, cleanup]))
+          let notify = SKAction.run(onComplete)
+          run(.sequence([step3, step2, step1, stepGo, cleanup, notify]))
       }
 
+      // MARK: - Step Actions
+      /// 일반 단계(3/2/1) 한 묶음 — 텍스트/색 세팅 + 콜백 + 페이드인/홀드/페이드아웃.
+      private func stepAction(text: String,
+                               color: UIColor,
+                               beforeAnimate: @escaping () -> Void) -> SKAction {
+          let setup = SKAction.run { [weak self] in
+              guard let self = self else { return }
+              self.label.text = text
+              self.label.fontColor = color
+              self.label.alpha = 0
+              beforeAnimate()
+          }
+          let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.countdownFadeInDuration)
+          let hold    = SKAction.wait(forDuration: GameConfig.countdownHoldDuration)
+          let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownFadeOutDuration)
+          return .sequence([setup, fadeIn, hold, fadeOut])
+      }
+
+      /// GO! 단계 — scale 펄스 추가. fadeOut과 scale은 group으로 동시 진행.
+      private func goAction(onGo: @escaping () -> Void) -> SKAction {
+          let setup = SKAction.run { [weak self] in
+              guard let self = self else { return }
+              self.label.text = "GO!"
+              self.label.fontColor = .ganhoMint
+              self.label.alpha = 0
+              self.label.setScale(1.0)
+              onGo()
+          }
+          let fadeIn = SKAction.fadeIn(withDuration: GameConfig.countdownFadeInDuration)
+          let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScale,
+                                        duration: GameConfig.countdownGoHoldDuration)
+          let hold   = SKAction.wait(forDuration: GameConfig.countdownGoHoldDuration)
+          // hold와 scaleUp을 group으로 동시 — *커지면서 잠시 홀딩*
+          let holdGroup = SKAction.group([hold, scaleUp])
+          let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownGoFadeOutDuration)
+          return .sequence([setup, fadeIn, holdGroup, fadeOut])
+      }
+
+      // MARK: - Configure
       private func configureLabel() {
-          label.fontSize = GameConfig.comboBreakFontSize
-          label.fontColor = .ganhoCrimsonNurse   // 손실/위험 시그널 재사용 (색 추가 0)
+          label.fontSize = GameConfig.countdownFontSize
           label.verticalAlignmentMode = .center
           label.horizontalAlignmentMode = .center
           label.position = .zero
@@ -228,129 +398,120 @@ contactRouter.onProjectileHitPlayer = { [weak self] in
   }
   ```
 
-### 기능 2: GameConfig 상수 추가
-- **설명**: 끊김 임계값 + 시각 파라미터 6개. ComboPopup 상수와 대칭 위치(`// MARK: - Combo Break (Phase 6-12)`).
-- **구현 위치**: `GanhoMusic Shared/Config/GameConfig.swift` (수정)
-- **핵심 코드 구조**:
-  ```swift
-  // MARK: - Combo Break (Phase 6-12)
-  /// 콤보 끊김 시 BREAK 시각 발화 임계값. 이 값 이상의 콤보에서 0으로 떨어졌을 때만 발화.
-  /// 1→0, 2→0은 평범한 흐름이라 무시. 10 = 콤보 마일스톤 "황금기" 톤과 일치.
-  static let comboBreakThreshold: Int = 10
-  /// BREAK 라벨 폰트 크기 (pt). comboPopupFontSize(48)와 동일 — 환호/실망 시각 강도 대칭.
-  static let comboBreakFontSize: CGFloat = 48
-  /// BREAK가 아래로 떨어지는 거리 (pt). comboPopupFlyUpDistance(80)보다 짧음 — *떨어짐*은 짧고 단호.
-  static let comboBreakFallDistance: CGFloat = 60
-  /// BREAK 1회 표시 총 길이 (초). comboPopupDuration(1.0)과 동일 — 환호/실망 시간축 대칭.
-  static let comboBreakDuration: TimeInterval = 1.0
-  /// BREAK 끝 스케일. 1.0 시작 → 0.7 끝. comboPopupEndScale(1.4 확대)와 반대 — 실망은 *축소*.
-  static let comboBreakEndScale: CGFloat = 0.7
-  /// BREAK zPosition. comboPopupZPosition(150) 아래 — 환호 위에 끊김이 덮이지 않도록.
-  /// HUD(100) 위는 유지 — 임팩트 강조.
-  static let comboBreakZPosition: CGFloat = 140
-  ```
+**자가 소멸 노드 8호 패턴 답습 — 7호(ComboBreakNode)와의 차이**:
+| 항목 | 7호 ComboBreakNode | 8호 CountdownNode |
+|---|---|---|
+| 진입점 | `animate()` 0인자 | `start(onTick:onGo:onComplete:)` 콜백 3개 |
+| SKAction 구조 | `group([move, fade, scale])` | `sequence([step3, step2, step1, stepGo, cleanup, notify])` |
+| 라벨 변경 | init에서 고정 | 단계마다 text/color 갱신 |
+| 콜백 | 없음 | onTick/onGo/onComplete (햅틱·사운드·완료 전달) |
+| weak self | 미사용 (self 미사용) | 사용 (label 갱신 + onComplete가 GameScene 호출) |
 
-### 기능 3: GameScene 폴링 + F 피격 분기 + helper
-- **설명**: 매 프레임 update 끝에서 콤보 끊김 감지 + F 피격 시점 강제 발화 + 공통 helper.
-- **구현 위치**: `GanhoMusic Shared/GameScene.swift` (수정)
+**weak self 캡처 정책**:
+- `beforeAnimate` / `onGo` / `onComplete` 클로저는 외부에서 주입받은 *콜백*이라 그대로 호출만 — CountdownNode 내부에서 `[weak self]` 캡처 필요 0.
+- 단, `setup` 액션 내부 `self.label.text = ...`는 self 사용 → `[weak self]` 캡처 필수.
+
+### 기능 4: GameScene 흐름 재구성
+
+- **설명**: `didMove(to:)`의 마지막 3줄(spawnSystem.start / gameState=playing / bgm.play)을 `startGameProperly()` helper로 분리. 그 자리에 `gameState = .countdown` + `showCountdown()` 추가.
+- **구현 위치**: `GameScene.swift`
+- **MARK 섹션 변경**:
+  - `// MARK: - Lifecycle`의 `didMove(to:)` 끝부분 수정
+  - `// MARK: - Game State` 위에 `// MARK: - Countdown (Phase 6-13)` 신규 섹션 추가
 - **핵심 코드 구조**:
 
-  **Properties 추가** (6-11 `triggeredComboMilestones` 바로 아래):
   ```swift
-  // Phase 6-12 — 콤보 끊김 발화 추적. 같은 콤보 값 끊김은 한 판 1회만 발화 (멱등).
-  // 6-11 triggeredComboMilestones와 완전 분리 — 환호와 실망은 독립 가드.
-  // 콤보 0 감지를 위해 직전 프레임의 콤보값 추적도 필요.
-  private var lastComboValue: Int = 0
-  private var triggeredComboBreaks: Set<Int> = []
-  ```
+  // didMove(to:) 끝부분 — 기존 3줄 제거 후:
+  override func didMove(to view: SKView) {
+      // ... (기존 setup* 메서드들 변경 없음) ...
+      physicsWorld.gravity = .zero
+      configureContactRouter()
+      physicsWorld.contactDelegate = contactRouter
 
-  **update() 끝부분 (hud.update 직후)**:
-  ```swift
-  // ... 기존 hud.update(...) ...
-
-  // Phase 6-12 — 콤보 끊김 폴링. tickComboExpiry(콤보 윈도우 만료)로 같은 프레임에
-  // 콤보가 0으로 떨어진 직후를 캡처. F 피격 경로는 별도 분기(configureContactRouter).
-  // playing 상태에서만 실행 — gameOver 전환 후엔 의미 없음(이미 guard로 차단됨).
-  let currentCombo = scoreSystem.combo
-  if lastComboValue >= GameConfig.comboBreakThreshold, currentCombo == 0 {
-      triggerComboBreak(brokenAt: lastComboValue)
-  }
-  lastComboValue = currentCombo
-  ```
-
-  **새 helper (Combo Milestone Feedback MARK 섹션 아래)**:
-  ```swift
-  // MARK: - Combo Break Feedback (Phase 6-12)
-  /// 콤보 10+ 상태에서 0으로 떨어진 순간 호출. 시각(ComboBreakNode) + 햅틱(heavy) 2채널 발화.
-  /// 멱등 가드: 같은 끊김 값은 한 판 1회만 발화. 6-11 멱등 가드와 동일 패턴.
-  /// 호출 경로 2개: update 폴링 / onProjectileHitPlayer 클로저 (endGame 직전).
-  private func triggerComboBreak(brokenAt brokenValue: Int) {
-      if triggeredComboBreaks.contains(brokenValue) { return }
-      triggeredComboBreaks.insert(brokenValue)
-      haptics.heavy()   // 부정 이벤트 → 게임오버와 동일 강도. 6-11 환호와 의도적 대칭(실망).
-      let breakNode = ComboBreakNode(brokenCombo: brokenValue)
-      cameraNode.addChild(breakNode)
-      breakNode.animate()
+      // Phase 6-13 — 게임 시작 전 카운트다운. .countdown 상태는 update의 모든
+      // 시스템 로직(스폰/타이머/이동/카메라/적/콤보 폴링)을 자동 차단한다
+      // (기존 `guard gameState == .playing` 가드 1개로 7개 시스템 동시 정지).
+      // SpawnSystem.start / bgm.play / gameState = .playing 3개는 GO! 콜백
+      // 시점(startGameProperly)에 이전.
+      gameState = .countdown
+      showCountdown()
   }
 
-  /// F 피격 분기에서 호출. 콤보 임계값 미달이면 noop.
-  /// endGame() 전 *마지막* 발화 기회 — endGame이 gameState를 .gameOver로 바꾸면
-  /// update 폴링이 차단되므로 여기서 강제 검사.
-  private func checkAndTriggerComboBreak() {
-      let combo = scoreSystem.combo
-      if combo >= GameConfig.comboBreakThreshold {
-          triggerComboBreak(brokenAt: combo)
-      }
+  // MARK: - Countdown (Phase 6-13)
+  /// CountdownNode 생성 + cameraNode 부착 + start 진입점 호출.
+  /// onTick(매 숫자): light 햅틱. onGo: heavy 햅틱 + comboMilestoneStrong 사운드.
+  /// onComplete: startGameProperly()로 실제 게임 시동.
+  /// weak self 캡처 필수 — onComplete가 self.startGameProperly 호출.
+  private func showCountdown() {
+      let node = CountdownNode()
+      cameraNode.addChild(node)
+      node.start(
+          onTick: { [weak self] _ in
+              self?.haptics.light()
+          },
+          onGo: { [weak self] in
+              guard let self = self else { return }
+              self.haptics.heavy()
+              self.audio.play(.comboMilestoneStrong)
+          },
+          onComplete: { [weak self] in
+              self?.startGameProperly()
+          }
+      )
   }
-  ```
 
-  **configureContactRouter() 안 onProjectileHitPlayer 수정**:
-  ```swift
-  contactRouter.onProjectileHitPlayer = { [weak self] in
-      guard let self = self else { return }
-      // Phase 6-9 — 카메라 셰이크 + 빨간 플래시
-      self.cameraNode.run(CameraShakeAction.make())
-      let flash = HitFlashNode()
-      self.cameraNode.addChild(flash)
-      flash.flash(sceneSize: self.size)
-      // Phase 6-12 — F 피격으로 콤보가 끊기는 시점 (endGame 전 강제 발화).
-      // endGame이 .gameOver로 전환하면 update 폴링이 차단되므로 여기서 검사.
-      self.checkAndTriggerComboBreak()
-      self.endGame()
+  /// GO! 카운트다운 종료 직후 호출. 실제 게임 시스템을 가동.
+  /// 기존 didMove 끝의 3줄을 이쪽으로 이동 — 코드 자체는 동일.
+  /// gameState .countdown → .playing 전환 시 update의 모든 가드가 해제됨.
+  private func startGameProperly() {
+      spawnSystem.start(
+          scene: self,
+          world: worldNode,
+          player: player,
+          enemy: enemy,
+          progressProvider: { [weak self] in
+              guard let self = self else { return 0 }
+              return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+          }
+      )
+      gameState = .playing
+      bgm.play()
   }
   ```
 
-### 기능 4: pbxproj 등록 (UUID 0032)
-- **설명**: ComboBreakNode.swift를 Xcode 프로젝트에 4지점 등록 (PBXBuildFile / PBXFileReference / PBXSourcesBuildPhase / PBXGroup).
-- **구현 위치**: `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` (수정)
-- **참고 패턴**: HitFlashNode(UUID 0030), ComboPopupNode(UUID 0031)의 4지점 등록을 그대로 답습. UUID는 0032로 부여.
+**주의 — spawnSystem.start 시그니처 일치**: Generator는 현재 `spawnSystem.start(...)` 호출의 인자(scene/world/player/enemy/progressProvider 등)를 *그대로* 이동만 한다. 인자 이름·순서 변경 금지.
 
 ## 주의사항
 
-### SpriteKit 특성
-- **ComboBreakNode는 cameraNode 자식**: ComboPopupNode와 동일 — 화면 중앙 고정. worldNode 자식으로 두면 카메라 이동 시 어긋남.
-- **noteNode 좌표계와 무관**: 끊김은 노트 위치와 무관 (콤보 윈도우 만료는 *시간*만 의존). cameraNode 좌표계 (0,0)에 부착.
-- **zPosition 위계**: HUD(100) < ComboBreak(140) < ComboPopup(150) < HitFlash(200) < BombFlash(250). 환호가 실망보다 위 — 콤보 도달과 끊김이 한 프레임에 동시 발생할 일은 없지만 안전망.
+### 1. 기존 코드와 충돌 가능성
+- **`update()`의 `guard gameState == .playing else { return }`**: 본 sprint의 핵심 안전망. `.countdown` 상태에서 자동 차단되어 7개 시스템이 정지하므로 *update 본문 수정 0줄*.
+- **`endGame()`의 `gameState == .gameOver` 가드**: `.countdown` 상태에서는 `endGame` 호출 경로가 없음(스폰/적/F 모두 정지) → 안전.
+- **`didChangeSize(_:)`**: layoutDPad / layoutHUD만 호출 — CountdownNode는 cameraNode 자식 좌표계 (0,0) 고정이라 viewport 리사이즈에 영향 없음. *추가 layout 코드 0줄*.
 
-### 폴링 타이밍 함정
-- `tickComboExpiry()`가 update *초반*에 콤보 0으로 떨어뜨림. *그 직후 같은 프레임에서* 폴링해야 1프레임 지연 없음.
-- `lastComboValue` 갱신 시점이 *폴링 후*인 것이 중요 — 갱신 전이면 이전 프레임 값 손실.
-- F 피격은 update 흐름 *밖*(SpriteKit physics callback) → update 폴링으로 못 잡힘 → D6의 별도 분기 필수.
+### 2. SpriteKit 특성상 주의할 점
+- **SKAction.run 안에서 `self` 사용 시 `[weak self]` 필수**: CountdownNode의 `setup` 액션에서 `self.label.text` 갱신이 필요. 반드시 `SKAction.run { [weak self] in guard let self = self else { return }; ... }` 패턴.
+- **cameraNode 자식 좌표계**: CountdownNode는 cameraNode 자식이라 (0,0) = 화면 중앙. label.position = .zero로 충분. worldNode 자식으로 잘못 부착하면 카메라 follow와 어긋남.
+- **SKAction.sequence는 *순차 보장***: 4단계가 정확히 1초씩 차례 진행. 각 단계 내부의 setup(즉시) → fadeIn → hold → fadeOut도 직렬. group 안에 들어간 hold + scaleUp만 동시.
+- **SelfDismissingNode 채택**: marker protocol이라 컴파일러 강제 사항 없음. 자가 소멸 노드 8호임을 *문서화*하는 용도.
 
-### 멱등 가드 분리
-- 6-11 `triggeredComboMilestones` 절대 미접촉 — 환호 가드와 실망 가드는 *완전 독립*.
-- 두 Set의 변경 라인이 서로 한 줄도 겹치지 않도록 코드 위치 분리 (MARK 섹션 다름).
+### 3. 빌드 에러 가능성
+- **GameState case 추가는 break 가능**: switch문이 GameState를 exhaustive하게 다루는 곳이 있으면 `.countdown` case 처리 강제. **수동 검증 필요**: `grep -rn "case .playing" --include="*.swift"`, `grep -rn "switch.*gameState" --include="*.swift"` — Generator가 모든 switch를 찾아 default가 있는지 또는 .countdown 명시가 필요한지 확인.
+- **ColorTokens 4색 부재 가능성**: `.ganhoBloodAccent`, `.ganhoYellowF`, `.ganhoPinkNote`, `.ganhoMint` 4색이 `ColorTokens.swift`에 있는지 확인. 없으면 가장 가까운 색으로 대체 (`.ganhoMint` 부재 시 `.ganhoYellowF`).
+- **pbxproj 4지점 등록**: 신규 파일 1개(`CountdownNode.swift`)는 UUID 0033(0032 ComboBreakNode 답습) 4지점(PBXBuildFile / PBXFileReference / PBXSourcesBuildPhase / PBXGroup) 등록 필수.
+- **시뮬레이터 햅틱**: light/heavy 모두 시뮬레이터 noop — 실기기 검증 필요. 사용자가 직접 확인.
+- **사운드 `comboMilestoneStrong`**: Bundle에 자작 음원 부재 시 NewMail 1025 systemSoundID 폴백 (AudioManager init이 graceful 처리) — 회귀 0.
 
-### 빌드 에러 가능성
-- ComboBreakNode 신규 파일은 pbxproj 4지점 등록 누락 시 *Cannot find type 'ComboBreakNode' in scope* 에러. UUID 0032로 ComboPopupNode 0031 등록 패턴 한 줄씩 비교하며 추가.
-- `lastComboValue` 첫 프레임 = 0 → 첫 콤보 도달 시 lastComboValue=0, currentCombo=1 → 끊김 감지 노이즈 없음 (임계값 10 가드).
-- `triggerComboBreak`가 호출되는 두 경로 모두에서 `triggeredComboBreaks.contains` 가드 통과 — 같은 값 2회 발화 방지 (예: 폴링과 피격이 같은 프레임에 발생할 가능성은 0이지만 안전망).
-
-### Swift 패턴
-- 강제 언래핑 없음 — `cameraNode`, `scoreSystem`은 GameScene let 프로퍼티 (옵셔널 아님).
-- 매직 넘버 없음 — 모든 수치 GameConfig.
-- `[weak self]` 캡처는 onProjectileHitPlayer 기존 그대로 유지. ComboBreakNode 내부는 self 미사용 (캡처 불필요).
-- helper 2개 (`triggerComboBreak`, `checkAndTriggerComboBreak`) — 단일 책임 분리. 폴링 경로와 피격 경로의 *공통 동작*은 `triggerComboBreak`로 통합.
-
-### Sprint 회귀 0 보장 영역
-이 sprint가 절대 건드리면 안 되는 곳: ScoreSystem / ContactRouter / SpawnSystem / HUDNode / BGMPlayer / AudioManager / Repositories / Models / Protocols / 기존 Nodes (PlayerNode/EnemyNode/NoteNode/ProjectileNode/StoneGuardNode/DPadNode/AirplaneNode/AirforceOverlayNode/BombFlashNode/HitFlashNode/SparkleEffectNode/CharacterCardNode/ComboPopupNode) / TitleScene / ResultScene / ColorTokens / SelfDismissingNode / triggeredComboMilestones Set 의미·위치·리셋 정책 — **22개 영역 미접촉 검증 필수**.
+### 4. 테스트 시나리오 (사용자 시뮬레이터 검증)
+- [ ] TitleScene 탭 → GameScene 진입 → 0.4초 페이드 후 "3"이 빨강으로 화면 중앙에 등장 (≈1초 표시)
+- [ ] "2"가 노랑으로 등장 (≈1초)
+- [ ] "1"이 분홍으로 등장 (≈1초)
+- [ ] "GO!"가 민트로 등장하며 *살짝 커지고* heavy 진동 + NewMail 사운드
+- [ ] GO! 페이드아웃 직후 음표 스폰 시작 + 45초 타이머 시작 + BGM 페이드인 시작
+- [ ] **카운트다운 중 D-Pad를 누르면 캐릭터 *이동 안 함*** (gameState != .playing)
+- [ ] **카운트다운 중 적이 *추적 안 함***
+- [ ] **카운트다운 중 F 투사체 *발사 안 됨***
+- [ ] **카운트다운 중 음표 *스폰 안 됨***
+- [ ] **카운트다운 중 타이머 *감소 안 함*** — HUD 시간 라벨이 00:45 유지
+- [ ] **카운트다운 중 BGM *재생 안 됨*** — GO! 직후부터 페이드인
+- [ ] GO! 이후 정상적으로 한 판 진행 → 콤보 10+ 끊김 시 6-12 ComboBreak 정상 동작 (회귀 0)
+- [ ] 게임오버 후 ResultScene → TitleScene 복귀 → 다시 진입 시 카운트다운 *처음부터* 재발화
