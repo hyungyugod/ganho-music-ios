@@ -1,150 +1,89 @@
-# 자체 점검
+# 자체 점검 — Phase 6-14 타이머 긴박감
 
-Phase 6-13 — 게임 시작 카운트다운 3 → 2 → 1 → GO! (자가 소멸 노드 8호 CountdownNode)
-
-## 변경 파일 및 라인 수
-
-| 파일 | 신규/수정 | 변경 라인 수 |
-|---|---|---|
-| `Nodes/CountdownNode.swift` | 신규 | +112줄 (헤더/주석 포함 — 본문 ~75줄 + 주석) |
-| `Config/GameState.swift` | 수정 | +2줄 (`.countdown` case + 헤더 한 줄) |
-| `Config/GameConfig.swift` | 수정 | +19줄 (MARK 섹션 + 상수 8개 + doc comment) |
-| `GameScene.swift` | 수정 | +43줄 / -14줄 (헤더 1줄 + showCountdown 19줄 + startGameProperly 17줄 + didMove 끝 재구성. 기존 spawnSystem.start/gameState=playing/bgm.play 14줄을 startGameProperly로 이동) |
-| `GanhoMusic.xcodeproj/project.pbxproj` | 수정 | +4줄 (UUID 0033 4지점: PBXBuildFile / PBXFileReference / PBXGroup / PBXSourcesBuildPhase) |
+전략: 1회차 — 신규 구현. 이전 sprint 6-13(CountdownNode)의 시간 대칭점.
 
 ## SPEC 기능 체크
 
-- [x] **기능 1 — GameState.countdown case 추가**: `Config/GameState.swift` 11~17줄. `case waiting` 직후, `case playing` 직전 위치. 주석으로 *update의 모든 시스템 정지* 의도 명시.
-- [x] **기능 2 — GameConfig 카운트다운 상수 8개**: `Config/GameConfig.swift` 끝부분 `// MARK: - Countdown (Phase 6-13)` 섹션. countdownFontSize(96) / countdownFadeInDuration(0.1) / countdownHoldDuration(0.7) / countdownFadeOutDuration(0.2) / countdownGoEndScale(1.3) / countdownGoFadeOutDuration(0.4) / countdownGoHoldDuration(0.5) / countdownZPosition(250).
-- [x] **기능 3 — CountdownNode 신규 (자가 소멸 노드 8호)**: `Nodes/CountdownNode.swift`. `SelfDismissingNode` 채택. `start(onTick:onGo:onComplete:)` 진입점 1개. `SKAction.sequence([step3, step2, step1, stepGo, cleanup, notify])` 자가 실행. stepAction (일반 3/2/1) + goAction (GO! scale 펄스) 두 헬퍼로 분리. `removeFromParent` *다음* notify 위치라 onComplete 호출 시점에 노드가 이미 트리에서 빠진 상태.
-- [x] **기능 4 — GameScene 흐름 재구성**: `didMove(to:)` 끝부분에서 spawnSystem.start / gameState = .playing / bgm.play 3블록을 제거하고 `gameState = .countdown` + `showCountdown()` 2줄로 교체. `// MARK: - Countdown (Phase 6-13)` 신규 섹션에 `showCountdown()` + `startGameProperly()` 헬퍼 추가. spawnSystem.start 인자(scene/world/player/enemy/progressProvider) 시그니처 *그대로* 유지.
+- [x] **기능 1 — BGMPlayer rate API**: `enableRate = true` 1줄(init), `rate = 1.0` 1줄(stop DispatchWorkItem 안), `setRate(_:)` + `resetRate()` 2개 메서드 (MARK Tension)
+- [x] **기능 2 — HUDNode 깜빡임 API**: `startTensionBlink()` + `stopTensionBlink()` 2개 메서드 (MARK Tension). fontColor 직접 교체 패턴 (SKAction.run + wait 4단 sequence + repeatForever + withKey). `timeLabel`만 접근 — scoreLabel/comboLabel/nameLabel 미접촉
+- [x] **기능 3 — GameScene 5초 긴박감 폴링**: `update(_:)`의 `remainingTime -= dt` 직후 + 0초 early return 직후에 폴링 블록 28줄. 첫 진입 1회 가드(`!tensionStarted` → `hud.startTensionBlink()`), 매 프레임 rate 보간(`bgm.setRate(...)`), 매초 정수 변화 시 `haptics.light()` (4회)
+- [x] **기능 4 — endGame 정리**: `bgm.stop()` 다음 줄에 `hud.stopTensionBlink()` 1줄 (멱등 가드 안쪽)
+- [x] **기능 5 — GameConfig 상수 5개**: `tensionWindow`(5.0 TimeInterval) / `tensionRateBase`(1.0 Float) / `tensionRateMax`(1.15 Float) / `tensionBlinkHalfPeriod`(0.5 TimeInterval) / `tensionBlinkActionKey`("tensionBlink" String). MARK: - Tension (Phase 6-14) 섹션 신설
 
-## GameState exhaustive switch 검증
+## 변경 라인 수 (git diff --stat)
 
-```
-grep -rn "switch.*gameState" GanhoMusic --include="*.swift" → 0 hits
-grep -rn "case .playing" GanhoMusic --include="*.swift" →
-  GameScene.swift: gameState 동등성 비교 5곳(`==`/`!=` 형식, switch 아님)
-  AudioManager.swift: case .gameOver — AudioManager.SFX enum (다른 enum, 무관)
-```
+| 파일 | +라인 |
+|---|---|
+| `Config/GameConfig.swift` | +16 |
+| `Managers/BGMPlayer.swift` | +22 |
+| `Nodes/HUDNode.swift` | +26 |
+| `GameScene.swift` | +40 |
 
-**결론**: GameState를 exhaustive하게 다루는 switch 0건. `.countdown` 추가로 break되는 컴파일 지점 0건. `gameState == .playing` / `gameState == .gameOver` 동등성 비교만 사용 — `.countdown` 추가는 *모든 동등성 비교가 false를 반환*하는 안전한 확장.
-
-## ColorTokens 4색 존재 확인
-
-`Config/ColorTokens.swift` 12~47줄 전수 검사:
-- `.ganhoBloodAccent` — 40줄 (#D8315B 빨강) → 사용: 단계 "3"
-- `.ganhoYellowF` — 45줄 (#FFD23F 노랑) → 사용: 단계 "2"
-- `.ganhoPinkNote` — 30줄 (#F6A6B2 분홍) → 사용: 단계 "1"
-- `.ganhoMint` — 26줄 (#7DCFB6 민트) → 사용: "GO!"
-
-**결론**: 4색 모두 정의됨. 대체 발생 0건.
-
-## 빌드 명령 결과
-
-```
-xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" \
-  -destination "platform=iOS Simulator,name=iPhone 17" \
-  -configuration Debug build
-```
-
-- **결과**: `** BUILD SUCCEEDED **`
-- **에러**: 0건
-- **경고**: 0건 (`grep -iE "warning:|error:"` 출력 없음)
-
-## pbxproj 4지점 UUID 0033 등록 확인
-
-`grep -n "CountdownNode\|0033"` 결과:
-```
- 44 (PBXBuildFile):              A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */ = {...}
- 82 (PBXFileReference):          A1C0F1A00000000000000033 /* CountdownNode.swift */ = {...}
-226 (PBXGroup `Nodes`):          A1C0F1A00000000000000033 /* CountdownNode.swift */,
-498 (PBXSourcesBuildPhase):      A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */,
-```
-
-**4지점 모두 등록 완료**. UUID 0032 ComboBreakNode 패턴 답습.
-
-## SPEC §"6-12까지의 회귀 0 영역" 미접촉 검증
-
-- **ComboBreakNode**: 미접촉. 자가 소멸 노드 7호 그대로 유지. (확인: 변경 파일 5개에 ComboBreakNode.swift 없음.)
-- **ComboPopupNode**: 미접촉. 6-10 색 매핑 / animate 그대로.
-- **BGMPlayer**: 미접촉. `bgm.play()` 호출 시점만 `didMove` → `startGameProperly`로 이동 — 호출 자체는 동일.
-- **SpawnSystem**: 미접촉. `spawnSystem.start(scene:world:player:enemy:progressProvider:)` 인자 시그니처 그대로 이동 (이름·순서·내용 변경 0). `progressProvider` 클로저의 `[weak self]` 캡처도 그대로.
-- **HapticsManager / AudioManager**: 미접촉. `haptics.light()` / `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 재사용. SFX 케이스 추가 0건.
-- **ContactRouter / ScoreSystem / HUDNode / DPadNode / EnemyNode / PlayerNode / StoneGuardNode / NoteNode / ProjectileNode / 나머지 자가 소멸 노드 6개**: 미접촉.
-- **TitleScene / ResultScene / Repositories / Models / Protocols**: 미접촉.
-
-## update()의 `guard gameState == .playing` 본문 미수정 확인
-
-`GameScene.swift` 179줄: `guard gameState == .playing else { return }` — **변경 0줄**. update 본문 코드 *어디도* 수정 안 함. `.countdown` 상태 진입 시 이 가드가 *자동으로* 7개 시스템(타이머 감소·콤보 만료·플레이어 이동·player.update·카메라 follow·enemy.update·HUD 갱신·콤보 끊김 폴링) 모두 차단.
-
-**의도 검증**: `gameState == .countdown` 상태에서 `.playing`과 비교 → false → 가드 통과 못 함 → return. 추가 가드 코드 0줄. SPEC 핵심 통찰 그대로 구현.
-
-## spawnSystem.start 인자 그대로 이동 확인
-
-**Before (didMove 끝, 삭제됨)**:
-```swift
-spawnSystem.start(
-    scene: self,
-    world: worldNode,
-    player: player,
-    enemy: enemy,
-    progressProvider: { [weak self] in
-        guard let self = self else { return 0 }
-        return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
-    }
-)
-gameState = .playing
-bgm.play()
-```
-
-**After (startGameProperly 본문, 추가됨)**:
-```swift
-spawnSystem.start(
-    scene: self,
-    world: worldNode,
-    player: player,
-    enemy: enemy,
-    progressProvider: { [weak self] in
-        guard let self = self else { return 0 }
-        return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
-    }
-)
-gameState = .playing
-bgm.play()
-```
-
-**diff 0** — 인자 5개 모두 이름·순서·내용 동일. `[weak self]` 캡처 그대로. 본문 14줄 통째 이동 + 호출 시점만 GO! 콜백으로 늦춤.
+총 4 파일, +104줄 / -0줄 (Swift 코드만, MD 산출물 제외).
 
 ## Swift 패턴 준수
 
-- **강제 언래핑 미사용**: 준수 — CountdownNode / GameScene 신규 코드에 `!` 0건. `guard let self = self else { return }` 패턴 사용.
-- **guard let 옵셔널 처리**: 준수 — 모든 클로저 내 `[weak self]` 캡처 후 `guard let self = self else { return }` 명시. (단순 `self?.method()` 호출은 옵셔널 체이닝으로 처리.)
-- **MARK 섹션 구분**: 준수 — CountdownNode에 `// MARK: - Properties / Init / Start / Step Actions / Configure` 5개 섹션. GameScene에 `// MARK: - Countdown (Phase 6-13)` 신규. GameConfig에 `// MARK: - Countdown (Phase 6-13)` 신규.
-- **GameConfig 상수 사용**: 준수 — CountdownNode 본문에 매직 넘버 0건. 모든 폰트 크기·duration·scale·zPosition을 `GameConfig.countdown*` 상수 참조.
-- **weak self 캡처**: 준수 — CountdownNode의 `SKAction.run` 안에서 `self.label.text = ...` 사용 시 `[weak self]` + `guard let self`. GameScene의 `showCountdown` 클로저 3개 모두 `[weak self]`. `startGameProperly`의 `progressProvider` 클로저도 `[weak self]` (기존 패턴 그대로 이동).
+- 강제 언래핑(`!`) 미사용: 준수 — `guard let player = player else { return }` (BGMPlayer.setRate) / `Int(ceil(...))` 캐스팅만
+- guard let 옵셔널 처리: 준수 — `setRate`에서 player 옵셔널 가드
+- MARK 섹션 구분: 준수 — 4 파일 모두 `MARK: - Tension (Phase 6-14)` 신설
+- GameConfig 상수 사용: 준수 — 매직 넘버 0건. 5.0/1.0/1.15/0.5/"tensionBlink" 모두 GameConfig 상수
+- weak self 캡처: 준수 — HUDNode.startTensionBlink의 SKAction.run 2개 모두 `[weak self]` 캡처
 
 ## SpriteKit 패턴 준수
 
-- **didMove(to:)에서 초기화**: 준수 — gameState 전환(.waiting → .countdown)과 카운트다운 노드 부착이 didMove 안에서. 다른 setup* 호출들 위치 미변경.
-- **dt 기반 이동**: 해당 없음 (CountdownNode는 SKAction 타임라인 기반 — dt 비의존).
-- **SKAction 스폰 패턴**: 준수 — Timer 사용 0건. 4단계 시퀀스 모두 `SKAction.sequence` + `SKAction.run` + `SKAction.fadeIn` / `SKAction.fadeOut` / `SKAction.scale` / `SKAction.wait` 표준 액션 조합.
-- **충돌 후 노드 즉시 삭제 없음**: 해당 없음 (CountdownNode는 PhysicsBody 없음 — 충돌 경로 무관). 자가 소멸은 `SKAction.removeFromParent()`로 액션 시퀀스 마지막에 안전하게 처리.
-- **HUD 노드 분리**: 준수 — CountdownNode는 cameraNode 자식으로 부착 (HUDNode와 같은 부착 정책). worldNode와 분리됨.
+- didMove(to:)에서 초기화: 해당 없음(추가 setup 없음) — 폴링 블록은 update 내부, 초기화는 신규 프로퍼티 기본값(false/-1)으로 자동
+- dt 기반 이동: 해당 없음(이번 sprint는 시간 비교/햅틱/rate). 단, rate 보간식은 `remainingTime`(dt 누적) 기반 → 프레임레이트 독립
+- SKAction 스폰 패턴: 준수 — `SKAction.run` + `SKAction.wait(forDuration:)` + `SKAction.sequence` + `SKAction.repeatForever` + `withKey` 멱등 (Timer 0건, DispatchQueue.asyncAfter 0건)
+- 충돌 후 노드 즉시 삭제 없음: 준수 — 본 sprint는 충돌 분기 미접촉, ContactRouter 변경 0
+- HUD 노드 분리: 준수 — `timeLabel`은 HUDNode private. 외부 GameScene은 신규 메서드 `startTensionBlink()`/`stopTensionBlink()`로만 호출(캡슐화 보존)
+
+## 빌드 상태
+
+- xcodebuild 빌드 결과: **`** BUILD SUCCEEDED **`**
+- 명령: `xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' build CODE_SIGNING_ALLOWED=NO`
+- 예상 빌드 에러: 없음 (실제 빌드 성공으로 검증)
+- 주의 필요 경고: 없음 (Swift 컴파일 단계 경고 0건). AppIntents.framework 관련 메시지는 본 sprint 외 시스템 노트.
+
+## pbxproj / 신규 파일 검증
+
+- pbxproj 변경 0건: 준수 — `git status`에 `*.pbxproj` 변경 0건
+- 신규 파일 0건: 준수 — `git status`에 Untracked file 0건 (산출물 SELF_CHECK.md / SPEC.md 외)
+- 4 파일 모두 *modified* 상태로만 변경
+
+## 핵심 결정 검증
+
+- `enableRate = true` 위치: BGMPlayer.swift init() 안 — `p.numberOfLoops = -1` *직전* + `p.prepareToPlay()` *직전* (Apple 권장 순서)
+- `Float` 타입 일관성: GameConfig.tensionRateBase / tensionRateMax 모두 `Float` 선언. update 안 `let progress = Float((...))`, `let clamped = max(Float(0), min(Float(1), progress))`, `let rate = ... * clamped` 전부 Float 연산. AVAudioPlayer.rate(Float) 시그니처와 정확 일치 — 캐스팅 오류 0
+- 카운트다운(.countdown) 상태에서 폴링 미발화: 준수 — 폴링 블록이 `guard gameState == .playing else { return }` 가드 *안쪽*에 위치 → .countdown 상태에선 자동 차단. BGM은 startGameProperly() 호출 전까지 play() 미진입 → 비교차 0
+- ColorTokens 변경 0건: 준수 — 신규 색 추가 0. `.ganhoBloodAccent` / `.ganhoPaper` 재사용만
+
+## "6-13까지의 회귀 0 영역" 미접촉 검증
+
+`git diff --stat` 기준, 본 sprint가 수정한 파일은 정확히 4개:
+- `Config/GameConfig.swift` — *추가 only* (MARK Tension 신설), 기존 상수 0건 수정
+- `Managers/BGMPlayer.swift` — *추가 only* (init 1줄, stop DispatchWorkItem 안 1줄, MARK Tension 신설 2 메서드). 6-5/6-6/6-7 페이드/Interruption/라이프사이클 로직 미접촉
+- `Nodes/HUDNode.swift` — *추가 only* (MARK Tension 신설 2 메서드). init/configure/update/setCharacterName 미접촉. scoreLabel/comboLabel/nameLabel 0건 접근
+- `Scenes/GameScene.swift` — 헤더 주석 1줄, 프로퍼티 2개, update 폴링 블록 1개, endGame stopTensionBlink 1줄. **자가 소멸 노드 8개, ContactRouter, ScoreSystem, SpawnSystem, configureContactRouter 본문, triggerAirforceEasterEgg, showCountdown, startGameProperly, didMove, factory 미접촉**
+
+미수정 파일 (회귀 0 검증):
+- AirplaneNode / AirforceOverlayNode / BombFlashNode / SparkleEffectNode / HitFlashNode / ComboPopupNode / ComboBreakNode / CountdownNode — 0건
+- ContactRouter / ScoreSystem / SpawnSystem / CameraShakeAction — 0건
+- PlayerNode / EnemyNode / DPadNode / NoteNode / ProjectileNode / StoneGuardNode / CharacterCardNode — 0건
+- TitleScene / ResultScene / GameScene+Setup — 0건
+- AudioManager / HapticsManager — 0건
+- Repositories(HighScore / Statistics / CharacterPreference) — 0건
+- Models(GameStats / CharacterID) — 0건
+- Protocols(SelfDismissingNode) — 0건
+- Config(PhysicsCategory / GameState / **ColorTokens**) — 0건
+- pbxproj — 0건
+
+## 의사 결정 트레이스
+
+- **0초 도달 시 폴링 차단**: `remainingTime <= 0` 시 early return이 위에 있으므로 폴링 블록 진입 전 `endGame()` 호출 → 햅틱 정확 4회(5→4, 4→3, 3→2, 2→1) 발화 후 정지. SPEC §주의사항 1 일치
+- **rate 보간 분모**: SPEC §"BGM rate 변경 메커니즘 결정"은 "(5 - remainingTime) / 4"라고 적었으나 본문 핵심 코드 구조와 "기능 3: 핵심 코드 구조"에서는 "/ 5" (= tensionWindow). 후자가 실제 코드, 더 명확(5초→1.0, 0초→1.15 정확 매핑). `progress = (tensionWindow - remainingTime) / tensionWindow` 채택
+- **rate 보간 안전망**: `max(Float(0), min(Float(1), progress))` 클램프 추가 — remainingTime이 tensionWindow를 살짝 초과/미만 시 rate 범위 보호. Apple 0.5~2.0 권장 범위 안전 유지
+- **early return 직후 vs early return 직전**: SPEC 핵심 코드 구조는 early return 후에 폴링이 옴 (`if remainingTime <= 0 { endGame(); return }` *다음 줄*에 `if remainingTime <= GameConfig.tensionWindow { ... }`). 이게 0초 햅틱 차단 보장. 채택
 
 ## 범위 외 미구현 항목
 
-- **카운트다운 스킵 기능 (탭 건너뛰기)**: SPEC §"Sprint 범위 계약"에서 *금지* — 사용자 요청에 따라 강제 시청. 미구현.
-- **카운트다운 숫자 다국어 / 난이도별 차등**: 금지 — 미구현.
-- **ColorTokens 신규 색**: 금지 — 기존 4색 재사용. 미구현.
-- **AudioManager.SFX 신규 케이스**: 금지 — `comboMilestoneStrong` 재사용. 미구현.
-
-모든 미구현 항목은 SPEC의 "금지" 목록에 명시된 의도적 미포함.
-
-## 추가 안전성 검증
-
-- **SelfDismissingNode marker protocol 채택**: CountdownNode가 `SKNode, SelfDismissingNode` 채택 — 자가 소멸 노드 8호임을 문서화. marker라 컴파일러 강제 없음, 의도 표현용.
-- **첫 setup 액션의 alpha = 0 리셋**: 매 단계 시작 시 `self.label.alpha = 0` — 직전 단계의 fadeOut이 alpha를 0으로 떨어뜨리지만 방어 코딩으로 명시.
-- **첫 setup 액션의 setScale(1.0) 리셋**: 매 일반 단계 시작 시 scale 리셋 — GO! 단계에서 1.3으로 커진 값의 잔류 방지(현재는 자가 소멸이라 영향 없지만 방어 코딩).
-- **goAction의 hold/scaleUp group 동기 종료**: 둘 다 duration = `countdownGoHoldDuration(0.5)` → 정확히 동시 종료 후 fadeOut 시작.
-- **GameScene `showCountdown`의 onGo 클로저**: `guard let self = self else { return }` 후 self.haptics + self.audio 2회 호출 — 동일 self 참조 일관성. (onTick은 단발 호출이라 옵셔널 체이닝, onComplete는 단발이라 옵셔널 체이닝.)
+- 없음. SPEC 5개 기능 모두 구현. ColorTokens / pbxproj / 6-13 이전 sprint 산출물 일체 미접촉.

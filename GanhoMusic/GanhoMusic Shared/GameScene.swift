@@ -36,6 +36,7 @@
 //  Phase 6-11 · 콤보 마일스톤 도달 시 햅틱/사운드 동시 발화 (3감각 완성)
 //  Phase 6-12 · 콤보 10+ 끊김 시 화면 중앙 BREAK 팝업 + heavy 햅틱 (실망 2감각, 사운드 제외)
 //  Phase 6-13 · 게임 시작 카운트다운 3→2→1→GO! (gameState .countdown 신설 + startGameProperly 분리)
+//  Phase 6-14 · 게임 끝 5초 긴박감 — BGM rate↑ + HUD timeLabel 빨강 깜빡임 + 매초 light 햅틱
 //
 
 import SpriteKit
@@ -86,6 +87,15 @@ class GameScene: SKScene {
     // 첫 프레임에는 0 시작이라 임계값(10) 가드로 노이즈 차단.
     private var lastComboValue: Int = 0
     private var triggeredComboBreaks: Set<Int> = []
+
+    /// Phase 6-14 — 5초 긴박감 1회 가드. 같은 판 1회만 setup 발화 (HUD 깜빡임 시작 등).
+    /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
+    /// `airforceTriggered` 1회 가드 패턴 답습 — 단순/안전/회귀 0.
+    private var tensionStarted: Bool = false
+    /// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
+    /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
+    /// HUD timeLabel이 보여주는 `Int(ceil(remainingTime))`과 정확히 같은 식으로 계산 → *눈에 보이는 숫자가 바뀐 순간* 햅틱 발화.
+    private var lastRemainingTimeSecond: Int = -1
 
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
@@ -226,6 +236,35 @@ class GameScene: SKScene {
         if remainingTime <= 0 {
             endGame()
             return
+        }
+
+        // Phase 6-14 — 5초 긴박감 폴링 (.playing 상태에서만, 위 guard 통과 후).
+        // 카운트다운(.countdown) 중에는 위 `guard gameState == .playing`에서 이미 차단 →
+        // BGM 미재생 상태와 시간 비교차 0. 카운트다운(2~3초) + 5초 윈도우는 시간상 *겹칠 일 0*.
+        // 0 도달 분기는 위 early return에서 처리되므로 여기 진입 시 remainingTime > 0 보장.
+        if remainingTime <= GameConfig.tensionWindow {
+            // 첫 진입 1회 setup — HUD 깜빡임 시작. BGM rate는 아래 보간이 매 프레임 set.
+            if !tensionStarted {
+                tensionStarted = true
+                hud.startTensionBlink()
+            }
+            // 매 프레임 rate 보간: 1.0 + 0.15 × (5 - remainingTime) / 5.
+            // TimeInterval(Double) → Float 캐스팅 — AVAudioPlayer.rate는 Float 타입.
+            // AVAudioPlayer.rate setter는 idempotent → 매 프레임 호출 안전 (Apple 문서).
+            let progress = Float((GameConfig.tensionWindow - remainingTime) / GameConfig.tensionWindow)
+            let clamped = max(Float(0), min(Float(1), progress))
+            let rate = GameConfig.tensionRateBase + (GameConfig.tensionRateMax - GameConfig.tensionRateBase) * clamped
+            bgm.setRate(rate)
+            // 매초 정수 변화 시 light 햅틱 (5→4, 4→3, 3→2, 2→1 = 4회).
+            // HUD timeLabel이 보여주는 ceil 식과 동일 — *눈에 보이는 숫자가 바뀐 순간* 발화.
+            // 0초 도달은 위 early return에서 처리되어 여기로 안 옴 (4회 발화 정확 보장).
+            let now = max(0, Int(ceil(remainingTime)))
+            if now != lastRemainingTimeSecond {
+                lastRemainingTimeSecond = now
+                if now >= 1 && now <= 4 {
+                    haptics.light()
+                }
+            }
         }
 
         // Phase 2-5 — 콤보 윈도우 만료 검사 (Phase 2-12: ScoreSystem에 위임)
@@ -418,6 +457,7 @@ class GameScene: SKScene {
         haptics.heavy()   // Phase 6-1 — 종료 무게감 (가드 통과 1회만)
         audio.play(.gameOver)   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
         bgm.stop()           // Phase 6-4 — gameOver 사운드와 동시에 BGM 정지 (멱등 가드 안쪽 = 1회 보장)
+        hud.stopTensionBlink()   // Phase 6-14 — 깜빡임 즉시 종료 (잔상 0). 0초 만료 / F 피격 / enemy 접촉 모든 경로에서 발화.
         spawnSystem.stop()
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero

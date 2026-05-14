@@ -354,4 +354,20 @@ enum GameConfig {
     /// CountdownNode zPosition. HitFlash(200) 위, BombFlash(250)와 동급/이하.
     /// 카운트다운 동안 어떤 UI도 덮는다 — 게임이 아직 시작 안 했으므로.
     static let countdownZPosition: CGFloat = 250
+
+    // MARK: - Tension (Phase 6-14)
+    /// 5초 긴박감 발화 시작 임계값 (초). remainingTime이 이 값 이하로 떨어지면 폴링 진입.
+    /// 6-13 카운트다운(출발의 개봉감)과 시간 대칭 — 시작·끝의 톤이 짝을 이룬다.
+    static let tensionWindow: TimeInterval = 5.0
+    /// BGM rate 시작값 (1.0 = 원본). AVAudioPlayer.rate 타입에 맞춰 Float.
+    static let tensionRateBase: Float = 1.0
+    /// BGM rate 최대값 (1.15 = 영상 빨리감기 톤, 피치 포함). 0.5~2.0 권장 범위 중 안전.
+    /// 1.15는 *체감되지만 곡 식별성 유지* 균형점 — Float 타입(AVAudioPlayer.rate 일치).
+    static let tensionRateMax: Float = 1.15
+    /// 깜빡임 한 색 머무는 길이 (초). 총 1초 주기 = 빨강 0.5 + 원색 0.5.
+    /// 매초 정수 변화(5→4→3→2→1)와 *심박* 톤이 자연 동기.
+    static let tensionBlinkHalfPeriod: TimeInterval = 0.5
+    /// HUDNode timeLabel 깜빡임 SKAction 키. 중복 호출 시 자동 교체(멱등) 보장.
+    /// withKey로 부착하면 SpriteKit이 같은 키의 이전 액션을 자동 제거 → 자연 멱등.
+    static let tensionBlinkActionKey: String = "tensionBlink"
 }

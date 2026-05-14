@@ -84,4 +84,30 @@ final class HUDNode: SKNode {
         label.verticalAlignmentMode = .top
         label.zPosition = 100
     }
+
+    // MARK: - Tension (Phase 6-14)
+    /// timeLabel을 빨강(`ganhoBloodAccent`) ↔ 원래색(`ganhoPaper`) 1초 주기로 깜빡이게 한다.
+    /// 같은 key(`tensionBlinkActionKey`)로 중복 호출 시 SpriteKit이 이전 액션을 자동 교체(자연 멱등).
+    /// SKLabelNode의 `colorize` 액션은 `colorBlendFactor` 이슈로 동작이 일관되지 않음 →
+    /// **fontColor 직접 교체** 패턴 채택 (SKAction.run + wait 4단 반복). 더 안전하고 일관됨.
+    /// 콜백은 [weak self] 캡처 — 한 판 진행 중 씬 전환 가능성 대비.
+    func startTensionBlink() {
+        let toRed = SKAction.run { [weak self] in
+            self?.timeLabel.fontColor = .ganhoBloodAccent
+        }
+        let toBase = SKAction.run { [weak self] in
+            self?.timeLabel.fontColor = .ganhoPaper
+        }
+        let wait = SKAction.wait(forDuration: GameConfig.tensionBlinkHalfPeriod)
+        let cycle = SKAction.sequence([toRed, wait, toBase, wait])
+        timeLabel.run(.repeatForever(cycle), withKey: GameConfig.tensionBlinkActionKey)
+    }
+
+    /// 깜빡임 액션 제거 + 색 즉시 원색 복원 (잔상 0).
+    /// 액션을 멈춰도 마지막 fontColor가 빨강에서 멈출 수 있으므로 명시적 .ganhoPaper 복원.
+    /// removeAction은 키가 없어도 안전(noop) — 호출자가 startTensionBlink 호출 여부 추적 불필요.
+    func stopTensionBlink() {
+        timeLabel.removeAction(forKey: GameConfig.tensionBlinkActionKey)
+        timeLabel.fontColor = .ganhoPaper
+    }
 }

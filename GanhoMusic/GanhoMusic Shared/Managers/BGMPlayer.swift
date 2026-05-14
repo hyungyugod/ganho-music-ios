@@ -51,6 +51,9 @@ final class BGMPlayer {
         )
 
         // 4) 무한 루프 + prepareToPlay로 첫 play 지연 최소화.
+        // Phase 6-14 — rate 변경 활성화 (피치 포함). numberOfLoops/prepareToPlay 전에 설정 권장.
+        // 6-5 페이드 보간(volume)과 독립 채널 — rate와 volume은 AVAudioPlayer 안에서 별개로 동작.
+        p.enableRate = true
         p.numberOfLoops = -1
         // Phase 6-5 — 첫 play()에서 페이드 인을 위해 0에서 시작. setVolume(1.0, fadeDuration:)이
         // 호출 시점의 volume에서 보간 시작하므로 이 초기화가 없으면 페이드 인이 의미를 잃는다.
@@ -132,6 +135,7 @@ final class BGMPlayer {
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
             self.player?.stop()
+            self.player?.rate = 1.0                 // Phase 6-14 — 다음 라이프사이클 대비 rate 복원 (같은 인스턴스 재진입 안전망)
             self.isFadingOut = false                // 다음 인스턴스 사이클을 위한 리셋
             self.stopWorkItem = nil
         }
@@ -216,5 +220,23 @@ final class BGMPlayer {
         guard shouldResumeOnForeground else { return }
         shouldResumeOnForeground = false                // 페어 종료 — 다음 사이클 위한 리셋
         resume()                                        // 6-6의 private resume() → play() 재사용
+    }
+
+    // MARK: - Tension (Phase 6-14)
+    /// 재생 속도(피치 포함) 설정. 1.0 = 원본, 1.15 = 5초 긴박감 최대치.
+    /// enableRate=true가 init에서 켜져 있어야 동작. 음원 부재 시 noop.
+    /// AVAudioPlayer.rate setter는 idempotent → 매 프레임 호출 안전 (Apple 문서).
+    /// 멱등 가드 없음 — 같은 값 반복 set은 Apple이 차단.
+    /// 0.5 ~ 2.0 범위 권장 (Apple 문서). 본 sprint는 1.0~1.15만 사용.
+    /// Spring 비유: 단일 속성 setter — 멱등하고 부작용 없음.
+    func setRate(_ rate: Float) {
+        guard let player = player else { return }
+        player.rate = rate
+    }
+
+    /// rate를 1.0으로 즉시 복원. stop() 안에서도 호출되도록 stop() 본문에 1줄 추가됨.
+    /// 재시작 시 새 BGMPlayer 인스턴스라 1.0 자동 시작이지만, 같은 인스턴스 *재진입* 시나리오 안전망.
+    func resetRate() {
+        setRate(1.0)
     }
 }
