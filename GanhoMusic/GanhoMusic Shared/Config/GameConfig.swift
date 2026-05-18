@@ -698,4 +698,14 @@ enum GameConfig {
     static let resultStatsLabelFontSize: CGFloat = 11
     /// 통계 값 font-size — 원본 16px tabular (.game-overlay__stats li b, end-scope 15)
     static let resultStatsValueFontSize: CGFloat = 16
+
+    // MARK: - HUD Layout (Phase 8-5)
+    /// 원본 .game-hud (game.css L232-289) 상단 가로 슬롯 배치 1:1 매핑.
+    /// 좌상단 세로 스택 → 상단 중앙 가로 4슬롯(TIME / SCORE / COMBO / PLAYER) 재구성.
+    static let hudTopMargin: CGFloat = 28           // 화면 상단에서 hud anchor 거리
+    static let hudSlotSpacing: CGFloat = 80         // 슬롯 4개 간격 (수평)
+    static let hudValueFontSize: CGFloat = 22       // 원본 .game-hud__value 22px
+    static let hudLabelFontSize: CGFloat = 10       // 원본 .game-hud__label 10px
+    static let hudSlotInnerGap: CGFloat = 4         // 라벨 ↔ 값 세로 간격
+    static let hudLabelLetterSpacing: CGFloat = 2   // 원본 letter-spacing 2px (SKLabelNode 미지원, 기록만)
 }

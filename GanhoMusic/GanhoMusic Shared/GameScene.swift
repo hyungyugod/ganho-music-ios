@@ -272,13 +272,13 @@ class GameScene: SKScene {
     }
 
     /// scene.size 변경 시 위치만 재계산. addChild 0건 — 멱등.
-    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌상단 = (-x, +y). D-Pad와 부호만 반전.
+    /// Phase 8-5 — 좌상단 anchor에서 *상단 중앙* anchor로 변경. HUDNode 내부가 가로 4슬롯 중앙 정렬 구조.
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 상단 중앙 = (0, +halfH - margin).
     func layoutHUD() {
-        let halfW = size.width  / 2
         let halfH = size.height / 2
         hud.position = CGPoint(
-            x: -(halfW - GameConfig.hudMarginX),
-            y: +(halfH - GameConfig.hudMarginY)
+            x: 0,                                   // 가로 중앙
+            y: +(halfH - GameConfig.hudTopMargin)   // 상단에서 28pt 아래
         )
     }
 
