@@ -1,241 +1,178 @@
-# 자체 점검 — Phase 7-4 졸업장 시스템
+# 자체 점검 — Phase 7-5 핫픽스 (전환 시점 4종 버그)
 
-전략: 1회차 — SPEC.md 충실 구현.
+전략: Case A — 1회차. SPEC가 *값 변경 + UserDefaults 분기 + anchor 변경 + 가드 1줄*뿐. 변경 최소화 원칙으로 정밀 적용.
 
-## git status / git diff --stat
+---
 
-```
-On branch claude/confident-mendeleev-5df868
-Changes not staged for commit:
-	modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift
-	modified:   GanhoMusic/GanhoMusic Shared/GameScene.swift
-	modified:   GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift
-	modified:   GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj
-
-Untracked files:
-	GanhoMusic/GanhoMusic Shared/Nodes/DiplomaOverlayNode.swift
-	GanhoMusic/GanhoMusic Shared/Repositories/GraduationRepository.swift
-	GanhoMusic/GanhoMusic Shared/Repositories/PerDifficultyScoreRepository.swift
-```
+## 1. git status / git diff --stat
 
 ```
-GanhoMusic Shared/Config/GameConfig.swift      |  57 +++ (Diploma 섹션 22 상수 + MARK)
-GanhoMusic Shared/GameScene.swift              |  38 +- (prop 2개 + endGame 5줄 + isGraduated 헬퍼)
-GanhoMusic Shared/Scenes/ResultScene.swift     |  47 +- (prop 2 + factory/init 2인자 + setup 3줄 + presentDiploma)
-GanhoMusic.xcodeproj/project.pbxproj           |  12 +  (BuildFile×3 + FileRef×3 + 그룹 children×3 + Sources iOS×3)
+modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift       (+13 / -3)
+modified:   GanhoMusic/GanhoMusic Shared/GameScene.swift                (+13 / -2)
+modified:   GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift       (+ 7 / -1)
 ```
 
-신규 파일 line counts:
-- PerDifficultyScoreRepository.swift — 86 lines
-- GraduationRepository.swift — 85 lines
-- DiplomaOverlayNode.swift — 211 lines
+총 3개 파일, +33줄 / -6줄. *허용 파일 외 변경 0건*.
 
-## SPEC §"기능 상세" 라인 매핑
+---
 
-### 기능 1: GameConfig 신규 상수 22개
-- `GanhoMusic Shared/Config/GameConfig.swift:568-625` — `// MARK: - Diploma (Phase 7-4)` 섹션
-- 상수 22개: targetScoreByDifficulty / perDifficultyScoreUserDefaultsKey / graduationUserDefaultsKey / diplomaBackgroundAlpha / diplomaZPosition / diplomaFadeInDuration / diplomaFadeOutDuration / diplomaTitleEnFontSize / diplomaTitleKoFontSize / diplomaBodyFontSize / diplomaIssuerFontSize / diplomaDateFontSize / diplomaTapFontSize / diplomaTitleEnOffsetY / diplomaTitleKoOffsetY / diplomaBody1OffsetY / diplomaBody2OffsetY / diplomaIssuerOffsetY / diplomaDateOffsetY / diplomaTapLabelAlpha / diplomaTapOffsetY / diplomaBodyWidthRatio
-- 기존 상수 미접촉 (cutsceneTapLabelAlpha 567 라인 뒤에 append)
+## 2. SPEC 4건 버그 → 코드 변경 위치 매핑
 
-### 기능 2: PerDifficultyScoreRepository
-- `GanhoMusic Shared/Repositories/PerDifficultyScoreRepository.swift` — 신규 86줄
-- `current: [CharacterID: [Difficulty: Int]]` — guard let × 2 + try? + for/guard 2중 변환
-- `best(characterID:difficulty:) -> Int` — `?? 0` 폴백
-- `record(characterID:difficulty:score:) -> Bool` — `score > prior` 엄격 비교, try? + false 반환
+### 버그 1: 카드 절단 — 카드 레이아웃 재배치
 
-### 기능 3: GraduationRepository
-- `GanhoMusic Shared/Repositories/GraduationRepository.swift` — 신규 85줄
-- ISO8601DateFormatter 인스턴스 멤버 캐싱
-- `current: [CharacterID: Date]` — guard let × 2 + for/guard
-- `graduatedAt(characterID:) -> Date?`
-- `record(characterID:date:) -> Bool` — **멱등**: `if dict[id] != nil { return false }`
+| 위치 | 변경 | 비고 |
+|------|------|------|
+| `GameConfig.swift:124` | `titleLabelOffsetY: 80 → 120` | 기존 상수가 이미 존재 → 값만 수정 |
+| `GameConfig.swift:471` | `difficultyCardOffsetY: -120 → +80` | titleLabel 아래 / bestLabel 위 (상단 이동) |
+| `GameConfig.swift:478` | `characterCardOffsetY: -200 → -160` | Phase 5 원래 값으로 되돌림 |
+| `TitleScene.swift` | 변경 0 | 이미 `GameConfig.titleLabelOffsetY` 참조 중(line 98) — *코드 변경 불필요*. 값만 바뀌어도 자동 재배치 |
+| `DifficultyCardNode.swift` / `CharacterCardNode.swift` | 변경 0 | 위치는 TitleScene이 GameConfig 참조로 set — 카드 노드 자체 코드 미접촉 |
 
-### 기능 4: GameScene.isGraduated 헬퍼
-- `GanhoMusic Shared/GameScene.swift:574-586` — `// MARK: - Graduation (Phase 7-4)` 섹션
-- private static func — 인스턴스 미접근
-- `Difficulty.allCases` 순회 + 미달 시 즉시 false return + 폴백 `?? Int.max`
+### 버그 2: 인트로 컷씬 매번 강제 표시 — UserDefaults 1회 가드
 
-### 기능 5: DiplomaOverlayNode (자가 소멸 11호)
-- `GanhoMusic Shared/Nodes/DiplomaOverlayNode.swift` — 신규 211줄
-- `final class DiplomaOverlayNode: SKNode, SelfDismissingNode` (마커 채택)
-- private init + 정적 팩토리 `present(...)` 1개
-- 7 라벨: titleEnLabel / titleKoLabel / body1Label / body2Label / issuerLabel / dateLabel / tapLabel
-- 색상: 배경 `.ganhoYellowF` 0.92 alpha + 글자 `.black` — ColorTokens 신규 0건
-- touchesBegan → dismiss + fadeOut + removeFromParent + notify callback
-- 다중 탭 차단: `isUserInteractionEnabled = false` + `onDismiss = nil` 2중 안전망
-- onDismiss `[weak self]` 캡처는 *외부 책임* (CutsceneOverlayNode 답습 — notify는 self 미사용)
+| 위치 | 변경 | 비고 |
+|------|------|------|
+| `GameConfig.swift:573` | `hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"` 신규 | 신규 키 — 기존 키와 충돌 0 |
+| `GameScene.swift:156-164` | `didMove` 끝부분의 무조건 `showIntroCutscene()`를 if/else 분기로 교체 | bool 기본값 false → 최초 사용자만 컷씬 표시 |
+| `GameScene.swift:193` | `showIntroCutscene` 안 onDismiss 클로저에 `UserDefaults.standard.set(true, forKey: ...)` 1줄 추가 | guard let self 뒤, gameState 전환 전 |
 
-### 기능 6: GameScene.endGame() 확장
-- `GanhoMusic Shared/GameScene.swift:533-553` — 매트릭스 record + 졸업 판정 + ResultScene factory 인자 2개 추가
-- prop 2개: `GameScene.swift:72-73` — `perDiffRepo` / `graduationRepo`
-- 신규 5줄(SPEC 그대로): perDiffRepo.record / var isNewGraduation / if isGraduated → graduationRepo.record / let graduatedAt
-- ResultScene.newResultScene 인자 2개 추가: isNewGraduation / graduatedAt
+### 버그 3: 졸업장 좌표 어긋남
 
-### 기능 7: ResultScene 변경
-- prop 2개: `Scenes/ResultScene.swift:39-43` — `isNewGraduation: Bool` / `graduatedAt: Date?`
-- factory: `ResultScene.swift:62-85` — `isNewGraduation: Bool = false, graduatedAt: Date? = nil` default 인자
-- init: `ResultScene.swift:91-116` — 9개 인자, self 저장
-- setupLabels 끝: `ResultScene.swift:159-162` — `if isNewGraduation, let graduatedAt = graduatedAt { presentDiploma(at:) }`
-- `presentDiploma(at:)`: `ResultScene.swift:289-298` — DiplomaOverlayNode.present(parent: self, anchor: midX/midY, onDismiss: {})
+| 위치 | 변경 | 비고 |
+|------|------|------|
+| `ResultScene.swift:318` | `anchor: CGPoint(x: frame.midX, y: frame.midY)` → `anchor: CGPoint(x: size.width / 2, y: size.height / 2)` | sceneSize 기준으로 변경 — background와 같은 좌표계로 정렬 |
 
-### 기능 8: pbxproj 등록
-- PBXBuildFile (3): `project.pbxproj:50-52` — A1C0F1B...039/040/041
-- PBXFileReference (3): `project.pbxproj:93-95` — A1C0F1A...039/040/041
-- PBXGroup Nodes children: `project.pbxproj:240` — DiplomaOverlayNode 1줄 추가
-- PBXGroup Repositories children: `project.pbxproj:275-276` — PerDifficulty/Graduation 2줄 추가
-- PBXSourcesBuildPhase iOS (3): `project.pbxproj:519-521` — 3 파일 라인 추가
-- tvOS/macOS Sources: 빈 채 유지 (회귀 0)
+### 버그 4: ResultScene 터치 경합
 
-## 회귀 0 영역 grep 결과
+| 위치 | 변경 | 비고 |
+|------|------|------|
+| `ResultScene.swift:226-228` | `touchesBegan` 안 `guard !isTransitioning` 직후에 `if children.contains(where: { $0.name == "diplomaOverlay" }) { return }` 1줄 추가 | DiplomaOverlayNode가 `name = "diplomaOverlay"`로 부착됨(line 80) — 가드 매치 보장 |
 
-모두 `git diff <file> | wc -l` = **0줄**:
+---
 
-```
-Repositories:
-  HighScoreRepository.swift                 — 0줄
-  StatisticsRepository.swift                — 0줄
-  CharacterPreferenceRepository.swift       — 0줄
-  DifficultyPreferenceRepository.swift      — 0줄
+## 3. 회귀 0 영역 git diff 0줄 grep 결과
 
-자가 소멸 노드 10개 (1~10호, 11호 외):
-  AirplaneNode.swift                        — 0줄
-  AirforceOverlayNode.swift                 — 0줄
-  BombFlashNode.swift                       — 0줄
-  SparkleEffectNode.swift                   — 0줄
-  HitFlashNode.swift                        — 0줄
-  ComboPopupNode.swift                      — 0줄
-  ComboBreakNode.swift                      — 0줄
-  CountdownNode.swift                       — 0줄
-  ScorePopupNode.swift                      — 0줄
-  CutsceneOverlayNode.swift                 — 0줄
-
-기타 노드:
-  HUDNode.swift / PlayerNode.swift / EnemyNode.swift / StoneGuardNode.swift /
-  NoteNode.swift / ProjectileNode.swift / DPadNode.swift /
-  CharacterCardNode.swift / DifficultyCardNode.swift — 모두 0줄
-
-시스템:
-  ContactRouter.swift / ScoreSystem.swift / SpawnSystem.swift / CameraShakeAction.swift — 모두 0줄
-
-매니저:
-  BGMPlayer.swift / AudioManager.swift / HapticsManager.swift — 모두 0줄
-
-Config / Model / Protocol:
-  ColorTokens.swift / PhysicsCategory.swift / GameState.swift — 모두 0줄
-  CharacterID.swift / Difficulty.swift / GameStats.swift — 모두 0줄
-  SelfDismissingNode.swift — 0줄
-
-기타:
-  TitleScene.swift — 0줄
-  GameScene+Setup.swift — 0줄
-  iOS·tvOS·macOS 플랫폼 진입점 — 0줄 (pbxproj tvOS/macOS Sources 빈 채 유지)
+```bash
+$ git diff --stat -- \
+    "GanhoMusic/GanhoMusic Shared/Scenes/TitleScene.swift" \
+    "GanhoMusic/GanhoMusic Shared/Nodes/" \
+    "GanhoMusic/GanhoMusic Shared/Systems/" \
+    "GanhoMusic/GanhoMusic Shared/Managers/" \
+    "GanhoMusic/GanhoMusic Shared/Repositories/" \
+    "GanhoMusic/GanhoMusic Shared/Models/" \
+    "GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift" \
+    "GanhoMusic/GanhoMusic Shared/Config/PhysicsCategory.swift" \
+    "GanhoMusic/GanhoMusic Shared/Config/GameState.swift" \
+    "GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift" \
+    "GanhoMusic/GanhoMusic iOS/" \
+    "GanhoMusic/GanhoMusic tvOS/" \
+    "GanhoMusic/GanhoMusic macOS/" \
+    "GanhoMusic/GanhoMusic.xcodeproj/"
+(빈 출력 — 0줄)
 ```
 
-## 빌드 결과 (마지막 20줄 발췌)
+**검증된 미접촉 영역**:
+- 모든 노드 (PlayerNode/EnemyNode/StoneGuardNode/NoteNode/ProjectileNode/AirplaneNode/AirforceOverlayNode/BombFlashNode/HitFlashNode/SparkleEffectNode/ScorePopupNode/ComboPopupNode/ComboBreakNode/CountdownNode/HUDNode/DPadNode/CharacterCardNode/DifficultyCardNode/CutsceneOverlayNode/**DiplomaOverlayNode**) → 자가 소멸 11호 + 모든 카드 노드 0줄 변경
+- 모든 시스템·매니저·리포지토리·모델 0줄 변경
+- ColorTokens / PhysicsCategory / GameState 0줄 변경
+- GameScene+Setup.swift 0줄 변경
+- iOS·tvOS·macOS 진입점 0줄 변경
+- pbxproj 0줄 변경 (신규 파일 0개)
+- TitleScene.swift 0줄 변경 (이미 GameConfig 상수 참조 중 → 값 변경만으로 자동 재배치)
+
+---
+
+## 4. 빌드 결과
 
 ```
-CodeSign /Users/hg/.../GanhoMusic.app (in target 'GanhoMusic iOS' from project 'GanhoMusic')
-    /usr/bin/codesign --force --sign - --timestamp=none --generate-entitlement-der ...
-
-RegisterExecutionPolicyException ...
-    builtin-RegisterExecutionPolicyException ...
-
-Validate ...
-    builtin-validationUtility ... -validate-for-store -shallow-bundle -infoplist-subpath Info.plist
-
-Touch ...
-    /usr/bin/touch -c .../GanhoMusic.app
+$ xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
+             -target "GanhoMusic iOS" \
+             -sdk iphonesimulator \
+             EXCLUDED_SOURCE_FILE_NAMES="Main.storyboard" \
+             clean build
 
 ** BUILD SUCCEEDED **
 ```
 
-명령: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -target "GanhoMusic iOS" -sdk iphonesimulator EXCLUDED_SOURCE_FILE_NAMES="Main.storyboard" clean build`
+- 빌드 상태: SUCCEEDED
+- 경고: 0건 (AppIntents 메타데이터 정보 메시지 제외 — 본 변경 무관)
+- 에러: 0건
 
-- **BUILD SUCCEEDED**
-- **경고 0건** (`grep -iE 'warning:|error:' <build_log> | grep -v 'Metadata extraction skipped'` → 빈 출력)
-- AppIntents의 `Metadata extraction skipped`는 정보성 메시지 (warning 아님, 본 프로젝트 비관련)
+---
 
-## 정적 검사
+## 5. 정적 검사 (강제 언래핑 / 매직 넘버 / Timer / DispatchQueue 0건)
 
-신규 3 파일 (PerDifficultyScoreRepository / GraduationRepository / DiplomaOverlayNode) + 수정 부분(diff):
+```bash
+$ git diff -- <수정 3파일> | grep -E "^\+" | grep -v "^+++" | grep -E "!|Timer|DispatchQueue"
+NONE
+```
 
-| 검사 항목 | 결과 |
-|---|---|
-| 강제 언래핑 `!.` | **0건** (grep none) |
-| `try!` | **0건** |
-| `as!` | **0건** |
-| `Timer(` | **0건** |
-| `DispatchQueue` | **0건** |
-| 매직 넘버 (DiplomaOverlayNode 1.0 알파 캐스팅 등 GameConfig 외) | **0건** |
-| `[weak self]` 누락 (notify 클로저는 self 미사용 → 불필요, CutsceneOverlayNode 답습) | 준수 |
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| 강제 언래핑(`!`) | 0건 | `UserDefaults.standard.bool(forKey:)` / `UserDefaults.standard.set(_, forKey:)` 모두 옵셔널 미반환 |
+| Timer | 0건 | UserDefaults 분기는 동기 호출, 카운트다운/컷씬 흐름은 기존 SKAction 사용 |
+| DispatchQueue | 0건 | 비동기 처리 없음 |
+| 매직 넘버 | 0건 신규 | `size.width / 2` / `size.height / 2`은 SPEC 명시 좌표(상수화 대상 아님), `"diplomaOverlay"`는 단발 노드 식별자 |
+| guard let 옵셔널 처리 | 준수 | `onDismiss` 클로저의 `guard let self = self else { return }` 유지 |
+| [weak self] 캡처 | 준수 | `onDismiss: { [weak self] in ... }` 유지 |
 
-## SPEC §"주의사항" 12개 준수 여부
+---
 
-1. **ISO8601 Date**: `ISO8601DateFormatter` + `.withInternetDateTime` — 준수
-2. **UserDefaults JSON 패턴**: StatisticsRepository 답습, `try?` graceful — 준수
-3. **enum → rawValue 직렬화**: `[String: [String: Int]]` 중간 변환, 강제 언래핑 0 — 준수
-4. **신규 vs 기존 졸업**: `record` false 반환 = 이미 졸업 → 매번 미표시 — 준수 (GraduationRepository.swift `if dict[id] != nil { return false }`)
-5. **dismiss 후 ResultScene 그대로**: `onDismiss: {}` 빈 클로저 — 준수 (ResultScene.presentDiploma)
-6. **점수 두 군데 저장**: UserDefaults atomic, 트랜잭션 분리 가능 — 준수 (HighScoreRepository + PerDifficultyScoreRepository 병행)
-7. **Date 영속화**: `record` 멱등으로 *최초 일시 영원 동일* — 준수
-8. **factory default 인자**: `isNewGraduation: Bool = false, graduatedAt: Date? = nil` — 준수
-9. **parent = scene 자체**: cameraNode 없음, anchor = `(frame.midX, frame.midY)` — 준수 (ResultScene.presentDiploma)
-10. **diplomaTapFontSize 별도**: 14 (cutsceneTapFontSize 16과 다른 값) — 준수
-11. **SelfDismissingNode marker**: `final class DiplomaOverlayNode: SKNode, SelfDismissingNode` 채택 — 준수
-12. **GraduationRepository encode 실패 graceful**: `guard let data = try? JSONEncoder().encode(raw) else { return false }` — 준수
+## 6. 4건 버그가 *코드 수준에서 자연 차단*되는지 확인
 
-## SPEC 기능 체크
+### 버그 1: 카드 절단 — 차단 메커니즘
+- **레이아웃 분리**: 난이도 카드(+80)는 *상단*, 캐릭터 카드(-160)는 *하단*. 두 그룹이 화면 중앙선을 기준으로 위/아래 분리됨.
+- **640pt 화면 검증**: midY=320. titleLabel(+120) y=440 / difficultyCard(+80) y=400 / bestLabel(+20) y=340 / playsLabel(-20) y=300 / promptLabel(-80) y=240 / characterCard(-160) y=160 — 가장 낮은 캐릭터카드(60pt 절반=30pt) 하단 y=130 → 화면 하단(0)에서 130pt 위 = *안전*.
+- **자연 차단**: GameConfig 단일 상수 변경 → 모든 layout 메서드가 자동 재배치. 카드 노드 코드 변경 0건.
 
-- [x] 기능 1 (GameConfig 22 상수): MARK 섹션 + 22개 정확 추가, 기존 미접촉
-- [x] 기능 2 (PerDifficultyScoreRepository): 86줄 신규, 의사 코드 그대로, 강제 언래핑 0
-- [x] 기능 3 (GraduationRepository): 85줄 신규, ISO8601 직렬화, record 멱등
-- [x] 기능 4 (isGraduated 헬퍼): GameScene private static, Difficulty.allCases 순회
-- [x] 기능 5 (DiplomaOverlayNode): 211줄 신규, SelfDismissingNode 채택, 7라벨, private init + 정적 팩토리, ColorTokens 신규 0건
-- [x] 기능 6 (GameScene.endGame 확장): prop 2 + 신규 5줄 + factory 인자 2개
-- [x] 기능 7 (ResultScene 변경): prop 2 + factory default 2 + init 2 + setup 3줄 + presentDiploma
-- [x] 기능 8 (pbxproj 등록): BuildFile 3 + FileRef 3 + 그룹 children 3 + Sources iOS 3, tvOS/macOS 빈 채
+### 버그 2: 컷씬 강제 표시 — 차단 메커니즘
+- **bool 기본값 false 보장**: Apple `UserDefaults.standard.bool(forKey:)` 키 부재 시 자동 false 반환 → 최초 사용자에게는 *자연*적으로 컷씬 표시.
+- **onDismiss 멱등 set**: 컷씬 닫힘 → `set(true, forKey:)` → 디스크 동기화. 두 번째 진입 시 키 = true → if 분기 → 카운트다운 직진.
+- **자연 차단**: didMove 분기 + onDismiss flag set 2개 변경. 컷씬 시스템 자체(CutsceneOverlayNode) 변경 0건.
 
-## Swift 패턴 준수
+### 버그 3: 졸업장 좌표 어긋남 — 차단 메커니즘
+- **sceneSize 단일 기준**: DiplomaOverlayNode의 background도 sceneSize 기준 → anchor도 같은 기준 → 정렬 보장.
+- **frame 동적성 무관**: `.resizeFill` 모드의 frame은 view 크기에 따라 달라지지만 self.size는 1024×768 고정 → background와 anchor가 *같은 1024×768 좌표계*에서 정확히 일치.
+- **자연 차단**: ResultScene presentDiploma 1줄 변경. DiplomaOverlayNode 변경 0건.
 
-- 강제 언래핑 미사용: **준수** (grep `!.` 0건 신규 3 파일)
-- guard let 옵셔널 처리: **준수** (current 메서드 모두 guard let × 2)
-- MARK 섹션 구분: **준수** (Properties / Init / Read / Write / Configure 등)
-- GameConfig 상수 사용: **준수** (DiplomaOverlayNode 모든 수치 GameConfig.diploma* 참조)
-- weak self 캡처: **준수** (DiplomaOverlayNode notify 클로저는 self 미사용 → 불필요, CutsceneOverlayNode 답습 정책)
+### 버그 4: 졸업장 터치 경합 — 차단 메커니즘
+- **이중 방어**: (1) DiplomaOverlayNode가 자기 `isUserInteractionEnabled = true`로 자기 터치 흡수 → 부모(ResultScene)에 터치 전달 안 됨. (2) edge case로 부모에 도달해도 `children.contains(where:)` 가드 → early return.
+- **노드 name 일치 검증**: `DiplomaOverlayNode.swift:80`에서 `name = "diplomaOverlay"` 부착 → 가드 문자열과 정확 일치.
+- **회귀 0**: 졸업장 없을 때 children에 매치 노드 0개 → contains 반환 false → 가드 발화 0 → 기존 TitleScene 전환 동작 그대로.
 
-## SpriteKit 패턴 준수
+---
 
-- 정적 팩토리 + private init: **준수** (DiplomaOverlayNode CutsceneOverlayNode 10호 답습)
-- 자가 소멸 SKAction.sequence(fadeOut + removeFromParent + notify): **준수**
-- SKAction 기반 (Timer 미사용): **준수**
-- HUD/cameraNode 좌표계 — DiplomaOverlayNode는 parent = ResultScene 자체 + anchor 명시: **준수**
-- SelfDismissingNode 마커 채택 (자가 소멸 11호): **준수**
+## 7. SPEC 기능 체크리스트
 
-## 빌드 상태
+- [x] **기능 1: 카드 레이아웃 재배치** — titleLabelOffsetY 120 / difficultyCardOffsetY +80 / characterCardOffsetY -160
+- [x] **기능 2: 컷씬 최초 1회만** — UserDefaults 키 신설 + didMove if/else 분기 + onDismiss flag set
+- [x] **기능 3: 졸업장 좌표 보정** — anchor를 `size.width/2, size.height/2`로 변경
+- [x] **기능 4: 졸업장 터치 가드** — touchesBegan에 `children.contains(where: { $0.name == "diplomaOverlay" })` 가드 1줄 추가
 
-- **빌드 에러**: 없음 (BUILD SUCCEEDED)
-- **경고**: 0건
-- AppIntents Metadata extraction skipped는 시스템 정보 메시지 (warning 아님)
+---
 
-## 범위 외 미구현 항목 (SPEC §"금지" 모두 준수)
+## 8. Swift 패턴 준수
 
-- "졸업장 다시 보기" 버튼 — 미구현 (SPEC 금지, 다음 sprint)
-- 졸업장 이미지 저장(UIImageWriteToSavedPhotosAlbum) — 미구현 (SPEC 금지)
-- TitleScene 캐릭터 카드 졸업 뱃지 — 미구현 (SPEC 금지)
-- 5×3 매트릭스 시각화 — 미구현 (SPEC 금지)
-- HighScoreRepository 제거/마이그레이션 — 미실시 (SPEC 금지, 병행 유지)
-- 캐릭터 픽셀 아바타를 졸업장에 그리기 — 미구현 (SPEC 금지, 텍스트 라벨만)
+- 강제 언래핑 미사용: 준수 (UserDefaults API 옵셔널 미반환)
+- guard let 옵셔널 처리: 준수 (기존 `guard let self = self` 유지)
+- MARK 섹션 구분: 준수 (변경 위치 모두 기존 MARK 안)
+- GameConfig 상수 사용: 준수 (UserDefaults 키도 GameConfig 정의)
+- weak self 캡처: 준수 (기존 `[weak self]` 유지)
 
-## 필수 연동 변경 (SPEC 외 최소)
+## 9. SpriteKit 패턴 준수
 
-없음 — SPEC.md "기능 1~8"의 변경 범위만 정확히 적용.
+- didMove(to:)에서 초기화: 준수 (분기는 didMove 끝부분에 유지)
+- dt 기반 이동: N/A (본 sprint는 입력/이동 미접촉)
+- SKAction 스폰 패턴: N/A
+- 충돌 후 노드 즉시 삭제 없음: 준수 (변경 없음)
+- HUD 노드 분리: 준수 (변경 없음)
 
-## 회귀 0 자연 차단 메커니즘 검증
+---
 
-1. **HighScoreRepository 병행 유지** — diff 0줄
-2. **ResultScene factory default 인자** — `isNewGraduation: Bool = false, graduatedAt: Date? = nil` 명시
-3. **DiplomaOverlayNode 자가 소멸** — SKAction.sequence에 removeFromParent 포함
-4. **GraduationRepository.record 멱등** — `if dict[id] != nil { return false }` 첫 줄 가드
-5. **graduatedAt nil 가드** — `if isNewGraduation, let graduatedAt = graduatedAt`
-6. **신규 UserDefaults 키** — `perDifficultyScores` / `graduations` (기존 키 충돌 0)
-7. **DiplomaOverlayNode zPosition 300** — newBestZPosition(150) 위 자연 겹침
+## 10. 범위 외 미구현 항목
+
+**없음** — SPEC의 4건 모두 정밀 적용. 허용 외 파일 변경 0건.
+
+## 11. 필수 연동 변경
+
+**없음** — SPEC가 명시한 4개 파일(GameConfig / TitleScene / GameScene / ResultScene)만 변경. TitleScene은 이미 GameConfig 상수 참조 중이라 *코드 변경 0건* (값만 바뀌어도 layoutLabels/layoutDifficultyCards/layoutCharacterCards에서 자동 재배치).

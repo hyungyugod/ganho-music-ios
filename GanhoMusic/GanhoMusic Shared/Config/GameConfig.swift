@@ -121,7 +121,8 @@ enum GameConfig {
     /// 타이틀 메인 라벨 y 오프셋 (pt). 화면 중심 기준 위쪽.
     /// Phase 3-4 — bestLabel(중앙)이 끼면서 40 → 60으로 위로 이동(시각 균형).
     /// Phase 3-5 — playsLabel(-20) 신설로 60 → 80, 라벨 4개 간격 40pt 균등.
-    static let titleLabelOffsetY: CGFloat = 80
+    /// Phase 7-5 — 80 → 120. 난이도 카드(+80)를 titleLabel 아래/bestLabel 위에 두기 위해 titleLabel을 위로 이동.
+    static let titleLabelOffsetY: CGFloat = 120
     /// 타이틀 안내 라벨 y 오프셋 (pt). 화면 중심 기준 아래쪽.
     /// Phase 3-4 — bestLabel(중앙) 신설로 -40 → -60.
     /// Phase 3-5 — playsLabel(-20)과 간격 확보 위해 -60 → -80.
@@ -464,15 +465,17 @@ enum GameConfig {
     static let difficultyCardHeight: CGFloat = 56
     /// 난이도 카드 사이 간격 (pt). 3장 일렬 — 전체 폭 = 3×80 + 2×16 = 272pt.
     static let difficultyCardSpacing: CGFloat = 16
-    /// 난이도 카드 줄 y 오프셋 (pt). frame.midY 기준. promptLabel(-80) 하단과 카드 상단(-92) 간격 12pt 안전.
-    static let difficultyCardOffsetY: CGFloat = -120
+    /// 난이도 카드 줄 y 오프셋 (pt). frame.midY 기준.
+    /// Phase 7-1 — -120(promptLabel 하단). Phase 7-5 — +80으로 *상단 이동* — titleLabel(+120) 아래 / bestLabel(+20) 위.
+    /// 작은 화면(640pt)에서 5장 캐릭터 카드 + 3장 난이도 카드를 *위/아래*로 분리해 절단 회피.
+    static let difficultyCardOffsetY: CGFloat = 80
     /// 난이도 카드 이름 라벨 폰트 크기 (pt). "하/중/상" 한 글자 강조 — 캐릭터카드(12)보다 크게.
     static let difficultyCardFontSize: CGFloat = 20
     /// 난이도 카드 부제 라벨 폰트 크기 (pt). 한국어 5~7자가 80pt 폭 안에 들어가야 함.
     static let difficultyCardSubtitleFontSize: CGFloat = 10
     /// 캐릭터 카드 줄 y 오프셋 (pt) — Phase 7-1 — 난이도 행(-120) 신설로 -160 → -200으로 한 칸 더 내림.
-    /// 직접 리터럴이었으면 GameConfig 상수로 흡수 + 참조 변경(SPEC §5).
-    static let characterCardOffsetY: CGFloat = -200
+    /// Phase 7-5 — 난이도 카드가 상단(+80)으로 이동 → -200 → -160 *되돌림*. 작은 화면(640pt) 절단 회피.
+    static let characterCardOffsetY: CGFloat = -160
     /// UserDefaults에 마지막 난이도 선택을 raw String으로 저장할 키.
     /// 호출부에 리터럴 노출 금지 — DifficultyPreferenceRepository만 사용.
     static let difficultyPreferenceUserDefaultsKey: String = "selectedDifficulty"
@@ -564,6 +567,10 @@ enum GameConfig {
     /// 컷씬 TAP 라벨 alpha. 0.7 = 본문·제목(1.0)과 시각 위계 + *깜빡임 없이도* 부속 안내임이 전달.
     /// dpadAlpha(0.7)와 동급 — *조작 안내 톤*과 일관.
     static let cutsceneTapLabelAlpha: CGFloat = 0.7
+    /// Phase 7-5 — 인트로 컷씬 1회 노출 가드 UserDefaults 키.
+    /// bool 기본값 false(Apple 보장) → 최초 사용자에게는 자동 컷씬 표시. dismiss 콜백에서 true set 후 이후 영구 스킵.
+    /// 신규 키 — 기존 키와 충돌 0.
+    static let hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"
 
     // MARK: - Diploma (Phase 7-4)
     /// 난이도별 졸업 목표 점수. 캐릭터 × 난이도 매트릭스에서 이 점수 이상 달성하면 그 난이도 "통과".

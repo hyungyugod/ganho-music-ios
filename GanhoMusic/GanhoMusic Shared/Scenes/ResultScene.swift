@@ -223,6 +223,9 @@ final class ResultScene: SKScene {
     /// view 옵셔널은 강제 언래핑 금지 — guard let으로 안전 추출.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
+        // Phase 7-5 — 졸업장 표시 중이면 TitleScene 전환 차단. 졸업장 자체가 isUserInteractionEnabled=true로
+        // 자기 터치를 흡수하므로 이 경로 도달 가능성은 낮지만 edge case 안전망.
+        if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
         guard let view = self.view else { return }
         isTransitioning = true
         let titleScene = TitleScene.newTitleScene()
@@ -304,12 +307,15 @@ final class ResultScene: SKScene {
     /// onDismiss = 빈 클로저 — 졸업장 닫기 후 ResultScene 그대로 노출(*두 단계 탭* 정책: 졸업장 1탭 + TitleScene 1탭).
     /// DiplomaOverlayNode가 자가 소멸하므로 ResultScene은 후속 정리 0건.
     private func presentDiploma(at graduatedAt: Date) {
+        // Phase 7-5 — anchor를 sceneSize 기준으로 변경. ResultScene은 .resizeFill + size 1024x768 고정.
+        // frame은 view 크기에 따라 동적이라 sceneSize와 불일치 → 작은 화면에서 졸업장 좌표 어긋남.
+        // background가 sceneSize 크기이므로 anchor도 *같은 기준*이어야 정렬.
         DiplomaOverlayNode.present(
             characterName: characterName,
             graduatedAt: graduatedAt,
             parent: self,
             sceneSize: size,
-            anchor: CGPoint(x: frame.midX, y: frame.midY),
+            anchor: CGPoint(x: size.width / 2, y: size.height / 2),
             onDismiss: {}
         )
     }

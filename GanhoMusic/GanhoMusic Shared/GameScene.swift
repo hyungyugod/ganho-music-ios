@@ -153,8 +153,16 @@ class GameScene: SKScene {
         // Phase 7-3 — 카운트다운 *전*에 인트로 컷씬 진입. .cutscene 상태도 .countdown과 동일하게
         // update `guard gameState == .playing`에서 자동 차단 → 7개 시스템 동시 정지.
         // 컷씬 탭 종료 시 dismissed 콜백에서 .countdown 전환 + showCountdown() 호출 → 기존 흐름 그대로.
-        gameState = .cutscene
-        showIntroCutscene()
+        // Phase 7-5 — UserDefaults 분기. bool 기본값 false → 최초 사용자만 컷씬 표시.
+        // 두 번째 이상 진입은 *컷씬 스킵 → 곧장 카운트다운*. onDismiss에서 true set 후 영원 스킵.
+        let hasSeenIntro = UserDefaults.standard.bool(forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
+        if hasSeenIntro {
+            gameState = .countdown
+            showCountdown()
+        } else {
+            gameState = .cutscene
+            showIntroCutscene()
+        }
     }
 
     // MARK: - Cutscene (Phase 7-3)
@@ -182,6 +190,9 @@ class GameScene: SKScene {
             sceneSize: size,
             onDismiss: { [weak self] in
                 guard let self = self else { return }
+                // Phase 7-5 — 컷씬 종료 시 UserDefaults 플래그 set → 이후 진입은 자동 스킵.
+                // UserDefaults.standard 접근은 self 무관 — self 해제 시에도 플래그는 set됨(부수효과 안전).
+                UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
                 // .cutscene → .countdown 전환 + 기존 카운트다운 흐름 그대로 진입.
                 // CountdownNode 코드/타이밍 변경 0 — 컷씬은 *앞에 끼어든* 레이어 1단계.
                 self.gameState = .countdown
