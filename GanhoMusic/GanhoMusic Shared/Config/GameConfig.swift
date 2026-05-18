@@ -822,4 +822,53 @@ enum GameConfig {
     /// breakable 벽의 노드 이름. SkillSystem의 dashClimb이 enumerate 시 사용.
     /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
     static let breakableWallName: String = "breakableWall"
+
+    // MARK: - Toilet Bonus (Phase 9-6)
+    /// 변기 보너스 — 12초마다 15% 확률 단일 스폰 + 8초 자동 소멸 + 음표 2개 효과 + "화캉스 보너스!" 토스트.
+    /// Bernoulli 단일 시도 모델: 매 12초 사이클마다 1회 판정 (확률 누적 없음). 평균 스폰 간격 ≈ 80초.
+
+    /// 변기 픽셀 한 변 (pt). 음표(16) / projectile(16)과 동급 — 시각 균형.
+    /// 노드 visual 크기. 텍스처 자체는 PixelSpriteRenderer 표준 16×20 (상단 4행 transparent padding) →
+    /// SKSpriteNode가 16×16으로 표시 시 살짝 vertical squish — 픽셀 retro 톤에 자연 흡수.
+    static let toiletSize: CGFloat = 16
+    /// 변기 스폰 사이클 길이 (초). 매 사이클마다 1회 확률 판정. GDD §7-3.
+    static let toiletSpawnInterval: TimeInterval = 12.0
+    /// 변기 스폰 1회 판정 성공 확률 (0..1). 매 사이클 단일 Bernoulli — 확률 누적 없음.
+    /// 평균 스폰 간격 = toiletSpawnInterval / toiletSpawnProbability ≈ 80초. GDD §7-3.
+    static let toiletSpawnProbability: CGFloat = 0.15
+    /// 변기 자동 소멸까지의 미수집 lifetime (초). 8초 후 fadeOut + removeFromParent. GDD §7-3.
+    static let toiletLifetime: TimeInterval = 8.0
+    /// 변기 자동 소멸 직전 fadeOut 액션 길이 (초). 0.3 = sparkleFadeDuration(0.5)의 60% —
+    /// *사라지는 잔향*은 짧고 단호. 노트 lifetime 끝 fadeOut과 디자인 통일.
+    static let toiletFadeOutDuration: TimeInterval = 0.3
+    /// 동시에 존재 가능한 변기 최대 수. 1 = 단일성 정책 (SPEC.md §스폰 모델 결정).
+    /// 화면 어수선함 차단 + 체감 확률 정확(여러 개 동시 출현 시 *희소함* 톤 상실).
+    static let toiletMaxConcurrent: Int = 1
+    /// 변기 zPosition. note(0) 위, player/enemy/stoneGuard(5) 아래 — 4. SPEC.md §노드 트리 부착.
+    static let toiletZPosition: CGFloat = 4
+    /// 변기 ScorePopup fan-out 가로 offset (pt). 좌·우 ±8 = 음표 2개 동시 수집 시각 시그널.
+    /// note 한 변(16)의 절반 — 두 라벨이 겹치지 않으면서 *동시 수집* 의미 전달.
+    static let toiletScorePopupFanOutX: CGFloat = 8
+
+    // MARK: - Toast Label (Phase 9-6)
+    /// "화캉스 보너스!" 0.9초 토스트 — ScorePopupNode 패턴 답습 + 텍스트 길이만 다름.
+
+    /// 변기 수집 시 표시 텍스트. 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let toiletToastText: String = "화캉스 보너스!"
+    /// 토스트 1회 표시 총 길이 (초). group(move+fade+scale) duration. GDD §7-3.
+    /// scorePopupDuration(0.6)보다 길고 comboPopupDuration(1.0)보다 짧음 — *임팩트 강조* 톤.
+    static let toastDuration: TimeInterval = 0.9
+    /// 토스트 텍스트 폰트 크기 (pt). scorePopupFontSize(28)과 comboPopupFontSize(48)의 중간 —
+    /// *국지 시그널보다 강하고 글로벌 마일스톤보단 약함*.
+    static let toastFontSize: CGFloat = 24
+    /// 토스트 시작 y 오프셋 (pt). 변기 중심에서 위쪽 +16pt — 변기 본체와 텍스트 픽셀 겹침 방지.
+    static let toastStartOffsetY: CGFloat = 16
+    /// 토스트가 위로 떠오르는 총 거리 (pt). scorePopupFlyUpDistance(40)와 동일 — *지역* 시그널 톤 통일.
+    static let toastFlyUpDistance: CGFloat = 40
+    /// 토스트 시작 scale. scorePopupStartScale(0.8)과 동일 — *부풀어 오르는* 톤 디자인 통일.
+    static let toastStartScale: CGFloat = 0.8
+    /// 토스트 끝 scale. scorePopupEndScale(1.0)보다 살짝 큰 1.1 — *임팩트 강조* (확산 톤).
+    static let toastEndScale: CGFloat = 1.1
+    /// 토스트 zPosition. scorePopupZPosition(50)과 동급 — *지역* 시그널 군집 통일.
+    static let toastZPosition: CGFloat = 50
 }

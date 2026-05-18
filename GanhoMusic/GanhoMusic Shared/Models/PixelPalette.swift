@@ -105,3 +105,17 @@ extension PixelPalette {
         "M": .ganhoPixelChiefMouth          // 입술
     ]
 }
+
+// MARK: - Toilet Palette (Phase 9-6)
+extension PixelPalette {
+    /// 변기(ToiletNode) 픽셀 팔레트 3키.
+    /// SPEC.md §기능 2 toiletData()와 1:1 — 'W'=본체 흰색, 's'=시트 회색, 'C'=물 코럴.
+    /// PixelSpriteRenderer가 팔레트에 없는 문자를 *투명*으로 처리하므로 '.' 키는 등록 불필요.
+    /// chiefPalette의 'C'(.ganhoPixelChiefAccent)와 같은 코드지만 *다른 dict*라 충돌 없음 —
+    /// PixelSpriteRenderer는 호출 시 단일 dict만 사용.
+    static let toiletPalette: [Character: UIColor] = [
+        "W": .ganhoToiletBowl,    // 변기 본체(흰색 도자기)
+        "s": .ganhoToiletSeat,    // 변기 시트(회색 림)
+        "C": .ganhoToiletAccent   // 변기 안 물(코럴 액센트)
+    ]
+}

@@ -57,6 +57,8 @@
 		A1C0F1B00000000000000046 /* SkillSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000046 /* SkillSystem.swift */; };
 		A1C0F1B00000000000000047 /* SkillButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000047 /* SkillButtonNode.swift */; };
 		A1C0F1B00000000000000048 /* HUDSkillSlotNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */; };
+		A1C0F1B00000000000000049 /* ToiletNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000049 /* ToiletNode.swift */; };
+		A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004A /* ToastLabelNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -110,6 +112,8 @@
 		A1C0F1A00000000000000046 /* SkillSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillSystem.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000047 /* SkillButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDSkillSlotNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000049 /* ToiletNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletNode.swift; sourceTree = "<group>"; };
+		A1C0F1A0000000000000004A /* ToastLabelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastLabelNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -261,6 +265,8 @@
 				A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */,
 				A1C0F1A00000000000000047 /* SkillButtonNode.swift */,
 				A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */,
+				A1C0F1A00000000000000049 /* ToiletNode.swift */,
+				A1C0F1A0000000000000004A /* ToastLabelNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -556,6 +562,8 @@
 				A1C0F1B00000000000000046 /* SkillSystem.swift in Sources */,
 				A1C0F1B00000000000000047 /* SkillButtonNode.swift in Sources */,
 				A1C0F1B00000000000000048 /* HUDSkillSlotNode.swift in Sources */,
+				A1C0F1B00000000000000049 /* ToiletNode.swift in Sources */,
+				A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

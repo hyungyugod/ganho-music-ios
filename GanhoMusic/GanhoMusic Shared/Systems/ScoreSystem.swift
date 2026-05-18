@@ -47,6 +47,18 @@ final class ScoreSystem {
         score += GameConfig.charmStudentBonusScore
     }
 
+    /// Phase 9-6 — 변기 보너스 수집 시 호출. 음표 2개 효과(GDD §7-3).
+    /// `recordNoteHit`을 *2회* 호출 → 콤보 윈도우 검사/콤보 누적/마일스톤 분기 자연 발화.
+    /// 직접 score/combo set 금지 — 단일 진실 원천(recordNoteHit) 경유로 회귀 방지.
+    /// - Parameter now: 현재 게임 시각 (보통 lastUpdateTime).
+    ///
+    /// 두 번째 호출도 같은 `now`를 사용 → 콤보 윈도우 안에서 확실히 연속 카운트 +1 보장
+    /// (isInWindow=true 분기 → combo+1, 첫 호출이 combo=N→N+1, 두 번째가 N+1→N+2 = 콤보+2).
+    func recordToiletBonus(at now: TimeInterval) {
+        recordNoteHit(at: now)
+        recordNoteHit(at: now)
+    }
+
     /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).
     func reset() {
         score = 0

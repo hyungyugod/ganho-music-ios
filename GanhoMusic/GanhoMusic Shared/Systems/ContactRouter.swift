@@ -25,6 +25,10 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     var onProjectileHitWall: (SKNode) -> Void = { _ in }
     /// player ↔ note 접촉 시. 인자: 제거할 note 노드.
     var onNoteCollected: (SKNode) -> Void = { _ in }
+    /// Phase 9-6 — player ↔ toilet(bonus) 접촉 시. 인자: 제거할 toilet 노드.
+    /// 호출부는 콜백 본문 마지막에 `toilet.run(.removeFromParent())` SKAction 사용 — didBegin 진행 중
+    /// 즉시 removeFromParent 호출은 물리 엔진과 충돌 시 크래시 가능(SpriteKit 공식 권고).
+    var onToiletCollected: (SKNode) -> Void = { _ in }
 
     // MARK: - SKPhysicsContactDelegate
     func didBegin(_ contact: SKPhysicsContact) {
@@ -40,6 +44,12 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
         }
         if categories & PhysicsCategory.projectile != 0 {
             handleProjectileContact(contact)
+            return
+        }
+        // Phase 9-6 — bonus(변기) 분기. note 분기보다 *앞에* 둠 — bonus 비트는 단독으로 떠
+        // note와 동시에 매치되지 않으나, 분기 순서 결정성 유지(주의사항).
+        if categories & PhysicsCategory.bonus != 0 {
+            handleBonusContact(contact)
             return
         }
         if categories & PhysicsCategory.note != 0 {
@@ -79,5 +89,16 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
         }
         guard let node = noteBody?.node else { return }
         onNoteCollected(node)
+    }
+
+    /// Phase 9-6 — bonus 카테고리(변기) 충돌 분기.
+    /// bodyA/bodyB 중 bonus 카테고리인 쪽을 골라 노드 전달.
+    /// handleProjectileContact의 projectileBody 식별 패턴과 동형.
+    private func handleBonusContact(_ contact: SKPhysicsContact) {
+        let bonusBody = contact.bodyA.categoryBitMask == PhysicsCategory.bonus
+            ? contact.bodyA
+            : contact.bodyB
+        guard let node = bonusBody.node else { return }
+        onToiletCollected(node)
     }
 }

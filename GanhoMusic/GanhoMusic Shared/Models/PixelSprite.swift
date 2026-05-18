@@ -350,3 +350,39 @@ extension PixelSprite {
         return base
     }
 }
+
+// MARK: - Toilet Sprite (Phase 9-6)
+extension PixelSprite {
+    /// 변기(ToiletNode) 16×20 픽셀 데이터.
+    /// SPEC.md §기능 2 toiletData() 16×16 디자인 + 상단 4행 transparent padding 추가.
+    /// PixelSpriteRenderer가 고정 16×20 사양이므로 데이터도 20행으로 정합.
+    ///
+    /// 색 코드: '.'=투명, 'W'=본체(흰색 도자기), 's'=시트(회색 림), 'C'=물(코럴 액센트).
+    /// 행 0-3: 상단 transparent padding (renderer 16×20 정합).
+    /// 행 4-8: 시트 + 림 + 물 (변기 윗부분, 좌석 영역).
+    /// 행 9-19: 본체 다리 + 받침 (변기 아랫부분).
+    static func toiletData() -> Frame {
+        return [
+            "................", // 0  (padding)
+            "................", // 1  (padding)
+            "................", // 2  (padding)
+            "................", // 3  (padding)
+            "...ssssssssss...", // 4  시트 윗면(회색 림 위쪽)
+            "..s..........s..", // 5  시트 측면(좌측·우측 림)
+            "..s.CCCCCCCC.s..", // 6  시트 안 물(코럴) — 1
+            "..s.CCCCCCCC.s..", // 7  시트 안 물(코럴) — 2
+            "...ssssssssss...", // 8  시트 아랫면(림 마감)
+            "...WWWWWWWWWW...", // 9  본체 윗면 (흰 도자기)
+            "...W........W...", // 10 본체 측면 — 1
+            "...W........W...", // 11 본체 측면 — 2
+            "...W........W...", // 12 본체 측면 — 3
+            "...WWWWWWWWWW...", // 13 본체 아랫면(받침 윗면)
+            "...W........W...", // 14 받침 측면
+            "..WWWWWWWWWWWW..", // 15 받침 바닥
+            "................", // 16 (transparent — 16×16 의미 영역 끝)
+            "................", // 17 (transparent)
+            "................", // 18 (transparent)
+            "................"  // 19 (transparent)
+        ]
+    }
+}

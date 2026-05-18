@@ -17,4 +17,5 @@ struct PhysicsCategory {
     static let wall:       UInt32 = 0b1000   // 8
     static let projectile: UInt32 = 0b10000  // 16  ← Phase 2-7 신설
     static let stoneGuard: UInt32 = 0b100000 // 32  ← Phase 4-2 신설
+    static let bonus:      UInt32 = 0b1000000 // 64 ← Phase 9-6 신설 (변기 보너스)
 }

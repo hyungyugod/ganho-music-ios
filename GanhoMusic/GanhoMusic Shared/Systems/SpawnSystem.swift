@@ -65,12 +65,14 @@ final class SpawnSystem {
         self.progressProvider = progressProvider
         startNoteSpawnLoop()
         startProjectileFireLoop()
+        startToiletSpawnLoop()   // Phase 9-6 — 변기 보너스 12초/15% Bernoulli 루프
     }
 
     /// 게임 종료 시 GameScene이 호출. 모든 액션 정지 + 활성 projectile 정지.
     func stop() {
         scene?.removeAction(forKey: "spawnNotes")
         scene?.removeAction(forKey: "fireProjectiles")
+        scene?.removeAction(forKey: "spawnToilets")   // Phase 9-6 — 변기 스폰 루프 정지
         worldNode?.enumerateChildNodes(withName: "projectile") { node, _ in
             node.physicsBody?.velocity = .zero
         }
@@ -193,5 +195,55 @@ final class SpawnSystem {
     /// projectileMaxConcurrent 가드는 그대로(균형 유지).
     func fireImmediately() {
         fireProjectile()
+    }
+
+    // MARK: - Toilet Spawn (Phase 9-6)
+    /// 변기 보너스 자동 스폰 루프 시작. SKAction.repeatForever — Timer 금지.
+    /// 매 12초 사이클마다 1회 확률 판정(Bernoulli). 첫 12초는 wait → 변기 0개 (의도된 톤).
+    /// 게임 일시정지(scene.isPaused=true) 시 SKAction 자체 멈춤 → 자연 차단.
+    private func startToiletSpawnLoop() {
+        let wait = SKAction.wait(forDuration: GameConfig.toiletSpawnInterval)
+        let roll = SKAction.run { [weak self] in self?.tryRollAndSpawnToilet() }
+        let loop = SKAction.repeatForever(.sequence([wait, roll]))
+        scene?.run(loop, withKey: "spawnToilets")
+    }
+
+    /// 한 사이클당 1회 호출.
+    /// 1) 단일성 가드: 화면에 변기 1개 이미 존재 시 *확률 판정 전*에 차단.
+    ///    (체감 확률 정확 유지 — 확률 판정 후 단일성 차단하면 *놓친 기회* 발생.)
+    /// 2) Bernoulli 단일 시도 — 확률 누적 없음.
+    /// 3) 위치 산출(중앙 기둥 회피) 실패 시 noop (다음 사이클 재시도).
+    private func tryRollAndSpawnToilet() {
+        guard let world = worldNode else { return }
+        guard currentToiletCount() < GameConfig.toiletMaxConcurrent else { return }
+        guard CGFloat.random(in: 0..<1) < GameConfig.toiletSpawnProbability else { return }
+        guard let position = randomToiletPosition() else { return }
+        let toilet = ToiletNode()
+        toilet.position = position
+        world.addChild(toilet)
+        toilet.applyLifetime()
+    }
+
+    /// worldNode 안 변기 ("toilet" 이름) 개수.
+    /// currentNoteCount / currentProjectileCount 패턴 답습 — DRY 유지.
+    private func currentToiletCount() -> Int {
+        guard let world = worldNode else { return 0 }
+        var count = 0
+        world.enumerateChildNodes(withName: "toilet") { _, _ in count += 1 }
+        return count
+    }
+
+    /// 변기 스폰 위치 — randomNotePosition 정책 재사용 (외곽 1타일 마진 + 중앙 기둥 manhattan 3타일 회피).
+    /// nil 반환 시 호출부(`tryRollAndSpawnToilet`)가 noop → 다음 사이클 재시도.
+    private func randomToiletPosition() -> CGPoint? {
+        let margin = GameConfig.tileSize
+        let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
+        let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
+        let cx = GameConfig.mapWidth  / 2
+        let cy = GameConfig.mapHeight / 2
+        if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
+            return nil
+        }
+        return CGPoint(x: x, y: y)
     }
 }

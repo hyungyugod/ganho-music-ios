@@ -183,6 +183,19 @@ extension UIColor {
     static let ganhoUIBorder = UIColor.white.withAlphaComponent(0.07)
     /// game-overlay 배경 #09080f α=0.78 — 게임 영역 차단 반투명
     static let ganhoUIOverlayBg = UIColor(hex: "#09080f").withAlphaComponent(0.78)
+
+    // MARK: - Toilet Bonus (Phase 9-6)
+    /// 변기 본체(흰색 도자기) — 픽셀 코드 'W'. assets.md §1 ganhoPaper 패밀리의 톤다운 변형.
+    /// 어두운 BG(#1A1B2E) 위에서 도자기 광택을 표현하기 위해 ganhoPaper(#F4F1DE)보다 살짝 밝고
+    /// 회색 톤이 섞인 #f4f0ee — Phase 8-2 ganhoPixelChiefUniform과 동일 hex로 디자인 통일성 유지.
+    static let ganhoToiletBowl = UIColor(hex: "#f4f0ee")
+    /// 변기 시트(좌석 림) — 픽셀 코드 's'. 본체(#f4f0ee)보다 어두운 회색.
+    /// 본체와의 명도 대비로 시트의 입체감 표현. Phase 8-2 ganhoPixelChiefUniformShadow(#d8d2d0)보다
+    /// 더 회색 — 변기 시트의 *경계선* 역할 강조.
+    static let ganhoToiletSeat = UIColor(hex: "#b8b3ad")
+    /// 변기 안 물(코럴 액센트) — 픽셀 코드 'C'. Phase 8-3 ganhoUIBrand(#c4847a) 패밀리의 액센트 변형.
+    /// "화캉스" 농담의 코럴 톤 — 음표 분홍(#F6A6B2)과 다른 *주황 코럴*로 별도 정체성.
+    static let ganhoToiletAccent = UIColor(hex: "#ff8a7a")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

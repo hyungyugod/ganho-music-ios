@@ -469,6 +469,57 @@ class GameScene: SKScene {
         contactRouter.onStoneGuardContact = { [weak self] in
             self?.triggerAirforceEasterEgg()
         }
+        // Phase 9-6 — 변기 보너스 수집. onNoteCollected 패턴 미러 (콤보/마일스톤 분기 자연 발화).
+        // 음표 2개 효과 = recordToiletBonus(=recordNoteHit 2회) + ScorePopup fan-out 2개 + 토스트 1개.
+        contactRouter.onToiletCollected = { [weak self] toilet in
+            guard let self = self else { return }
+            let toiletOrigin = toilet.position
+            // 1. 도메인: 점수+2 / 콤보+2 단일 진입점 호출 (마일스톤 분기는 아래 폴링).
+            self.scoreSystem.recordToiletBonus(at: self.lastUpdateTime)
+            // 2. 멀티모달 피드백: 음표 수집보다 *살짝 강한* 손맛 — medium(음표 수집은 light).
+            //    audio는 noteCollected 재사용(SPEC 금지 4: BGM/효과음 신규 0).
+            self.haptics.medium()
+            self.audio.play(.noteCollected)
+            // 3. sparkle 시각 — 음표 수집과 동형. toilet은 worldNode 자식이므로 worldNode 좌표 그대로.
+            let sparkle = SparkleEffectNode()
+            sparkle.position = toiletOrigin
+            self.worldNode.addChild(sparkle)
+            sparkle.emit()
+            // 4. "화캉스 보너스!" 0.9초 토스트.
+            ToastLabelNode.spawn(text: GameConfig.toiletToastText,
+                                 at: toiletOrigin,
+                                 parent: self.worldNode)
+            // 5. ScorePopup fan-out — 좌·우 ±toiletScorePopupFanOutX(8) offset으로 2개 동시 발화 →
+            //    *음표 2개 동시 수집* 시각 시그널. 색은 현재 콤보 상태에 따라 분기(음표 수집과 동일 규칙).
+            let gained = self.scoreSystem.combo >= GameConfig.comboBonusThreshold
+                ? GameConfig.scorePerNoteCombo
+                : GameConfig.scorePerNote
+            ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x - GameConfig.toiletScorePopupFanOutX,
+                                             y: toiletOrigin.y),
+                                 gainedPoints: gained,
+                                 parent: self.worldNode)
+            ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x + GameConfig.toiletScorePopupFanOutX,
+                                             y: toiletOrigin.y),
+                                 gainedPoints: gained,
+                                 parent: self.worldNode)
+            // 6. 마일스톤 분기 — 음표 수집 콜백 패턴 정확 답습. recordToiletBonus가 콤보 2회 증가시켰으므로
+            //    하나의 사이클에서 *두 마일스톤 통과* 가능(예: combo 2→3→4가 3 통과). 단일 멱등 Set 가드는
+            //    그대로 — 두 번째 마일스톤 통과는 다음 변기/노트 수집에서 검사. 즉 *건너뛴 마일스톤*은
+            //    한 판에서 1회만 발화 가능 — Set 멱등성 신뢰.
+            let currentCombo = self.scoreSystem.combo
+            if GameConfig.comboMilestones.contains(currentCombo),
+               !self.triggeredComboMilestones.contains(currentCombo) {
+                self.triggeredComboMilestones.insert(currentCombo)
+                self.playComboMilestoneFeedback(for: currentCombo)
+                let popup = ComboPopupNode(milestone: currentCombo)
+                self.cameraNode.addChild(popup)
+                popup.animate()
+            }
+            // 7. 노드 제거 — didBegin 진행 중 즉시 removeFromParent는 크래시 위험.
+            //    SKAction.removeFromParent()를 1프레임 지연으로 사용 → 안전.
+            //    applyLifetime의 fadeOut/remove 액션이 진행 중이어도 부모에서 빠진 후엔 noop.
+            toilet.run(.removeFromParent())
+        }
     }
 
     // MARK: - Combo Milestone Feedback (Phase 6-11)
