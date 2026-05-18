@@ -146,8 +146,44 @@ class GameScene: SKScene {
         // (기존 `guard gameState == .playing` 가드 1개로 7개 시스템 동시 정지).
         // SpawnSystem.start / bgm.play / gameState = .playing 3개는 GO! 콜백
         // 시점(startGameProperly)에 이전 — 카운트다운 동안 *어떤 시스템도 돌지 않는다*.
-        gameState = .countdown
-        showCountdown()
+        // Phase 7-3 — 카운트다운 *전*에 인트로 컷씬 진입. .cutscene 상태도 .countdown과 동일하게
+        // update `guard gameState == .playing`에서 자동 차단 → 7개 시스템 동시 정지.
+        // 컷씬 탭 종료 시 dismissed 콜백에서 .countdown 전환 + showCountdown() 호출 → 기존 흐름 그대로.
+        gameState = .cutscene
+        showIntroCutscene()
+    }
+
+    // MARK: - Cutscene (Phase 7-3)
+    /// 게임 시작 직전 화면 전체 컷씬 1회 발화. 난이도별 본문 분기 + `{NAME}` 토큰 치환 후 present.
+    /// onDismiss 콜백에서 .countdown 전환 + showCountdown() 호출 — 기존 카운트다운 흐름 *그대로* 진입.
+    /// CutsceneOverlayNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
+    /// 난이도 분기: easy/normal = 수간호사 순찰 톤, hard = 이교수 청진기 톤.
+    /// `{NAME}` 토큰 치환은 easy/normal 본문에만 1개 등장 — hard 본문은 캐릭터 비독립이라 토큰 0개(자연 무동작).
+    /// onDismiss는 [weak self] 캡처 필수 — 컷씬 표시 중 씬 전환 가능성 대비 (CountdownNode 콜백 패턴 답습).
+    private func showIntroCutscene() {
+        let title = "어느 한적한 병동의 오후"
+        let template: String
+        switch difficulty {
+        case .easy, .normal:
+            template = "수간호사가 순찰을 돈다. 그 틈을 타, {NAME}는 주머니 속 작곡 노트를 슬쩍 꺼낸다… 음표를 모으자."
+        case .hard:
+            template = "학교에서 나온 깐깐한 이교수가 오늘따라 청진기를 휘두른다. 날아오는 청진기를 피하며 음표를 모으자. 수간호사는 언제나 그렇듯 순찰을 돈다."
+        }
+        // {NAME} 토큰 치환 — hard 본문에는 토큰이 없어 자연 무동작(원본 동일 반환).
+        let body = template.replacingOccurrences(of: "{NAME}", with: characterID.displayName)
+        CutsceneOverlayNode.present(
+            title: title,
+            body: body,
+            parent: cameraNode,
+            sceneSize: size,
+            onDismiss: { [weak self] in
+                guard let self = self else { return }
+                // .cutscene → .countdown 전환 + 기존 카운트다운 흐름 그대로 진입.
+                // CountdownNode 코드/타이밍 변경 0 — 컷씬은 *앞에 끼어든* 레이어 1단계.
+                self.gameState = .countdown
+                self.showCountdown()
+            }
+        )
     }
 
     // MARK: - Countdown (Phase 6-13)

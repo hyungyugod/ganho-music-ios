@@ -1,72 +1,129 @@
-# 자체 점검 — Phase 7-2 · Hard 맵 도입
+# 자체 점검 — Phase 7-3 인트로 컷씬 (자가 소멸 노드 10호)
 
-## git 상태
-
-```
-modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift
-modified:   GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift
-```
+## git status / git diff --stat
 
 ```
- .../GanhoMusic Shared/Config/GameConfig.swift      |  51 ++++++++++
- GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift | 113 ++++++++++++++++++++-
- 2 files changed, 163 insertions(+), 1 deletion(-)
-```
+modified:   GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift     (+33 lines)
+modified:   GanhoMusic/GanhoMusic Shared/Config/GameState.swift      (+2 lines)
+modified:   GanhoMusic/GanhoMusic Shared/GameScene.swift             (+38 / -2 lines)
+modified:   GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj          (+4 lines)
+new file:   GanhoMusic/GanhoMusic Shared/Nodes/CutsceneOverlayNode.swift  (185 lines)
 
-신규 파일 0건. pbxproj 변경 0건.
+총합 (소스): 4 files changed, 77 insertions(+), 2 deletions(-) (CutsceneOverlayNode.swift는 untracked 신규)
+```
 
 ---
 
-## 변경 위치 파일:라인 매핑
+## SPEC §"기능 상세" 4개 항목별 라인 매핑
 
-### Config/GameConfig.swift
-- L483~535 — `// MARK: - Hard Map (Phase 7-2)` 섹션 신설.
-  - 좌상 방 7 상수 (L487~493)
-  - 우상 방 7 상수 (L496~502)
-  - 좌하 방 7 상수 (L505~511)
-  - 우하 방 7 상수 (L514~520)
-  - 중앙 기둥 12 상수 (L523~534)
-- 총 **40 상수** — SPEC §"GameConfig 신규 상수" ~30개 명세 충족(SPEC가 7×4=28 방 + 12 중앙 = 40을 "~30"으로 추산했음. SPEC 표 + 코드 블록과 라인 단위 1:1 일치).
-- 기존 상수 미접촉.
+### 기능 1 — GameState `.cutscene` case 신설
+- **파일**: `GanhoMusic Shared/Config/GameState.swift`
+- **라인**: 15 (case 추가 위치: `.waiting` 다음, `.countdown` 이전 — SPEC 명시 위치 정확 일치)
+- **헤더 주석**: 7번째 줄에 `Phase 7-3 · .cutscene case 추가` 1줄 첨가
+- 회귀: 기존 case 5개(`.waiting/.countdown/.playing/.paused/.gameOver`) 미접촉.
 
-### GameScene+Setup.swift
-- L19~23 — `setupWorld()` 본체 교체. `addOuterWalls() + addCentralPillar()` 직접 호출 → `setupMap()` 단일 호출.
-- L27~34 — `setupMap()` 신설. `addOuterWalls()` 후 `switch difficulty` 분기. case `.easy` → addCentralPillar / case `.normal, .hard` → addHardMap. **default 미사용**.
-- L38~100 — `addHardMap()` 신설. 코너 방 4개(가로벽+세로벽 = 8호출) + 중앙 기둥 4 호출.
-- L102~104 — `private func addHorizontalWall(cStart:cEnd:r:)` 신설.
-- L107~111 — `private func addVerticalWall(c:rStart:rEnd:doorR:)` 신설. `for r in rStart...rEnd where r != doorR { addRectPillar(...) }` — 문 한 칸 건너뛰며 SKSpriteNode 분리.
-- L116~136 — `private func addRectPillar(cStart:cEnd:rStart:rEnd:)` 신설. PhysicsBody 7줄은 addCentralPillar와 byte-equal.
+### 기능 2 — CutsceneOverlayNode 신설 (자가 소멸 노드 10호)
+- **파일**: `GanhoMusic Shared/Nodes/CutsceneOverlayNode.swift` (신규, 185줄)
+- **타입 선언**: 35줄 `final class CutsceneOverlayNode: SKNode, SelfDismissingNode` (SPEC 명시 그대로)
+- **private init**: 47~73줄 — 4 자식 노드(background/titleLabel/bodyLabel/tapLabel) 생성 + alpha 0 + isUserInteractionEnabled = true + zPosition 부여
+- **required init?(coder:)**: 75~77줄 — fatalError 폴백 (다른 자가 소멸 노드 답습)
+- **정적 팩토리 `present`**: 87~99줄 — 시그니처 `(title:body:parent:sceneSize:onDismiss:)` SPEC 일치, fadeIn 발화
+- **touchesBegan override**: 105~107줄 — `dismiss()` 호출
+- **dismiss()**: 116~127줄 — 첫 줄 `isUserInteractionEnabled = false`(다중 탭 차단) → onDismiss 캡처 + nil 토글 → fadeOut + cleanup + notify 시퀀스
+- **configure private 메서드 4개**: 132~177줄 (background/title/body/tap)
+- **bodyLabel**: 158~167줄 — `numberOfLines = 0` + `preferredMaxLayoutWidth = sceneSize.width * GameConfig.cutsceneBodyWidthRatio`
+- **tapLabel alpha**: 173줄 — `alpha = GameConfig.cutsceneTapLabelAlpha`
+- **색**: `.ganhoPaper` 재사용 (configureTitleLabel/configureBodyLabel/configureTapLabel) — 새 토큰 0건
+- **패턴 답습**: ScorePopupNode 9호의 private init + 정적 팩토리 패턴, CountdownNode 8호의 `SKAction.sequence([fadeOut, cleanup, notify])` 패턴 일관 유지
+
+### 기능 3 — GameScene didMove + showIntroCutscene()
+- **파일**: `GanhoMusic Shared/GameScene.swift`
+- **didMove 변경**: 149~152줄 — `gameState = .countdown` + `showCountdown()` → `gameState = .cutscene` + `showIntroCutscene()`로 2줄 교체 (SPEC §"기능 3" 정확 일치)
+- **didMove 주변 주석**: Phase 7-3 의도 설명 3줄 추가 (회귀 0 자연 차단 메커니즘 명시)
+- **showIntroCutscene() 신설 위치**: 155~187줄 (`showCountdown()` *위*에 신설 — SPEC 명시 위치)
+- **MARK 섹션**: 155줄 `// MARK: - Cutscene (Phase 7-3)` — `// MARK: - Countdown (Phase 6-13)` 위
+- **switch difficulty 분기**:
+  - `case .easy, .normal`: "수간호사가 순찰을 돈다. 그 틈을 타, {NAME}는 주머니 속 작곡 노트를 슬쩍 꺼낸다… 음표를 모으자."
+  - `case .hard`: "학교에서 나온 깐깐한 이교수가 오늘따라 청진기를 휘두른다. 날아오는 청진기를 피하며 음표를 모으자. 수간호사는 언제나 그렇듯 순찰을 돈다."
+- **{NAME} 치환**: `template.replacingOccurrences(of: "{NAME}", with: characterID.displayName)` (SPEC 명시 그대로)
+- **present 호출**: `CutsceneOverlayNode.present(title:, body:, parent: cameraNode, sceneSize: size, onDismiss: { ... })`
+- **onDismiss 클로저**: `[weak self]` 캡처 → `guard let self = self else { return }` → `self.gameState = .countdown` + `self.showCountdown()` (CountdownNode 패턴 답습)
+
+### 기능 4 — GameConfig 컷씬 상수 신설
+- **파일**: `GanhoMusic Shared/Config/GameConfig.swift`
+- **MARK**: 534줄 `// MARK: - Cutscene (Phase 7-3)` — 파일 *맨 아래* 신설 (기존 § 미접촉)
+- **상수 11개** (SPEC §"기능 4" 명시 값 정확 일치):
+  | 라인 | 상수명 | 값 |
+  |---|---|---|
+  | 537 | cutsceneBackgroundAlpha | 0.85 |
+  | 540 | cutsceneTitleFontSize | 26 |
+  | 543 | cutsceneBodyFontSize | 20 |
+  | 545 | cutsceneTapFontSize | 16 |
+  | 548 | cutsceneTitleOffsetY | 100 |
+  | 550 | cutsceneTapOffsetY | -120 |
+  | 553 | cutsceneBodyWidthRatio | 0.7 |
+  | 556 | cutsceneZPosition | 300 |
+  | 559 | cutsceneFadeInDuration | 0.25 |
+  | 562 | cutsceneFadeOutDuration | 0.3 |
+  | 565 | cutsceneTapLabelAlpha | 0.7 |
+
+### pbxproj 등록 (CutsceneOverlayNode.swift) — ScorePopupNode 답습 4지점
+- **PBXBuildFile** (49줄): `A1C0F1B00000000000000038 /* CutsceneOverlayNode.swift in Sources */`
+- **PBXFileReference** (92줄): `A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */ = {... path = CutsceneOverlayNode.swift; ...}`
+- **PBXGroup Nodes** (239줄): Nodes group `children`에 추가 (ScorePopupNode/DifficultyCardNode 뒤)
+- **PBXSourcesBuildPhase iOS** (518줄): `C75D46252FA627C20016BB86` 빌드 페이즈 `files` 배열에 추가
+- tvOS/macOS 빌드 페이즈는 SPEC §"회귀 0 영역" 미접촉 (기존 Sources도 모두 빈 배열로 유지) — 정확 일치
 
 ---
 
-## 회귀 0 영역 검증 (git diff 0줄)
+## 회귀 0 영역 git diff 0줄 확인 (전체 목록)
 
-`git diff --name-only` 결과 — 변경 파일만:
-```
-GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift
-GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift
-SPEC.md / SELF_CHECK.md / QA_REPORT.md  (산출물, 코드 외)
-```
+`git diff --stat HEAD -- [규칙 목록]` 명령 결과 **출력 0줄** = 전 영역 0줄 변경 확인:
 
-지정된 회귀 0 영역 모두 0줄 변경 확인:
-- `GameScene.swift` — diff 0줄
-- `TitleScene.swift` — diff 0줄
-- `ResultScene.swift` — diff 0줄
-- `Nodes/` 디렉터리 전체 — 0줄 (PlayerNode, EnemyNode, StoneGuardNode, ProjectileNode, NoteNode, DPadNode, HUDNode, 자가소멸 9 노드 포함)
-- `Systems/` 디렉터리 전체 — 0줄 (ContactRouter, ScoreSystem, SpawnSystem, CameraShakeAction)
-- `Managers/` 디렉터리 전체 — 0줄 (Audio/BGM/Haptics)
-- `Models/` 디렉터리 전체 — 0줄 (Difficulty 포함)
-- `Repositories/` 디렉터리 전체 — 0줄
-- `Protocols/` 디렉터리 전체 — 0줄
-- `Config/ColorTokens.swift` / `Config/PhysicsCategory.swift` / `Config/GameState.swift` — 0줄
-- `GanhoMusic iOS/` / `GanhoMusic tvOS/` / `GanhoMusic macOS/` — 0줄 (각 플랫폼 GameViewController 포함)
-- `GanhoMusic.xcodeproj/` — 0줄 (pbxproj 미접촉, 신규 파일 0개)
+- [x] `GanhoMusic Shared/Scenes/TitleScene.swift` — 0줄
+- [x] `GanhoMusic Shared/Scenes/ResultScene.swift` — 0줄
+- [x] `GanhoMusic Shared/GameScene+Setup.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/PlayerNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/EnemyNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/StoneGuardNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/NoteNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/ProjectileNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/DPadNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/HUDNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/CountdownNode.swift` — **0줄 (SPEC §"주의사항 2" 완전 보존 확인)**
+- [x] `GanhoMusic Shared/Nodes/ScorePopupNode.swift` — 0줄 (자가 소멸 9호)
+- [x] `GanhoMusic Shared/Nodes/ComboPopupNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/ComboBreakNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/CharacterCardNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/DifficultyCardNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Nodes/AirplaneNode.swift` / `AirforceOverlayNode.swift` / `BombFlashNode.swift` / `SparkleEffectNode.swift` / `HitFlashNode.swift` — 0줄
+- [x] `GanhoMusic Shared/Systems/ContactRouter.swift` — 0줄
+- [x] `GanhoMusic Shared/Systems/SpawnSystem.swift` — 0줄
+- [x] `GanhoMusic Shared/Systems/ScoreSystem.swift` — 0줄
+- [x] `GanhoMusic Shared/Systems/CameraShakeAction.swift` — 0줄
+- [x] `GanhoMusic Shared/Managers/BGMPlayer.swift` — 0줄
+- [x] `GanhoMusic Shared/Managers/AudioManager.swift` — 0줄
+- [x] `GanhoMusic Shared/Managers/HapticsManager.swift` — 0줄
+- [x] `GanhoMusic Shared/Config/ColorTokens.swift` — 0줄
+- [x] `GanhoMusic Shared/Config/PhysicsCategory.swift` — 0줄
+- [x] `GanhoMusic Shared/Models/CharacterID.swift` / `Difficulty.swift` / `GameStats.swift` — 0줄
+- [x] `GanhoMusic Shared/Repositories/HighScoreRepository.swift` / `StatisticsRepository.swift` / `CharacterPreferenceRepository.swift` / `DifficultyPreferenceRepository.swift` — 0줄
+- [x] `GanhoMusic iOS/GameViewController.swift` / `AppDelegate.swift` / `SceneDelegate.swift` — 0줄
+- [x] `GanhoMusic tvOS/GameViewController.swift` — 0줄
+- [x] `GanhoMusic macOS/GameViewController.swift` — 0줄
+
+### GameScene.swift 변경 범위 검증
+`git diff GameScene.swift` 결과 정확 2 hunk:
+1. **didMove 끝 2줄 교체** (149~150 → 149~152): `gameState = .countdown` + `showCountdown()` → `gameState = .cutscene` + `showIntroCutscene()` (+ 주석 3줄)
+2. **showIntroCutscene 메서드 신설** (153~187, 35줄, `// MARK: - Cutscene (Phase 7-3)` 섹션)
+
+**GameScene.swift 변경 외 메서드는 0건 접촉** — update / endGame / configureContactRouter / showCountdown / startGameProperly / triggerAirforceEasterEgg / playComboMilestoneFeedback / triggerComboBreak / checkAndTriggerComboBreak / layoutDPad / layoutHUD / didChangeSize / setup* 일체 0줄 변경.
 
 ---
 
 ## 빌드 결과
 
-```
+```bash
 xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
            -target "GanhoMusic iOS" \
            -sdk iphonesimulator \
@@ -74,146 +131,91 @@ xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
            clean build
 ```
 
-**`** BUILD SUCCEEDED **`** — 컴파일 에러 0건.
-
-경고 grep (`warning:` 패턴, AppIntents.framework 알림 제외):
-- **0건** — Swift 컴파일러 경고 없음.
-
----
-
-## PhysicsBody 7줄 비교 (addCentralPillar vs addRectPillar)
-
-```bash
-diff <(sed -n '127,133p' GameScene+Setup.swift) \
-     <(sed -n '205,211p' GameScene+Setup.swift)
-```
-
-**결과: diff 0줄 (byte-equal 달성)**
-
-addCentralPillar (L127~133) / addRectPillar (L205~211) 양쪽 모두 정렬·공백·식별자 완전 동일:
-```swift
-        let body = SKPhysicsBody(rectangleOf: pillarSize)
-        body.isDynamic           = false
-        body.friction            = 0
-        body.restitution         = 0
-        body.categoryBitMask     = PhysicsCategory.wall
-        body.collisionBitMask    = 0
-        body.contactTestBitMask  = 0
-```
-
-→ SPEC §"주의사항 1" 충족.
+- **결과**: `** BUILD SUCCEEDED **`
+- **컴파일 성공 파일 목록**: CutsceneOverlayNode.swift 포함 (Compiling 목록 마지막에 명시 확인)
+- **Swift 컴파일 경고**: 0건 (Metadata extraction skipped 경고는 AppIntents 미사용 표준 메시지, 코드 경고 아님)
+- **링킹**: arm64 + x86_64 lipo 성공, CodeSign / Validate / Touch 정상 종료
 
 ---
 
-## SPEC §"옵션 C 최종 좌표 표" 코드 매핑 검증
+## 정적 검사
 
-### 코너 방 4개
+### 강제 언래핑 (`!`)
+- `CutsceneOverlayNode.swift`: 0건 (`grep "!"` 출력 0줄)
+- `GameScene.swift` 변경 부분: 0건 (`replacingOccurrences` 등 안전 API만 사용)
+- `GameConfig.swift` / `GameState.swift` 변경 부분: 0건
 
-| 방 | SPEC c/r | GameConfig 상수 | addHardMap 호출 라인 |
-|---|---|---|---|
-| 좌상 방 H-Wall c4~9, r=18 | hardMapTopLeftRoomHWallCStart=4, CEnd=9, R=18 | L43~45 |
-| 좌상 방 V-Wall c=9, r=18~21, door=20 | hardMapTopLeftRoomVWallC=9, RStart=18, REnd=21, DoorR=20 | L46~49 |
-| 우상 방 H-Wall c38~43, r=18 | hardMapTopRightRoomHWallCStart=38, CEnd=43, R=18 | L52~54 |
-| 우상 방 V-Wall c=38, r=18~21, door=20 | hardMapTopRightRoomVWallC=38, RStart=18, REnd=21, DoorR=20 | L55~58 |
-| 좌하 방 H-Wall c4~9, r=5 | hardMapBottomLeftRoomHWallCStart=4, CEnd=9, R=5 | L61~63 |
-| 좌하 방 V-Wall c=9, r=2~5, door=3 | hardMapBottomLeftRoomVWallC=9, RStart=2, REnd=5, DoorR=3 | L64~67 |
-| 우하 방 H-Wall c38~43, r=5 | hardMapBottomRightRoomHWallCStart=38, CEnd=43, R=5 | L70~72 |
-| 우하 방 V-Wall c=38, r=2~5, door=3 | hardMapBottomRightRoomVWallC=38, RStart=2, REnd=5, DoorR=3 | L73~76 |
+### 매직 넘버
+- `CutsceneOverlayNode.swift`: 0건. 모든 폰트/오프셋/알파/duration이 `GameConfig.cutscene*` 상수 참조.
+- 유일 비-GameConfig 리터럴: `.zero` (CGPoint 기본값), `0` (zPosition 본 노드 내부 자식 z, 배경=0/라벨=1 시각 위계), `1` (자식 z, 본 노드 좌표계 *내부* 위계 — GameConfig 노출 가치 ↓).
+- `GameScene.swift` 변경 부분: 텍스트 리터럴(타이틀/난이도별 본문)만 — 의도된 도메인 상수.
 
-8 호출 = 4 방 × (가로벽 1 + 세로벽 1). ✅ 한 셀 오차 없음.
+### Timer / DispatchQueue
+- 4개 파일(CutsceneOverlayNode/GameScene/GameConfig/GameState) 전체 0건 (`grep "Timer\|DispatchQueue"` 출력 0줄)
+- 모든 지연/시퀀스가 SKAction (fadeIn/fadeOut/wait/sequence/run) 기반
 
-### 중앙 기둥 4개
-
-| 기둥 | SPEC c/r | GameConfig 상수 | addHardMap 호출 라인 |
-|---|---|---|---|
-| 중앙-좌 (1×2) | c=17, r=11~12 | hardMapCenterLeftPillarC=17, RStart=11, REnd=12 | L80~83 |
-| 중앙-우 (1×2) | c=30, r=11~12 | hardMapCenterRightPillarC=30, RStart=11, REnd=12 | L85~88 |
-| 중앙-상 (2×1) | c=23~24, r=15 | hardMapCenterTopPillarCStart=23, CEnd=24, R=15 | L90~93 |
-| 중앙-하 (2×1) | c=23~24, r=8 | hardMapCenterBottomPillarCStart=23, CEnd=24, R=8 | L95~98 |
-
-4 호출. ✅ 한 셀 오차 없음.
-
-**총 12 호출 = 가로벽 4 + 세로벽 4 + 중앙 기둥 4** → SPEC §"기능 2" 명세 완전 충족.
+### 메모리 안전
+- onDismiss 클로저: `[weak self]` + `guard let self` 패턴 (GameScene 178~185줄)
+- SKAction.run notify: self 미사용 → [weak self] 불필요 (CountdownNode 동일 정책)
+- onDismiss 캡처 후 nil 토글: 다중 발화 차단 (2중 안전망)
 
 ---
 
-## SPEC §"주의사항" 13개 항목 준수 여부
+## SPEC §"주의사항" 12개 준수 여부
 
 | # | 항목 | 준수 |
 |---|---|---|
-| 1 | PhysicsBody 정책 완전 일치 (byte-equal) | ✅ diff 0줄 |
-| 2 | 벽 색 `.ganhoPaper` 1종만 (새 토큰 0건) | ✅ ColorTokens 미접촉 |
-| 3 | 타일 좌표 → 픽셀 변환 (anchorPoint 기본 .center) | ✅ `((cStart + widthTiles/2) × t, (rStart + heightTiles/2) × t)` |
-| 4 | SpriteKit y 위로 증가 (SPEC 표가 이미 변환됨) | ✅ 표 값 그대로 사용, 추가 변환 없음 |
-| 5 | 외곽 벽 중복 방지 (hard r∈[2,21], c∈[4,43] 내부) | ✅ 외벽 r=0/23, c=0/47과 겹침 0 |
-| 6 | 문은 세로벽에서만 분기 (가로벽 doorC 없음) | ✅ addHorizontalWall에 doorC 매개변수 없음 |
-| 7 | 세로벽 SKSpriteNode 분리 (통짜 금지) | ✅ `for r ... where r != doorR { addRectPillar(...) }` |
-| 8 | setupWorld 호출 순서 보존 | ✅ position=.zero → addChild → setupMap |
-| 9 | normal/hard 공용 정책 (`case .normal, .hard`) | ✅ switch에서 동일 분기 |
-| 10 | easy 무변경 (기존 addCentralPillar와 완전 동일) | ✅ case .easy → addCentralPillar 호출 |
-| 11 | switch default 미사용 (Difficulty 확장 시 경고) | ✅ default 없음 |
-| 12 | stoneGuard 시각 겹침 — 본 sprint 미접촉 | ✅ stoneGuardWaypoints 미접촉, normal 분기 미접촉 |
-| 13 | NoteSpawn / ProjectileSpawn 무관 | ✅ SpawnSystem 미접촉 |
+| 1 | GameState exhaustive switch 0건 검증 | OK — `grep "switch.*gameState"` 결과 **0건**. 다른 파일 영향 0 |
+| 2 | CountdownNode 완전 보존 (dismiss 후 showCountdown() 그대로) | OK — CountdownNode.swift / showCountdown() 0줄 변경, dismiss onDismiss에서 호출만 |
+| 3 | 자가 소멸 패턴 변형 — SelfDismissingNode marker protocol 채택 + 터치 트리거 | OK — `final class CutsceneOverlayNode: SKNode, SelfDismissingNode` + touchesBegan override |
+| 4 | isUserInteractionEnabled = true (init) 필수 | OK — init 64줄에서 명시 설정 |
+| 5 | 다중 탭 방지 (dismiss 첫 줄 false 토글 + onDismiss nil 캡처) | OK — dismiss 118~121줄 |
+| 6 | 본문 자동 줄바꿈 (numberOfLines = 0 + preferredMaxLayoutWidth) | OK — configureBodyLabel 165~166줄 |
+| 7 | 폰트 가시성 (제목 26 / 본문 20 / TAP 16, .ganhoPaper, 배경 .black α=0.85) | OK — GameConfig 상수값 + configure 메서드 4개 |
+| 8 | showCountdown private 접근 제한자 변경 0 | OK — `private func showCountdown()` 그대로, 동일 클래스 내부 호출 |
+| 9 | resize 대응 불필요 (짧은 수명) | OK — 본 노드는 didChangeSize 미구독, 호출부에서도 layout* 호출 0건 |
+| 10 | pbxproj 등록 (ScorePopupNode 답습 4지점: PBXBuildFile/FileReference/Group/SourcesBuildPhase iOS) | OK — 4지점 정확 등록, tvOS/macOS Sources는 기존 빈 배열 유지 |
+| 11 | 메모리 관리 ([weak self] 캡처 — CountdownNode 답습) | OK — onDismiss `[weak self]` + `guard let self` (GameScene 178줄) |
+| 12 | {NAME} 치환 (easy/normal 본문에 1개 등장) | OK — `replacingOccurrences(of: "{NAME}", with: characterID.displayName)` (GameScene 173줄). hard 본문은 토큰 없어 자연 무동작 |
 
 ---
 
-## 정적 검사 결과
+## GameState case 추가가 다른 파일 컴파일에 미치는 영향 검증
 
-| 패턴 | 결과 |
-|---|---|
-| 강제 언래핑 `!` | **0건** — guard let/if let만 사용 |
-| 매직 넘버 | **0건** — 모든 좌표는 GameConfig 상수 |
-| Timer | **0건** — 시간 기반 로직 없음 (정적 맵 setup) |
-| DispatchQueue | **0건** — 비동기 작업 없음 |
-| print() 디버그 | **0건** |
-| weak self | 해당 없음 — 클로저 미사용 (정적 setup 함수) |
+### grep 검증
+```bash
+grep -rn "switch.*gameState\|switch gameState" GanhoMusic/
+```
+- 결과: **0건**
+- 결론: exhaustive switch 0개 → case 추가가 다른 파일 컴파일 에러 유발 0건
+- 모든 gameState 비교는 equality 기반(`== .playing` / `== .gameOver`) → 새 case 무관
 
----
+### 영향 분석 (SPEC 영향 분석 표 기준)
+| 파일:라인 | 코드 | 영향 |
+|---|---|---|
+| GameScene.swift:149 | `gameState = .countdown` → `.cutscene` | **의도된 변경 — 본 sprint 핵심** |
+| GameScene.swift:181 | `gameState = .playing` (startGameProperly) | 무영향 |
+| GameScene.swift:242 | `guard gameState == .playing` (update) | **핵심 차단점 — `.cutscene`에서 모든 시스템 정지** (SPEC 회귀 0 자연 차단 메커니즘 1번) |
+| GameScene.swift:473 | `if gameState == .gameOver` (endGame) | 무영향 |
+- 외부 파일에서 `gameState` 직접 비교 0건 (GameScene 내부 전용 프로퍼티)
 
-## SPEC 기능 체크
-
-- [x] **기능 1**: setupMap() 분기 도입 — setupWorld가 setupMap() 단일 호출. switch difficulty에서 .easy → addCentralPillar / .normal, .hard → addHardMap.
-- [x] **기능 2**: addHardMap() — 코너 방 4개(8 호출) + 중앙 기둥 4 호출, SPEC 좌표 표 100% 일치.
-- [x] **기능 3**: 헬퍼 3개 — addRectPillar / addHorizontalWall / addVerticalWall 모두 private.
-- [x] **GameConfig 상수**: hard 맵 상수 40개 `// MARK: - Hard Map (Phase 7-2)` 섹션 신설.
-
----
-
-## Swift 패턴 준수
-
-- 강제 언래핑 미사용: 준수
-- guard let / if let / switch 사용: 해당 없음(정적 맵, 분기는 switch case 사용)
-- MARK 섹션 구분: 준수 (`// MARK: - Hard Map (Phase 7-2)`)
-- GameConfig 상수 사용: 준수 (모든 타일 좌표 상수화)
-- weak self 캡처: 해당 없음 (클로저 0건)
-
----
-
-## SpriteKit 패턴 준수
-
-- didMove(to:)에서 초기화: 해당 없음(GameScene 본체 미접촉. setupMap은 setupWorld가 호출)
-- dt 기반 이동: 해당 없음 (정적 맵)
-- SKAction 스폰 패턴: 해당 없음 (반복 스폰 없음)
-- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (정적 벽)
-- HUD 노드 분리: 해당 없음 (HUD 미접촉)
-- PhysicsBody 정책 일관성 (addRectPillar = addCentralPillar): 준수 (byte-equal)
-- worldNode 자식으로 추가: 준수 (`worldNode.addChild(pillar)`)
-
----
-
-## 빌드 상태
-
-- 컴파일 에러: **0건**
-- 컴파일 경고: **0건** (AppIntents 정보성 알림 제외)
-- BUILD SUCCEEDED ✅
+### 회귀 0 자연 차단 8개 (SPEC 명시)
+1. update 폴링 — `guard gameState == .playing`이 `.cutscene` 자동 차단 (7개 시스템 동시 정지) — OK
+2. SpawnSystem.start 미호출 — startGameProperly 안 → countdown 후 도달 — OK
+3. bgm.play 미호출 — 동일 — OK
+4. player velocity 0 — didMove 직후 누적 0 — OK (조작 미반영)
+5. 컷씬 노드 cameraNode 자식 — worldNode/HUD 시각 분리 — OK (`parent: cameraNode` 명시)
+6. EnemyNode/ProjectileSpawn 미실행 — update 차단으로 자동 — OK
+7. ContactRouter 콜백 미발화 — 노드 간 접촉 경로 0 (player 미이동) — OK
+8. 다중 탭 차단 — isUserInteractionEnabled 토글 + onDismiss nil 캡처 — OK (dismiss 118~121줄)
 
 ---
 
 ## 범위 외 미구현 항목
 
-- 없음. SPEC §"Sprint 범위 계약"의 "허용" 항목만 구현. "금지" 항목 모두 미접촉:
-  - 원본 normal 전용 중간 맵 별도 구현 ❌ 미구현
-  - 이교수 NPC, 석조무사 hard 분기, 컷씬, 졸업장 ❌ 미구현
-  - addCentralPillar / addOuterWalls 기존 동작 변경 ❌ 미접촉 (byte-equal)
-  - 플레이어/적/석조무사 스폰 좌표 변경 ❌ 미접촉
-  - 새 색 토큰 ❌ `.ganhoPaper` 1종만 사용
+**없음** — SPEC §"기능 상세" 4개 + pbxproj 등록 + 빌드 검증 + 회귀 0 확인 모두 완수.
+
+다음 sprint로 의도적 보류:
+- mid1 / mid2 / introStoneGuard / introProfessor 컷씬 (SPEC §"금지")
+- 컷씬 중복 표시 방지 Set (SPEC §"영구 저장 동작" — *intro는 매 게임 시작 시 표시*)
+- 새 ColorTokens / 새 사운드 / 새 햅틱 (SPEC §"금지")

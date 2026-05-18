@@ -1,297 +1,226 @@
-# SPEC.md — Phase 7-2 · Hard 맵 도입
+# Phase 7-3 — 인트로 컷씬 (자가 소멸 노드 10호)
 
 ## 개요
-
-GDD §6에 명시된 hard 맵을 모바일 48×24 그리드에 도입한다. 원본 웹 게임(`game.js` L289-309) 32×20 hard 맵의 *방 4개 + 중앙 기둥 다수* 디자인을 모바일 좌표계로 충실히 이식하되, *맵 가장자리에서의 절대 거리*는 원본을 유지하고 *중앙 빈 공간만 확장*하는 "옵션 C" 전략을 채택한다. setupMap이 `difficulty` 분기를 통해 easy면 기존 addCentralPillar, normal/hard면 신규 addHardMap을 호출한다.
+게임 시작 시 카운트다운 *전에* "어느 한적한 병동의 오후" 인트로 컷씬 오버레이를 띄운다. 난이도별 분기 텍스트(`{NAME}` 토큰 치환)와 "TAP TO CONTINUE" 안내를 보여주고, 화면 어디든 탭하면 자가 소멸 후 기존 카운트다운 흐름을 시작한다. 원본 웹 게임 `CUTSCENES.intro` (game.js L200-209) 텍스트를 단일 진실 원천으로 차용.
 
 ## 변경 유형
-**게임플레이** — 맵 형태가 플레이어/적/F 동선에 직접 영향.
+**게임플레이 + UI (혼합)** — 컷씬은 *경험 흐름* 자체를 바꿈. 게임 진입 직후 첫 화면이 카운트다운(액션)이 아니라 *서사*(스토리)가 된다.
 
 ## 게임 경험 의도
-easy 맵에서 *넓은 평지* 위 단일 기둥을 익힌 플레이어는 normal/hard 전환 즉시 *코너 방 4개*가 시야에 들어오며 게임의 톤이 달라졌음을 직관한다. 코너 방은 *단기 안식처*(외벽+내벽 협공으로 F가 좁은 입구로만 들어옴)이자 동시에 *함정*(문이 한 칸뿐이라 수간호사가 막아서면 출구 차단)인 양면성을 가진다. 4개 중앙 기둥은 *대칭의 댄스플로어*를 만들어 추격전이 직선이 아닌 곡선 동선이 되도록 유도한다.
+이 게임은 *간호 실습 중 작곡한* 사용자 자전 경험의 음악 게임이다. 첫 화면에 "어느 한적한 병동의 오후"라는 *장소와 시간*을 명시함으로써 — 점수/속도 게임이 아니라 *이야기를 가진 일상의 한 컷*임을 알린다. 카운트다운 직전 1.5~3초의 *호흡 정지*는 플레이어에게 "이 게임이 무엇에 관한 것인지" 인지할 시간을 준다. 난이도별 텍스트 분기는 게임 난이도를 *수치 차이*가 아니라 *내러티브 분기*("수간호사 순찰" → "이교수 청진기")로 체감시키는 장치다.
 
 ## Sprint 범위 계약
 
-- **허용**: hard 맵 좌표 상수 신설(GameConfig), `addHardMap()` 함수 신설(GameScene+Setup), `setupMap()`에 difficulty 분기, normal/hard 같은 hard 맵 공유.
-- **금지**:
-  - 원본 normal 전용 중간 맵(game.js L272-287) 별도 구현 — GDD §6가 hard 공용으로 결정.
-  - 이교수 NPC, 석조무사 hard 미등장 분기, 컷씬, 졸업장.
-  - addCentralPillar / addOuterWalls 기존 동작 변경.
-  - 플레이어/적/석조무사 기본 스폰 좌표 변경 (§"충돌 검증"에서 무충돌 증명).
-  - 새 색 토큰 추가 — 모든 벽 `.ganhoPaper` 재사용.
-- **판단 기준**: "이 변경 없으면 hard 맵 정상 동작 안 함?" → YES만 허용.
+### 허용
+- `Nodes/CutsceneOverlayNode.swift` 신규 1 파일 (자가 소멸 노드 10호)
+- `Config/GameState.swift`에 `case cutscene` 1줄 추가
+- `GameScene.swift` `didMove(to:)` 흐름 1줄 교체 (`showCountdown()` → `showIntroCutscene()`)
+- `GameScene.swift`에 `showIntroCutscene()` private 메서드 신설
+- `GameConfig.swift`에 컷씬 상수 ~10개 추가
+- `pbxproj` 신규 파일 1개 등록
+
+### 금지
+- mid1/mid2/introStoneGuard/introProfessor 컷씬 (다음 sprint들)
+- 컷씬 중복 표시 방지 Set (다음 sprint)
+- 기존 CountdownNode 코드/타이밍 변경
+- TitleScene / ResultScene 변경
+- 새 ColorTokens / 새 사운드 / 새 햅틱
+
+### 판단 기준
+"이 변경 없으면 인트로 컷씬이 동작하지 않는가?" → YES만 허용.
 
 ## 변경 범위
-- 수정: `Config/GameConfig.swift`, `GameScene+Setup.swift`
-- 신규 파일 0건, pbxproj 변경 0건.
 
----
+### 수정
+- `Config/GameState.swift` — `case cutscene` 1줄 추가
+- `Config/GameConfig.swift` — `// MARK: - Cutscene (Phase 7-3)` 섹션 + 상수 10개
+- `GameScene.swift` — didMove 끝부분 2줄 (`gameState = .cutscene` + `showIntroCutscene()`), `showIntroCutscene()` 메서드 신설
+- `GanhoMusic.xcodeproj/project.pbxproj` — 신규 파일 등록
 
-## 옵션 비교
-
-| 옵션 | 전략 | 좌상 방 가로벽 c | 우상 방 가로벽 c | 결정 |
-|---|---|---|---|---|
-| A | 절대 보존 + 정중앙 배치(c+8, r+2) | c12~17 | c30~35 | ❌ |
-| B | 비율 ×1.5/×1.2 | c6~14 | c33~41 | ❌ |
-| C | **원본 절대 좌표 + 우/하단 거울 대칭** | c4~9 | c38~43 | ✅ |
-
----
-
-## 옵션 C 최종 좌표 표
-
-좌표계 규약:
-- 모바일 그리드: c=0..47, r=0..23. TILE=20pt.
-- SpriteKit y는 아래에서 위로 증가. **r이 클수록 시각 상단**.
-- 거울 대칭: `mirroredC = 47 - c`, `mirroredR = 23 - r`.
-- 원본 game.js의 r=5(원본 캔버스 위쪽) → SpriteKit r=18(시각 상단).
-
-### 코너 방 4개
-
-| 방 | 가로벽 c 범위 | 가로벽 r | 세로벽 r 범위 | 세로벽 c | 문 (c, r) |
-|---|---|---|---|---|---|
-| 좌상 방(시각 상단·좌) | c4~c9 | r=18 | r=18~21 | c=9 | (9, 20) |
-| 우상 방(시각 상단·우) | c38~c43 | r=18 | r=18~21 | c=38 | (38, 20) |
-| 좌하 방(시각 하단·좌) | c4~c9 | r=5 | r=2~5 | c=9 | (9, 3) |
-| 우하 방(시각 하단·우) | c38~c43 | r=5 | r=2~5 | c=38 | (38, 3) |
-
-### 중앙 기둥 4개
-
-| 기둥 | c 범위 | r 범위 | 모양 |
-|---|---|---|---|
-| 중앙-좌 (세로형) | c=17 | r=11~12 | 1×2 |
-| 중앙-우 (세로형) | c=30 | r=11~12 | 1×2 |
-| 중앙-상 (가로형) | c=23~24 | r=15 | 2×1 |
-| 중앙-하 (가로형) | c=23~24 | r=8 | 2×1 |
-
----
-
-## GameConfig 신규 상수 (~30개)
-
-`Config/GameConfig.swift` 끝에 `// MARK: - Hard Map (Phase 7-2)` 섹션:
-
-```swift
-// 좌상 방
-static let hardMapTopLeftRoomHWallCStart:  Int = 4
-static let hardMapTopLeftRoomHWallCEnd:    Int = 9
-static let hardMapTopLeftRoomHWallR:       Int = 18
-static let hardMapTopLeftRoomVWallC:       Int = 9
-static let hardMapTopLeftRoomVWallRStart:  Int = 18
-static let hardMapTopLeftRoomVWallREnd:    Int = 21
-static let hardMapTopLeftRoomDoorR:        Int = 20
-
-// 우상 방
-static let hardMapTopRightRoomHWallCStart: Int = 38
-static let hardMapTopRightRoomHWallCEnd:   Int = 43
-static let hardMapTopRightRoomHWallR:      Int = 18
-static let hardMapTopRightRoomVWallC:      Int = 38
-static let hardMapTopRightRoomVWallRStart: Int = 18
-static let hardMapTopRightRoomVWallREnd:   Int = 21
-static let hardMapTopRightRoomDoorR:       Int = 20
-
-// 좌하 방
-static let hardMapBottomLeftRoomHWallCStart: Int = 4
-static let hardMapBottomLeftRoomHWallCEnd:   Int = 9
-static let hardMapBottomLeftRoomHWallR:      Int = 5
-static let hardMapBottomLeftRoomVWallC:      Int = 9
-static let hardMapBottomLeftRoomVWallRStart: Int = 2
-static let hardMapBottomLeftRoomVWallREnd:   Int = 5
-static let hardMapBottomLeftRoomDoorR:       Int = 3
-
-// 우하 방
-static let hardMapBottomRightRoomHWallCStart: Int = 38
-static let hardMapBottomRightRoomHWallCEnd:   Int = 43
-static let hardMapBottomRightRoomHWallR:      Int = 5
-static let hardMapBottomRightRoomVWallC:      Int = 38
-static let hardMapBottomRightRoomVWallRStart: Int = 2
-static let hardMapBottomRightRoomVWallREnd:   Int = 5
-static let hardMapBottomRightRoomDoorR:       Int = 3
-
-// 중앙 기둥
-static let hardMapCenterLeftPillarC:        Int = 17
-static let hardMapCenterLeftPillarRStart:   Int = 11
-static let hardMapCenterLeftPillarREnd:     Int = 12
-static let hardMapCenterRightPillarC:       Int = 30
-static let hardMapCenterRightPillarRStart:  Int = 11
-static let hardMapCenterRightPillarREnd:    Int = 12
-static let hardMapCenterTopPillarCStart:    Int = 23
-static let hardMapCenterTopPillarCEnd:      Int = 24
-static let hardMapCenterTopPillarR:         Int = 15
-static let hardMapCenterBottomPillarCStart: Int = 23
-static let hardMapCenterBottomPillarCEnd:   Int = 24
-static let hardMapCenterBottomPillarR:      Int = 8
-```
+### 신규
+- `Nodes/CutsceneOverlayNode.swift` — 자가 소멸 노드 10호. ScorePopupNode 패턴 + 터치 트리거.
 
 ---
 
 ## 기능 상세
 
-### 기능 1: setupMap() 분기 도입
-
-`setupWorld()`의 `addOuterWalls()` + `addCentralPillar()` 직접 호출을 `setupMap()` 단일 진입점으로 추출 + difficulty 분기.
+### 기능 1: GameState `.cutscene` case 신설
 
 ```swift
-func setupWorld() {
-    worldNode.position = .zero
-    addChild(worldNode)
-    setupMap()
+// GameState.swift
+enum GameState {
+    case waiting
+    case cutscene   // Phase 7-3 — 인트로 컷씬 표시 중. 탭 1회로 .countdown 전환.
+    case countdown
+    case playing
+    case paused
+    case gameOver
 }
+```
 
-func setupMap() {
-    addOuterWalls()
+### 기능 2: CutsceneOverlayNode 신설 (자가 소멸 노드 10호)
+
+- 반투명 검정 배경 SKSpriteNode + 제목/본문/TAP SKLabelNode 4-자식
+- cameraNode 자식 부착 (화면 중앙 고정)
+- private init + 정적 팩토리 `present(title:body:parent:sceneSize:onDismiss:)`
+- 자기 `touchesBegan` 처리 → dismiss → fadeOut → removeFromParent → onDismiss 콜백
+- isUserInteractionEnabled = true (init), dismiss 시 false 토글 (다중 탭 방지)
+
+핵심 구조:
+```swift
+final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
+    private let background: SKSpriteNode
+    private let titleLabel: SKLabelNode
+    private let bodyLabel: SKLabelNode
+    private let tapLabel: SKLabelNode
+    private var onDismiss: (() -> Void)?
+
+    private init(title: String, body: String, sceneSize: CGSize) {
+        self.background = SKSpriteNode(color: UIColor.black.withAlphaComponent(GameConfig.cutsceneBackgroundAlpha),
+                                        size: sceneSize)
+        self.titleLabel = SKLabelNode(text: title)
+        self.bodyLabel = SKLabelNode(text: body)
+        self.tapLabel = SKLabelNode(text: "TAP TO CONTINUE")
+        super.init()
+        name = "cutsceneOverlay"
+        zPosition = GameConfig.cutsceneZPosition
+        isUserInteractionEnabled = true
+        // configure...
+        addChild(background); addChild(titleLabel); addChild(bodyLabel); addChild(tapLabel)
+        alpha = 0
+    }
+
+    required init?(coder: NSCoder) { fatalError(...) }
+
+    static func present(title: String, body: String, parent: SKNode,
+                        sceneSize: CGSize, onDismiss: @escaping () -> Void) {
+        let node = CutsceneOverlayNode(title: title, body: body, sceneSize: sceneSize)
+        node.onDismiss = onDismiss
+        parent.addChild(node)
+        node.run(SKAction.fadeIn(withDuration: GameConfig.cutsceneFadeInDuration))
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        dismiss()
+    }
+
+    private func dismiss() {
+        isUserInteractionEnabled = false  // 다중 탭 방지
+        let callback = onDismiss
+        onDismiss = nil
+        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.cutsceneFadeOutDuration)
+        let cleanup = SKAction.removeFromParent()
+        let notify = SKAction.run { callback?() }
+        run(.sequence([fadeOut, cleanup, notify]))
+    }
+
+    // configureBackground/TitleLabel/BodyLabel/TapLabel ...
+    // BodyLabel: numberOfLines = 0, preferredMaxLayoutWidth = sceneSize.width * GameConfig.cutsceneBodyWidthRatio
+}
+```
+
+### 기능 3: GameScene didMove 흐름 변경 + showIntroCutscene()
+
+현재 (Phase 6-13 시점):
+```swift
+gameState = .countdown
+showCountdown()
+```
+
+신규 (Phase 7-3):
+```swift
+gameState = .cutscene
+showIntroCutscene()
+```
+
+`showIntroCutscene()` 메서드:
+```swift
+// MARK: - Cutscene (Phase 7-3)
+private func showIntroCutscene() {
+    let title = "어느 한적한 병동의 오후"
+    let template: String
     switch difficulty {
-    case .easy:
-        addCentralPillar()
-    case .normal, .hard:
-        addHardMap()
+    case .easy, .normal:
+        template = "수간호사가 순찰을 돈다. 그 틈을 타, {NAME}는 주머니 속 작곡 노트를 슬쩍 꺼낸다… 음표를 모으자."
+    case .hard:
+        template = "학교에서 나온 깐깐한 이교수가 오늘따라 청진기를 휘두른다. 날아오는 청진기를 피하며 음표를 모으자. 수간호사는 언제나 그렇듯 순찰을 돈다."
     }
-}
-```
-
-switch에 **default 미사용** — Difficulty enum 신규 case 추가 시 컴파일러 경고.
-
-### 기능 2: addHardMap()
-
-옵션 C 좌표 그대로 코너 방 4개 + 중앙 기둥 4개 생성.
-
-```swift
-func addHardMap() {
-    // 코너 방 4개 (가로벽 + 세로벽 doorR 분기)
-    addHorizontalWall(cStart: GameConfig.hardMapTopLeftRoomHWallCStart,
-                      cEnd:   GameConfig.hardMapTopLeftRoomHWallCEnd,
-                      r:      GameConfig.hardMapTopLeftRoomHWallR)
-    addVerticalWall(c:       GameConfig.hardMapTopLeftRoomVWallC,
-                    rStart:  GameConfig.hardMapTopLeftRoomVWallRStart,
-                    rEnd:    GameConfig.hardMapTopLeftRoomVWallREnd,
-                    doorR:   GameConfig.hardMapTopLeftRoomDoorR)
-    // … 우상/좌하/우하 동형 …
-
-    // 중앙 기둥 4개
-    addRectPillar(cStart: GameConfig.hardMapCenterLeftPillarC,
-                  cEnd:   GameConfig.hardMapCenterLeftPillarC,
-                  rStart: GameConfig.hardMapCenterLeftPillarRStart,
-                  rEnd:   GameConfig.hardMapCenterLeftPillarREnd)
-    // … 중앙-우/상/하 동형 …
-}
-```
-
-### 기능 3: 헬퍼 3개
-
-```swift
-private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int) {
-    addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r)
-}
-
-private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int) {
-    for r in rStart...rEnd where r != doorR {
-        addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r)
-    }
-}
-
-private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int) {
-    let t = GameConfig.tileSize
-    let widthTiles  = CGFloat(cEnd - cStart + 1)
-    let heightTiles = CGFloat(rEnd - rStart + 1)
-    let pillarSize = CGSize(width: widthTiles * t, height: heightTiles * t)
-    let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
-    pillar.position = CGPoint(
-        x: (CGFloat(cStart) + widthTiles  / 2) * t,
-        y: (CGFloat(rStart) + heightTiles / 2) * t
+    let body = template.replacingOccurrences(of: "{NAME}", with: characterID.displayName)
+    CutsceneOverlayNode.present(
+        title: title,
+        body: body,
+        parent: cameraNode,
+        sceneSize: size,
+        onDismiss: { [weak self] in
+            guard let self = self else { return }
+            self.gameState = .countdown
+            self.showCountdown()
+        }
     )
-    let body = SKPhysicsBody(rectangleOf: pillarSize)
-    body.isDynamic          = false
-    body.friction           = 0
-    body.restitution        = 0
-    body.categoryBitMask    = PhysicsCategory.wall
-    body.collisionBitMask   = 0
-    body.contactTestBitMask = 0
-    pillar.physicsBody = body
-    worldNode.addChild(pillar)
 }
 ```
 
-**중요**: `addVerticalWall`이 문(doorR) 한 칸을 *건너뛰는* 구현 — SKSpriteNode가 *상단부+하단부 2개*로 쪼개진다. 통짜로 만들면 PhysicsBody가 문을 막아 플레이어 입장 불가.
+### 기능 4: GameConfig 컷씬 상수 신설
+
+```swift
+// MARK: - Cutscene (Phase 7-3)
+static let cutsceneBackgroundAlpha: CGFloat = 0.85
+static let cutsceneTitleFontSize: CGFloat = 26
+static let cutsceneBodyFontSize: CGFloat = 20
+static let cutsceneTapFontSize: CGFloat = 16
+static let cutsceneTitleOffsetY: CGFloat = 100
+static let cutsceneTapOffsetY: CGFloat = -120
+static let cutsceneBodyWidthRatio: CGFloat = 0.7
+static let cutsceneZPosition: CGFloat = 300
+static let cutsceneFadeInDuration: TimeInterval = 0.25
+static let cutsceneFadeOutDuration: TimeInterval = 0.3
+static let cutsceneTapLabelAlpha: CGFloat = 0.7
+```
 
 ---
 
-## 플레이어/적/석조무사 스폰 충돌 검증
+## GameState `.cutscene` 영향 분석
 
-### Player 스폰 (mapWidth/4, mapHeight/2) = (240, 240) = (c=12, r=12)
-모든 hard 맵 벽(c∈[4,9]∪[17]∪[23,24]∪[30]∪[38,43], r∈[2,5]∪[8]∪[11,12]∪[15]∪[18,21])과 무충돌:
-- c=12 → 모든 c 범위 밖
-- 또는 r=12 → c=17/30의 r=11~12 범위와 r 일치하지만 **c 다름** → 무충돌
-
-**시프트 불필요**.
-
-### Enemy 스폰 (mapWidth*3/4, mapHeight*3/4) = (720, 360) = (c=36, r=18)
-- c=36 → 우상/우하 방 c=38 범위 밖
-- 모든 중앙 기둥과 c/r 불일치
-- **무충돌**
-
-### StoneGuard waypoint
-| Waypoint | 타일 | 충돌 |
+| 파일:라인 | 코드 | `.cutscene` 영향 |
 |---|---|---|
-| (200, 100) | (10, 5) | 무충돌 (좌하 방 c4~9 밖) |
-| (760, 100) | (38, 5) | ⚠️ **우하 방 가로벽 r=5 c=38~43 안** — 시각 겹침. PhysicsBody 충돌은 stoneGuard의 collisionBitMask에 wall 미포함 시 시각만. |
-| (760, 380) | (38, 19) | ⚠️ **우상 방 세로벽 c=38 r=18~21 안** — 시각 겹침 |
-| (200, 380) | (10, 19) | 무충돌 |
+| GameScene.swift:149 | `gameState = .countdown` | 변경 — `.cutscene`으로 |
+| GameScene.swift:199 | `gameState = .playing` | 무영향 |
+| GameScene.swift:242 | `guard gameState == .playing` (update) | **핵심 차단점** — `.cutscene`에서 모든 시스템 정지 |
+| GameScene.swift:473 | `if gameState == .gameOver` (endGame) | 무영향 |
 
-**해결**: GDD §5상 StoneGuard는 *normal까지만 등장*, hard 미등장. 현재 코드는 무조건 호출이라 normal에서 시각 겹침 발생 가능. 게임 로직(추적/이스터에그)에는 영향 0 — *별도 sprint*에서 등장 분기 처리. 본 sprint는 waypoint 좌표 미접촉.
-
-### 외곽 벽 중복
-- 외벽 r=0/23, c=0/47. hard 맵 좌표 모두 r∈[2,21], c∈[4,43] → **중복 0**.
+grep `switch.*gameState` → **0건**. exhaustive switch 없음. case 추가가 다른 파일 영향 0건.
 
 ---
 
-## 회귀 0 자연 차단
+## 회귀 0 자연 차단 메커니즘
 
-| 항목 | 차단 메커니즘 |
-|---|---|
-| easy 플레이 | switch `.easy` → addCentralPillar 그대로. 한 줄도 안 건드림. |
-| 외곽 벽 | setupMap이 addOuterWalls를 *변경 없이* 호출. |
-| 플레이어/적 스폰 | §"충돌 검증"에서 무충돌 증명. |
-| 음표/F 스폰 시스템 | SpawnSystem 미접촉. 벽 검사는 SpriteKit physics에 위임. |
-| HUD/카메라/이스터에그 | 모든 시스템 미접촉. |
-| pbxproj | 신규 파일 0개. |
-
----
-
-## 주의사항 (필독)
-
-1. **PhysicsBody 정책 완전 일치** — addRectPillar의 body 7줄은 addCentralPillar와 byte-equal. category=wall, isDynamic=false, friction=0, restitution=0, collisionBitMask=0, contactTestBitMask=0.
-
-2. **벽 색 `.ganhoPaper` 1종만** — 새 토큰 0건.
-
-3. **타일 좌표 → 픽셀 변환** — anchorPoint 기본값 .center 가정. 직사각형 중심 = `((cStart + widthTiles/2) × tileSize, (rStart + heightTiles/2) × tileSize)`.
-
-4. **SpriteKit y 위로 증가** — 원본 game.js와 *상하 반전*. SPEC 좌표 표는 이미 *SpriteKit r 기준*으로 변환 완료. 원본 r을 그대로 베끼지 말 것.
-
-5. **외곽 벽 중복 방지** — hard 맵 좌표 모두 r∈[2,21], c∈[4,43] 내부. 자연 차단.
-
-6. **문은 세로벽에서만 분기** — 원본 디자인 충실. 가로벽 doorC 매개변수 없음.
-
-7. **세로벽 SKSpriteNode 분리** — doorR 한 칸을 *건너뛰어* 상단부+하단부 2개로 쪼갠다. 통짜 + 빈 픽셀은 PhysicsBody가 문을 막아 플레이어 입장 불가.
-
-8. **setupWorld 호출 순서 보존** — `worldNode.position = .zero` → `addChild(worldNode)` → `setupMap()`.
-
-9. **normal/hard 공용 정책** — GDD §6 "hard맵(normal·hard 공용)" 명시. switch case `.normal, .hard`.
-
-10. **easy 무변경 보장** — easy 분기는 기존 addCentralPillar와 완전 동일.
-
-11. **switch default 미사용** — Difficulty 신규 case 추가 시 컴파일러 경고.
-
-12. **stoneGuard 시각 겹침** — normal에서 우측 코너 방 벽과 stoneGuard가 시각 겹칠 수 있음. 게임 로직 영향 0. *별도 sprint*.
-
-13. **NoteSpawn / ProjectileSpawn 무관** — SpawnSystem 코드 미접촉.
+1. **update 폴링** — `guard gameState == .playing` 한 줄이 `.cutscene` 차단. 7개 시스템(타이머/이동/카메라/적/콤보/끊김/HUD) 동시 정지.
+2. **SpawnSystem.start 미호출** — startGameProperly 내부. 컷씬 dismiss 후에야 도달.
+3. **bgm.play 미호출** — 동일. 컷씬 중 *침묵*.
+4. **player velocity 0** — didMove 직후 누적 0.
+5. **컷씬 노드 cameraNode 자식** — worldNode/HUD와 시각 분리.
+6. **EnemyNode/ProjectileSpawn 미실행** — update 차단으로 자동.
+7. **ContactRouter 콜백 미발화** — 노드 간 접촉 경로 0.
+8. **다중 탭 차단** — isUserInteractionEnabled 토글 + onDismiss nil 캡처.
 
 ---
 
-## 작업 체크리스트
+## 영구 저장 동작
+**0건**. intro는 매 게임 시작 시 표시. 한 번 본 컷씬 재차 표시 방지는 다음 sprint.
 
-- [ ] GameConfig.swift 끝에 hard 맵 상수 ~30개.
-- [ ] setupWorld()를 setupMap() 단일 호출로 교체.
-- [ ] setupMap() 신설 — switch 분기.
-- [ ] addHardMap() 신설.
-- [ ] 헬퍼 3개 (addRectPillar / addHorizontalWall / addVerticalWall).
-- [ ] PhysicsBody 7줄 byte-equal.
-- [ ] 강제 언래핑/매직 넘버 0건.
-- [ ] 빌드 SUCCEEDED + 시뮬 시 easy/normal/hard 시각 확인.
+---
+
+## 주의사항
+
+1. **GameState exhaustive switch 0건** — grep 확인. case 추가 안전.
+2. **CountdownNode 완전 보존** — dismiss 후 기존 showCountdown() 그대로. 타이밍 변경 0.
+3. **자가 소멸 패턴 변형** — SelfDismissingNode marker protocol 채택. 터치 트리거(시간 트리거 아님).
+4. **isUserInteractionEnabled 필수 true** — SKNode 기본 false. 미설정 시 touchesBegan 부모로 전파.
+5. **다중 탭 방지** — dismiss 첫 줄 isUserInteractionEnabled = false 토글 + onDismiss를 nil로 캡처.
+6. **본문 자동 줄바꿈** — iOS 11+ numberOfLines = 0 + preferredMaxLayoutWidth.
+7. **폰트 가시성** — 제목 26 / 본문 20 / TAP 16, .ganhoPaper, 배경 .black α=0.85.
+8. **showCountdown private 동일 클래스** — 접근 제한자 변경 0.
+9. **resize 대응 불필요** — 컷씬 짧은 수명.
+10. **pbxproj 등록** — ScorePopupNode 등록 라인 답습 (PBXBuildFile/PBXFileReference/PBXSourcesBuildPhase iOS).
+11. **메모리 관리** — onDismiss `[weak self]` 캡처. CountdownNode 패턴 답습.
+12. **{NAME} 치환** — `String.replacingOccurrences(of: "{NAME}", with: characterID.displayName)`. easy/normal 본문에 1개 등장.

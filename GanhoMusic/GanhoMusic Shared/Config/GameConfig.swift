@@ -531,4 +531,37 @@ enum GameConfig {
     static let hardMapCenterBottomPillarCStart: Int = 23
     static let hardMapCenterBottomPillarCEnd:   Int = 24
     static let hardMapCenterBottomPillarR:      Int = 8
+
+    // MARK: - Cutscene (Phase 7-3)
+    /// 컷씬 배경 SKSpriteNode 알파(반투명 검정). 0.85 = 게임 월드를 *흐릿하게* 보여주며 텍스트 가독성 확보.
+    /// 1.0(완전 차단)이면 *전환*의 시각 연속성이 끊기고, 0.5 이하면 본문 라벨 가독성 ↓.
+    static let cutsceneBackgroundAlpha: CGFloat = 0.85
+    /// 컷씬 제목 라벨 폰트 크기 (pt). resultScoreFontSize(24)보다 살짝 큼 — *장*의 톤.
+    /// countdownFontSize(96)·comboPopupFontSize(48)보단 작음 — 본문이 주인공인 컷씬에서 제목은 헤더 정도.
+    static let cutsceneTitleFontSize: CGFloat = 26
+    /// 컷씬 본문 라벨 폰트 크기 (pt). 한국어 가독성 + 화면 가로 70% 폭에 2~3줄 줄바꿈 균형.
+    /// HUD(18)와 제목(26) 중간 — 본문은 *말하는 목소리*의 톤.
+    static let cutsceneBodyFontSize: CGFloat = 20
+    /// 컷씬 TAP 라벨 폰트 크기 (pt). titlePromptFontSize(18)보다 살짝 작아 *부속 안내*임을 시각 위계로 전달.
+    static let cutsceneTapFontSize: CGFloat = 16
+    /// 컷씬 제목 라벨 y 오프셋 (pt). cameraNode 자식 좌표계 (0,0) = 화면 중앙 기준 위쪽.
+    /// 본문(0)·TAP(-120)과 시각 위계 + 본문 줄바꿈 공간 확보.
+    static let cutsceneTitleOffsetY: CGFloat = 100
+    /// 컷씬 TAP 라벨 y 오프셋 (pt). 화면 중앙 기준 아래쪽 — 본문(0)과 안전 간격 확보.
+    static let cutsceneTapOffsetY: CGFloat = -120
+    /// 컷씬 본문 자동 줄바꿈 최대 폭 비율 (scene.width × ratio). 0.7 = 양 가장자리 15% 여백 확보.
+    /// 너무 좁으면 줄 수 ↑(스크롤 느낌), 너무 넓으면 가독성 ↓(끝까지 시선 이동 부담).
+    static let cutsceneBodyWidthRatio: CGFloat = 0.7
+    /// 컷씬 노드 zPosition. countdownZPosition(250)·bombFlashZPosition 위 — 컷씬 동안 어떤 UI도 덮는다.
+    /// 게임이 아직 시작 안 했으므로 그 어떤 게임 노드보다 우선.
+    static let cutsceneZPosition: CGFloat = 300
+    /// 컷씬 fadeIn 길이 (초). present 직후 alpha 0 → 1 보간.
+    /// 너무 짧으면 *팝업* 느낌, 너무 길면 답답함. countdownFadeInDuration(0.1)보다 길어 *문이 열리는* 톤.
+    static let cutsceneFadeInDuration: TimeInterval = 0.25
+    /// 컷씬 fadeOut 길이 (초). dismiss 시 alpha 1 → 0 보간 + 트리 제거.
+    /// fadeIn(0.25)보다 살짝 길어 *떠나가는 잔향* 톤. sceneTransitionDuration(0.4)과 동급.
+    static let cutsceneFadeOutDuration: TimeInterval = 0.3
+    /// 컷씬 TAP 라벨 alpha. 0.7 = 본문·제목(1.0)과 시각 위계 + *깜빡임 없이도* 부속 안내임이 전달.
+    /// dpadAlpha(0.7)와 동급 — *조작 안내 톤*과 일관.
+    static let cutsceneTapLabelAlpha: CGFloat = 0.7
 }
