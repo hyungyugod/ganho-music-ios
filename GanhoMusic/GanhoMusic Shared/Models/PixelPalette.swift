@@ -80,3 +80,28 @@ enum PixelPalette {
         }
     }
 }
+
+// MARK: - Chief Palette (Phase 8-2)
+extension PixelPalette {
+    /// 수간호사(EnemyNode) 픽셀 팔레트 14키. game.js L905-919 chiefPaletteCache 1:1.
+    /// 원본 cache는 15엔트리(S/N/H/h/K/k/X/G/g/U/V/C/P/B/M) — 그 중 'P'(하의)는 'U'(uniform)와
+    /// 동일 hex `#f4f0ee`로 통일되어 있고, 본 sprite 데이터(L820-841)에서 'P' 키 자체가
+    /// 등장하지 않는다. 따라서 의미상 유니크한 14키만 매핑.
+    /// PixelSpriteRenderer는 팔레트에 없는 문자를 *투명*으로 처리하므로 안전.
+    static let chiefPalette: [Character: UIColor] = [
+        "S": .ganhoPixelChiefSkin,          // 피부
+        "N": .ganhoPixelChiefWrinkle,       // 주름/피부 음영
+        "H": .ganhoPixelChiefHair,          // 백발
+        "h": .ganhoPixelChiefHairShadow,    // 백발 음영
+        "K": .ganhoPixelChiefCap,           // 간호사 캡
+        "k": .ganhoPixelChiefCapShadow,     // 캡 음영
+        "X": .ganhoPixelChiefCross,         // 캡 코럴 십자
+        "G": .ganhoPixelChiefGlass,         // 안경테
+        "g": .ganhoPixelChiefGlassLens,     // 렌즈(피부 변형)
+        "U": .ganhoPixelChiefUniform,       // 흰 간호사복
+        "V": .ganhoPixelChiefUniformShadow, // 흰옷 음영
+        "C": .ganhoPixelChiefAccent,        // 코럴 악센트(옷깃 중앙)
+        "B": .ganhoPixelChiefShoes,         // 검정 구두
+        "M": .ganhoPixelChiefMouth          // 입술
+    ]
+}

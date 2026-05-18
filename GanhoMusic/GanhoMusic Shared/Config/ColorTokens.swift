@@ -114,6 +114,41 @@ extension UIColor {
     static let ganhoPixelHairLeeShadow = UIColor(hex: "#3a2414")
     /// lee 강아지귀 머리띠 — game.js 'D' #b07a58
     static let ganhoPixelDogEar = UIColor(hex: "#b07a58")
+
+    // MARK: - Chief Palette (Phase 8-2)
+    // 원본 web game (game.js L905-919 chiefPaletteCache)의 hex 값을 *문자열 byte-equal* 변환.
+    // 백발 + 안경 + 간호사 캡 + 흰 간호사복 + 얼굴 주름의 나이 든 수간호사.
+    // 14개 색 토큰 — 원본 cache 15엔트리 중 'P'(하의)는 'U'(uniform)와 같은 hex `#f4f0ee`라
+    // 단일 'Uniform' 토큰으로 통일. sprite 데이터에서도 'P' 키는 등장하지 않는다.
+
+    /// 피부 — game.js 'S' #f5d5c0
+    static let ganhoPixelChiefSkin = UIColor(hex: "#f5d5c0")
+    /// 주름/피부 음영 — game.js 'N' #c08878
+    static let ganhoPixelChiefWrinkle = UIColor(hex: "#c08878")
+    /// 백발 본체 — game.js 'H' #e8e4e8
+    static let ganhoPixelChiefHair = UIColor(hex: "#e8e4e8")
+    /// 백발 음영 — game.js 'h' #c8c4cc
+    static let ganhoPixelChiefHairShadow = UIColor(hex: "#c8c4cc")
+    /// 간호사 캡 — game.js 'K' #ffffff
+    static let ganhoPixelChiefCap = UIColor(hex: "#ffffff")
+    /// 캡 음영 — game.js 'k' #e6dde6
+    static let ganhoPixelChiefCapShadow = UIColor(hex: "#e6dde6")
+    /// 캡 코럴 십자 — game.js 'X' #ff7b7b
+    static let ganhoPixelChiefCross = UIColor(hex: "#ff7b7b")
+    /// 안경테 — game.js 'G' #1f1a1f
+    static let ganhoPixelChiefGlass = UIColor(hex: "#1f1a1f")
+    /// 렌즈 안(피부 변형) — game.js 'g' #e8c8b8
+    static let ganhoPixelChiefGlassLens = UIColor(hex: "#e8c8b8")
+    /// 흰 간호사복 — game.js 'U' #f4f0ee
+    static let ganhoPixelChiefUniform = UIColor(hex: "#f4f0ee")
+    /// 흰옷 음영 — game.js 'V' #d8d2d0
+    static let ganhoPixelChiefUniformShadow = UIColor(hex: "#d8d2d0")
+    /// 코럴 악센트(옷깃 중앙) — game.js 'C' #ff7b7b
+    static let ganhoPixelChiefAccent = UIColor(hex: "#ff7b7b")
+    /// 검정 구두 — game.js 'B' #1a1214
+    static let ganhoPixelChiefShoes = UIColor(hex: "#1a1214")
+    /// 입술 — game.js 'M' #6b3a3a
+    static let ganhoPixelChiefMouth = UIColor(hex: "#6b3a3a")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

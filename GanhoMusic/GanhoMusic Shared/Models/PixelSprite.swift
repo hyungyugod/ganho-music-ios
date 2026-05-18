@@ -271,3 +271,82 @@ enum PixelDirection: String {
 enum PixelFrame {
     case idle, step1, step2
 }
+
+// MARK: - Nurse Chief Sprite (Phase 8-2)
+extension PixelSprite {
+    /// 수간호사(EnemyNode) 16×20 픽셀 데이터.
+    /// game.js L819-874 `nurseChiefSprite(dir, frame, throwArm)` *byte-equal* 이식.
+    /// 본 sprint는 idle/walk만 — `throwArm` (F 투척 모션, game.js L877-889)은 다음 sprint.
+    /// 백발 + 안경 + 간호사 캡 + 흰 간호사복 + 얼굴 주름의 나이 든 수간호사.
+    static func nurseChiefData(direction: PixelDirection, frame: PixelFrame) -> Frame {
+        // 기본 정면 base — game.js L820-841 정확 일치.
+        // 색 코드: '.'=투명, 'S'=피부, 'N'=주름, 'H'=백발, 'h'=백발 음영,
+        // 'K'=캡, 'k'=캡 음영, 'X'=캡 코럴 십자, 'G'=안경테, 'g'=렌즈,
+        // 'U'=흰 간호사복, 'V'=흰옷 음영, 'C'=코럴 악센트, 'B'=구두, 'M'=입.
+        var base: Frame = [
+            "................", // 0
+            "....KKKKKKKK....", // 1  간호사 캡 상단
+            "...KKKKXXKKKK...", // 2  캡 + 코럴 십자
+            "..KkkkkkkkkkkK..", // 3  캡 밑단(음영)
+            "..HHSSSSSSSSHH..", // 4  이마 + 백발 옆선
+            "..HhSSSSSSSShH..", // 5  백발 음영
+            "..hSGGSSSSGGSh..", // 6  안경테
+            "..hSGgSSSSgGSh..", // 7  안경 렌즈(눈)
+            "..hSSNSSSSNSSh..", // 8  눈 밑 주름
+            "..hSSSSMMSSSSh..", // 9  입
+            "..hhSSNNNNSSHh..", // 10 팔자 주름 + 턱선
+            "...UUUUUUUUUU...", // 11 흰 간호사복 어깨
+            "..UUUUVCCVUUUU..", // 12 옷깃 + 코럴 십자
+            "..UUVVVVVVVVUU..", // 13 상의 음영
+            "...UUUUUUUUUU...", // 14 상의 밑단
+            "....UUUUUUUU....", // 15 하의(흰 간호사복)
+            "....UUU..UUU....", // 16
+            "....UUU..UUU....", // 17
+            "....BB....BB....", // 18 구두
+            "....BB....BB...."  // 19
+        ]
+
+        // 방향별 얼굴 — game.js L843-864. 뒷통수(up)는 캡·백발로 덮고, 좌우는 안경·주름 편향.
+        switch direction {
+        case .up:
+            // 캡 행 1-3 유지, 얼굴 영역(4-10)만 백발로 덮음. game.js L844-852.
+            base[4]  = "..HHHHHHHHHHHH.."
+            base[5]  = "..HhHHHHHHHHhH.."
+            base[6]  = "..hHHHHHHHHHHh.."
+            base[7]  = "..hHHHHHHHHHHh.."
+            base[8]  = "..hHHHHHHHHHHh.."
+            base[9]  = "..hHHHHHHHHHHh.."
+            base[10] = "..hhHHHHHHHHHh.."
+        case .left:
+            // game.js L853-858 — 안경/주름을 오른쪽으로 편향.
+            base[6]  = "..hSSSSSSSGGSh.."
+            base[7]  = "..hSSSSSSSgGSh.."
+            base[8]  = "..hSSSSSSSNSSh.."
+            base[9]  = "..hSSSSMMSSSSh.."
+            base[10] = "..hhSSNNNNSSHh.."
+        case .right:
+            // game.js L859-864 — 안경/주름을 왼쪽으로 편향.
+            base[6]  = "..hSGGSSSSSSSh.."
+            base[7]  = "..hSGgSSSSSSSh.."
+            base[8]  = "..hSSNSSSSSSSh.."
+            base[9]  = "..hSSSSMMSSSSh.."
+            base[10] = "..hhSSNNNNSSHh.."
+        case .down:
+            break
+        }
+
+        // 걷기 프레임 — 발만 교차 (행 18-19, game.js L867-873).
+        switch frame {
+        case .step1:
+            base[18] = "....BB...BBB...."
+            base[19] = "....BBB...BB...."
+        case .step2:
+            base[18] = "....BBB...BB...."
+            base[19] = "....BB...BBB...."
+        case .idle:
+            break
+        }
+
+        return base
+    }
+}
