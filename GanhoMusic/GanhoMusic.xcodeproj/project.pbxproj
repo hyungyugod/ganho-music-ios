@@ -47,6 +47,9 @@
 		A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */; };
 		A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000037 /* DifficultyCardNode.swift */; };
 		A1C0F1B00000000000000038 /* CutsceneOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */; };
+		A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */; };
+		A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000040 /* GraduationRepository.swift */; };
+		A1C0F1B00000000000000041 /* DiplomaOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +93,9 @@
 		A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyPreferenceRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000037 /* DifficultyCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CutsceneOverlayNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerDifficultyScoreRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000040 /* GraduationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraduationRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiplomaOverlayNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -237,6 +243,7 @@
 				A1C0F1A00000000000000034 /* ScorePopupNode.swift */,
 				A1C0F1A00000000000000037 /* DifficultyCardNode.swift */,
 				A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */,
+				A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -271,6 +278,8 @@
 				A1C0F1A00000000000000015 /* StatisticsRepository.swift */,
 				A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */,
 				A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */,
+				A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */,
+				A1C0F1A00000000000000040 /* GraduationRepository.swift */,
 			);
 			name = Repositories;
 			path = "GanhoMusic Shared/Repositories";
@@ -516,6 +525,9 @@
 				A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */,
 				A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */,
 				A1C0F1B00000000000000038 /* CutsceneOverlayNode.swift in Sources */,
+				A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */,
+				A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */,
+				A1C0F1B00000000000000041 /* DiplomaOverlayNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

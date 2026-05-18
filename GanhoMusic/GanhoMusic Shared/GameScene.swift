@@ -69,6 +69,10 @@ class GameScene: SKScene {
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
+    // Phase 7-4 — 캐릭터 × 난이도 매트릭스 / 최초 졸업 일시 저장소. HighScoreRepository와 *병행*.
+    // 단일 점수 사용처(ResultScene bestLabel)는 무영향 — 본 두 저장소는 졸업 판정 전용.
+    let perDiffRepo = PerDifficultyScoreRepository()
+    let graduationRepo = GraduationRepository()
     let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
     let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
@@ -529,11 +533,43 @@ class GameScene: SKScene {
         let bestScore = highScoreRepo.current
         statsRepo.recordPlay(score: score)
         let stats = statsRepo.current
+        // Phase 7-4 — 매트릭스 갱신 + 졸업 판정 + 최초 일시 기록.
+        // 순서: matrix.record → isGraduated(matrix) → graduation.record(Date()) → graduation.graduatedAt.
+        // perDiffRepo.record는 새 점수가 셀 최고를 갱신했는지 무관하게 호출 — 매트릭스 자기 일관성 우선.
+        // isGraduated가 매트릭스 *최신 상태*를 읽으므로 record→isGraduated 순서가 중요.
+        // record(Date())는 *최초 졸업*에만 true 반환 → 이후 갱신 호출은 false → 일시 영원 동일.
+        // graduatedAt(:)는 최초 기록 이후라면 항상 유효한 Date 반환 — Optional은 한 번도 졸업 안 했을 때만 nil.
+        perDiffRepo.record(characterID: characterID, difficulty: difficulty, score: score)
+        var isNewGraduation = false
+        if GameScene.isGraduated(characterID: characterID, scores: perDiffRepo) {
+            isNewGraduation = graduationRepo.record(characterID: characterID, date: Date())
+        }
+        let graduatedAt = graduationRepo.graduatedAt(characterID: characterID)
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
             characterName: characterID.displayName,
-            difficulty: difficulty
+            difficulty: difficulty,
+            isNewGraduation: isNewGraduation,
+            graduatedAt: graduatedAt
         )
         view.presentScene(resultScene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
+    }
+
+    // MARK: - Graduation (Phase 7-4)
+    /// 캐릭터의 모든 난이도(easy/normal/hard)가 목표 점수 이상 달성됐는지 검사.
+    /// 한 난이도라도 목표 미달이면 false. 모든 난이도 통과 시 true.
+    /// `Difficulty.allCases` 순회 — 미래 난이도 추가 시 자동 반영(GameConfig.targetScoreByDifficulty dict 한 줄만 추가).
+    /// static 헬퍼 — GameScene 인스턴스 상태 미접근 (순수 함수). 미래 TitleScene 뱃지 등에서도 재사용 가능.
+    /// 목표 점수 dict 조회 실패 시 `Int.max` 폴백 — 어떤 점수로도 달성 불가 = 졸업 차단 (graceful 안전망).
+    private static func isGraduated(characterID: CharacterID,
+                                    scores repo: PerDifficultyScoreRepository) -> Bool {
+        let targets = GameConfig.targetScoreByDifficulty
+        for difficulty in Difficulty.allCases {
+            let target = targets[difficulty] ?? Int.max
+            if repo.best(characterID: characterID, difficulty: difficulty) < target {
+                return false
+            }
+        }
+        return true
     }
 }

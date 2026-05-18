@@ -34,6 +34,11 @@ final class ResultScene: SKScene {
     /// Phase 7-1 — init 주입된 난이도. 불변. difficultyLabel.text 합성에만 사용.
     /// String이 아닌 Difficulty enum을 직접 받음 — displayName 매핑이 단일 진실 원천(Difficulty enum).
     private let difficulty: Difficulty
+    /// Phase 7-4 — 이번 판에서 *최초* 졸업이 성사됐는지(GraduationRepository.record 반환값).
+    /// true일 때만 setupLabels 끝에서 졸업장 자동 표시. default false로 기존 호출부 회귀 0.
+    private let isNewGraduation: Bool
+    /// Phase 7-4 — 졸업 일시(Optional). 졸업 안 한 캐릭터는 nil. presentDiploma의 `if let` 가드와 짝.
+    private let graduatedAt: Date?
     /// TitleScene 복귀 중복 진입 가드.
     private var isTransitioning = false
     private let titleLabel  = SKLabelNode(text: "GAME OVER")
@@ -57,14 +62,18 @@ final class ResultScene: SKScene {
     /// 외부에서는 반드시 이 팩토리만 사용 — `private init` 으로 직접 호출 차단.
     /// Phase 3-5 — `stats: GameStats` 인자 추가.
     /// Phase 5-7 — `characterName: String` 인자 추가.
-    /// Phase 7-1 — `difficulty: Difficulty` 인자 추가 (마지막 인자).
+    /// Phase 7-1 — `difficulty: Difficulty` 인자 추가.
+    /// Phase 7-4 — `isNewGraduation` / `graduatedAt` default 인자 2개 추가.
+    /// 두 인자 모두 default(false, nil) — 기존 호출부 회귀 0. 졸업장 자동 표시는 두 인자 모두 명시될 때만.
     class func newResultScene(
         score: Int,
         bestScore: Int,
         isNewBest: Bool,
         stats: GameStats,
         characterName: String,
-        difficulty: Difficulty
+        difficulty: Difficulty,
+        isNewGraduation: Bool = false,
+        graduatedAt: Date? = nil
     ) -> ResultScene {
         let scene = ResultScene(
             size: CGSize(width: 1024, height: 768),
@@ -73,16 +82,19 @@ final class ResultScene: SKScene {
             isNewBest: isNewBest,
             stats: stats,
             characterName: characterName,
-            difficulty: difficulty
+            difficulty: difficulty,
+            isNewGraduation: isNewGraduation,
+            graduatedAt: graduatedAt
         )
         scene.scaleMode = .resizeFill
         return scene
     }
 
     // MARK: - Init
-    /// 7개 인자 모두 `let` 이므로 `super.init` 전에 저장.
+    /// 9개 인자 모두 `let` 이므로 `super.init` 전에 저장.
     /// Phase 5-7 — `characterName` 6번째 인자.
     /// Phase 7-1 — `difficulty` 7번째 인자.
+    /// Phase 7-4 — `isNewGraduation` 8번째, `graduatedAt` 9번째 인자.
     private init(
         size: CGSize,
         score: Int,
@@ -90,7 +102,9 @@ final class ResultScene: SKScene {
         isNewBest: Bool,
         stats: GameStats,
         characterName: String,
-        difficulty: Difficulty
+        difficulty: Difficulty,
+        isNewGraduation: Bool,
+        graduatedAt: Date?
     ) {
         self.finalScore = score
         self.bestScore = bestScore
@@ -98,6 +112,8 @@ final class ResultScene: SKScene {
         self.stats = stats
         self.characterName = characterName
         self.difficulty = difficulty
+        self.isNewGraduation = isNewGraduation
+        self.graduatedAt = graduatedAt
         super.init(size: size)
     }
 
@@ -147,6 +163,11 @@ final class ResultScene: SKScene {
         if isNewBest {
             configureNewBestLabel()
             scheduleNewBestReveal()
+        }
+        // Phase 7-4 — 최초 졸업 시 졸업장 자동 표시. 두 가드(`isNewGraduation` true AND `graduatedAt` non-nil)
+        // 모두 통과해야 발화 — default 인자만 사용한 기존 호출부는 자연 차단(회귀 0).
+        if isNewGraduation, let graduatedAt = graduatedAt {
+            presentDiploma(at: graduatedAt)
         }
     }
 
@@ -275,5 +296,21 @@ final class ResultScene: SKScene {
         )
         let cycle = SKAction.sequence([fadeOut, fadeIn])
         bestLabel.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
+    }
+
+    // MARK: - Diploma (Phase 7-4)
+    /// 최초 졸업 시점에만 호출 (setupLabels 끝 가드 통과). DiplomaOverlayNode 정적 팩토리로 부착.
+    /// parent = self (ResultScene), anchor = `(frame.midX, frame.midY)` — cameraNode 없는 ResultScene에 맞춤.
+    /// onDismiss = 빈 클로저 — 졸업장 닫기 후 ResultScene 그대로 노출(*두 단계 탭* 정책: 졸업장 1탭 + TitleScene 1탭).
+    /// DiplomaOverlayNode가 자가 소멸하므로 ResultScene은 후속 정리 0건.
+    private func presentDiploma(at graduatedAt: Date) {
+        DiplomaOverlayNode.present(
+            characterName: characterName,
+            graduatedAt: graduatedAt,
+            parent: self,
+            sceneSize: size,
+            anchor: CGPoint(x: frame.midX, y: frame.midY),
+            onDismiss: {}
+        )
     }
 }

@@ -564,4 +564,61 @@ enum GameConfig {
     /// 컷씬 TAP 라벨 alpha. 0.7 = 본문·제목(1.0)과 시각 위계 + *깜빡임 없이도* 부속 안내임이 전달.
     /// dpadAlpha(0.7)와 동급 — *조작 안내 톤*과 일관.
     static let cutsceneTapLabelAlpha: CGFloat = 0.7
+
+    // MARK: - Diploma (Phase 7-4)
+    /// 난이도별 졸업 목표 점수. 캐릭터 × 난이도 매트릭스에서 이 점수 이상 달성하면 그 난이도 "통과".
+    /// easy 60 > normal 50 > hard 30 — 어려운 난이도일수록 목표는 낮지만 *달성 자체가 어려운* 균형.
+    /// `[Difficulty: Int]` dict — Difficulty enum이 단일 진실 원천. 추가 난이도 시 dict 한 줄만 늘리면 됨.
+    static let targetScoreByDifficulty: [Difficulty: Int] = [
+        .easy: 60, .normal: 50, .hard: 30
+    ]
+    /// PerDifficultyScoreRepository가 사용하는 UserDefaults 키.
+    /// `highScoreUserDefaultsKey`(단일 최고점)와 분리 — 두 저장소 병행 운영.
+    static let perDifficultyScoreUserDefaultsKey: String = "perDifficultyScores"
+    /// GraduationRepository가 사용하는 UserDefaults 키. 캐릭터별 최초 졸업 일시 저장.
+    /// 신규 키 — 기존 키와 충돌 0.
+    static let graduationUserDefaultsKey: String = "graduations"
+    /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.
+    /// cutsceneBackgroundAlpha(어두운 톤)와 의도적으로 다른 값 — 증서의 *밝고 견고한* 인상.
+    static let diplomaBackgroundAlpha: CGFloat = 0.92
+    /// 졸업장 zPosition. cutsceneZPosition(300)과 동급 — newBestZPosition(150) 위로 자연 겹침.
+    /// 그 어떤 게임 UI도 덮음(이미 게임 종료 후 ResultScene 위라 충돌 없음).
+    static let diplomaZPosition: CGFloat = 300
+    /// 졸업장 fadeIn 길이 (초). 0.4 = sceneTransitionDuration과 동급 — *문이 열리는* 톤.
+    /// cutsceneFadeInDuration(0.25)보다 살짝 길어 *증서가 천천히 펼쳐지는* 인상.
+    static let diplomaFadeInDuration: TimeInterval = 0.4
+    /// 졸업장 fadeOut 길이 (초). 0.35 = fadeIn(0.4)과 거의 같지만 살짝 빨라 *잔향 짧게*.
+    static let diplomaFadeOutDuration: TimeInterval = 0.35
+    /// 영문 제목 "CERTIFICATE OF GRADUATION" 폰트 크기. 한글(30)보다 살짝 작아 *부제* 느낌.
+    static let diplomaTitleEnFontSize: CGFloat = 26
+    /// 한글 제목 "실습 수료 증서" 폰트 크기. 30 — *주인공*. 본문(18)보다 명확히 큼.
+    static let diplomaTitleKoFontSize: CGFloat = 30
+    /// 본문 라벨(2줄) 폰트 크기. 18 — HUD(18)와 동급. 자동 줄바꿈으로 폭에 맞춤.
+    static let diplomaBodyFontSize: CGFloat = 18
+    /// 발급자 라벨("hgfolio · 김간호는 음악박사") 폰트 크기. 작은 부속 정보.
+    static let diplomaIssuerFontSize: CGFloat = 14
+    /// 일시 라벨("yyyy-MM-dd") 폰트 크기. issuer(14)와 동급 — 한 줄에 좌우 배치.
+    static let diplomaDateFontSize: CGFloat = 14
+    /// "TAP TO CONTINUE" 안내 라벨 폰트 크기. 14 — diplomaTapFontSize 별도(작은 안내문 톤).
+    /// cutsceneTapFontSize(16)와 다른 값 — 졸업장 톤에 맞춰 더 차분.
+    static let diplomaTapFontSize: CGFloat = 14
+    /// 영문 제목 y 오프셋. +150 — 화면 중앙 기준 위쪽. 한글(110)과 40 간격.
+    static let diplomaTitleEnOffsetY: CGFloat = 150
+    /// 한글 제목 y 오프셋. +110. 영문(150)과 본문(30) 사이.
+    static let diplomaTitleKoOffsetY: CGFloat = 110
+    /// 본문 1 y 오프셋. +30 — 화면 중앙 약간 위.
+    static let diplomaBody1OffsetY: CGFloat = 30
+    /// 본문 2 y 오프셋. -10 — 화면 중앙 약간 아래. 본문1(30)과 40 간격으로 2줄 자연 배치.
+    static let diplomaBody2OffsetY: CGFloat = -10
+    /// 발급자 라벨 y 오프셋. -110 — 본문 아래 충분한 간격. 우측 정렬.
+    static let diplomaIssuerOffsetY: CGFloat = -110
+    /// 일시 라벨 y 오프셋. -110 — 발급자와 같은 y, 좌측 정렬. 한 줄에 좌우 배치.
+    static let diplomaDateOffsetY: CGFloat = -110
+    /// TAP 라벨 alpha. 0.7 = cutsceneTapLabelAlpha와 동급 — *조작 안내 톤* 일관.
+    static let diplomaTapLabelAlpha: CGFloat = 0.7
+    /// TAP 라벨 y 오프셋. -160 — 발급자/일시(-110) 아래 충분한 간격.
+    static let diplomaTapOffsetY: CGFloat = -160
+    /// 본문 자동 줄바꿈 최대 폭 비율 (scene.width × ratio). 0.7 = cutsceneBodyWidthRatio와 동급.
+    /// 양 가장자리 15% 여백 — 한국어 본문이 폭 안에 자연 줄바꿈.
+    static let diplomaBodyWidthRatio: CGFloat = 0.7
 }
