@@ -637,4 +637,43 @@ enum GameConfig {
     /// 걷기 애니메이션의 step1↔step2 교차 주기 (초). 0.18 = 1초당 ~5.5회 교차 — *총총* 보행 톤.
     /// 너무 짧으면 후드득 떨림, 너무 길면 *멈춤*처럼 보임. 픽셀 retro 게임 평균 보행 주기.
     static let pixelWalkFrameInterval: TimeInterval = 0.18
+
+    // MARK: - Game UI Tokens (Phase 8-3)
+    /// 원본 game.css 패널/카드 layout 상수 1:1 매핑.
+    /// 디자인 단일 진실 원천 = style.css(L3-46) + game.css(L335-740).
+
+    /// --radius 10px — 일반 카드/패널 코너
+    static let uiRadius: CGFloat = 10
+    /// --radius-sm 6px — 작은 카드 코너
+    static let uiRadiusSm: CGFloat = 6
+    /// 캡슐 코너 반경 — border-radius: 999px (난이도 버튼)
+    static let uiRadiusPill: CGFloat = 999
+    /// 일반 패널 max-width 360px
+    static let uiPanelMaxWidth: CGFloat = 360
+    /// character 패널 max-width 480px (.game-overlay__panel--character)
+    static let uiPanelCharacterMaxWidth: CGFloat = 480
+    /// 패널 좌우 padding (pt)
+    static let uiPanelPaddingH: CGFloat = 20
+    /// 패널 상하 padding (pt)
+    static let uiPanelPaddingV: CGFloat = 22
+    /// 패널 안 요소 사이 gap (pt)
+    static let uiPanelGap: CGFloat = 14
+    /// 제목 텍스트 font-size 22px
+    static let uiTitleFontSize: CGFloat = 22
+    /// 본문 텍스트 font-size 12px
+    static let uiBodyFontSize: CGFloat = 12
+    /// 보조 hint 텍스트 font-size 11px
+    static let uiHintFontSize: CGFloat = 11
+    /// HUD 값 font-size 22px (큰 숫자/점수)
+    static let uiHudValueFontSize: CGFloat = 22
+    /// HUD 라벨 font-size 10px (작은 캡션)
+    static let uiHudLabelFontSize: CGFloat = 10
+    /// 카드 이름 font-size 12px
+    static let uiCardNameFontSize: CGFloat = 12
+    /// 카드 태그(부제) font-size 10px
+    static let uiCardTagFontSize: CGFloat = 10
+    /// 카드 BEST 라벨 font-size 10px
+    static let uiCardBestFontSize: CGFloat = 10
+    /// 패널/카드 보더 line-width 1px
+    static let uiPanelLineWidth: CGFloat = 1
 }

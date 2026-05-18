@@ -48,6 +48,7 @@ final class TitleScene: SKScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgDeep
+        setupOverlayPanel()                             // Phase 8-3 — 원본 .game-overlay 배경 + 카드 패널 (라벨/카드 *뒤*에 배치)
         setupLabels()
         selectedCharacterID = preferenceRepo.current   // Phase 5-6 — 마지막 선택 복원 (없으면 .kim)
         selectedDifficulty = difficultyRepo.current    // Phase 7-1 — 마지막 난이도 복원 (없으면 .easy)
@@ -65,6 +66,34 @@ final class TitleScene: SKScene {
     }
 
     // MARK: - Setup
+    /// Phase 8-3 — 원본 웹게임 `.game-overlay` 톤 재현.
+    /// 1) 화면 전체 반투명 검정 사각형(zPosition -10) — 게임 영역 차단 톤.
+    /// 2) 가운데 카드 패널 SKShapeNode(zPosition -5) — `.game-overlay__panel--character` 480px max-width 재현.
+    /// 라벨/카드 layout은 *미접촉* — 이미 frame.midX/midY 기준으로 패널 *안*에 자연 배치된다.
+    private func setupOverlayPanel() {
+        // 1) 화면 전체 반투명 검정 배경 — 원본 .game-overlay 배경
+        let bg = SKSpriteNode(color: .ganhoUIOverlayBg, size: size)
+        bg.position = CGPoint(x: frame.midX, y: frame.midY)
+        bg.zPosition = -10
+        bg.name = "overlayBackground"
+        addChild(bg)
+
+        // 2) 가운데 카드 패널 — 원본 .game-overlay__panel--character (max-width 480px)
+        let panelWidth = GameConfig.uiPanelCharacterMaxWidth
+        let panelHeight: CGFloat = 480   // 컨텐츠 기준 임시 고정 — TitleScene 라벨/카드 총 높이 커버
+        let panel = SKShapeNode(
+            rectOf: CGSize(width: panelWidth, height: panelHeight),
+            cornerRadius: GameConfig.uiRadius
+        )
+        panel.fillColor = .ganhoUIBgCard
+        panel.strokeColor = .ganhoUIBorder
+        panel.lineWidth = GameConfig.uiPanelLineWidth
+        panel.position = CGPoint(x: frame.midX, y: frame.midY)
+        panel.zPosition = -5
+        panel.name = "overlayPanel"
+        addChild(panel)
+    }
+
     private func setupLabels() {
         configureLabel(titleLabel,  fontSize: GameConfig.titleFontSize)
         configureLabel(bestLabel,   fontSize: GameConfig.titleBestFontSize)

@@ -1,7 +1,7 @@
-# Phase 8-2 — 수간호사 픽셀 아트 이식
+# Phase 8-3 — 원본 디자인 토큰 + TitleScene 동일화
 
 ## 개요
-원본 웹 게임(game.js L819-892)의 수간호사 픽셀 데이터 + 팔레트(13색)를 Swift로 byte-equal 이식. EnemyNode가 단색 사각형 → 백발 안경 픽셀 아트로 전환. 4방향 + 걷기 프레임 지원. throwArm(F 투척 모션)은 *본 sprint 범위 외* (다음 sprint).
+원본 웹게임의 디자인 시스템(CSS 변수 + 카드 시각 + 패널 레이아웃)을 Swift 토큰으로 옮긴다. 사용자 의도: *조작·맵·카메라만 모바일, 디자인은 원본 그대로*. 이번 sprint는 *디자인 토큰 인프라* + TitleScene의 *시각 외관 동일화* (반투명 검정 배경 + 가운데 카드 패널 + 카드 시각 원본화).
 
 ## 변경 유형
 **비주얼**
@@ -9,235 +9,203 @@
 ## Sprint 범위 계약
 
 ### 허용
-1. `Models/PixelSprite.swift` 확장 — `nurseChiefData(direction:frame:)` 정적 메서드 추가 + base + up/left/right 분기 + step1/step2 프레임 분기
-2. `Models/PixelPalette.swift` 확장 — `chiefPalette` 정적 dict 추가 (13키)
-3. `Config/ColorTokens.swift` 확장 — 수간호사 색 13개 추가
-4. `Nodes/EnemyNode.swift` 수정 — SKSpriteNode color → texture 모드. updatePixelDirection / tickWalkFrame 메서드 추가 (PlayerNode 동형). update에서 자기 velocity 기반 자동 갱신.
+1. `Config/ColorTokens.swift` — `// MARK: - Game UI Tokens (Phase 8-3)` 섹션 + 원본 CSS 변수 매핑 ~14색
+2. `Config/GameConfig.swift` — `// MARK: - Game UI Tokens (Phase 8-3)` 섹션 + 패널/카드 디자인 상수 ~16개
+3. `Scenes/TitleScene.swift` — 배경에 반투명 검정 사각형 + 가운데 가시 가능한 카드 패널 SKShapeNode 추가. 기존 라벨/카드 위치는 보존하되 패널 *안*에 들어가는 시각으로.
+4. `Nodes/CharacterCardNode.swift` — 카드 시각 토큰 갈아 끼움 (배경 ganhoUIBgCard, 선택 시 ganhoUIBrandBorder, 텍스트 ganhoUIText). 카드 크기/위치는 그대로.
+5. `Nodes/DifficultyCardNode.swift` — 동일 정책. 캡슐 모양(코너 반경 999) 적용.
 
 ### 금지
-1. throwArm F 투척 모션 — 다음 sprint
-2. StoneGuard 픽셀 — 다음 sprint
-3. 음표 / F / 카드 아바타 픽셀 — 다음 sprint
-4. PlayerNode 변경 — 회귀 0
-5. PixelSpriteRenderer 변경 — Phase 8-1에서 만든 인프라 그대로 사용
-6. Game 로직 (적 추적/속도/충돌) 변경 — physicsBody 정책 보존
+1. 카드 *위치*/크기 변경 — 7-5 핫픽스 결과 보존
+2. ResultScene / GameScene / 컷씬 노드 변경 — 다음 sprint
+3. HUD 디자인 변경 — Phase 8-5
+4. 졸업장 디자인 변경 — Phase 8-4
+5. 픽셀 캐릭터 카드 아바타 — Phase 8-3 후속 (시간 부족 시 다음 sprint)
+6. 폰트 패밀리 변경 — SKLabelNode가 시스템 폰트만 안전 지원 → 색·크기만 변경
+7. 신규 노드/매니저/리포지토리
 
 ### 판단 기준
-"이 변경 없으면 수간호사가 픽셀 아트로 안 보이는가?" → YES만 허용.
+"이 변경 없으면 TitleScene이 원본과 시각적으로 다른가?" → YES만 허용.
 
 ## 변경 범위
 
 ### 수정
-- `Models/PixelSprite.swift` — 정적 메서드 + base 데이터 추가 (game.js L819-891)
-- `Models/PixelPalette.swift` — `chiefPalette` static let 추가
-- `Config/ColorTokens.swift` — `ganhoPixelChief*` 13색 추가
-- `Nodes/EnemyNode.swift` — texture 모드 전환 + 픽셀 갱신 메서드
-- `GameScene.swift` — update에서 enemy 픽셀 갱신 호출 추가 (PlayerNode 패턴 답습)
+- `Config/ColorTokens.swift` — 디자인 토큰 14색 추가
+- `Config/GameConfig.swift` — 디자인 layout 상수 16개 추가
+- `Scenes/TitleScene.swift` — 배경 사각형 + 카드 패널 SKShapeNode 추가 (didMove 안)
+- `Nodes/CharacterCardNode.swift` — 시각 토큰 갈아 끼움
+- `Nodes/DifficultyCardNode.swift` — 시각 토큰 갈아 끼움
 
 ### 신규 파일 0개, pbxproj 변경 0건.
 
 ---
 
-## 기능 1: PixelSprite.nurseChiefData
+## 기능 1: ColorTokens 디자인 토큰 14색 (원본 CSS L4-23)
 
 ```swift
-extension PixelSprite {
-    /// 수간호사 픽셀 데이터. game.js L819-891 byte-equal.
-    /// throwArm은 다음 sprint — 본 sprint는 idle/walk만.
-    static func nurseChiefData(direction: PixelDirection, frame: PixelFrame) -> Frame {
-        var base: Frame = [
-            "................", // 0
-            "....KKKKKKKK....", // 1 캡 상단
-            "...KKKKXXKKKK...", // 2 캡 + 코럴 십자
-            "..KkkkkkkkkkkK..", // 3 캡 밑단 음영
-            "..HHSSSSSSSSHH..", // 4 이마 + 백발 옆선
-            "..HhSSSSSSSShH..", // 5 백발 음영
-            "..hSGGSSSSGGSh..", // 6 안경테
-            "..hSGgSSSSgGSh..", // 7 안경 렌즈
-            "..hSSNSSSSNSSh..", // 8 눈 밑 주름
-            "..hSSSSMMSSSSh..", // 9 입
-            "..hhSSNNNNSSHh..", // 10 팔자 + 턱선
-            "...UUUUUUUUUU...", // 11 흰 간호사복 어깨
-            "..UUUUVCCVUUUU..", // 12 옷깃 + 코럴 십자
-            "..UUVVVVVVVVUU..", // 13 상의 음영
-            "...UUUUUUUUUU...", // 14 상의 밑단
-            "....UUUUUUUU....", // 15 하의
-            "....UUU..UUU....", // 16
-            "....UUU..UUU....", // 17
-            "....BB....BB....", // 18 구두
-            "....BB....BB...."  // 19
-        ]
-        switch direction {
-        case .up:
-            // game.js L844-852 — 캡 행 1-3 유지, 얼굴 4-10 백발 덮음
-            base[4] = "..HHHHHHHHHHHH.."
-            base[5] = "..HhHHHHHHHHhH.."
-            base[6] = "..hHHHHHHHHHHh.."
-            base[7] = "..hHHHHHHHHHHh.."
-            base[8] = "..hHHHHHHHHHHh.."
-            base[9] = "..hHHHHHHHHHHh.."
-            base[10] = "..hhHHHHHHHHHh.."
-        case .left:
-            // game.js L853-858
-            base[6] = "..hSSSSSSSGGSh.."
-            base[7] = "..hSSSSSSSgGSh.."
-            base[8] = "..hSSSSSSSNSSh.."
-            base[9] = "..hSSSSMMSSSSh.."
-            base[10] = "..hhSSNNNNSSHh.."
-        case .right:
-            // game.js L859-864
-            base[6] = "..hSGGSSSSSSSh.."
-            base[7] = "..hSGgSSSSSSSh.."
-            base[8] = "..hSSNSSSSSSSh.."
-            base[9] = "..hSSSSMMSSSSh.."
-            base[10] = "..hhSSNNNNSSHh.."
-        case .down: break
-        }
-        switch frame {
-        case .step1:
-            base[18] = "....BB...BBB...."
-            base[19] = "....BBB...BB...."
-        case .step2:
-            base[18] = "....BBB...BB...."
-            base[19] = "....BB...BBB...."
-        case .idle: break
-        }
-        return base
+// MARK: - Game UI Tokens (Phase 8-3)
+/// 원본 웹게임 style.css :root CSS 변수 1:1 매핑.
+static let ganhoUIBg = UIColor(hex: "#0f0e15")          // --bg
+static let ganhoUIBgDark = UIColor(hex: "#09080f")      // --bg-dark
+static let ganhoUIBgCard = UIColor(hex: "#17151e").withAlphaComponent(0.82)  // --bg-card rgba(23,21,30,0.82)
+static let ganhoUIBrand = UIColor(hex: "#c4847a")       // --brand 코럴
+static let ganhoUIBrandLight = UIColor(hex: "#d4a49c")  // --brand-light
+static let ganhoUIBrand12 = UIColor(hex: "#c4847a").withAlphaComponent(0.12)
+static let ganhoUIBrand20 = UIColor(hex: "#c4847a").withAlphaComponent(0.20)
+static let ganhoUIBrand40 = UIColor(hex: "#c4847a").withAlphaComponent(0.40)
+static let ganhoUIBrand60 = UIColor(hex: "#c4847a").withAlphaComponent(0.60)
+static let ganhoUIText = UIColor(hex: "#eeeeee")        // --text
+static let ganhoUITextMuted = UIColor(hex: "#aaaaaa")   // --text-muted
+static let ganhoUITextDim = UIColor(hex: "#555555")     // --text-dim
+static let ganhoUIBorder = UIColor.white.withAlphaComponent(0.07)  // --border
+static let ganhoUIOverlayBg = UIColor(hex: "#09080f").withAlphaComponent(0.78)  // overlay 배경
+```
+
+## 기능 2: GameConfig UI Layout 상수 16개
+
+```swift
+// MARK: - Game UI Tokens (Phase 8-3)
+/// 원본 game.css 패널/카드 layout. 1:1 매핑.
+static let uiRadius: CGFloat = 10              // --radius
+static let uiRadiusSm: CGFloat = 6             // --radius-sm
+static let uiRadiusPill: CGFloat = 999          // 난이도 버튼 캡슐
+static let uiPanelMaxWidth: CGFloat = 360      // 일반 패널
+static let uiPanelCharacterMaxWidth: CGFloat = 480  // character 패널
+static let uiPanelPaddingH: CGFloat = 20
+static let uiPanelPaddingV: CGFloat = 22
+static let uiPanelGap: CGFloat = 14             // 패널 안 요소 간 간격
+static let uiTitleFontSize: CGFloat = 22
+static let uiBodyFontSize: CGFloat = 12
+static let uiHintFontSize: CGFloat = 11
+static let uiHudValueFontSize: CGFloat = 22
+static let uiHudLabelFontSize: CGFloat = 10
+static let uiCardNameFontSize: CGFloat = 12
+static let uiCardTagFontSize: CGFloat = 10
+static let uiCardBestFontSize: CGFloat = 10
+static let uiPanelLineWidth: CGFloat = 1        // border 두께
+```
+
+## 기능 3: TitleScene 패널 도입
+
+현재 TitleScene에서 라벨 5개 + 캐릭터 카드 5장 + 난이도 카드 3장이 *씬에 직접* 부착되어 있다. 신규로 *배경 반투명* + *가운데 패널 카드*를 추가.
+
+```swift
+// TitleScene.didMove(to:) 안 setupLabels() 직전에 추가
+private func setupOverlayPanel() {
+    // 1) 화면 전체 반투명 검정 배경 (원본 .game-overlay 배경)
+    let bg = SKSpriteNode(color: .ganhoUIOverlayBg, size: size)
+    bg.position = CGPoint(x: frame.midX, y: frame.midY)
+    bg.zPosition = -10
+    addChild(bg)
+
+    // 2) 가운데 카드 패널 (원본 .game-overlay__panel--character 480px)
+    let panelWidth = GameConfig.uiPanelCharacterMaxWidth
+    let panelHeight: CGFloat = 480  // 세로는 컨텐츠 기준 동적 — 임시 고정값
+    let panel = SKShapeNode(rectOf: CGSize(width: panelWidth, height: panelHeight),
+                            cornerRadius: GameConfig.uiRadius)
+    panel.fillColor = .ganhoUIBgCard
+    panel.strokeColor = .ganhoUIBorder
+    panel.lineWidth = GameConfig.uiPanelLineWidth
+    panel.position = CGPoint(x: frame.midX, y: frame.midY)
+    panel.zPosition = -5
+    addChild(panel)
+}
+```
+
+`didMove` 안에서 `setupLabels()` *전*에 `setupOverlayPanel()` 호출. 패널이 *제일 뒤 (zPosition -5)*에 있어 라벨/카드가 그 위에 자연 표시.
+
+## 기능 4: CharacterCardNode 시각 토큰 적용
+
+현재 CharacterCardNode의 배경색 / 보더 / 라벨 색을 원본 디자인 토큰으로 교체:
+
+```swift
+// 배경 (선택 안 됨)
+background.color = .ganhoUIBgCard
+// 보더는 SKShapeNode로 변경 — SKSpriteNode는 stroke 없음.
+// 또는 별도 SKShapeNode를 자식으로 추가해 stroke 라인 표시.
+
+// 이름 라벨
+nameLabel.fontColor = .ganhoUITextMuted   // 기본 muted
+nameLabel.fontSize = GameConfig.uiCardNameFontSize
+
+// 선택 시 setSelected(true):
+nameLabel.fontColor = .ganhoUIBrandLight
+// 배경 색 ganhoUIBrand12 (코럴 12% 알파)
+// 보더 ganhoUIBrand60
+```
+
+근데 SKSpriteNode는 stroke 없으므로 **카드를 SKShapeNode로 전환**해야 정확한 원본 시각. 큰 변경.
+
+**대안 (본 sprint)**: 카드의 *기본 색만* 갈아 끼우고 *보더는 자식 SKShapeNode*로 추가. 카드 자체 구조 보존.
+
+```swift
+final class CharacterCardNode: SKNode {
+    // ...
+    private let border: SKShapeNode  // 신규 — 카드 외곽 보더
+
+    init(id: CharacterID) {
+        background = SKSpriteNode(color: .ganhoUIBgCard, size: cardSize)
+        border = SKShapeNode(rectOf: cardSize, cornerRadius: GameConfig.uiRadiusSm)
+        border.fillColor = .clear
+        border.strokeColor = .ganhoUIBorder
+        border.lineWidth = GameConfig.uiPanelLineWidth
+        // ...
+        addChild(background)
+        addChild(border)
+    }
+
+    func setSelected(_ selected: Bool) {
+        background.color = selected ? .ganhoUIBrand12 : .ganhoUIBgCard
+        border.strokeColor = selected ? .ganhoUIBrand60 : .ganhoUIBorder
+        nameLabel.fontColor = selected ? .ganhoUIBrandLight : .ganhoUITextMuted
+        // 스케일/알파는 기존 Phase 5-5 정책 그대로
     }
 }
 ```
 
-## 기능 2: PixelPalette.chiefPalette
+## 기능 5: DifficultyCardNode 캡슐 모양
+
+원본 `.game-difficulty__btn`은 `border-radius: 999px` 캡슐. DifficultyCardNode를 SKShapeNode 캡슐로 전환:
 
 ```swift
-extension PixelPalette {
-    /// 수간호사 팔레트 13색. game.js L905-919 1:1.
-    static let chiefPalette: [Character: UIColor] = [
-        "S": .ganhoPixelChiefSkin,        // #f5d5c0
-        "N": .ganhoPixelChiefWrinkle,     // #c08878
-        "H": .ganhoPixelChiefHair,        // #e8e4e8
-        "h": .ganhoPixelChiefHairShadow,  // #c8c4cc
-        "K": .ganhoPixelChiefCap,         // #ffffff
-        "k": .ganhoPixelChiefCapShadow,   // #e6dde6
-        "X": .ganhoPixelChiefCross,       // #ff7b7b
-        "G": .ganhoPixelChiefGlass,       // #1f1a1f
-        "g": .ganhoPixelChiefGlassLens,   // #e8c8b8
-        "U": .ganhoPixelChiefUniform,     // #f4f0ee
-        "V": .ganhoPixelChiefUniformShadow, // #d8d2d0
-        "C": .ganhoPixelChiefAccent,      // #ff7b7b
-        "B": .ganhoPixelChiefShoes,       // #1a1214
-        "M": .ganhoPixelChiefMouth        // #6b3a3a
-    ]
-}
-```
+final class DifficultyCardNode: SKNode {
+    private let background: SKShapeNode  // 캡슐 모양 — SKSpriteNode → SKShapeNode
 
-## 기능 3: ColorTokens 13색 신설
-
-`Config/ColorTokens.swift`에 `// MARK: - Chief Palette (Phase 8-2)` 섹션 + 13개 hex:
-
-```swift
-static let ganhoPixelChiefSkin = UIColor(hex: "#f5d5c0")
-static let ganhoPixelChiefWrinkle = UIColor(hex: "#c08878")
-static let ganhoPixelChiefHair = UIColor(hex: "#e8e4e8")
-static let ganhoPixelChiefHairShadow = UIColor(hex: "#c8c4cc")
-static let ganhoPixelChiefCap = UIColor(hex: "#ffffff")
-static let ganhoPixelChiefCapShadow = UIColor(hex: "#e6dde6")
-static let ganhoPixelChiefCross = UIColor(hex: "#ff7b7b")
-static let ganhoPixelChiefGlass = UIColor(hex: "#1f1a1f")
-static let ganhoPixelChiefGlassLens = UIColor(hex: "#e8c8b8")
-static let ganhoPixelChiefUniform = UIColor(hex: "#f4f0ee")
-static let ganhoPixelChiefUniformShadow = UIColor(hex: "#d8d2d0")
-static let ganhoPixelChiefAccent = UIColor(hex: "#ff7b7b")
-static let ganhoPixelChiefShoes = UIColor(hex: "#1a1214")
-static let ganhoPixelChiefMouth = UIColor(hex: "#6b3a3a")
-```
-
-## 기능 4: EnemyNode 픽셀 모드 전환
-
-```swift
-final class EnemyNode: SKSpriteNode {
-    private var pixelDirection: PixelDirection = .down
-    private var pixelFrame: PixelFrame = .idle
-    private var frameAccumulator: TimeInterval = 0
-
-    override init() {
-        let texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.nurseChiefData(direction: .down, frame: .idle),
-            palette: PixelPalette.chiefPalette
-        )
-        super.init(texture: texture, color: .clear,
-                   size: CGSize(width: 16 * GameConfig.pixelSpriteScale,
-                                height: 20 * GameConfig.pixelSpriteScale))
-        // 기존 physicsBody / collision / contact 정책 그대로
+    init(id: Difficulty) {
+        background = SKShapeNode(rectOf: CGSize(width: GameConfig.difficultyCardWidth,
+                                                  height: GameConfig.difficultyCardHeight),
+                                 cornerRadius: GameConfig.difficultyCardHeight / 2)  // 캡슐
+        background.fillColor = .clear  // 원본은 transparent 배경
+        background.strokeColor = .ganhoUIBorder
+        background.lineWidth = GameConfig.uiPanelLineWidth
+        // ...
     }
 
-    func updatePixelDirection(_ velocity: CGVector) {
-        let newDir: PixelDirection
-        if abs(velocity.dx) > abs(velocity.dy) {
-            newDir = velocity.dx >= 0 ? .right : .left
-        } else if abs(velocity.dy) > 0.1 {
-            newDir = velocity.dy >= 0 ? .up : .down
-        } else {
-            return
-        }
-        if newDir != pixelDirection {
-            pixelDirection = newDir
-            refreshTexture()
-        }
-    }
-
-    func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
-        guard isMoving else {
-            if pixelFrame != .idle {
-                pixelFrame = .idle
-                refreshTexture()
-            }
-            return
-        }
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
-            frameAccumulator = 0
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            refreshTexture()
-        }
-    }
-
-    private func refreshTexture() {
-        texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.nurseChiefData(direction: pixelDirection,
-                                              frame: pixelFrame),
-            palette: PixelPalette.chiefPalette
-        )
+    func setSelected(_ selected: Bool) {
+        background.fillColor = selected ? id.color.withAlphaComponent(0.2) : .clear
+        background.strokeColor = selected ? id.color : .ganhoUIBorder
+        nameLabel.fontColor = selected ? .ganhoUIText : .ganhoUITextMuted
     }
 }
 ```
 
-## 기능 5: GameScene.update enemy 픽셀 갱신 호출
-
-PlayerNode 패턴 답습. update의 `.playing` 가드 안 enemy 처리 직후:
-
-```swift
-let enemyVelocity = enemy.physicsBody?.velocity ?? .zero
-enemy.updatePixelDirection(CGVector(dx: enemyVelocity.dx, dy: enemyVelocity.dy))
-enemy.tickWalkFrame(deltaTime: dt, isMoving: enemyVelocity.length > 1.0)
-```
-
-또는 PlayerNode가 자기 처리하듯 EnemyNode가 자기 update 메서드 안에서 처리. 어느 방식이든 GameScene 변경 최소화 우선.
+---
 
 ## 회귀 0 자연 차단
 
-1. **EnemyNode init 시그니처 호환** — 외부 호출 변경 0
-2. **physicsBody / collision / contact 정책 보존** — 게임 로직 0 영향
-3. **PlayerNode / StoneGuard 미접촉** — 본 sprint 범위는 EnemyNode만
-4. **PixelSpriteRenderer 그대로** — Phase 8-1 인프라 재사용
-5. **GameConfig pixelSpriteScale / pixelWalkFrameInterval 재사용** — 신규 상수 0
-6. **throwArm 미구현** — F 투척 신호 인터페이스 도입 0건 (다음 sprint)
+1. **카드 크기/위치 미변경** — Phase 7-5 핫픽스 layout 결과 보존
+2. **카드 자체 구조 변형 최소화** — SKNode 컨테이너 유지, *시각만* 갈아 끼움
+3. **CharacterCardNode 인터페이스 보존** — `init(id:)`, `setSelected(_:)` 시그니처 그대로
+4. **ResultScene / GameScene / 컷씬 미접촉** — 다음 sprint
+5. **GameConfig.characterCardOffsetY 등 layout 상수 미변경** — 7-5 그대로
+6. **UIColor(hex:) 확장 재사용** — Phase 8-1에서 추가됨
 
 ## 주의사항
 
-1. **수간호사 hitbox** — PlayerNode와 마찬가지로 *시각 32×40* 이지만 *physicsBody 그대로 유지*. 적 충돌 판정 변경 0.
-2. **EnemyNode init 시그니처** — 현재 어떻게 호출되는지 확인. 보통 setupEnemy() 안. 시그니처 호환.
-3. **byte-equal 검증** — game.js L820-841 (base 20행), L844-864 (방향 3분기 17행), L867-873 (프레임 분기 4행). 한 문자라도 어긋나면 픽셀 깨짐.
-4. **chiefPalette `#ffffff` 두 키** — K(캡)과 game.js의 'L'(흰자) 충돌 없음 — 수간호사는 'L' 미사용. 깔끔.
-5. **velocity length 계산** — CGVector에 length 확장 있는지 확인. 없으면 `sqrt(dx² + dy²)` 또는 단순 abs 비교.
-6. **EnemyNode가 자기 update 처리** — GameScene 변경 최소화 측면에서 권장. PlayerNode와 동일 패턴.
+1. **SKSpriteNode → SKShapeNode 전환** — DifficultyCardNode 배경을 SKShapeNode 캡슐로. CharacterCardNode는 background는 SKSpriteNode 유지 + 보더 자식 SKShapeNode 추가 (이중 구조).
+2. **zPosition 위계** — 배경 -10, 패널 -5, 라벨/카드 0+ (기본). 충돌 0.
+3. **frame.midX/midY 계산** — TitleScene이 scene size 1024×768 기준. 패널 (frame.midX, frame.midY) = (512, 384). 작은 화면에서 자동 비례.
+4. **반투명 검정 배경** — `.ganhoUIOverlayBg` = `#09080f` α=0.78. 게임 영역 차단. 카드/라벨이 위에 떠 보임.
+5. **stroke로 보더 표현** — SKShapeNode lineWidth=1 = 원본 1px 보더와 동일.
+6. **카드 색 변경 점진** — 본 sprint는 background.color 갈아 끼움만. 폰트 변경 0(시스템 기본).
+7. **CharacterCardNode 픽셀 아바타 도입은 다음 sprint** — 본 sprint는 텍스트 라벨로 캐릭터 이름만.

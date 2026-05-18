@@ -149,6 +149,40 @@ extension UIColor {
     static let ganhoPixelChiefShoes = UIColor(hex: "#1a1214")
     /// 입술 — game.js 'M' #6b3a3a
     static let ganhoPixelChiefMouth = UIColor(hex: "#6b3a3a")
+
+    // MARK: - Game UI Tokens (Phase 8-3)
+    /// 원본 웹게임 style.css :root CSS 변수 1:1 매핑.
+    /// 원본 hex 값 byte-equal — 디자인 단일 진실 원천 = style.css L3-46.
+    /// Spring 비유: application.yml의 디자인 토큰을 Swift 상수로 옮긴 형태.
+
+    /// --bg #0f0e15 (어두운 매트 배경)
+    static let ganhoUIBg = UIColor(hex: "#0f0e15")
+    /// --bg-dark #09080f (더 깊은 검정)
+    static let ganhoUIBgDark = UIColor(hex: "#09080f")
+    /// --bg-card rgba(23,21,30,0.82) — 카드 배경(반투명)
+    static let ganhoUIBgCard = UIColor(hex: "#17151e").withAlphaComponent(0.82)
+    /// --brand #c4847a (코럴, 메인 강조색)
+    static let ganhoUIBrand = UIColor(hex: "#c4847a")
+    /// --brand-light #d4a49c (밝은 코럴, 텍스트 강조)
+    static let ganhoUIBrandLight = UIColor(hex: "#d4a49c")
+    /// --brand-12 rgba(196,132,122,0.12) — 선택 카드 배경
+    static let ganhoUIBrand12 = UIColor(hex: "#c4847a").withAlphaComponent(0.12)
+    /// --brand-20 rgba(196,132,122,0.20)
+    static let ganhoUIBrand20 = UIColor(hex: "#c4847a").withAlphaComponent(0.20)
+    /// --brand-40 rgba(196,132,122,0.40)
+    static let ganhoUIBrand40 = UIColor(hex: "#c4847a").withAlphaComponent(0.40)
+    /// --brand-60 rgba(196,132,122,0.60) — 선택 카드 보더
+    static let ganhoUIBrand60 = UIColor(hex: "#c4847a").withAlphaComponent(0.60)
+    /// --text #eeeeee (기본 텍스트)
+    static let ganhoUIText = UIColor(hex: "#eeeeee")
+    /// --text-muted #aaaaaa (보조 텍스트)
+    static let ganhoUITextMuted = UIColor(hex: "#aaaaaa")
+    /// --text-dim #555555 (희미한 텍스트)
+    static let ganhoUITextDim = UIColor(hex: "#555555")
+    /// --border rgba(255,255,255,0.07) — 보더 라인
+    static let ganhoUIBorder = UIColor.white.withAlphaComponent(0.07)
+    /// game-overlay 배경 #09080f α=0.78 — 게임 영역 차단 반투명
+    static let ganhoUIOverlayBg = UIColor(hex: "#09080f").withAlphaComponent(0.78)
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)
