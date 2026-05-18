@@ -6,6 +6,7 @@
 //  Swift `private`은 *같은 파일+같은 타입* 한정 → 다른 파일 extension에선 접근 불가.
 //  본체 멤버를 internal(기본)으로 1단계 완화하고, 본체 호출자(didMove)에서 사용한다.
 //  기능 변화 0 — 코드 결과는 한 줄도 바뀌지 않는다.
+//  Phase 9-8 — setupStoneGuard에 hard 난이도 가드 추가(stoneGuard 미등록 → 이스터에그 진입 0).
 //
 
 import SpriteKit
@@ -337,6 +338,9 @@ extension GameScene {
     }
 
     func setupStoneGuard() {
+        // Phase 9-8 — hard 난이도는 이교수 톤 집중. 석조무사 미등장 (GDD §7-6 "하/중 전용").
+        // worldNode에 stoneGuard를 추가하지 않으므로 충돌 자체가 발생 0건 → 이스터에그 진입 0.
+        guard difficulty != .hard else { return }
         // Phase 4-1 — 첫 waypoint(좌하단)에 위치 부여. StoneGuardNode.init에서 patrol이 이미 시작됐으므로
         // 첫 .move 액션은 (200, 100) → (760, 100) 우향으로 자동 진행된다.
         let first = GameConfig.stoneGuardWaypoints[0]

@@ -1,46 +1,37 @@
-# QA 검수 보고서 — Phase 9-7 (이교수 + 청진기)
+# QA 검수 보고서 — Phase 9-8 AIRFORCE 타이밍 정합화 + hard 가드
 
-## SPEC 기능 검증
+## SPEC 기능 검증 (6건)
 
-| # | 기능 | 결과 | 위치 |
+| # | 기능 | 상태 | 위치 |
 |---|---|---|---|
-| 1 | ProfessorNode 16×20 + physicsBody 미부착 + 4 waypoint 순찰 | PASS | `Nodes/ProfessorNode.swift:42-82` |
-| 2 | startThrowingStethoscopes 시그니처 | PASS | `Nodes/ProfessorNode.swift:91-98` |
-| 3 | scheduleNextThrow 재귀 SKAction + "professorThrow" key | PASS | `Nodes/ProfessorNode.swift:103-111` |
-| 4 | throwStethoscope: 4가드 + 단위 벡터 × speed + max 4 가드 | PASS | `Nodes/ProfessorNode.swift:128-145` |
-| 5 | stopThrowing(worldNode:) — removeAction + velocity 0 | PASS | `Nodes/ProfessorNode.swift:158-163` |
-| 6 | updatePixelAnimation(deltaTime:) | PASS | `Nodes/ProfessorNode.swift:170-214` |
-| 7 | StethoscopeNode 18×18 + isDynamic + allowsRotation=false | PASS | `Nodes/StethoscopeNode.swift:33-42` |
-| 8 | category=stethoscope, contactTest=player\|wall, collision=0 | PASS | `Nodes/StethoscopeNode.swift:39-41` |
-| 9 | SKAction.rotate repeatForever 0.5초 | PASS | `Nodes/StethoscopeNode.swift:46` |
-| 10 | PlayerNode.isFrozen private(set) | PASS | `Nodes/PlayerNode.swift:48` |
-| 11 | freeze(duration:) — 2중 가드 + 깜빡임 + restore | PASS | `Nodes/PlayerNode.swift:155-173` |
-| 12 | update(deltaTime:) 최상단 isFrozen early return + 시그니처 보존 | PASS | `Nodes/PlayerNode.swift:129-144` |
-| 13 | var professor: ProfessorNode? Optional | PASS | `GameScene.swift:67` |
-| 14 | update D-Pad 가드 (!isDashing && !isFrozen) | PASS | `GameScene.swift:380-384` |
-| 15 | professor?.updatePixelAnimation(deltaTime: dt) | PASS | `GameScene.swift:409` |
-| 16 | 인트로 onDismiss hard 분기 → showProfessorWarningCutscene | PASS | `GameScene.swift:210-216` |
-| 17 | showProfessorWarningCutscene → .countdown 전환 | PASS | `GameScene.swift:225-237` |
-| 18 | configureContactRouter onStethoscopeHitPlayer/Wall 콜백 | PASS | `GameScene.swift:513-533` |
-| 19 | endGame professor?.stopThrowing | PASS | `GameScene.swift:687` |
-| 20 | setupProfessor — hard 가드 + waypoint[0] + weak self | PASS | `GameScene+Setup.swift:353-370` |
-| 21 | didMove 호출 (setupStoneGuard 다음) | PASS | `GameScene.swift:151` |
-| 22 | ContactRouter onStethoscopeHitPlayer/Wall 콜백 2개 | PASS | `Systems/ContactRouter.swift:35,38` |
-| 23 | didBegin stethoscope 분기 + handleStethoscopeContact | PASS | `Systems/ContactRouter.swift:58-61, 122-136` |
-| 24 | PhysicsCategory.stethoscope = 0b10000000 (128) | PASS | `Config/PhysicsCategory.swift:21` |
-| 25 | PixelSprite.professorData 16×20 4방향 3프레임 | PASS | `Models/PixelSprite.swift:390-467` |
-| 26 | PixelPalette.professorPalette 별도 dict | PASS | `Models/PixelPalette.swift:123-141` |
-| 27 | GameConfig 3 MARK 섹션 (Professor / Stethoscope / Player Freeze) | PASS | `Config/GameConfig.swift:875, 902, 921` |
-| 28 | ColorTokens 4개 신규 | PASS | `Config/ColorTokens.swift:208-217` |
-| 29 | 회귀 방지 — 보호 영역 7개 0줄 변경 | PASS | git diff 검증 |
-| 30 | 매직 넘버 0 / 강제 언래핑 0 / Timer 0 / weak self 5개소 | PASS | grep 검증 |
-| 31 | 빌드 BUILD SUCCEEDED 경고 0 | PASS | iPhone 17 Sim Debug |
+| 1 | `airforceOverlayDisplayDuration` 1.5 → 2.1 + 주석 갱신 | PASS | `Config/GameConfig.swift:210-212` |
+| 2 | `bombFlashDelay` 2.1 → 3.4 + 주석 갱신 | PASS | `Config/GameConfig.swift:220-223` |
+| 3 | 신상수 `airplaneDelayAfterOverlay: TimeInterval = 2.4` 추가 | PASS | `Config/GameConfig.swift:216-219` |
+| 4 | `triggerAirforceEasterEgg()` 첫 줄 hard 가드 | PASS | `GameScene.swift:656-658` |
+| 4b | 비행기 부착 블록 SKAction.sequence 지연 패턴 + [weak self] + guard let | PASS | `GameScene.swift:670-678` |
+| 5 | `setupStoneGuard()` 첫 줄 hard 가드 | PASS | `GameScene+Setup.swift:341-343` |
+| 6 | 두 파일 헤더 "Phase 9-8" 주석 | PASS | `GameScene.swift:41`, `GameScene+Setup.swift:9` |
+
+## 회귀 방지 (git diff)
+
+`git diff --name-only` 결과 정확히 3개 파일.
+
+| 회귀 방지 대상 | 결과 |
+|---|---|
+| AirplaneNode/AirforceOverlayNode/BombFlashNode | 0줄 PASS |
+| EnemyNode/StoneGuardNode/ProjectileNode | 0줄 PASS |
+| SpawnSystem/ContactRouter | 0줄 PASS |
+| PixelSprite/PixelPalette/Difficulty/PhysicsCategory | 0줄 PASS |
+| PlayerSkill/SkillSystem/SkillButton/HUDSkillSlot | 0줄 PASS |
+| ToiletNode/ToastLabelNode/ProfessorNode/StethoscopeNode | 0줄 PASS |
+| pbxproj | 0줄 PASS |
+| 신규 Swift 파일 | 0개 PASS |
 
 ## 빌드 검증
 
-- **결과**: **BUILD SUCCEEDED**
-- **명령**: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
-- **경고**: 0건
+- 결과: **BUILD SUCCEEDED**
+- 명령: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
+- 에러: 0, 신규 경고: 0
 
 ## 이슈 카운트
 
@@ -52,46 +43,30 @@
 
 ## 통과 항목
 
-### Swift 패턴 (35%)
-- 강제 언래핑 0건. `physicsBody?.velocity` 옵셔널 체이닝.
-- guard let / if let 4건, weak self 5개소.
-- MARK 섹션 완비, GameConfig 상수 16건.
-- 함수 단일 책임 — ProfessorNode 메서드별 역할 분리.
+### Swift 패턴
+- 강제 언래핑 신규 0건
+- Timer/DispatchQueue 신규 0건
+- 매직 넘버 신규 0건 (`size.height / 2`는 HEAD 기존, 본 sprint 도입 아님)
+- `[weak self]` + `guard let self = self else { return }` 적용
+- GameConfig 상수 경유 — airplaneDelayAfterOverlay/airplaneTopOffset
 
-### 게임 로직 (30%)
-- SKAction 패턴 — scheduleNextThrow 재귀, Timer 0.
-- PhysicsCategory.stethoscope=128 단독 비트.
-- didBegin 즉시 제거 0 — `node.run(.removeFromParent())` SKAction.
-- 무적 > 동결 > 게임오버 우선순위 — 이중 안전망 (freeze 안 + 호출부 둘 다 가드).
-- GameState 흐름 — 인트로 → 이교수 경고 → 카운트다운 (hard만).
+### SpriteKit 패턴
+- SKAction.sequence([wait, run]) 패턴 Timer 대체 — spritekit-rules §4 일치
+- cameraNode 자식 부착 패턴 보존
+- 자가 소멸 패턴 보존 (AirplaneNode 내부 처리)
 
-### 성능 & 안정성 (20%)
-- Optional chain — easy/normal noop 자연.
-- weak worldRef — 메모리 누수 0.
-- removeAction 멱등 — stopThrowing 두 번 호출 안전.
-- endGame 정리 — 청진기 발사 루프 + 활성 청진기 정지.
-- texture 재생성 변화 순간에만 (needsRefresh 플래그).
+### 게임 로직 검증식
+- 오버레이 총 수명 = 2.1 + 0.3 = **2.4초** ✓
+- 비행기 등장 시점 = airplaneDelayAfterOverlay(**2.4**) ✓
+- 비행기 중앙 도달 = 2.4 + 2.0/2 = **3.4** = bombFlashDelay ✓
+- 폭탄 섬광 = 0.07 + 0.35 = **0.42초** ✓
+- 도주 종료 = 5.0 → fireImmediately() ✓
 
-### 기능 완성도 (15%)
-- SPEC §허용 14항목 전부 / §금지 6항목 전부 미접촉.
-- hard 외 등장 0 — professor=nil, 컷씬 미표시.
-- freeze 재호출 noop — 2초 고정.
-- 빌드 SUCCEEDED 경고 0.
-
-## 회귀 방지 검증
-
-| 보호 영역 | 변경 라인 |
-|---|---|
-| EnemyNode.swift | 0줄 |
-| StoneGuardNode.swift | 0줄 |
-| SpawnSystem.swift | 0줄 |
-| ScoreSystem.swift | 0줄 |
-| SkillSystem.swift | 0줄 |
-| ToiletNode.swift | 0줄 |
-| ProjectileNode.swift | 0줄 |
-| HUD 노드들 | 0줄 |
-| CutsceneOverlayNode | 0줄 (재사용만) |
-| ToastLabelNode | 0줄 (재사용만) |
+### Sprint 범위 계약
+- 허용 6건 모두 구현, 금지 8건 모두 회피
+- AirplaneNode.crossScreen 시그니처 불변
+- EnemyNode.startFleeing 시그니처 불변
+- SpawnSystem.fireImmediately 시그니처 불변
 
 ## 채점
 
@@ -106,12 +81,20 @@
 
 ## 최종 판정: **합격**
 
-## 시각적 확인 사항
+본 sprint는 *순수 보정 sprint*의 모범 사례. SPEC §허용 6건 정밀 적용, §금지 8건 0건 위반. git diff 회귀 검증 13+개 대상 + pbxproj + 신규 파일 0개. BUILD SUCCEEDED. Spring `@PreAuthorize` 답습한 hard 2중 가드는 *방어 설계*의 좋은 예시.
 
-1. 이교수 픽셀 아트 시각 (회색 머리 + 안경 + 콧수염 + 흰 셔츠 + 검은 바지)
-2. 순찰 경로 (320,200) → (640,200) → (640,280) → (320,280) 시계방향 11.4초 1바퀴
-3. 청진기 회전 0.5초 1회전 톤 적정성
-4. freeze 깜빡임 alpha 1.0 ↔ 0.4 2초 동안 5회 톤
-5. 인트로 → 이교수 경고 → 카운트다운 3단계 흐름
-6. 무적 + freeze 충돌 — 정간호 돌진/이간호 텔레포트 중 청진기 명중 freeze 0초
-7. endGame 후 청진기 추가 발사 0
+## 시뮬레이터 검증 시나리오
+
+| 단계 | 액션 | 기대 결과 |
+|---|---|---|
+| (a) | easy 게임 진입 | stoneGuard 좌하단 패트롤 |
+| (b) | player → stoneGuard 충돌 | "나와라 박병장!" 오버레이 2.4초 |
+| (c) | t=0~2.4 | 수간호사 도주 시작 (5초) |
+| (d) | t=2.4 | 오버레이 소멸 + 비행기 좌측 등장 |
+| (e) | t=3.4 | 비행기 중앙 도달 시 화면 누런 섬광(420ms) |
+| (f) | t=4.4 | 비행기 우측 바깥 도달 |
+| (g) | t=5.0 | 수간호사 정상 추적 복귀 + F 1발 재발사 |
+| (h) | stoneGuard 재접촉 | airforceTriggered=true → noop |
+| (i) | normal 게임 | (a)~(h) 동일 |
+| (j) | hard 게임 | stoneGuard 미등장, 이교수만 활동 |
+| (k) | 게임 재시작 → easy | airforceTriggered 리셋 → 다시 1회 발화 |

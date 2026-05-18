@@ -207,13 +207,20 @@ enum GameConfig {
     /// "나와라 박병장!" 오버레이 폰트 크기 (pt). HUD(18)보다 크고 화면 중앙 가독성 우선.
     static let airforceOverlayFontSize: CGFloat = 28
     /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
-    static let airforceOverlayDisplayDuration: TimeInterval = 1.5
+    /// Phase 9-8 — 사용자 요청 시퀀스 "오버레이 2.4초 유지" 정합화: 1.5 → 2.1.
+    /// 총 수명 = displayDuration(2.1) + fadeOutDuration(0.3) = 2.4초.
+    static let airforceOverlayDisplayDuration: TimeInterval = 2.1
     /// "나와라 박병장!" 오버레이 페이드아웃 길이 (초). alpha 1 → 0 보간 시간.
-    /// 총 수명 = displayDuration(1.5) + fadeOutDuration(0.3) = 1.8초.
+    /// 총 수명 = displayDuration(2.1) + fadeOutDuration(0.3) = 2.4초.
     static let airforceOverlayFadeOutDuration: TimeInterval = 0.3
-    /// 폭탄 화면 플래시 시작 지연 (초). 오버레이 닫힘(1.5+0.3=1.8) + 300ms = 2.1.
-    /// trigger 시점 t=0 기준. 수동 검증: airforceOverlayDisplayDuration + airforceOverlayFadeOutDuration + 0.3.
-    static let bombFlashDelay: TimeInterval = 2.1
+    /// Phase 9-8 — 비행기 등장 지연(trigger 시점 t=0 기준).
+    /// 오버레이 완전 소멸 = displayDuration(2.1) + fadeOutDuration(0.3) = 2.4초.
+    /// 이 시점에 비행기가 화면 좌측에서 등장 → 우측까지 airplaneCrossDuration(2.0)초 가로지름.
+    static let airplaneDelayAfterOverlay: TimeInterval = 2.4
+    /// 폭탄 화면 플래시 시작 지연 (초). trigger 시점 t=0 기준.
+    /// Phase 9-8 — 사용자 요청 시퀀스 정합화: 2.1 → 3.4.
+    /// 비행기 중앙 도달 시점 = airplaneDelayAfterOverlay(2.4) + airplaneCrossDuration(2.0)/2 = 3.4초.
+    static let bombFlashDelay: TimeInterval = 3.4
     /// 폭탄 화면 플래시 fadeIn 길이 (초). alpha 0 → 1 빠른 보간 — *번쩍* 임팩트.
     static let bombFlashFadeInDuration: TimeInterval = 0.07
     /// 폭탄 화면 플래시 fadeOut 길이 (초). alpha 1 → 0 느린 보간 — *잔상* 효과.

@@ -38,6 +38,7 @@
 //  Phase 6-13 · 게임 시작 카운트다운 3→2→1→GO! (gameState .countdown 신설 + startGameProperly 분리)
 //  Phase 6-14 · 게임 끝 5초 긴박감 — BGM rate↑ + HUD timeLabel 빨강 깜빡임 + 매초 light 햅틱
 //  Phase 7-1 · 난이도 3단계 시스템 — init에 difficulty 인자 추가 + spawnSystem.apply + endGame에서 ResultScene에 difficulty 전달
+//  Phase 9-8 · AIRFORCE 이스터에그 타이밍 정합화 + hard 가드 — 비행기 등장 2.4초 지연 + difficulty==.hard 안전망.
 //
 
 import SpriteKit
@@ -652,20 +653,33 @@ class GameScene: SKScene {
     /// Phase 4-7 — startFleeing onEnd 콜백 등록 — 도주 종료 시 spawnSystem.fireImmediately() 발화.
     private func triggerAirforceEasterEgg() {
         if airforceTriggered { return }
+        // Phase 9-8 — hard 난이도 다층 방어 가드. setupStoneGuard에서 이미 stoneGuard 미등록이라
+        // 이 메서드 자체로 진입할 경로가 없으나, 호출 경로 변경 시 회귀 차단용 안전망(Spring @PreAuthorize 답습).
+        if difficulty == .hard { return }
         airforceTriggered = true
-        let plane = AirplaneNode()
-        cameraNode.addChild(plane)
-        let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
-        plane.crossScreen(sceneWidth: size.width, atY: y)
+        // t=0 — 오버레이 즉시 표시(자가 2.4초 후 소멸).
         let overlay = AirforceOverlayNode()
         cameraNode.addChild(overlay)
         overlay.showAndDismiss()
-        let bomb = BombFlashNode()
-        cameraNode.addChild(bomb)
-        bomb.flash(sceneSize: size)
+        // t=0 — 수간호사 도주 모드 진입(5초 후 onEnd 콜백으로 F 1발 재발사).
         enemy.startFleeing(duration: GameConfig.enemyFleeDuration) { [weak self] in
             self?.spawnSystem.fireImmediately()
         }
+        // Phase 9-8 — 비행기는 오버레이 완전 소멸(t=2.4) 후 등장. SKAction.sequence 지연 attach 패턴.
+        // AirplaneNode 시그니처 불변. [weak self] 캡처로 endGame 중 self 해제 안전.
+        let plane = AirplaneNode()
+        let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
+        let wait = SKAction.wait(forDuration: GameConfig.airplaneDelayAfterOverlay)
+        let attach = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.cameraNode.addChild(plane)
+            plane.crossScreen(sceneWidth: self.size.width, atY: y)
+        }
+        cameraNode.run(.sequence([wait, attach]))
+        // t=3.4 — 비행기 중앙 도달 시점에 폭탄 섬광. bombFlashDelay 상수(3.4)가 BombFlashNode 내부에서 자동 적용.
+        let bomb = BombFlashNode()
+        cameraNode.addChild(bomb)
+        bomb.flash(sceneSize: size)
     }
 
     // MARK: - Game State
