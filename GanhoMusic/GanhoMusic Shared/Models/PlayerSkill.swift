@@ -71,4 +71,17 @@ extension PlayerSkill {
         case .taiwanTrip:     return false
         }
     }
+
+    /// Phase 10-1c — 스킬 설명 화면(SkillExplanationScene)에서 표시되는 본문 텍스트.
+    /// 효과·조건·쿨다운을 한 문단으로 요약. displayName(짧은 단어)과 분리 — 같은 스킬의 *다른 시점* 표현.
+    /// `.none`은 빈 문자열 — 김간호는 스킬 설명 씬 자체를 스킵하므로 호출되지 않음(graceful default).
+    var fullDescription: String {
+        switch self {
+        case .none:           return ""
+        case .dashClimb:      return "바라보는 방향으로 3타일 돌진. 벽 1칸 파괴. 쿨다운 22초."
+        case .bookClubRally:  return "주변 6타일 안 음표를 한 번에 끌어와 수집. 쿨다운 20초."
+        case .charmStudent:   return "수간호사를 매혹. F 대신 A 투척(수집 시 점수 2배). 게임당 1회."
+        case .taiwanTrip:     return "가장 먼 빈 타일로 순간이동. 착지 후 0.5초 무적. 쿨다운 22초."
+        }
+    }
 }

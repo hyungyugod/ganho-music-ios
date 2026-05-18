@@ -60,4 +60,17 @@ enum CharacterID: String, CaseIterable {
         case .lee:  return .taiwanTrip
         }
     }
+
+    /// Phase 10-1b — 캐릭터 선택 화면 카드 아래 표시되는 짧은 태그(특징 1줄).
+    /// displayName(이름)과 분리 — 같은 카드 위치에 *이름 위에 태그* 톤으로 풍부한 정보 전달.
+    /// 카드 *외부* SKLabelNode로 표시되어 CharacterCardNode 내부 변경 0건.
+    var tag: String {
+        switch self {
+        case .kim:  return "번머리 실습생"
+        case .jung: return "곡괭이 근육"
+        case .geon: return "안경과 책"
+        case .im:   return "긴머리 냥"
+        case .lee:  return "단발 댕댕"
+        }
+    }
 }

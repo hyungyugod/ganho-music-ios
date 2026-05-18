@@ -169,8 +169,13 @@ class GameScene: SKScene {
         // 두 번째 이상 진입은 *컷씬 스킵 → 곧장 카운트다운*. onDismiss에서 true set 후 영원 스킵.
         let hasSeenIntro = UserDefaults.standard.bool(forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
         if hasSeenIntro {
-            gameState = .countdown
-            showCountdown()
+            // Phase 10-1d — 2회차 이상도 경고 컷씬은 *매 판* 환기 (SPEC §주의사항 7 / GDD §3).
+            // 인트로 컷씬만 영구 스킵 — 적 출현 경고는 매 판 다시 보여 위협 인지 갱신.
+            gameState = .cutscene
+            switch difficulty {
+            case .easy, .normal: showStoneGuardWarningCutscene()
+            case .hard:          showProfessorWarningCutscene()
+            }
         } else {
             gameState = .cutscene
             showIntroCutscene()
@@ -205,16 +210,33 @@ class GameScene: SKScene {
                 // Phase 7-5 — 컷씬 종료 시 UserDefaults 플래그 set → 이후 진입은 자동 스킵.
                 // UserDefaults.standard 접근은 self 무관 — self 해제 시에도 플래그는 set됨(부수효과 안전).
                 UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-                // Phase 9-7 — hard 난이도면 이교수 경고 컷씬을 *앞에 끼어든* 2단계로 표시.
-                // easy/normal은 기존 흐름(.countdown 직진) 그대로 — easy/normal 회귀 0.
-                // CutsceneOverlayNode가 자가 소멸한 *직후* 새 컷씬 present → 동시 표시 0 (주의사항 1).
-                if self.difficulty == .hard {
-                    self.showProfessorWarningCutscene()
-                } else {
-                    // .cutscene → .countdown 전환 + 기존 카운트다운 흐름 그대로 진입.
-                    self.gameState = .countdown
-                    self.showCountdown()
+                // Phase 10-1d — 난이도별 경고 컷씬 2단계 분기.
+                // easy/normal: 석조무사 경고 (신규, GDD §10 미구현 → 완성).
+                // hard: 이교수 경고 (Phase 9-7).
+                // 두 분기 모두 CutsceneOverlayNode 자가 소멸 *직후* 새 컷씬 present → 동시 표시 0.
+                switch self.difficulty {
+                case .easy, .normal: self.showStoneGuardWarningCutscene()
+                case .hard:          self.showProfessorWarningCutscene()
                 }
+            }
+        )
+    }
+
+    /// Phase 10-1d — 석조무사 경고 컷씬. easy/normal 난이도 인트로 컷씬 dismiss 직후 발화.
+    /// CutsceneOverlayNode 재사용 (SPEC §"금지": 신규 컷씬 노드 신설 금지).
+    /// showProfessorWarningCutscene와 시그니처 동형 — title/body만 GameConfig 상수로 교체.
+    /// onDismiss에서 .countdown 전환 + showCountdown — 인트로/이교수 경고와 동일 흐름.
+    /// [weak self] 캡처 — 컷씬 표시 중 씬 전환 가능성 대비.
+    private func showStoneGuardWarningCutscene() {
+        CutsceneOverlayNode.present(
+            title: GameConfig.stoneGuardWarningTitle,
+            body: GameConfig.stoneGuardWarningBody,
+            parent: cameraNode,
+            sceneSize: size,
+            onDismiss: { [weak self] in
+                guard let self = self else { return }
+                self.gameState = .countdown
+                self.showCountdown()
             }
         )
     }

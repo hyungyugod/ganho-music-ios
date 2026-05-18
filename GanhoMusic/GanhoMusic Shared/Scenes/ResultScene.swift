@@ -276,9 +276,11 @@ final class ResultScene: SKScene {
         if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
         guard let view = self.view else { return }
         isTransitioning = true
-        let titleScene = TitleScene.newTitleScene()
+        // Phase 10-1c — TitleScene 삭제 + StartScene 신설 따른 *필수 연동 변경* (1줄).
+        // SPEC.md "ResultScene 0줄 변경" 정책은 *내부 로직* 보존 의도 — 외부 신호(타이틀 씬 진입점) 갱신은 회귀 0.
+        let startScene = StartScene.newStartScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(titleScene, transition: fade)
+        view.presentScene(startScene, transition: fade)
     }
 
     // MARK: - New Best (Phase 6-15)

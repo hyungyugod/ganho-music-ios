@@ -940,4 +940,105 @@ enum GameConfig {
     /// 동결 SKAction 키. 재호출 가드 + endGame 일괄 정지용 (필요 시).
     /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
     static let playerFreezeActionKey: String = "playerFreeze"
+
+    // MARK: - Start Scene (Phase 10-1a)
+    /// 게임 톤 소개 본문 — 스토리 박스 본문. GDD §1·§3 정착 텍스트.
+    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let startSceneStoryText: String =
+        "실습 중 마음에 떠오른 멜로디를 45초 안에 모아 보세요. 수간호사 눈을 피하는 게 핵심."
+    /// 부제 라벨 폰트 크기 (pt). titleFontSize(36)과 titlePromptFontSize(18) 사이.
+    static let startSceneSubtitleFontSize: CGFloat = 16
+    /// 부제 라벨 y 오프셋. titleLabelOffsetY(120) 바로 아래에 위치.
+    static let startSceneSubtitleOffsetY: CGFloat = 80
+    /// 상단 BEST/PLAYS 라인 y 오프셋. 패널 위쪽 상단 라인.
+    static let startSceneBestPlaysTopMargin: CGFloat = 180
+    /// BEST/PLAYS 라벨 좌우 간격 (pt). frame.midX 기준 ±값으로 가로 2개 배치.
+    static let startSceneBestPlaysSpacing: CGFloat = 80
+    /// 스토리 박스 y 오프셋. 패널 정중앙(부제 아래/난이도 위).
+    static let startSceneStoryBoxOffsetY: CGFloat = 0
+    /// 시작 버튼 y 오프셋. 패널 하단(난이도 카드 +80 아래쪽으로 충분히 떨어진 위치).
+    static let startSceneStartButtonOffsetY: CGFloat = -180
+
+    /// 스토리 박스 가로 (pt). uiPanelCharacterMaxWidth(480)보다 살짝 좁아 패널 안 내부 여백 확보.
+    static let storyBoxWidth: CGFloat = 440
+    /// 스토리 박스 세로 (pt). 한국어 본문 2~3줄 자동 줄바꿈에 충분한 높이.
+    static let storyBoxHeight: CGFloat = 80
+    /// 스토리 박스 본문 폰트 크기 (pt). cutsceneBodyFontSize(20)보다 작음 — 박스 안 톤.
+    static let storyBoxFontSize: CGFloat = 14
+    /// 스토리 박스 좌우 패딩 (pt). preferredMaxLayoutWidth = boxWidth - padding×2.
+    static let storyBoxHorizontalPadding: CGFloat = 16
+
+    /// 주요 버튼 가로 (pt). 한국어 2~5자 + 여백.
+    static let primaryButtonWidth: CGFloat = 160
+    /// 주요 버튼 세로 (pt). cornerRadius = height/2로 캡슐.
+    static let primaryButtonHeight: CGFloat = 48
+    /// 주요 버튼 폰트 크기 (pt).
+    static let primaryButtonFontSize: CGFloat = 18
+    /// 보조(뒤로) 버튼 가로 (pt). 주요 버튼보다 살짝 좁음 — 시각 위계.
+    static let backButtonWidth: CGFloat = 140
+    /// 보조 버튼 세로 (pt).
+    static let backButtonHeight: CGFloat = 40
+    /// 보조 버튼 폰트 크기 (pt). 주요(18)보다 작음.
+    static let backButtonFontSize: CGFloat = 14
+
+    // MARK: - Character Select Scene (Phase 10-1b)
+    /// 화면 헤더 텍스트 — "함께할 친구를 골라요". 호출부 리터럴 노출 금지.
+    static let characterSelectHeaderText: String = "함께할 친구를 골라요"
+    /// 헤더 폰트 크기 (pt). titleFontSize(36)보다 작음 — 부분 화면 헤더 톤.
+    static let characterSelectHeaderFontSize: CGFloat = 22
+    /// 헤더 y 오프셋. 패널 상단 부근.
+    static let characterSelectHeaderOffsetY: CGFloat = 140
+    /// 캐릭터 카드 행 y 오프셋. 헤더 아래 적당한 간격.
+    static let characterSelectCardOffsetY: CGFloat = 30
+    /// 태그 라벨 폰트 크기 (pt). characterCardWidth(48) 안에 1~5자 작은 태그.
+    static let characterSelectTagFontSize: CGFloat = 10
+    /// 태그 라벨 y 오프셋 (카드 *외부*, 카드 위치 기준). 카드 아래쪽 -45pt.
+    static let characterSelectTagOffsetY: CGFloat = -45
+    /// 버튼 행 y 오프셋. 카드 아래 충분한 간격.
+    static let characterSelectButtonRowOffsetY: CGFloat = -160
+    /// 두 버튼 좌우 간격 (pt). frame.midX 기준 ±(spacing/2).
+    static let characterSelectButtonSpacing: CGFloat = 200
+
+    // MARK: - Skill Explanation Scene (Phase 10-1c)
+    /// 화면 헤더 텍스트 — "스킬을 익혀요". 호출부 리터럴 노출 금지.
+    static let skillExplanationHeaderText: String = "스킬을 익혀요"
+    /// 헤더 폰트 크기 (pt). characterSelectHeaderFontSize(22)와 동급 — 시각 일관성.
+    static let skillExplanationHeaderFontSize: CGFloat = 22
+    /// 헤더 y 오프셋.
+    static let skillExplanationHeaderOffsetY: CGFloat = 140
+    /// 큰 아바타 가로 (pt). PixelSpriteRenderer 16×20 픽셀 텍스처를 7.5배 확대 표현.
+    static let skillExplanationAvatarWidth: CGFloat = 120
+    /// 큰 아바타 세로 (pt). 픽셀 비율 유지(16:20 ≈ 4:5).
+    static let skillExplanationAvatarHeight: CGFloat = 150
+    /// 아바타 x 오프셋. frame.midX 기준 왼쪽.
+    static let skillExplanationAvatarOffsetX: CGFloat = -160
+    /// 아바타 y 오프셋. 화면 중앙 살짝 위.
+    static let skillExplanationAvatarOffsetY: CGFloat = 20
+    /// 스킬명 라벨 폰트 크기 (pt). 큰 강조 — *주인공* 정보.
+    static let skillExplanationSkillNameFontSize: CGFloat = 28
+    /// 스킬명 x 오프셋. 아바타 옆 오른쪽 영역.
+    static let skillExplanationSkillNameOffsetX: CGFloat = 80
+    /// 스킬명 y 오프셋. 스토리 박스 위쪽.
+    static let skillExplanationSkillNameOffsetY: CGFloat = 80
+    /// 스킬 설명 박스 x 오프셋. 스킬명과 동일 — 우측 정렬.
+    static let skillExplanationStoryBoxOffsetX: CGFloat = 80
+    /// 스킬 설명 박스 y 오프셋. 스킬명 아래.
+    static let skillExplanationStoryBoxOffsetY: CGFloat = 0
+    /// 조작 안내 라벨 폰트 크기 (pt). 부속 정보 톤.
+    static let skillExplanationControlHintFontSize: CGFloat = 12
+    /// 조작 안내 텍스트 — 호출부 리터럴 노출 금지.
+    static let skillExplanationControlHintText: String = "좌하단 스킬 버튼을 1번 탭하면 발동"
+    /// 조작 안내 y 오프셋. 스토리 박스 바로 아래.
+    static let skillExplanationControlHintOffsetY: CGFloat = -60
+    /// 버튼 행 y 오프셋. 패널 하단.
+    static let skillExplanationButtonRowOffsetY: CGFloat = -160
+
+    // MARK: - Stone Guard Warning Cutscene (Phase 10-1d)
+    /// easy/normal 난이도 인트로 컷씬 직후 발화되는 *석조무사 경고* 컷씬 제목.
+    /// hard의 professorWarningTitle과 시그니처 동형 — CutsceneOverlayNode 재사용.
+    static let stoneGuardWarningTitle: String = "경고 · 석조무사 출현"
+    /// 석조무사 경고 본문. GDD §10 + 사용자 요청 결합.
+    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let stoneGuardWarningBody: String =
+        "수간호사의 충실한 부하 석조무사가 출현합니다! 마주치면 잡혀갑니다. 절대 만나지 마세요."
 }

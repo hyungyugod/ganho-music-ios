@@ -23,8 +23,9 @@ class GameViewController: UIViewController {
             return
         }
 
-        // Phase 3-1+2 — 첫 진입은 TitleScene. 사용자가 의도적으로 탭해야 GameScene 시작.
-        let scene = TitleScene.newTitleScene()
+        // Phase 10-1a — 첫 진입은 StartScene (구 TitleScene → 4단계 분리 시작점).
+        // 사용자가 *시작 버튼*을 명시 탭해야 다음 단계(CharacterSelect)로 진행.
+        let scene = StartScene.newStartScene()
         skView.presentScene(scene)
 
         skView.ignoresSiblingOrder = true
