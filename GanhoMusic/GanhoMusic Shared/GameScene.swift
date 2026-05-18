@@ -339,6 +339,13 @@ class GameScene: SKScene {
             sparkle.position = sparkleOrigin
             self.worldNode.addChild(sparkle)
             sparkle.emit()
+            // Phase 6-16 — 노트 수집 자리에 "+1"/"+2" 텍스트 1회 발화 (시각 채널만).
+            // recordNoteHit 직후의 combo로 점수 분기 — ScoreSystem 시그니처 미접촉(옵션 B 폴링).
+            // worldNode 부모: sparkle과 동일 좌표계 → 카메라 follow와 자연 동기.
+            let gainedPoints = self.scoreSystem.combo >= GameConfig.comboBonusThreshold
+                ? GameConfig.scorePerNoteCombo
+                : GameConfig.scorePerNote
+            ScorePopupNode.spawn(at: sparkleOrigin, gainedPoints: gainedPoints, parent: self.worldNode)
             // Phase 6-10 — 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 1회 발화 (멱등성).
             // recordNoteHit 직후의 combo 값을 폴링 — ScoreSystem 시그니처 미변경(옵션 B).
             let currentCombo = self.scoreSystem.combo

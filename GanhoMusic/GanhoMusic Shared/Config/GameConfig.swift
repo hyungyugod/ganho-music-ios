@@ -392,4 +392,25 @@ enum GameConfig {
     static let newBestBlinkHalfPeriod: TimeInterval = 0.5
     /// bestLabel 황금 깜빡임 SKAction 키. 같은 키 재호출 시 자동 교체로 자연 멱등.
     static let newBestBlinkActionKey: String = "newBestBlink"
+
+    // MARK: - Score Popup (Phase 6-16)
+    /// 노트 수집 자리에 뜨는 "+1"/"+2" 라벨 폰트 크기 (pt).
+    /// HUD(18)보다 크고 ComboPopup(48)보다 작음 — *지역* 강조 톤.
+    static let scorePopupFontSize: CGFloat = 28
+    /// 노트 수집 좌표에서 시작 y 오프셋 (pt). 노트 본체(16pt) 위쪽 살짝 —
+    /// 노트가 사라지는 픽셀과 텍스트 첫 프레임이 겹치지 않게 12pt 위에서 시작.
+    static let scorePopupStartOffsetY: CGFloat = 12
+    /// "+1"/"+2"가 위로 떠오르는 총 거리 (pt). ComboPopup(80)의 절반 — *지역* 시그널은 작게.
+    /// sparkleSpawnDistance(24)보다 길어 sparkle 입자와 텍스트가 시각 분리.
+    static let scorePopupFlyUpDistance: CGFloat = 40
+    /// 1회 표시 총 길이 (초). sparkle(0.5)보다 살짝 길어 사라지는 시점 비동기 —
+    /// 시각 노이즈 분리. comboPopup(1.0)보다 짧음 — *지역* 톤.
+    static let scorePopupDuration: TimeInterval = 0.6
+    /// 시작 scale. 1.0보다 작게 시작해 *부풀어 오르는* 톤. ComboPopup(1.0 시작)과 차별화.
+    static let scorePopupStartScale: CGFloat = 0.8
+    /// 끝 scale. ComboPopup(1.4 확대)보다 약함 — *지역* 시그널 절제 톤.
+    static let scorePopupEndScale: CGFloat = 1.0
+    /// "+1"/"+2" 라벨 zPosition. sparkle(30) 위, HUD(100) 아래 —
+    /// 노트 사라진 픽셀 위에 떠 있되 HUD 점수/타이머는 안 가림.
+    static let scorePopupZPosition: CGFloat = 50
 }

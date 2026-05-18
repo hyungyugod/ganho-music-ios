@@ -42,6 +42,7 @@
 		A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000031 /* ComboPopupNode.swift */; };
 		A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000032 /* ComboBreakNode.swift */; };
 		A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000033 /* CountdownNode.swift */; };
+		A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000034 /* ScorePopupNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +81,7 @@
 		A1C0F1A00000000000000031 /* ComboPopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboPopupNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboBreakNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000033 /* CountdownNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000034 /* ScorePopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScorePopupNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -224,6 +226,7 @@
 				A1C0F1A00000000000000031 /* ComboPopupNode.swift */,
 				A1C0F1A00000000000000032 /* ComboBreakNode.swift */,
 				A1C0F1A00000000000000033 /* CountdownNode.swift */,
+				A1C0F1A00000000000000034 /* ScorePopupNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -496,6 +499,7 @@
 				A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */,
 				A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */,
 				A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */,
+				A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
