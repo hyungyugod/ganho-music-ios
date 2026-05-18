@@ -871,4 +871,66 @@ enum GameConfig {
     static let toastEndScale: CGFloat = 1.1
     /// 토스트 zPosition. scorePopupZPosition(50)과 동급 — *지역* 시그널 군집 통일.
     static let toastZPosition: CGFloat = 50
+
+    // MARK: - Professor (Phase 9-7)
+    /// 이교수(ProfessorNode) — 상 난이도 전용 두 번째 적 NPC. 4 waypoint 순찰 + 청진기 투척.
+    /// 수간호사(EnemyNode 추적 AI)와 석조무사(StoneGuardNode 패트롤) 사이의 중간형 — *순찰 + 원거리 공격*.
+
+    /// 이교수 박스 가로 (pt). 수간호사/김간호와 동일 16×20.
+    static let professorWidth: CGFloat = 16
+    /// 이교수 박스 세로 (pt). 수간호사/김간호와 동일 16×20.
+    static let professorHeight: CGFloat = 20
+    /// 이교수 패트롤 속도 (pt/s). 석조무사(55)와 수간호사 base(60) 사이.
+    /// 한 바퀴 둘레 = 2×(640-320) + 2×(280-200) = 640 + 160 = 800pt → 800/70 ≈ 11.4초.
+    static let professorSpeed: CGFloat = 70
+    /// 이교수 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상). 맵 중앙 영역 순찰.
+    /// 석조무사와 동일 정책(시계방향 직사각형) — 외곽 벽/중앙 장애물 회피.
+    static let professorWaypoints: [CGPoint] = [
+        CGPoint(x: 320, y: 200),  // 좌하 — 시작 위치
+        CGPoint(x: 640, y: 200),  // 우하
+        CGPoint(x: 640, y: 280),  // 우상
+        CGPoint(x: 320, y: 280)   // 좌상
+    ]
+    /// 청진기 발사 SKAction 키. stopThrowing/scheduleNextThrow가 공유 → endGame에서 removeAction(forKey:) 일괄 정지.
+    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let professorThrowActionKey: String = "professorThrow"
+    /// 경고 컷씬 제목. 호출부 리터럴 노출 금지.
+    static let professorWarningTitle: String = "경고 · 이교수 출현"
+    /// 경고 컷씬 본문. GDD §10 + 사용자 요청 결합.
+    static let professorWarningBody: String = "학교에서 나온 깐깐한 이교수가 청진기를 들고 순찰을 돕니다! 맞으면 잠시 움직일 수 없게 됩니다. 피하세요."
+
+    // MARK: - Stethoscope (Phase 9-7)
+    /// 청진기 투사체 — ProjectileNode(F)와 분리된 별도 PhysicsCategory.stethoscope 사용.
+    /// 적중 시 즉시 게임오버가 아닌 *2초 정지* — F와 정체성 분리.
+
+    /// 청진기 한 변 (pt). projectile(16)/note(16)보다 살짝 크게 — *위협 시그널* 강조.
+    static let stethoscopeSize: CGFloat = 18
+    /// 청진기 속도 (pt/s). projectile(160)보다 빠름 — 회피 난이도 상승.
+    static let stethoscopeSpeed: CGFloat = 220
+    /// 발사 주기 시작값 (초). 게임 시작 시점 도달값. 게임 진행률 0 → 2.5초.
+    static let stethoscopeThrowIntervalStart: TimeInterval = 2.5
+    /// 발사 주기 끝값 (초). 게임 종료 시점 도달값. 게임 진행률 1 → 1.4초.
+    static let stethoscopeThrowIntervalEnd: TimeInterval = 1.4
+    /// 동시에 떠 있을 수 있는 청진기 최대 수. F(2~4)와 별도 — 4발까지 동시 가능.
+    static let stethoscopeMaxConcurrent: Int = 4
+    /// 청진기 회전 1회전 길이 (초). 시각 회전 SKAction.rotate — 충돌 박스 무관 (allowsRotation=false).
+    static let stethoscopeRotationDuration: TimeInterval = 0.5
+    /// "청진기 명중!" 0.9초 토스트 텍스트. 호출부 리터럴 노출 금지.
+    static let stethoscopeToastText: String = "청진기 명중!"
+
+    // MARK: - Player Freeze (Phase 9-7)
+    /// 플레이어 동결 시스템 — 청진기 피격 시 2초간 이동 입력 차단.
+    /// 무적(isInvulnerable) 우선 정책: 무적 중 freeze 호출은 noop.
+    /// 재호출 noop: 이미 frozen이면 2초 *고정* — 누적 안 함 (연사 무한 정지 방지).
+
+    /// 동결 지속 시간 (초). 2초 — 수간호사 F 한 발 거리.
+    static let playerFreezeDuration: TimeInterval = 2.0
+    /// 동결 깜빡임 한 단계 길이 (초). 0.2 = 2초 동안 5회 깜빡임 (1.0 ↔ 0.4).
+    /// 무적 깜빡임(taiwanTripFlashHalfPeriod=0.1)의 2배 — 느리고 *무거운* 톤.
+    static let frozenBlinkHalfPeriod: TimeInterval = 0.2
+    /// 동결 깜빡임 시 최소 알파. 무적과 동일(0.4) — 시각 일관성.
+    static let frozenBlinkMinAlpha: CGFloat = 0.4
+    /// 동결 SKAction 키. 재호출 가드 + endGame 일괄 정지용 (필요 시).
+    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let playerFreezeActionKey: String = "playerFreeze"
 }

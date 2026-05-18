@@ -344,6 +344,31 @@ extension GameScene {
         worldNode.addChild(stoneGuard)
     }
 
+    // MARK: - Professor (Phase 9-7)
+    /// 이교수(ProfessorNode) — 상 난이도 전용. easy/normal에서는 가드 통과 후 early return.
+    /// 1) difficulty == .hard 가드 — easy/normal에선 professor=nil 유지(주의사항 1: easy/normal 회귀 0).
+    /// 2) 첫 waypoint(좌하)에 위치 부여. ProfessorNode.init에서 patrol이 이미 시작됐으므로
+    ///    첫 .move 액션은 (320, 200) → (640, 200) 우향으로 자동 진행.
+    /// 3) startThrowingStethoscopes — targetProvider/progressProvider [weak self] 캡처 필수.
+    func setupProfessor() {
+        guard difficulty == .hard else { return }
+        let node = ProfessorNode()
+        let first = GameConfig.professorWaypoints[0]
+        node.position = first
+        worldNode.addChild(node)
+        professor = node
+        // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
+        // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
+        node.startThrowingStethoscopes(
+            targetProvider: { [weak self] in self?.player.position },
+            worldNode: worldNode,
+            progressProvider: { [weak self] in
+                guard let self = self else { return 0 }
+                return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+            }
+        )
+    }
+
     // MARK: - Skill Button (Phase 9-5)
     /// 좌하단 SkillButtonNode를 cameraNode 자식으로 추가. D-Pad(우하단)와 대칭.
     /// configure(skill:)로 라벨 + 김간호 비활성 상태 자동 set.

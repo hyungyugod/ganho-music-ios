@@ -1,52 +1,48 @@
-# QA 검수 보고서 — Phase 9-6 변기 보너스 시스템
+# QA 검수 보고서 — Phase 9-7 (이교수 + 청진기)
 
 ## SPEC 기능 검증
 
-| # | 기능 | 결과 | 파일:라인 |
+| # | 기능 | 결과 | 위치 |
 |---|---|---|---|
-| 1 | ToiletNode 16×16 + bonus 카테고리 + 8s lifetime SKAction | PASS | `Nodes/ToiletNode.swift:18-60` |
-| 2 | applyLifetime — wait→fadeOut→removeFromParent sequence withKey | PASS | `Nodes/ToiletNode.swift:54-59` |
-| 3 | PixelSpriteRenderer + toiletData() + toiletPalette 사용 | PASS | `Nodes/ToiletNode.swift:26-29`, `Models/PixelSprite.swift:364-388`, `Models/PixelPalette.swift:116-120` |
-| 4 | ToastLabelNode SelfDismissingNode 채택 + private init + 정적 spawn 팩토리 | PASS | `Nodes/ToastLabelNode.swift:21,31,52` |
-| 5 | ToastLabelNode animate — moveBy/fadeOut/scale group + removeFromParent | PASS | `Nodes/ToastLabelNode.swift:66-76` |
-| 6 | ToastLabelNode setScale + 모든 수치 GameConfig 경유 | PASS | `Nodes/ToastLabelNode.swift:38,67-73,82-85` |
-| 7 | SpawnSystem.start 끝에 startToiletSpawnLoop 1줄 | PASS | `Systems/SpawnSystem.swift:68` |
-| 8 | SpawnSystem.stop에 removeAction(forKey:"spawnToilets") 1줄 | PASS | `Systems/SpawnSystem.swift:75` |
-| 9 | SpawnSystem 4개 신규 메서드 | PASS | `Systems/SpawnSystem.swift:204-248` |
-| 10 | 단일성 가드 *확률 판정 앞* 위치 | PASS | `Systems/SpawnSystem.swift:218-219` |
-| 11 | Bernoulli 단일 시도(CGFloat.random < 0.15) | PASS | `Systems/SpawnSystem.swift:219` |
-| 12 | ContactRouter.onToiletCollected: (SKNode) -> Void 콜백 | PASS | `Systems/ContactRouter.swift:31` |
-| 13 | didBegin bonus 분기 + handleBonusContact | PASS | `Systems/ContactRouter.swift:51-54, 97-103` |
-| 14 | 기존 4개 콜백 시그니처 0줄 변경 | PASS | `Systems/ContactRouter.swift:17-27` |
-| 15 | ScoreSystem.recordToiletBonus — recordNoteHit 2회 호출 | PASS | `Systems/ScoreSystem.swift:57-60` |
-| 16 | PhysicsCategory.bonus = 0b1000000 — 기존 6비트 충돌 없음 | PASS | `Config/PhysicsCategory.swift:20` |
-| 17 | PlayerNode.contactTestBitMask에 .bonus OR | PASS | `Nodes/PlayerNode.swift:89` |
-| 18 | PixelSprite.toiletData() + PixelPalette.toiletPalette | PASS | `Models/PixelSprite.swift:354-388`, `Models/PixelPalette.swift:109-121` |
-| 19 | ColorTokens 3개 (ganhoToiletBowl/Seat/Accent) | PASS | `Config/ColorTokens.swift:187-198` |
-| 20 | GameConfig MARK 섹션 2개 | PASS | `Config/GameConfig.swift:826,853` |
-| 21 | GameScene.configureContactRouter — onToiletCollected 본문 | PASS | `GameScene.swift:474-522` |
-| 22 | 콜백 — recordToiletBonus + medium 햅틱 + noteCollected 사운드 + Sparkle + Toast + ScorePopup×2 fan-out + 마일스톤 가드 + toilet.run(.removeFromParent()) | PASS | `GameScene.swift:478-521` |
-| 23 | 즉시 removeFromParent 금지 (SKAction 패턴) | PASS | `GameScene.swift:521` |
-| 24 | weak self 캡처 — SKAction.run / onToiletCollected | PASS | `Systems/SpawnSystem.swift:206`, `GameScene.swift:474` |
-
-### 회귀 방지
-
-| 영역 | 결과 |
-|---|---|
-| Phase 9-5 SkillSystem/HUDSkillSlot/SkillButton/PlayerSkill | PASS |
-| Phase 9-4 normalMap/체크보드 | PASS |
-| HUD 4슬롯 (HUDNode/layoutHUD) | PASS |
-| DPad / 카메라 follow | PASS |
-| SpawnSystem 기존 시그니처 | PASS (*추가만*) |
-| ContactRouter 기존 콜백 4개 | PASS |
+| 1 | ProfessorNode 16×20 + physicsBody 미부착 + 4 waypoint 순찰 | PASS | `Nodes/ProfessorNode.swift:42-82` |
+| 2 | startThrowingStethoscopes 시그니처 | PASS | `Nodes/ProfessorNode.swift:91-98` |
+| 3 | scheduleNextThrow 재귀 SKAction + "professorThrow" key | PASS | `Nodes/ProfessorNode.swift:103-111` |
+| 4 | throwStethoscope: 4가드 + 단위 벡터 × speed + max 4 가드 | PASS | `Nodes/ProfessorNode.swift:128-145` |
+| 5 | stopThrowing(worldNode:) — removeAction + velocity 0 | PASS | `Nodes/ProfessorNode.swift:158-163` |
+| 6 | updatePixelAnimation(deltaTime:) | PASS | `Nodes/ProfessorNode.swift:170-214` |
+| 7 | StethoscopeNode 18×18 + isDynamic + allowsRotation=false | PASS | `Nodes/StethoscopeNode.swift:33-42` |
+| 8 | category=stethoscope, contactTest=player\|wall, collision=0 | PASS | `Nodes/StethoscopeNode.swift:39-41` |
+| 9 | SKAction.rotate repeatForever 0.5초 | PASS | `Nodes/StethoscopeNode.swift:46` |
+| 10 | PlayerNode.isFrozen private(set) | PASS | `Nodes/PlayerNode.swift:48` |
+| 11 | freeze(duration:) — 2중 가드 + 깜빡임 + restore | PASS | `Nodes/PlayerNode.swift:155-173` |
+| 12 | update(deltaTime:) 최상단 isFrozen early return + 시그니처 보존 | PASS | `Nodes/PlayerNode.swift:129-144` |
+| 13 | var professor: ProfessorNode? Optional | PASS | `GameScene.swift:67` |
+| 14 | update D-Pad 가드 (!isDashing && !isFrozen) | PASS | `GameScene.swift:380-384` |
+| 15 | professor?.updatePixelAnimation(deltaTime: dt) | PASS | `GameScene.swift:409` |
+| 16 | 인트로 onDismiss hard 분기 → showProfessorWarningCutscene | PASS | `GameScene.swift:210-216` |
+| 17 | showProfessorWarningCutscene → .countdown 전환 | PASS | `GameScene.swift:225-237` |
+| 18 | configureContactRouter onStethoscopeHitPlayer/Wall 콜백 | PASS | `GameScene.swift:513-533` |
+| 19 | endGame professor?.stopThrowing | PASS | `GameScene.swift:687` |
+| 20 | setupProfessor — hard 가드 + waypoint[0] + weak self | PASS | `GameScene+Setup.swift:353-370` |
+| 21 | didMove 호출 (setupStoneGuard 다음) | PASS | `GameScene.swift:151` |
+| 22 | ContactRouter onStethoscopeHitPlayer/Wall 콜백 2개 | PASS | `Systems/ContactRouter.swift:35,38` |
+| 23 | didBegin stethoscope 분기 + handleStethoscopeContact | PASS | `Systems/ContactRouter.swift:58-61, 122-136` |
+| 24 | PhysicsCategory.stethoscope = 0b10000000 (128) | PASS | `Config/PhysicsCategory.swift:21` |
+| 25 | PixelSprite.professorData 16×20 4방향 3프레임 | PASS | `Models/PixelSprite.swift:390-467` |
+| 26 | PixelPalette.professorPalette 별도 dict | PASS | `Models/PixelPalette.swift:123-141` |
+| 27 | GameConfig 3 MARK 섹션 (Professor / Stethoscope / Player Freeze) | PASS | `Config/GameConfig.swift:875, 902, 921` |
+| 28 | ColorTokens 4개 신규 | PASS | `Config/ColorTokens.swift:208-217` |
+| 29 | 회귀 방지 — 보호 영역 7개 0줄 변경 | PASS | git diff 검증 |
+| 30 | 매직 넘버 0 / 강제 언래핑 0 / Timer 0 / weak self 5개소 | PASS | grep 검증 |
+| 31 | 빌드 BUILD SUCCEEDED 경고 0 | PASS | iPhone 17 Sim Debug |
 
 ## 빌드 검증
 
-- 결과: **BUILD SUCCEEDED**
-- 명령: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
-- 경고: 신규 코드 0건
+- **결과**: **BUILD SUCCEEDED**
+- **명령**: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
+- **경고**: 0건
 
-## 검수 결과 요약
+## 이슈 카운트
 
 | 등급 | 건수 |
 |---|---|
@@ -56,38 +52,66 @@
 
 ## 통과 항목
 
-- **강제 언래핑 0건** — guard let / ?? 패턴.
-- **Timer/DispatchQueue 0건** — 신규 코드는 모두 SKAction.repeatForever.
-- **매직 넘버 0건** — 신규 파일 리터럴 grep 0건. GameConfig 단일 진실 원천.
-- **MARK 섹션 일관성** — Properties/Init/Spawn/Animate/Configure 분할.
-- **SelfDismissingNode 채택** — ToastLabelNode 자가 소멸 노드 패턴.
-- **PhysicsCategory 비트 분리** — bonus=64, 기존 6개와 겹침 0.
-- **단일성 가드 *확률 앞*** — 놓친 기회 0 / 체감 확률 정확.
-- **ScoreSystem 응축 패턴** — recordToiletBonus가 단일 진입점 2회 호출, 직접 score/combo set 0건.
-- **즉시 removeFromParent 회피** — `toilet.run(.removeFromParent())` SKAction 패턴.
-- **weak self 일관** — SKAction.run/콜백 모두 [weak self].
-- **PixelSpriteRenderer 재사용** — Phase 8-1 인프라 정확 답습.
-- **노드 트리 부착** — ToiletNode → worldNode z=4, ToastLabelNode → worldNode z=50.
+### Swift 패턴 (35%)
+- 강제 언래핑 0건. `physicsBody?.velocity` 옵셔널 체이닝.
+- guard let / if let 4건, weak self 5개소.
+- MARK 섹션 완비, GameConfig 상수 16건.
+- 함수 단일 책임 — ProfessorNode 메서드별 역할 분리.
 
-## 항목별 점수
+### 게임 로직 (30%)
+- SKAction 패턴 — scheduleNextThrow 재귀, Timer 0.
+- PhysicsCategory.stethoscope=128 단독 비트.
+- didBegin 즉시 제거 0 — `node.run(.removeFromParent())` SKAction.
+- 무적 > 동결 > 게임오버 우선순위 — 이중 안전망 (freeze 안 + 호출부 둘 다 가드).
+- GameState 흐름 — 인트로 → 이교수 경고 → 카운트다운 (hard만).
 
-| 항목 | 가중치 | 점수 | 코멘트 |
-|---|---|---|---|
-| Swift 패턴 일관성 | 35% | 10/10 | guard let / weak self / MARK / GameConfig 100% / private init 팩토리 / 강제 언래핑 0 |
-| 게임 로직 완성도 | 30% | 10/10 | SKAction repeatForever / Bernoulli 단일 시도 / 단일성 가드 확률 앞 / ContactRouter 분기 결정성 / ScoreSystem 단일 진입점 응축 |
-| 성능 & 안정성 | 20% | 10/10 | SKAction removeFromParent / static physicsBody / BUILD SUCCEEDED / 신규 경고 0 |
-| 기능 완성도 | 15% | 10/10 | GDD §7-3 표 1:1 — 24개 항목 전수 PASS |
+### 성능 & 안정성 (20%)
+- Optional chain — easy/normal noop 자연.
+- weak worldRef — 메모리 누수 0.
+- removeAction 멱등 — stopThrowing 두 번 호출 안전.
+- endGame 정리 — 청진기 발사 루프 + 활성 청진기 정지.
+- texture 재생성 변화 순간에만 (needsRefresh 플래그).
 
-## 가중 평균
+### 기능 완성도 (15%)
+- SPEC §허용 14항목 전부 / §금지 6항목 전부 미접촉.
+- hard 외 등장 0 — professor=nil, 컷씬 미표시.
+- freeze 재호출 noop — 2초 고정.
+- 빌드 SUCCEEDED 경고 0.
 
-(10 × 0.35) + (10 × 0.30) + (10 × 0.20) + (10 × 0.15) = **10.0 / 10**
+## 회귀 방지 검증
+
+| 보호 영역 | 변경 라인 |
+|---|---|
+| EnemyNode.swift | 0줄 |
+| StoneGuardNode.swift | 0줄 |
+| SpawnSystem.swift | 0줄 |
+| ScoreSystem.swift | 0줄 |
+| SkillSystem.swift | 0줄 |
+| ToiletNode.swift | 0줄 |
+| ProjectileNode.swift | 0줄 |
+| HUD 노드들 | 0줄 |
+| CutsceneOverlayNode | 0줄 (재사용만) |
+| ToastLabelNode | 0줄 (재사용만) |
+
+## 채점
+
+| 항목 | 가중치 | 점수 |
+|---|---|---|
+| Swift 패턴 일관성 | 35% | 10/10 |
+| 게임 로직 완성도 | 30% | 10/10 |
+| 성능 & 안정성 | 20% | 10/10 |
+| 기능 완성도 | 15% | 10/10 |
+
+**가중 점수**: 10.0 × 0.35 + 10.0 × 0.30 + 10.0 × 0.20 + 10.0 × 0.15 = **10.0 / 10**
 
 ## 최종 판정: **합격**
 
 ## 시각적 확인 사항
 
-1. **변기 픽셀 외형**: 16×16 (상단 4행 padding 포함 16×20 텍스처 vertical squish 0.8배).
-2. **첫 12초 변기 0개**: SKAction.sequence([wait(12), roll]) — 의도된 톤.
-3. **fadeOut 도중 수집**: lifetime fadeOut 0.3s 진행 중 player 접촉 시 toilet 안전 제거.
-4. **콤보 2증가 마일스톤 건너뜀**: combo 2→4 점프 시 milestone 3 멱등 Set 미통과로 발화 안 함.
-5. **fan-out ±8pt ScorePopup 겹침**: 텍스트 겹침 확인.
+1. 이교수 픽셀 아트 시각 (회색 머리 + 안경 + 콧수염 + 흰 셔츠 + 검은 바지)
+2. 순찰 경로 (320,200) → (640,200) → (640,280) → (320,280) 시계방향 11.4초 1바퀴
+3. 청진기 회전 0.5초 1회전 톤 적정성
+4. freeze 깜빡임 alpha 1.0 ↔ 0.4 2초 동안 5회 톤
+5. 인트로 → 이교수 경고 → 카운트다운 3단계 흐름
+6. 무적 + freeze 충돌 — 정간호 돌진/이간호 텔레포트 중 청진기 명중 freeze 0초
+7. endGame 후 청진기 추가 발사 0

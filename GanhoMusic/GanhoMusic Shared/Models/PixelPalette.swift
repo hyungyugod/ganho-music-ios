@@ -119,3 +119,23 @@ extension PixelPalette {
         "C": .ganhoToiletAccent   // 변기 안 물(코럴 액센트)
     ]
 }
+
+// MARK: - Professor Palette (Phase 9-7)
+extension PixelPalette {
+    /// 이교수(ProfessorNode) 픽셀 팔레트. chiefPalette와 동형 구조 — *별도 dict*라 키 충돌 없음.
+    /// 신규 토큰 4개(머리/머리 음영/콧수염/바지) + 기존 토큰 재사용(피부/흰셔츠/안경/구두/입).
+    /// 같은 키 'P'가 공통 dict(파란 하의 ganhoPixelPants)와 *다른 색*이지만 본 dict만 단독 사용되므로 충돌 없음.
+    /// PixelSpriteRenderer는 호출 시 단일 dict만 사용 → 자연 분리.
+    static let professorPalette: [Character: UIColor] = [
+        "S": .ganhoPixelSkin,                  // 피부 (공통 재사용)
+        "H": .ganhoPixelProfessorHair,         // 회색 머리 (신규)
+        "h": .ganhoPixelProfessorHairShadow,   // 머리 음영 (신규)
+        "G": .ganhoPixelGlassFrame,            // 안경테 (geon 재사용)
+        "f": .ganhoPixelGlassLens,             // 렌즈 (geon 재사용)
+        "m": .ganhoPixelProfessorMustache,     // 콧수염 (신규, 'M' 입과 분리 위해 소문자)
+        "M": .ganhoPixelMouth,                 // 입 (공통 재사용)
+        "W": .ganhoPixelUniform,               // 흰 셔츠 (공통 재사용)
+        "P": .ganhoPixelProfessorPants,        // 검은 바지 (신규, 공통 'P'와 같은 키지만 dict 분리)
+        "B": .ganhoPixelChiefShoes             // 검은 구두 (chief 재사용)
+    ]
+}

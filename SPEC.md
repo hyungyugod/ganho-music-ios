@@ -1,386 +1,476 @@
-# Phase 9-6 — 화캉스 보너스 (변기) 시스템
+# Phase 9-7 — 이교수 + 청진기 (상 난이도 전용)
 
 ## 개요
-12초마다 15% 확률로 맵에 16×16 픽셀 변기 1개를 스폰. 미수집 시 8초 후 자동 소멸. 수집 시 *음표 2개 동시 수집 효과*(점수+2, 콤보+2) + "화캉스 보너스!" 토스트 0.9초 표시. Phase 2-10 SpawnSystem 패턴 + Phase 6-16 자가 소멸 노드 패턴 답습.
+상 난이도(.hard)에서만 등장하는 두 번째 적 NPC "이교수"를 추가한다. 이교수는 수간호사와 독립적으로 맵을 순찰하며 일정 주기로 "청진기" 투사체를 플레이어에게 투척한다. 청진기에 맞으면 플레이어가 2초간 동결되어 이동 입력이 차단된다. 등장 전에는 인트로 컷씬 dismiss 후 "경고 · 이교수 출현" 컷씬을 1회 표시한다.
 
 ## 변경 유형
-**게임플레이 + 비주얼 (혼합)** — 새 수집 노드(게임플레이) + 픽셀 아트/토스트 라벨(비주얼).
+**게임플레이 + 비주얼 (혼합)**
 
 ## 게임 경험 의도
-12초 주기로 *희소한 보너스 기회* — 변기라는 의외성 오브젝트로 "화캉스(화장실 바캉스)"라는 자전적 농담을 시각으로 전달. 8초 소멸 압박이 *지금 가야 하나*라는 미시 결정을 강요해, 평탄한 음표 수집 루프에 *결정의 리듬*을 끼워 넣는다. 수집 시 콤보+2가 마일스톤 직전에 만나면 *황금기 진입* 가속.
+상 난이도에 들어선 플레이어는 수간호사의 F 연발에 더해, 두 번째 위협 "이교수"로부터의 청진기 투척까지 동시에 회피해야 한다. 청진기에 맞으면 죽지는 않지만 2초간 묶여 그대로 수간호사 F 한 발이 날아오는 *공포의 사슬*을 만든다. 등장 전 컷씬으로 "학교에서 나온 깐깐한 이교수"의 톤을 미리 알린다.
 
 ## Sprint 범위 계약
 
 ### 허용
-1. 신규 노드 `ToiletNode` (Nodes/) — 16×16 픽셀 아트, PhysicsBody static.
-2. 신규 노드 `ToastLabelNode` (Nodes/) — 자가 소멸 토스트 라벨, SelfDismissingNode 채택.
-3. `SpawnSystem` 내부 확장 — `startToiletSpawnLoop()` + `tryRollAndSpawnToilet()` + `currentToiletCount()` + `randomToiletPosition()`. start/stop 시그니처 보존.
-4. `ContactRouter` 신규 콜백 `onToiletCollected: (SKNode) -> Void` + bonus 분기 + `handleBonusContact`.
-5. `ScoreSystem` 신규 메서드 `recordToiletBonus(at:)` (recordNoteHit 2회 호출).
-6. `PhysicsCategory.bonus: UInt32 = 0b1000000 (64)` 신규.
-7. `PlayerNode.contactTestBitMask`에 `.bonus` OR 결합.
-8. `GameConfig` 변기 관련 상수 일괄 추가 (Toilet Bonus + Toast Label MARK 섹션).
-9. `GameScene.configureContactRouter()` 안 `onToiletCollected` 콜백 등록.
-10. 변기 픽셀 데이터 `PixelSprite.toiletData()` static + `PixelPalette.toiletPalette`.
-11. ColorTokens 3개 (ganhoToiletBowl/ganhoToiletSeat/ganhoToiletAccent).
+1. 새 노드 `ProfessorNode` — 이교수 본체 SKSpriteNode + 4 waypoint 순찰 + 청진기 발사 루프
+2. 새 노드 `StethoscopeNode` — 청진기 투사체 SKSpriteNode
+3. `PlayerNode.isFrozen: Bool` + `freeze(duration:)` 메서드 + update 가드
+4. `GameScene.update`에 frozen 가드 1줄 + `professor?.updatePixelAnimation` 1줄
+5. `ContactRouter.onStethoscopeHitPlayer` / `onStethoscopeHitWall` 콜백 2개 + `handleStethoscopeContact` 메서드
+6. `PhysicsCategory.stethoscope: UInt32 = 0b10000000 (128)` 추가
+7. `GameConfig` "Professor (Phase 9-7)" + "Stethoscope (Phase 9-7)" + "Player Freeze (Phase 9-7)" MARK 섹션
+8. `GameScene+Setup.setupProfessor()` — hard 분기 가드 함수 내부 + didMove 호출 1줄 추가
+9. `GameScene.showProfessorWarningCutscene()` — 인트로 컷씬 onDismiss 안 hard 분기로 호출
+10. `GameScene.endGame`에 `professor?.stopThrowing(worldNode:)` 1줄 추가
+11. `PixelSprite.professorData(direction:frame:)` extension + `PixelPalette.professorPalette` extension
+12. ColorTokens 4개 (회색 머리/머리 음영/콧수염/검은 바지) — 다른 토큰 재사용 최대화
+13. "청진기 명중!" 0.9초 토스트 — `ToastLabelNode.spawn` 재사용
+14. `CutsceneOverlayNode` 재사용 — 신규 컷씬 노드 신설 금지
 
 ### 금지
-1. 변기 N개 동시 스폰 — 단일성 정책 (1개).
-2. 난이도별 차등 (모든 난이도 동일).
-3. HUD 변기 카운터/알림.
-4. BGM/효과음 신규 (기존 `.noteCollected` 재사용).
-5. 변기 종류 확장.
-6. Phase 9-1~9-5 영역 코드 0줄 수정.
-7. SpawnSystem 기존 시그니처(`start/stop/apply/fireImmediately`) 변경 — *추가만*.
+1. easy/normal 게임플레이 회귀 — 이교수는 hard 외 등장 불가
+2. 새 BGM/효과음 추가
+3. 수간호사(EnemyNode) 거동/스폰 변경
+4. 음표/F/석조무사/변기 거동 변경
+5. ProjectileNode에 청진기 분기 추가 (별도 노드 신설)
+6. Phase 9-1~9-6 영역 (HUD/스킬/변기/맵/체크보드) 코드 0줄 변경
 
 ### 판단 기준
-"이 변경 없이 변기 보너스가 *제대로 동작하지 않는가*?" → YES면 허용, NO면 금지.
+"이 변경 없이 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
 
-## 스폰 모델 결정 (Planner)
+## 등장 시점 결정
 
-**Bernoulli 단일 시도 (12초마다 1회 15% 판정)** 채택:
-- `SKAction.repeatForever([wait(12), run { trySpawn() }])`
-- 매 사이클 `CGFloat.random(in: 0..<1) < 0.15` 단일 판정
-- 확률 누적 없음 (단순/예측 가능성 우선)
-- 평균 스폰 간격: 12s / 0.15 = 80초
+**Hard 시작과 동시 (worldNode 부착)**. 인트로 컷씬 dismiss → 이교수 경고 컷씬 → 카운트다운 → 게임 시작.
 
-**단일성 정책 (동시 1개)**: `tryRollAndSpawnToilet` 진입 시 `currentToiletCount() < 1` 가드를 *확률 시도 전*에 둠 — 화면 어수선함 차단 + 체감 확률 정확.
+## 컷씬 통합
 
-## "2배 점수 음표 다수 토스트" 의미 해석
+인트로 컷씬 `onDismiss` 클로저 안에서 `difficulty == .hard` 분기 → `showProfessorWarningCutscene()` 호출, 그 onDismiss에서 `.countdown` 전환. easy/normal은 기존 흐름 그대로.
 
-사용자 요청 모호 → GDD §7-3 표 명시 1:1:
-- 효과: **음표 2개 수집과 동등 (점수+2, 콤보+2)**
-- 토스트: **"화캉스 보너스!" 텍스트 0.9초 표시**
+**메시지 텍스트** (GDD §10 + 사용자 요청 결합):
+- 제목: `"경고 · 이교수 출현"`
+- 본문: `"학교에서 나온 깐깐한 이교수가 청진기를 들고 순찰을 돕니다! 맞으면 잠시 움직일 수 없게 됩니다. 피하세요."`
 
-해석 결정:
-- 점수+2 = `recordToiletBonus`가 *내부적으로 recordNoteHit 2회 호출* → 콤보 윈도우 갱신 + 콤보 2증가 + 점수 2회 가산. 마일스톤 분기 자연 발화.
-- "음표 다수 토스트" = ScorePopupNode 2개 fan-out (좌/우 ±8pt offset) + "화캉스 보너스!" ToastLabelNode 1개.
+## 정지 시스템 결정
 
-## 노드 트리 부착
-
-| 노드 | 부모 | zPosition |
-|---|---|---|
-| `ToiletNode` | `worldNode` | 4 (note 0 위, player 5 아래) |
-| `ToastLabelNode` | `worldNode` | 50 (ScorePopupNode와 동일) |
+`PlayerNode.isFrozen: Bool` 신설 + 외부 진입점 `freeze(duration:)`:
+- `update(deltaTime:)` 최상단에서 `if isFrozen { physicsBody?.velocity = .zero; return }`
+- GameScene.update D-Pad 입력 라우팅에서 `if !skillSystem.isDashing && !player.isFrozen` 가드
+- 시각: alpha 1.0 ↔ 0.4 깜빡임 (taiwanTripFlash 패턴)
+- 2초 후 SKAction.run 콜백으로 `isFrozen = false` + alpha 복원
+- `isInvulnerable == true`면 freeze 호출 noop (무적 우선)
+- `isFrozen == true`면 재호출 noop (2초 *고정*, 누적 안 함)
 
 ## 변경 범위
 
 ### 수정할 파일
-- `GameScene.swift` — `configureContactRouter()` 안에 onToiletCollected 콜백 1개 추가
-- `Systems/SpawnSystem.swift` — start 끝에 `startToiletSpawnLoop()` 1줄 + stop에 `removeAction(forKey: "spawnToilets")` 1줄 + 신규 메서드 4개
-- `Systems/ContactRouter.swift` — 콜백 1개 + didBegin 분기 1개 + `handleBonusContact` 1개
-- `Systems/ScoreSystem.swift` — `recordToiletBonus(at:)` 1개 추가
-- `Config/PhysicsCategory.swift` — `static let bonus: UInt32 = 0b1000000` 1줄
-- `Config/GameConfig.swift` — "Toilet Bonus (Phase 9-6)" + "Toast Label (Phase 9-6)" MARK 섹션
-- `Nodes/PlayerNode.swift` — contactTestBitMask OR `.bonus` 1개 추가
-- `Models/PixelSprite.swift` — `static func toiletData() -> Frame`
-- `Models/PixelPalette.swift` — `static let toiletPalette: [Character: UIColor]`
-- `Config/ColorTokens.swift` — 3개 색 추가
+- `GameScene.swift` — `var professor: ProfessorNode?` 프로퍼티 + update 가드 + Professor update 호출 + 컷씬 분기 + endGame stop + ContactRouter 콜백 2개
+- `GameScene+Setup.swift` — `setupProfessor()` 메서드 + didMove에서 호출 1줄
+- `Systems/ContactRouter.swift` — 콜백 2개 + 분기 1개 + handleStethoscopeContact
+- `Config/PhysicsCategory.swift` — `stethoscope: UInt32 = 0b10000000`
+- `Config/GameConfig.swift` — 3개 MARK 섹션
+- `Config/ColorTokens.swift` — 4개 토큰
+- `Nodes/PlayerNode.swift` — isFrozen + freeze(duration:) + update 가드
+- `Models/PixelSprite.swift` — professorData extension
+- `Models/PixelPalette.swift` — professorPalette extension
 
 ### 추가할 파일
-- `Nodes/ToiletNode.swift`
-- `Nodes/ToastLabelNode.swift`
+- `Nodes/ProfessorNode.swift`
+- `Nodes/StethoscopeNode.swift`
 
 ## 기능 상세
 
-### 기능 1: ToiletNode
+### 기능 1: ProfessorNode
 
 ```swift
-final class ToiletNode: SKSpriteNode {
+final class ProfessorNode: SKSpriteNode {
+    private var pixelDirection: PixelDirection = .down
+    private var pixelFrame: PixelFrame = .idle
+    private var frameAccumulator: TimeInterval = 0
+    private var currentWaypointIndex: Int = 0
+    private weak var worldRef: SKNode?
+    private var targetProvider: () -> CGPoint? = { nil }
+    private var progressProvider: () -> Double = { 0 }
+
     init() {
-        let size = CGSize(width: GameConfig.toiletSize, height: GameConfig.toiletSize)
-        let texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.toiletData(),
-            palette: PixelPalette.toiletPalette
+        let physicsSize = CGSize(width: GameConfig.professorWidth, height: GameConfig.professorHeight)
+        let visualSize = CGSize(
+            width: GameConfig.professorWidth * GameConfig.pixelSpriteScale,
+            height: GameConfig.professorHeight * GameConfig.pixelSpriteScale
         )
-        super.init(texture: texture, color: .clear, size: size)
-        name = "toilet"
-        zPosition = GameConfig.toiletZPosition
+        let initialTexture = PixelSpriteRenderer.texture(
+            from: PixelSprite.professorData(direction: .down, frame: .idle),
+            palette: PixelPalette.professorPalette
+        )
+        super.init(texture: initialTexture, color: .clear, size: visualSize)
+        name = "professor"
+        zPosition = 5
+        // physicsBody 미부착 — *통과형* NPC. 위협은 청진기 담당.
+        startPatrol()
+    }
+
+    private func startPatrol() {
+        let waypoints = GameConfig.professorWaypoints
+        var moves: [SKAction] = []
+        for i in 0..<waypoints.count {
+            let from = waypoints[i]
+            let to = waypoints[(i + 1) % waypoints.count]
+            let dist = hypot(to.x - from.x, to.y - from.y)
+            let dur = TimeInterval(dist / GameConfig.professorSpeed)
+            moves.append(SKAction.move(to: to, duration: dur))
+        }
+        run(.repeatForever(.sequence(moves)))
+    }
+
+    func startThrowingStethoscopes(targetProvider: @escaping () -> CGPoint?,
+                                    worldNode: SKNode,
+                                    progressProvider: @escaping () -> Double) {
+        self.targetProvider = targetProvider
+        self.worldRef = worldNode
+        self.progressProvider = progressProvider
+        scheduleNextThrow()
+    }
+
+    private func scheduleNextThrow() {
+        let interval = currentThrowInterval()
+        let wait = SKAction.wait(forDuration: interval)
+        let throwAction = SKAction.run { [weak self] in
+            self?.throwStethoscope()
+            self?.scheduleNextThrow()
+        }
+        run(.sequence([wait, throwAction]), withKey: GameConfig.professorThrowActionKey)
+    }
+
+    private func currentThrowInterval() -> TimeInterval {
+        let progress = progressProvider()
+        let start = GameConfig.stethoscopeThrowIntervalStart
+        let end = GameConfig.stethoscopeThrowIntervalEnd
+        return start + (end - start) * progress
+    }
+
+    private func throwStethoscope() {
+        guard let world = worldRef else { return }
+        guard let target = targetProvider() else { return }
+        guard currentStethoscopeCount(in: world) < GameConfig.stethoscopeMaxConcurrent else { return }
+        let dx = target.x - position.x
+        let dy = target.y - position.y
+        let magnitude = hypot(dx, dy)
+        guard magnitude > 0 else { return }
+        let unitX = dx / magnitude
+        let unitY = dy / magnitude
+        let stethoscope = StethoscopeNode()
+        stethoscope.position = position
+        stethoscope.physicsBody?.velocity = CGVector(
+            dx: unitX * GameConfig.stethoscopeSpeed,
+            dy: unitY * GameConfig.stethoscopeSpeed
+        )
+        world.addChild(stethoscope)
+    }
+
+    private func currentStethoscopeCount(in world: SKNode) -> Int {
+        var count = 0
+        world.enumerateChildNodes(withName: "stethoscope") { _, _ in count += 1 }
+        return count
+    }
+
+    func stopThrowing(worldNode: SKNode) {
+        removeAction(forKey: GameConfig.professorThrowActionKey)
+        worldNode.enumerateChildNodes(withName: "stethoscope") { node, _ in
+            node.physicsBody?.velocity = .zero
+        }
+    }
+
+    // EnemyNode 패턴 답습 — dt 매 프레임 호출, 방향/걷기 프레임 갱신
+    func updatePixelAnimation(deltaTime: TimeInterval) { /* ... */ }
+    required init?(coder: NSCoder) { fatalError() }
+}
+```
+
+### 기능 2: StethoscopeNode
+
+```swift
+final class StethoscopeNode: SKSpriteNode {
+    init() {
+        let size = CGSize(width: GameConfig.stethoscopeSize, height: GameConfig.stethoscopeSize)
+        super.init(texture: nil, color: .ganhoPixelChiefShoes, size: size)  // 검은 톤 재사용
+        name = "stethoscope"
+        zPosition = 5
+
         let body = SKPhysicsBody(rectangleOf: size)
-        body.isDynamic           = false
-        body.categoryBitMask     = PhysicsCategory.bonus
-        body.collisionBitMask    = 0
-        body.contactTestBitMask  = PhysicsCategory.player
+        body.isDynamic = true
+        body.allowsRotation = false
+        body.friction = 0
+        body.restitution = 0
+        body.linearDamping = 0
+        body.categoryBitMask = PhysicsCategory.stethoscope
+        body.collisionBitMask = 0
+        body.contactTestBitMask = PhysicsCategory.player | PhysicsCategory.wall
         physicsBody = body
-    }
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    /// 스폰 직후 1회 호출. 8초 후 fadeOut + removeFromParent.
-    func applyLifetime() {
-        let wait   = SKAction.wait(forDuration: GameConfig.toiletLifetime)
-        let fade   = SKAction.fadeOut(withDuration: GameConfig.toiletFadeOutDuration)
-        let remove = SKAction.removeFromParent()
-        run(.sequence([wait, fade, remove]), withKey: "toiletLifetime")
-    }
-}
-```
-
-### 기능 2: PixelSprite.toiletData() (16×16)
-
-```swift
-static func toiletData() -> Frame {
-    return [
-        "................",
-        "................",
-        "................",
-        "................",
-        "...ssssssssss...",
-        "..s..........s..",
-        "..s.CCCCCCCC.s..",
-        "..s.CCCCCCCC.s..",
-        "...ssssssssss...",
-        "...WWWWWWWWWW...",
-        "...W........W...",
-        "...W........W...",
-        "...W........W...",
-        "...WWWWWWWWWW...",
-        "...W........W...",
-        "..WWWWWWWWWWWW..",
-    ]
-}
-```
-
-팔레트: W=본체 흰색, s=시트 회색, C=물 코럴.
-
-### 기능 3: ToastLabelNode
-
-```swift
-final class ToastLabelNode: SKNode, SelfDismissingNode {
-    private let label: SKLabelNode
-    private init(text: String) {
-        self.label = SKLabelNode(text: text)
-        super.init()
-        name = "toast"
-        zPosition = GameConfig.toastZPosition
-        configureLabel()
-        setScale(GameConfig.toastStartScale)
-        addChild(label)
+        run(.repeatForever(.rotate(byAngle: .pi * 2, duration: GameConfig.stethoscopeRotationDuration)))
     }
     required init?(coder: NSCoder) { fatalError() }
-
-    static func spawn(text: String, at position: CGPoint, parent: SKNode) {
-        let node = ToastLabelNode(text: text)
-        node.position = CGPoint(x: position.x, y: position.y + GameConfig.toastStartOffsetY)
-        parent.addChild(node)
-        node.animate()
-    }
-
-    private func animate() {
-        let moveUp  = SKAction.moveBy(x: 0, y: GameConfig.toastFlyUpDistance, duration: GameConfig.toastDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.toastDuration)
-        let scaleUp = SKAction.scale(to: GameConfig.toastEndScale, duration: GameConfig.toastDuration)
-        let group   = SKAction.group([moveUp, fadeOut, scaleUp])
-        run(.sequence([group, .removeFromParent()]))
-    }
-
-    private func configureLabel() {
-        label.fontSize = GameConfig.toastFontSize
-        label.fontColor = .ganhoYellowF
-        label.verticalAlignmentMode = .center
-        label.horizontalAlignmentMode = .center
-        label.position = .zero
-    }
 }
 ```
 
-### 기능 4: SpawnSystem 확장
+### 기능 3: PlayerNode.isFrozen + freeze(duration:)
 
 ```swift
-// start(...) 끝에 1줄 추가
-startToiletSpawnLoop()
+private(set) var isFrozen: Bool = false
 
-// stop() 안에 1줄 추가
-scene?.removeAction(forKey: "spawnToilets")
+func freeze(duration: TimeInterval) {
+    if isFrozen { return }
+    if isInvulnerable { return }
+    isFrozen = true
 
-// MARK: - Toilet Spawn (Phase 9-6)
-private func startToiletSpawnLoop() {
-    let wait = SKAction.wait(forDuration: GameConfig.toiletSpawnInterval)
-    let roll = SKAction.run { [weak self] in self?.tryRollAndSpawnToilet() }
-    let loop = SKAction.repeatForever(.sequence([wait, roll]))
-    scene?.run(loop, withKey: "spawnToilets")
-}
-
-private func tryRollAndSpawnToilet() {
-    guard let world = worldNode else { return }
-    guard currentToiletCount() < GameConfig.toiletMaxConcurrent else { return }
-    guard CGFloat.random(in: 0..<1) < GameConfig.toiletSpawnProbability else { return }
-    guard let position = randomToiletPosition() else { return }
-    let toilet = ToiletNode()
-    toilet.position = position
-    world.addChild(toilet)
-    toilet.applyLifetime()
-}
-
-private func currentToiletCount() -> Int {
-    guard let world = worldNode else { return 0 }
-    var count = 0
-    world.enumerateChildNodes(withName: "toilet") { _, _ in count += 1 }
-    return count
-}
-
-private func randomToiletPosition() -> CGPoint? {
-    let margin = GameConfig.tileSize
-    let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
-    let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
-    let cx = GameConfig.mapWidth  / 2
-    let cy = GameConfig.mapHeight / 2
-    if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
-        return nil
+    let half = GameConfig.frozenBlinkHalfPeriod
+    let fadeOut = SKAction.fadeAlpha(to: GameConfig.frozenBlinkMinAlpha, duration: half)
+    let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
+    let cycle = SKAction.sequence([fadeOut, fadeIn])
+    let cycleCount = max(1, Int(duration / (half * 2)))
+    let blink = SKAction.repeat(cycle, count: cycleCount)
+    let restore = SKAction.run { [weak self] in
+        self?.isFrozen = false
+        self?.alpha = 1.0
+        self?.physicsBody?.velocity = .zero
     }
-    return CGPoint(x: x, y: y)
+    run(.sequence([blink, restore]), withKey: GameConfig.playerFreezeActionKey)
 }
-```
 
-### 기능 5: ContactRouter 분기
-
-```swift
-var onToiletCollected: (SKNode) -> Void = { _ in }
-
-func didBegin(_ contact: SKPhysicsContact) {
-    let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-    // 기존 분기 그대로
-    if categories & PhysicsCategory.bonus != 0 {
-        handleBonusContact(contact)
+func update(deltaTime: TimeInterval) {
+    if isFrozen {
+        physicsBody?.velocity = .zero
         return
     }
-    // 기존 note 분기 그대로
-}
-
-private func handleBonusContact(_ contact: SKPhysicsContact) {
-    let bonusBody = contact.bodyA.categoryBitMask == PhysicsCategory.bonus ? contact.bodyA : contact.bodyB
-    guard let node = bonusBody.node else { return }
-    onToiletCollected(node)
+    // 기존 로직 그대로
+    let speed = baseSpeedStart * speedMultiplier
+    physicsBody?.velocity = CGVector(dx: currentDirection.dx * speed, dy: currentDirection.dy * speed)
 }
 ```
 
-### 기능 6: ScoreSystem
+### 기능 4: GameScene 통합
 
 ```swift
-/// Phase 9-6 — 변기 수집 시 호출. 음표 2개 효과(GDD §7-3).
-/// recordNoteHit 2회 호출 — 콤보 윈도우 검사/콤보 누적 자연 동작.
-func recordToiletBonus(at now: TimeInterval) {
-    recordNoteHit(at: now)
-    recordNoteHit(at: now)
+var professor: ProfessorNode?
+
+// update 안 D-Pad 라우팅 가드 수정
+if !skillSystem.isDashing && !player.isFrozen {
+    player.currentDirection = dpad.currentDirection
+} else if player.isFrozen {
+    player.currentDirection = .zero
 }
-```
 
-### 기능 7: GameScene 콜백
+// Professor 픽셀 갱신 (hard만, optional)
+professor?.updatePixelAnimation(deltaTime: dt)
 
-```swift
-contactRouter.onToiletCollected = { [weak self] toilet in
+// 인트로 컷씬 onDismiss 안 분기
+onDismiss: { [weak self] in
     guard let self = self else { return }
-    let toiletOrigin = toilet.position
-    self.scoreSystem.recordToiletBonus(at: self.lastUpdateTime)
-    self.haptics.medium()
-    self.audio.play(.noteCollected)
-    let sparkle = SparkleEffectNode()
-    sparkle.position = toiletOrigin
-    self.worldNode.addChild(sparkle)
-    sparkle.emit()
-    ToastLabelNode.spawn(text: GameConfig.toiletToastText,
-                         at: toiletOrigin,
-                         parent: self.worldNode)
-    let gained = self.scoreSystem.combo >= GameConfig.comboBonusThreshold
-        ? GameConfig.scorePerNoteCombo : GameConfig.scorePerNote
-    ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x - GameConfig.toiletScorePopupFanOutX, y: toiletOrigin.y),
-                         gainedPoints: gained, parent: self.worldNode)
-    ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x + GameConfig.toiletScorePopupFanOutX, y: toiletOrigin.y),
-                         gainedPoints: gained, parent: self.worldNode)
-    let currentCombo = self.scoreSystem.combo
-    if GameConfig.comboMilestones.contains(currentCombo),
-       !self.triggeredComboMilestones.contains(currentCombo) {
-        self.triggeredComboMilestones.insert(currentCombo)
-        self.playComboMilestoneFeedback(for: currentCombo)
-        let popup = ComboPopupNode(milestone: currentCombo)
-        self.cameraNode.addChild(popup)
-        popup.animate()
+    UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
+    if self.difficulty == .hard {
+        self.showProfessorWarningCutscene()
+    } else {
+        self.gameState = .countdown
+        self.showCountdown()
     }
-    toilet.run(.removeFromParent())
+}
+
+private func showProfessorWarningCutscene() {
+    CutsceneOverlayNode.present(
+        title: GameConfig.professorWarningTitle,
+        body: GameConfig.professorWarningBody,
+        parent: cameraNode,
+        sceneSize: size,
+        onDismiss: { [weak self] in
+            guard let self = self else { return }
+            self.gameState = .countdown
+            self.showCountdown()
+        }
+    )
+}
+
+// configureContactRouter 안
+contactRouter.onStethoscopeHitPlayer = { [weak self] node in
+    guard let self = self else { return }
+    if self.player.isInvulnerable {
+        node.run(.removeFromParent())
+        return
+    }
+    self.haptics.medium()
+    self.cameraNode.run(CameraShakeAction.make())
+    ToastLabelNode.spawn(text: GameConfig.stethoscopeToastText,
+                         at: self.player.position,
+                         parent: self.worldNode)
+    self.player.freeze(duration: GameConfig.playerFreezeDuration)
+    node.run(.removeFromParent())
+}
+contactRouter.onStethoscopeHitWall = { node in
+    node.run(.removeFromParent())
+}
+
+// endGame 안 spawnSystem.stop() 다음
+professor?.stopThrowing(worldNode: worldNode)
+```
+
+### 기능 5: GameScene+Setup.setupProfessor
+
+```swift
+func setupProfessor() {
+    guard difficulty == .hard else { return }
+    let node = ProfessorNode()
+    let first = GameConfig.professorWaypoints[0]
+    node.position = first
+    worldNode.addChild(node)
+    professor = node
+    node.startThrowingStethoscopes(
+        targetProvider: { [weak self] in self?.player.position },
+        worldNode: worldNode,
+        progressProvider: { [weak self] in
+            guard let self = self else { return 0 }
+            return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+        }
+    )
+}
+
+// didMove 호출 추가 (setupStoneGuard 다음)
+setupProfessor()
+```
+
+### 기능 6: ContactRouter 분기
+
+```swift
+var onStethoscopeHitPlayer: (SKNode) -> Void = { _ in }
+var onStethoscopeHitWall: (SKNode) -> Void = { _ in }
+
+// didBegin 안 projectile 분기 다음
+if categories & PhysicsCategory.stethoscope != 0 {
+    handleStethoscopeContact(contact)
+    return
+}
+
+private func handleStethoscopeContact(_ contact: SKPhysicsContact) {
+    let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+    let stethoscopeBody = contact.bodyA.categoryBitMask == PhysicsCategory.stethoscope
+        ? contact.bodyA : contact.bodyB
+    if categories & PhysicsCategory.player != 0 {
+        guard let node = stethoscopeBody.node else { return }
+        onStethoscopeHitPlayer(node)
+        return
+    }
+    if categories & PhysicsCategory.wall != 0 {
+        guard let node = stethoscopeBody.node else { return }
+        onStethoscopeHitWall(node)
+    }
 }
 ```
 
-*주의*: ScorePopupNode/SparkleEffectNode/ComboPopupNode/triggeredComboMilestones/playComboMilestoneFeedback 호출 형태는 GameScene 기존 onNoteCollected 콜백 패턴을 그대로 미러. 실제 시그니처는 코드 읽고 조정.
-
-### 기능 8: PhysicsCategory + PlayerNode
+## GameConfig 상수
 
 ```swift
-// PhysicsCategory.swift
-static let bonus: UInt32 = 0b1000000  // 64
+// MARK: - Professor (Phase 9-7)
+static let professorWidth: CGFloat = 16
+static let professorHeight: CGFloat = 20
+static let professorSpeed: CGFloat = 70
+static let professorWaypoints: [CGPoint] = [
+    CGPoint(x: 320, y: 200),
+    CGPoint(x: 640, y: 200),
+    CGPoint(x: 640, y: 280),
+    CGPoint(x: 320, y: 280)
+]
+static let professorThrowActionKey: String = "professorThrow"
+static let professorWarningTitle: String = "경고 · 이교수 출현"
+static let professorWarningBody: String = "학교에서 나온 깐깐한 이교수가 청진기를 들고 순찰을 돕니다! 맞으면 잠시 움직일 수 없게 됩니다. 피하세요."
 
-// PlayerNode.swift
-body.contactTestBitMask = PhysicsCategory.note
-                        | PhysicsCategory.enemy
-                        | PhysicsCategory.projectile
-                        | PhysicsCategory.stoneGuard
-                        | PhysicsCategory.bonus    // ← 추가
+// MARK: - Stethoscope (Phase 9-7)
+static let stethoscopeSize: CGFloat = 18
+static let stethoscopeSpeed: CGFloat = 220
+static let stethoscopeThrowIntervalStart: TimeInterval = 2.5
+static let stethoscopeThrowIntervalEnd: TimeInterval = 1.4
+static let stethoscopeMaxConcurrent: Int = 4
+static let stethoscopeRotationDuration: TimeInterval = 0.5
+static let stethoscopeToastText: String = "청진기 명중!"
+
+// MARK: - Player Freeze (Phase 9-7)
+static let playerFreezeDuration: TimeInterval = 2.0
+static let frozenBlinkHalfPeriod: TimeInterval = 0.2
+static let frozenBlinkMinAlpha: CGFloat = 0.4
+static let playerFreezeActionKey: String = "playerFreeze"
 ```
 
-## 매직 넘버 정책
+## ColorTokens
 
 ```swift
-// MARK: - Toilet Bonus (Phase 9-6)
-static let toiletSize: CGFloat = 16
-static let toiletSpawnInterval: TimeInterval = 12.0
-static let toiletSpawnProbability: CGFloat = 0.15
-static let toiletLifetime: TimeInterval = 8.0
-static let toiletFadeOutDuration: TimeInterval = 0.3
-static let toiletMaxConcurrent: Int = 1
-static let toiletZPosition: CGFloat = 4
-
-// MARK: - Toast Label (Phase 9-6)
-static let toiletToastText: String = "화캉스 보너스!"
-static let toastDuration: TimeInterval = 0.9
-static let toastFontSize: CGFloat = 24
-static let toastStartOffsetY: CGFloat = 16
-static let toastFlyUpDistance: CGFloat = 40
-static let toastStartScale: CGFloat = 0.8
-static let toastEndScale: CGFloat = 1.1
-static let toastZPosition: CGFloat = 50
-static let toiletScorePopupFanOutX: CGFloat = 8
-
-// ColorTokens.swift
-static let ganhoToiletBowl    = UIColor(hex: "#f4f0ee")
-static let ganhoToiletSeat    = UIColor(hex: "#b8b3ad")
-static let ganhoToiletAccent  = UIColor(hex: "#ff8a7a")
+static let ganhoPixelProfessorHair = UIColor(hex: "#7a7570")
+static let ganhoPixelProfessorHairShadow = UIColor(hex: "#5a5550")
+static let ganhoPixelProfessorMustache = UIColor(hex: "#2a2025")
+static let ganhoPixelProfessorPants = UIColor(hex: "#1f1a1f")
 ```
 
-## HUD/UI 연동
+## PhysicsCategory
 
-**HUD 신설 없음.** GDD §7-3 표에 HUD 명시 안 됨. 맵 픽셀 + 0.9초 토스트만으로 전달.
+```swift
+static let stethoscope: UInt32 = 0b10000000  // 128
+```
 
-## 스폰 가능 조건
-
-- 게임 상태 가드: SpawnSystem이 SKAction.repeatForever를 scene에 부착 → scene이 일시정지 시 SKAction 자체 멈춤 → 자연 차단.
-- 단일성: `currentToiletCount() < 1` 가드.
-- 스폰 위치 충돌: 음표 위치 정책 재사용 (외곽 1타일 마진 + 중앙 manhattan 3타일 회피).
+PlayerNode contactTestBitMask에 `| PhysicsCategory.stethoscope` 추가.
 
 ## 회귀 방지
 
-- Phase 9-1~9-5 영역 0줄: SkillSystem / normalMap / 체크보드 / HUD 4슬롯 / 캐릭터 픽셀 / breakable wall — 1줄도 안 건드림.
-- SpawnSystem 시그니처(`start/stop/apply/fireImmediately`) 보존.
-- ScoreSystem 시그니처(`recordNoteHit/recordCharmedNoteHit/tickComboExpiry/reset`) 보존, *추가만*.
-- ContactRouter 기존 콜백 4개 시그니처 보존, *추가만*.
-- PlayerNode contactTestBitMask는 OR 1개 *추가만*.
-- PhysicsCategory.bonus=64는 기존 6개 카테고리와 비트 충돌 없음.
+| Phase | 보호 영역 | 본 SPEC 회귀 가능 지점 | 대응 |
+|---|---|---|---|
+| 9-1 (8-3/4/5) | HUD/디자인 토큰 | 0줄 | HUD 코드 미접촉 |
+| 9-4 | 체크보드/normal 맵 | 0줄 | setupMap의 normal 분기 미접촉 |
+| 9-5 | SkillSystem/스킬 노드 | 1줄 (`!player.isFrozen` 가드만 추가) | skill 가드와 *AND* 결합 |
+| 9-6 | 변기/토스트/콤보 | 0줄 (ToastLabelNode 재사용만) | 텍스트만 다름, 코드 동일 |
+
+`EnemyNode`, `StoneGuardNode`, `SpawnSystem`, `ScoreSystem`, `SkillSystem`, `ToiletNode` 모두 *읽기 전용*.
+
+## 매직 넘버 정책
+
+모든 값은 GameConfig.swift 상수 경유. 호출부 리터럴 0건.
 
 ## 주의사항
 
-- **즉시 removeFromParent 금지**: ContactRouter didBegin 진행 중 노드 제거 시 크래시 가능 → `toilet.run(.removeFromParent())` SKAction 패턴 사용.
-- **weak self 캡처**: SKAction.run / onToiletCollected 클로저 모두 `[weak self]`.
-- **TTL fadeOut 도중 수집**: applyLifetime의 withKey "toiletLifetime"이 자동 교체 가능. removeFromParent 두 번 실행 → node.parent == nil이면 noop 자연 멱등.
-- **첫 12초 변기 0개**: SKAction.sequence([wait(12), run]) — 의도된 톤.
+1. **CutsceneOverlayNode 동시 표시 금지**: 인트로 dismiss 후 *완전 제거*된 다음 이교수 경고 호출.
+2. **GameState `.cutscene` 유지**: 이교수 경고 진입 시 `.countdown`은 *컷씬 dismiss 후*에만 전환.
+3. **hard 외 professor 미설정**: `professor: ProfessorNode?` Optional. `setupProfessor` 내부 가드 + endGame `professor?.stopThrowing()`은 nil이면 자연 noop.
+4. **무적과 정지 우선순위**: `isInvulnerable` 우선 (무적 → 정지 → 게임오버 순서).
+5. **freeze 재호출 noop**: 2초 *고정*, 연사 시 무한 정지 방지.
+6. **didBegin 안 즉시 제거 금지**: `node.run(.removeFromParent())` SKAction 사용.
+7. **청진기 발사 SKAction key**: `"professorThrow"`로 부착, endGame에서 removeAction(forKey:) 일괄 정지.
+8. **PixelPalette 두 dict 분리**: `chiefPalette`와 `professorPalette`는 별도 dict, 키 충돌 무관.
+9. **회전 액션 vs 충돌 박스**: `allowsRotation = false` 명시, SKAction.rotate는 시각만.
+10. **PlayerNode.update 시그니처 보존**: isFrozen 가드는 함수 *최상단* early return.
 
 ## 평가 가중치
-- Swift 패턴 35% — guard let / weak self / GameConfig 상수화 / MARK 섹션
-- 게임 로직 30% — SKAction 12초 루프 + 8초 TTL + Bernoulli + ContactRouter 분기 + ScoreSystem 응축
-- 성능 & 안정성 20% — 강제 언래핑 0 / addChild 매 프레임 0 / 노드 제거 SKAction 패턴 / 빌드 클린
-- 기능 완성도 15% — GDD §7-3 1:1: 12s/15%/8s/점수+2/콤보+2/"화캉스 보너스!" 0.9초
 
-**필수 검증**:
-1. ToiletNode가 PixelSpriteRenderer + PixelSprite.toiletData() + PixelPalette.toiletPalette 거쳐 생성
-2. SpawnSystem.start에 1줄, stop에 1줄 추가
-3. ContactRouter에 onToiletCollected + bonus 분기
-4. ScoreSystem.recordToiletBonus가 recordNoteHit 2회 호출
-5. ToastLabelNode가 SelfDismissingNode 채택 + 정적 spawn 팩토리
-6. GameConfig 매직 넘버 0건
-7. Phase 9-1~9-5 파일 0줄 수정
+- Swift 패턴 35% — guard let / weak self / GameConfig 상수화 / MARK
+- 게임 로직 30% — SKAction 패턴 / PhysicsCategory 분리 / didBegin 즉시 제거 금지
+- 성능 & 안정성 20% — optional chain / removeAction / endGame 정리
+- 기능 완성도 15% — GDD §7-8 요구 전부, hard만 등장, easy/normal 회귀 0
+
+## Generator 작업 순서 권장
+
+1. GameConfig 신규 상수
+2. PhysicsCategory.stethoscope
+3. ColorTokens 4개
+4. PixelSprite.professorData
+5. PixelPalette.professorPalette
+6. PlayerNode (isFrozen + freeze + update 가드)
+7. StethoscopeNode (신규)
+8. ProfessorNode (신규, StethoscopeNode 사용)
+9. ContactRouter (콜백 + 분기)
+10. GameScene+Setup.setupProfessor
+11. GameScene (프로퍼티 + update + 컷씬 + endGame + 콜백)
+12. .pbxproj 신규 파일 2개 추가
+13. 빌드 검증
+
+## 필수 검증 항목
+
+1. easy/normal 게임 진입 시 professor=nil, 이교수 경고 컷씬 표시 안 됨
+2. hard 게임 진입 시 인트로 컷씬 → 이교수 경고 컷씬 → 카운트다운 흐름
+3. 청진기 발사 주기 2.5→1.4 보간, 동시 4개 한정
+4. 청진기 명중 시 2초 freeze + alpha 깜빡임 + 토스트 + 햅틱 medium + 카메라 셰이크
+5. 무적 중 청진기 명중 시 freeze 무시 (이간호 텔레포트 일관성)
+6. freeze 중 재명중 시 시간 누적 안 함 (고정 2초)
+7. endGame 후 청진기 추가 발사 0
+8. Phase 9-1~9-6 코드 0줄 변경

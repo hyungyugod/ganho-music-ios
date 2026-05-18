@@ -61,6 +61,10 @@ class GameScene: SKScene {
     let player     = PlayerNode()    // worldNode 자식 (이동함)
     let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
     let stoneGuard = StoneGuardNode()  // worldNode 자식 (4 waypoint 시계방향 패트롤, Phase 4-1)
+    /// Phase 9-7 — 이교수 NPC. .hard 난이도에서만 setupProfessor가 set, easy/normal은 nil 유지.
+    /// Optional ─ optional chaining(professor?.updatePixelAnimation / professor?.stopThrowing)으로
+    /// 호출부 분기 없이 자연 noop. SPEC §회귀 방지: easy/normal 게임 진입 시 professor=nil 보장.
+    var professor: ProfessorNode?
     let dpad       = DPadNode()      // cameraNode 자식 (화면 고정)
 
     // 시스템
@@ -144,6 +148,7 @@ class GameScene: SKScene {
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
+        setupProfessor()     // Phase 9-7 신설 — ProfessorNode를 worldNode 자식으로 (hard만, 가드 내부)
         setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 좌하단에
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
         skillSystem.configure(scene: self, skill: characterID.skill)  // Phase 9-5 — 활성 스킬 set
@@ -199,8 +204,32 @@ class GameScene: SKScene {
                 // Phase 7-5 — 컷씬 종료 시 UserDefaults 플래그 set → 이후 진입은 자동 스킵.
                 // UserDefaults.standard 접근은 self 무관 — self 해제 시에도 플래그는 set됨(부수효과 안전).
                 UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-                // .cutscene → .countdown 전환 + 기존 카운트다운 흐름 그대로 진입.
-                // CountdownNode 코드/타이밍 변경 0 — 컷씬은 *앞에 끼어든* 레이어 1단계.
+                // Phase 9-7 — hard 난이도면 이교수 경고 컷씬을 *앞에 끼어든* 2단계로 표시.
+                // easy/normal은 기존 흐름(.countdown 직진) 그대로 — easy/normal 회귀 0.
+                // CutsceneOverlayNode가 자가 소멸한 *직후* 새 컷씬 present → 동시 표시 0 (주의사항 1).
+                if self.difficulty == .hard {
+                    self.showProfessorWarningCutscene()
+                } else {
+                    // .cutscene → .countdown 전환 + 기존 카운트다운 흐름 그대로 진입.
+                    self.gameState = .countdown
+                    self.showCountdown()
+                }
+            }
+        )
+    }
+
+    /// Phase 9-7 — 이교수 경고 컷씬. hard 난이도에서 인트로 컷씬 dismiss 직후 1회 발화.
+    /// CutsceneOverlayNode 재사용 (SPEC §허용 14: 신규 컷씬 노드 신설 금지).
+    /// onDismiss에서 .countdown 전환 + showCountdown — 인트로 컷씬과 동일 흐름.
+    /// [weak self] 캡처 — 컷씬 표시 중 씬 전환 가능성 대비.
+    private func showProfessorWarningCutscene() {
+        CutsceneOverlayNode.present(
+            title: GameConfig.professorWarningTitle,
+            body: GameConfig.professorWarningBody,
+            parent: cameraNode,
+            sceneSize: size,
+            onDismiss: { [weak self] in
+                guard let self = self else { return }
                 self.gameState = .countdown
                 self.showCountdown()
             }
@@ -345,8 +374,13 @@ class GameScene: SKScene {
 
         // 1) D-Pad 입력을 PlayerNode로 위임 (DPadNode → PlayerNode 직접 참조 금지 → GameScene 경유)
         // Phase 9-5 — 정간호 돌진 중에는 D-Pad 입력 무시(SKAction.move가 위치 제어). 가드 1줄.
-        if !skillSystem.isDashing {
+        // Phase 9-7 — 청진기 동결 중에도 D-Pad 입력 무시. AND 가드로 두 조건 결합 — 스킬 가드 회귀 0.
+        // 동결 시 currentDirection = .zero로 즉시 set → PlayerNode.update 가드 도달 전에도
+        // *마지막 방향 잔존*으로 인한 미세 이동 방지.
+        if !skillSystem.isDashing && !player.isFrozen {
             player.currentDirection = dpad.currentDirection
+        } else if player.isFrozen {
+            player.currentDirection = .zero
         }
 
         // 2) PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
@@ -369,6 +403,10 @@ class GameScene: SKScene {
         // speedT는 CGFloat (EnemyNode.update 시그니처 일치) — TimeInterval(Double) → CGFloat 변환.
         let curveT = CGFloat(1.0 - remainingTime / GameConfig.gameDuration)
         enemy.update(deltaTime: dt, targetPosition: player.position, speedT: curveT)
+
+        // Phase 9-7 — 이교수 픽셀 애니메이션 갱신 (hard만). easy/normal에선 professor=nil → optional chain 자연 noop.
+        // SKAction.move 기반이라 position 변화량으로 방향/걷기 프레임 산출 (ProfessorNode 내부 자기 처리).
+        professor?.updatePixelAnimation(deltaTime: dt)
 
         // 5) HUD 라벨 갱신 (Phase 2-4) — Phase 2-12: ScoreSystem에서 값 조회
         hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
@@ -468,6 +506,30 @@ class GameScene: SKScene {
         }
         contactRouter.onStoneGuardContact = { [weak self] in
             self?.triggerAirforceEasterEgg()
+        }
+        // Phase 9-7 — 청진기 명중 콜백. F 피격(onProjectileHitPlayer) 패턴 미러 + freeze 발화.
+        // 무적(isInvulnerable) 우선 가드 — 이간호 텔레포트와 일관성(주의사항 4).
+        // didBegin 즉시 removeFromParent 금지 → node.run(.removeFromParent()) SKAction 사용(주의사항 6).
+        contactRouter.onStethoscopeHitPlayer = { [weak self] node in
+            guard let self = self else { return }
+            if self.player.isInvulnerable {
+                node.run(.removeFromParent())
+                return
+            }
+            // 멀티모달 피드백: 햅틱 medium + 카메라 셰이크 + "청진기 명중!" 토스트.
+            // BGM/효과음 신규 추가 금지(SPEC §금지 2) — 기존 audio.play 호출 0건.
+            self.haptics.medium()
+            self.cameraNode.run(CameraShakeAction.make())
+            ToastLabelNode.spawn(text: GameConfig.stethoscopeToastText,
+                                 at: self.player.position,
+                                 parent: self.worldNode)
+            // 2초 동결 발화. PlayerNode.freeze 내부에서 isFrozen 가드 + 깜빡임 시퀀스 진행.
+            self.player.freeze(duration: GameConfig.playerFreezeDuration)
+            node.run(.removeFromParent())
+        }
+        // 청진기 ↔ wall 접촉 시 — onProjectileHitWall 패턴 답습. self 미사용 → [weak self] 불필요.
+        contactRouter.onStethoscopeHitWall = { node in
+            node.run(.removeFromParent())
         }
         // Phase 9-6 — 변기 보너스 수집. onNoteCollected 패턴 미러 (콤보/마일스톤 분기 자연 발화).
         // 음표 2개 효과 = recordToiletBonus(=recordNoteHit 2회) + ScorePopup fan-out 2개 + 토스트 1개.
@@ -620,6 +682,9 @@ class GameScene: SKScene {
         bgm.stop()           // Phase 6-4 — gameOver 사운드와 동시에 BGM 정지 (멱등 가드 안쪽 = 1회 보장)
         hud.stopTensionBlink()   // Phase 6-14 — 깜빡임 즉시 종료 (잔상 0). 0초 만료 / F 피격 / enemy 접촉 모든 경로에서 발화.
         spawnSystem.stop()
+        // Phase 9-7 — 이교수 청진기 발사 루프 정지 + 활성 청진기 velocity 0.
+        // easy/normal에선 professor=nil → optional chain 자연 noop.
+        professor?.stopThrowing(worldNode: worldNode)
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero   // Phase 2-6 — 관성 정지

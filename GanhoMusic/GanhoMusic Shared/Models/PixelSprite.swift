@@ -386,3 +386,82 @@ extension PixelSprite {
         ]
     }
 }
+
+// MARK: - Professor Sprite (Phase 9-7)
+extension PixelSprite {
+    /// 이교수(ProfessorNode) 16×20 픽셀 데이터.
+    /// nurseChiefData(direction:frame:) 패턴 정확 답습 — 16×20 + 방향 4 + 프레임 3.
+    /// 깐깐한 대학교수: 회색 머리 + 안경 + 콧수염 + 흰 셔츠 + 검은 바지.
+    ///
+    /// 색 코드: '.'=투명, 'S'=피부, 'H'=회색 머리, 'h'=머리 음영,
+    /// 'G'=안경테, 'f'=렌즈, 'm'=콧수염, 'M'=입(공통 토큰), 'W'=흰셔츠,
+    /// 'P'=검은 바지, 'B'=검은 구두.
+    static func professorData(direction: PixelDirection, frame: PixelFrame) -> Frame {
+        // 기본 정면 base — 행 1-3 머리, 4-10 얼굴, 11-14 셔츠, 15-17 바지, 18-19 구두.
+        var base: Frame = [
+            "................", // 0
+            "....HHHHHHHH....", // 1  머리 윗부분
+            "...HHHHHHHHHH...", // 2  머리 중앙
+            "..HHHHHHHHHHHH..", // 3  머리 밑단
+            "..HhSSSSSSSShH..", // 4  헤어라인 + 이마
+            "..hSSSSSSSSSSh..", // 5  이마 음영
+            "..hSGGSSSSGGSh..", // 6  안경테
+            "..hSGfSSSSfGSh..", // 7  안경 렌즈(눈)
+            "..hSSSSSSSSSSh..", // 8  눈 밑
+            "..hSSSmmmmSSSh..", // 9  콧수염
+            "..hSSSSMMSSSSh..", // 10 입
+            "....WWWWWWWW....", // 11 흰 셔츠 어깨
+            "...WWWWWWWWWW...", // 12 셔츠 가슴
+            "...WWWWWWWWWW...", // 13 셔츠 중단
+            "....WWWWWWWW....", // 14 셔츠 밑단
+            "....PPPPPPPP....", // 15 검은 바지 시작
+            "....PPP..PPP....", // 16
+            "....PPP..PPP....", // 17
+            "....BB....BB....", // 18 구두
+            "....BB....BB...."  // 19
+        ]
+
+        // 방향별 얼굴 — nurseChiefData(L843-864) 패턴 답습.
+        switch direction {
+        case .up:
+            // 뒷통수 — 얼굴 자리 전체를 머리로 덮음.
+            base[4]  = "..HHHHHHHHHHHH.."
+            base[5]  = "..HhHHHHHHHHhH.."
+            base[6]  = "..hHHHHHHHHHHh.."
+            base[7]  = "..hHHHHHHHHHHh.."
+            base[8]  = "..hHHHHHHHHHHh.."
+            base[9]  = "..hHHHHHHHHHHh.."
+            base[10] = "..hhHHHHHHHHHh.."
+        case .left:
+            // 오른쪽 눈/안경만 + 콧수염은 가운데 유지.
+            base[6]  = "..hSSSSSSSGGSh.."
+            base[7]  = "..hSSSSSSSfGSh.."
+            base[8]  = "..hSSSSSSSSSSh.."
+            base[9]  = "..hSSSmmmmSSSh.."
+            base[10] = "..hSSSSMMSSSSh.."
+        case .right:
+            // 왼쪽 눈/안경만 + 콧수염은 가운데 유지.
+            base[6]  = "..hSGGSSSSSSSh.."
+            base[7]  = "..hSGfSSSSSSSh.."
+            base[8]  = "..hSSSSSSSSSSh.."
+            base[9]  = "..hSSSmmmmSSSh.."
+            base[10] = "..hSSSSMMSSSSh.."
+        case .down:
+            break
+        }
+
+        // 걷기 프레임 — 발만 교차 (행 18-19). nurseChiefData/baseFrame 패턴 동일.
+        switch frame {
+        case .step1:
+            base[18] = "....BB...BBB...."
+            base[19] = "....BBB...BB...."
+        case .step2:
+            base[18] = "....BBB...BB...."
+            base[19] = "....BB...BBB...."
+        case .idle:
+            break
+        }
+
+        return base
+    }
+}

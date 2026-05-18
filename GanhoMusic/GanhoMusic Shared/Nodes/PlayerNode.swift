@@ -41,6 +41,12 @@ final class PlayerNode: SKSpriteNode {
     /// 외부(SkillSystem)가 SKAction.run 클로저에서 true ↔ false 토글 — `[weak self]` 캡처 필수(주의사항 5).
     var isInvulnerable: Bool = false
 
+    /// Phase 9-7 — 동결 플래그. 청진기 피격 시 2초간 true → update 최상단 가드로 이동 정지.
+    /// 무적(isInvulnerable) 우선 정책: 무적 중 freeze 호출은 noop.
+    /// 재호출 noop: 이미 frozen이면 2초 *고정* — 누적 안 함 (연사 무한 정지 방지).
+    /// 외부 setter 차단 — set은 freeze(duration:) 메서드만 통과.
+    private(set) var isFrozen: Bool = false
+
     // MARK: - Pixel Sprite State (Phase 8-1)
     /// 현재 픽셀 텍스처가 표현하는 방향. velocity 부호 변화 시 갱신 후 refreshTexture 호출.
     /// 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음(자연 톤).
@@ -121,6 +127,13 @@ final class PlayerNode: SKSpriteNode {
     /// - Parameter deltaTime: dt — 본 메서드는 미사용 (velocity 기반이라 엔진이 dt 처리).
     ///   시그니처는 외부 호출부 호환 위해 보존.
     func update(deltaTime: TimeInterval) {
+        // Phase 9-7 — 동결 가드. 청진기 피격 시 2초간 isFrozen=true → velocity 0으로 강제 정지 후 early return.
+        // 함수 *최상단* 가드 — 기존 로직 전혀 도달하지 않도록 보장(주의사항 10).
+        // 무적(isInvulnerable)과 독립 — 무적은 ContactRouter 콜백에서 freeze 호출 자체를 차단.
+        if isFrozen {
+            physicsBody?.velocity = .zero
+            return
+        }
         // Phase 7-1 — baseSpeedStart × speedMultiplier. easy default가 playerBaseSpeed(140)와 같아 회귀 0.
         // 본 sprint는 *시작값만* — baseSpeedEnd는 다음 보강 sprint(주의사항 7).
         let speed = baseSpeedStart * speedMultiplier
@@ -128,6 +141,35 @@ final class PlayerNode: SKSpriteNode {
             dx: currentDirection.dx * speed,
             dy: currentDirection.dy * speed
         )
+    }
+
+    // MARK: - Freeze (Phase 9-7)
+    /// 청진기 피격 시 외부(ContactRouter 콜백)에서 호출. duration초간 이동 입력 차단.
+    /// 정책:
+    /// 1) 이미 frozen이면 noop — 2초 *고정*, 누적 안 함 (연사 무한 정지 방지).
+    /// 2) 무적(isInvulnerable) 우선 — 무적 중 호출 noop. 이간호 텔레포트와 일관.
+    /// 3) 시각: alpha 1.0 ↔ frozenBlinkMinAlpha(0.4) 반복 깜빡임.
+    /// 4) duration 종료 시 SKAction.run 콜백으로 isFrozen=false + alpha 1.0 복원 + velocity 0.
+    /// 5) withKey: playerFreezeActionKey → 같은 키 재호출 시 SpriteKit 자동 액션 교체 (이중 안전망).
+    /// [weak self] 캡처 — 동결 진행 중 씬 전환 가능성 대비.
+    func freeze(duration: TimeInterval) {
+        if isFrozen { return }
+        if isInvulnerable { return }
+        isFrozen = true
+
+        let half = GameConfig.frozenBlinkHalfPeriod
+        let fadeOut = SKAction.fadeAlpha(to: GameConfig.frozenBlinkMinAlpha, duration: half)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
+        let cycle = SKAction.sequence([fadeOut, fadeIn])
+        // duration / (half * 2) 사이클 수 계산. max(1, ...) — duration < halfPeriod*2 극단 케이스에도 1회 깜빡임 보장.
+        let cycleCount = max(1, Int(duration / (half * 2)))
+        let blink = SKAction.repeat(cycle, count: cycleCount)
+        let restore = SKAction.run { [weak self] in
+            self?.isFrozen = false
+            self?.alpha = 1.0
+            self?.physicsBody?.velocity = .zero
+        }
+        run(.sequence([blink, restore]), withKey: GameConfig.playerFreezeActionKey)
     }
 
     // MARK: - Update (Pixel Animation, Phase 8-1)

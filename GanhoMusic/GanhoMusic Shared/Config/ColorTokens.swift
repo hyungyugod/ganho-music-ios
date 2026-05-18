@@ -196,6 +196,25 @@ extension UIColor {
     /// 변기 안 물(코럴 액센트) — 픽셀 코드 'C'. Phase 8-3 ganhoUIBrand(#c4847a) 패밀리의 액센트 변형.
     /// "화캉스" 농담의 코럴 톤 — 음표 분홍(#F6A6B2)과 다른 *주황 코럴*로 별도 정체성.
     static let ganhoToiletAccent = UIColor(hex: "#ff8a7a")
+
+    // MARK: - Professor Palette (Phase 9-7)
+    /// 이교수(ProfessorNode) 픽셀 팔레트 — 회색 머리 + 콧수염 + 검은 바지의 깐깐한 대학교수 톤.
+    /// 다른 토큰 재사용 최대화 — 피부('S'=ganhoPixelSkin), 흰셔츠('W'=ganhoPixelUniform),
+    /// 안경테('G'=ganhoPixelGlassFrame), 렌즈('f'=ganhoPixelGlassLens), 신발('B'=ganhoPixelChiefShoes 검정)
+    /// 모두 기존 토큰을 그대로 사용. 신규는 머리/머리 음영/콧수염/바지 4개만.
+
+    /// 회색 머리 본체 — 픽셀 코드 'H'. 백발(ganhoPixelChiefHair #e8e4e8)보다 어두운 *중년 회색*.
+    /// 수간호사 백발과의 시각 분리 — 이교수는 *살아있는 회색*, 수간호사는 *나이 든 백발*.
+    static let ganhoPixelProfessorHair = UIColor(hex: "#7a7570")
+    /// 회색 머리 음영 — 픽셀 코드 'h'. ganhoPixelProfessorHair 패밀리의 어두운 변형.
+    static let ganhoPixelProfessorHairShadow = UIColor(hex: "#5a5550")
+    /// 콧수염 — 픽셀 코드 'm'. 거의 검정에 가까운 어두운 갈색.
+    /// 입('M'=ganhoPixelMouth #c4847a)과 키 충돌 회피 위해 소문자 'm' 사용.
+    static let ganhoPixelProfessorMustache = UIColor(hex: "#2a2025")
+    /// 검은 바지 — 픽셀 코드 'P'. 공통 'P'(ganhoPixelPants #9ec9e8 파란 하의)와 *다른 색*이지만
+    /// professorPalette는 별도 dict라 충돌 없음 — 같은 키 'P'가 dict별로 다른 색.
+    /// ganhoPixelChiefShoes(#1a1214 검정)와 유사 — 깐깐한 정장 톤.
+    static let ganhoPixelProfessorPants = UIColor(hex: "#1f1a1f")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)
