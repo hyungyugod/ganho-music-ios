@@ -37,6 +37,7 @@
 //  Phase 6-12 · 콤보 10+ 끊김 시 화면 중앙 BREAK 팝업 + heavy 햅틱 (실망 2감각, 사운드 제외)
 //  Phase 6-13 · 게임 시작 카운트다운 3→2→1→GO! (gameState .countdown 신설 + startGameProperly 분리)
 //  Phase 6-14 · 게임 끝 5초 긴박감 — BGM rate↑ + HUD timeLabel 빨강 깜빡임 + 매초 light 햅틱
+//  Phase 7-1 · 난이도 3단계 시스템 — init에 difficulty 인자 추가 + spawnSystem.apply + endGame에서 ResultScene에 difficulty 전달
 //
 
 import SpriteKit
@@ -100,12 +101,17 @@ class GameScene: SKScene {
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
     let characterID: CharacterID
+    /// Phase 7-1 — TitleScene이 init으로 주입한 선택 난이도.
+    /// 노드/시스템 apply(_:) 호출에 사용. 한 판 안에서 불변(`let`).
+    /// macOS/tvOS GameViewController 호출은 default 인자(`.easy`)로 자동 호환 → 회귀 0.
+    let difficulty: Difficulty
 
     // MARK: - Init
-    /// Phase 5-2 — characterID 주입형 init. newGameScene factory가 호출.
-    /// Swift 규칙: stored property(`self.characterID`) 초기화 → 그 다음 `super.init`.
-    init(size: CGSize, characterID: CharacterID) {
+    /// Phase 7-1 — characterID + difficulty 주입형 init. newGameScene factory가 호출.
+    /// Swift 규칙: stored property(`self.characterID`/`self.difficulty`) 초기화 → 그 다음 `super.init`.
+    init(size: CGSize, characterID: CharacterID, difficulty: Difficulty) {
         self.characterID = characterID
+        self.difficulty = difficulty
         super.init(size: size)
     }
 
@@ -114,8 +120,9 @@ class GameScene: SKScene {
     }
 
     // MARK: - Factory
-    class func newGameScene(characterID: CharacterID = .kim) -> GameScene {
-        let scene = GameScene(size: CGSize(width: 1024, height: 768), characterID: characterID)
+    /// Phase 7-1 — characterID + difficulty 둘 다 default 인자. TitleScene만 두 인자 모두 명시 → 회귀 0.
+    class func newGameScene(characterID: CharacterID = .kim, difficulty: Difficulty = .easy) -> GameScene {
+        let scene = GameScene(size: CGSize(width: 1024, height: 768), characterID: characterID, difficulty: difficulty)
         scene.scaleMode = .resizeFill   // Phase 1-3 핫픽스: scene size를 view 크기에 자동 맞춤 — D-Pad가 viewport 안에 들어오게 함
         return scene
     }
@@ -174,6 +181,10 @@ class GameScene: SKScene {
     /// update의 `guard gameState == .playing else { return }` 한 줄이 자동 해제되어
     /// 7개 시스템(타이머/이동/카메라/적/콤보폴링/끊김폴링/score)이 동시 가동된다.
     private func startGameProperly() {
+        // Phase 7-1 — SpawnSystem 난이도 차등 적용. start 직전 1회 호출 (인스턴스 프로퍼티 6개 set).
+        // start 직전 호출 이유: noteSpawnLoop / scheduleNextFire가 이미 인스턴스 프로퍼티를 참조하므로
+        // 첫 사이클부터 차등 동작이 적용된다.
+        spawnSystem.apply(difficulty)
         // Phase 2-10 — spawn / fire 두 루프를 SpawnSystem으로 위임. 진행률 closure로 공급.
         spawnSystem.start(
             scene: self,
@@ -484,7 +495,8 @@ class GameScene: SKScene {
         let stats = statsRepo.current
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
-            characterName: characterID.displayName
+            characterName: characterID.displayName,
+            difficulty: difficulty
         )
         view.presentScene(resultScene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
     }

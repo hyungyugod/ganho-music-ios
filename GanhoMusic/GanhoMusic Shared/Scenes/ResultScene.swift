@@ -7,6 +7,7 @@
 //  Phase 3-5 · GameStats 주입 + statsLabel 신설 (라벨 5개 재배치, "PLAYS N / TOTAL N")
 //  Phase 5-7 · 캐릭터 이름 라벨 추가 (init 6번째 인자 characterName)
 //  Phase 6-15 · 신기록 시 "NEW BEST!" 황금 라벨 + heavy 햅틱 + NewMail 사운드 + bestLabel 황금 깜빡임
+//  Phase 7-1 · 난이도 라벨 1줄 추가 (init 7번째 인자 difficulty)
 //
 
 import SpriteKit
@@ -30,6 +31,9 @@ final class ResultScene: SKScene {
     /// Phase 5-7 — init 주입된 캐릭터 한국어 이름. 불변. characterLabel.text 합성에만 사용.
     /// String만 받음 — CharacterID enum 결합도 차단(HUDNode 5-4와 동형).
     private let characterName: String
+    /// Phase 7-1 — init 주입된 난이도. 불변. difficultyLabel.text 합성에만 사용.
+    /// String이 아닌 Difficulty enum을 직접 받음 — displayName 매핑이 단일 진실 원천(Difficulty enum).
+    private let difficulty: Difficulty
     /// TitleScene 복귀 중복 진입 가드.
     private var isTransitioning = false
     private let titleLabel  = SKLabelNode(text: "GAME OVER")
@@ -38,6 +42,8 @@ final class ResultScene: SKScene {
     private let statsLabel  = SKLabelNode(text: "PLAYS 0  /  TOTAL 0")
     /// Phase 5-7 — title(+80) 위쪽에 표시되는 캐릭터 라벨. 텍스트는 setupLabels에서 합성.
     private let characterLabel = SKLabelNode(text: "")
+    /// Phase 7-1 — characterLabel(+115) 위쪽에 표시되는 난이도 라벨. 텍스트는 setupLabels에서 합성.
+    private let difficultyLabel = SKLabelNode(text: "")
     private let promptLabel = SKLabelNode(text: "TAP TO RETURN")
     /// Phase 6-15 — 신기록 시 화면 정중앙에 등장하는 황금 라벨. isNewBest일 때만 addChild.
     private let newBestLabel = SKLabelNode(text: "NEW BEST!")
@@ -50,13 +56,15 @@ final class ResultScene: SKScene {
     /// 점수/최고 점수/신기록 여부/누적 통계를 주입받아 ResultScene 인스턴스 생성. .resizeFill로 view 크기에 자동 맞춤.
     /// 외부에서는 반드시 이 팩토리만 사용 — `private init` 으로 직접 호출 차단.
     /// Phase 3-5 — `stats: GameStats` 인자 추가.
-    /// Phase 5-7 — `characterName: String` 인자 추가 (마지막 인자).
+    /// Phase 5-7 — `characterName: String` 인자 추가.
+    /// Phase 7-1 — `difficulty: Difficulty` 인자 추가 (마지막 인자).
     class func newResultScene(
         score: Int,
         bestScore: Int,
         isNewBest: Bool,
         stats: GameStats,
-        characterName: String
+        characterName: String,
+        difficulty: Difficulty
     ) -> ResultScene {
         let scene = ResultScene(
             size: CGSize(width: 1024, height: 768),
@@ -64,28 +72,32 @@ final class ResultScene: SKScene {
             bestScore: bestScore,
             isNewBest: isNewBest,
             stats: stats,
-            characterName: characterName
+            characterName: characterName,
+            difficulty: difficulty
         )
         scene.scaleMode = .resizeFill
         return scene
     }
 
     // MARK: - Init
-    /// 6개 인자 모두 `let` 이므로 `super.init` 전에 저장.
-    /// Phase 5-7 — `characterName` 6번째 인자 추가.
+    /// 7개 인자 모두 `let` 이므로 `super.init` 전에 저장.
+    /// Phase 5-7 — `characterName` 6번째 인자.
+    /// Phase 7-1 — `difficulty` 7번째 인자.
     private init(
         size: CGSize,
         score: Int,
         bestScore: Int,
         isNewBest: Bool,
         stats: GameStats,
-        characterName: String
+        characterName: String,
+        difficulty: Difficulty
     ) {
         self.finalScore = score
         self.bestScore = bestScore
         self.isNewBest = isNewBest
         self.stats = stats
         self.characterName = characterName
+        self.difficulty = difficulty
         super.init(size: size)
     }
 
@@ -107,12 +119,13 @@ final class ResultScene: SKScene {
 
     // MARK: - Setup
     private func setupLabels() {
-        configureLabel(titleLabel,     fontSize: GameConfig.resultTitleFontSize)
-        configureLabel(scoreLabel,     fontSize: GameConfig.resultScoreFontSize)
-        configureLabel(bestLabel,      fontSize: GameConfig.resultBestFontSize)
-        configureLabel(statsLabel,     fontSize: GameConfig.resultStatsFontSize)
-        configureLabel(characterLabel, fontSize: GameConfig.resultCharacterFontSize)
-        configureLabel(promptLabel,    fontSize: GameConfig.resultPromptFontSize)
+        configureLabel(titleLabel,      fontSize: GameConfig.resultTitleFontSize)
+        configureLabel(scoreLabel,      fontSize: GameConfig.resultScoreFontSize)
+        configureLabel(bestLabel,       fontSize: GameConfig.resultBestFontSize)
+        configureLabel(statsLabel,      fontSize: GameConfig.resultStatsFontSize)
+        configureLabel(characterLabel,  fontSize: GameConfig.resultCharacterFontSize)
+        configureLabel(difficultyLabel, fontSize: GameConfig.resultDifficultyFontSize)   // Phase 7-1
+        configureLabel(promptLabel,     fontSize: GameConfig.resultPromptFontSize)
         scoreLabel.text = "🎵 \(finalScore)"
         // Phase 3-4 — 신기록이면 강조 문구, 아니면 기존 최고치 표시.
         bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "BEST 🏆 \(bestScore)"
@@ -120,11 +133,14 @@ final class ResultScene: SKScene {
         statsLabel.text = "PLAYS \(stats.playCount)  /  TOTAL \(stats.totalScore)"
         // Phase 5-7 — 사용한 캐릭터 이름. 빈 문자열이어도 "🎮 "만 — 크래시 없음(graceful).
         characterLabel.text = "🎮 \(characterName)"
+        // Phase 7-1 — 사용한 난이도. Difficulty.displayName이 단일 진실 원천("하"/"중"/"상").
+        difficultyLabel.text = "난이도: \(difficulty.displayName)"
         addChild(titleLabel)
         addChild(scoreLabel)
         addChild(bestLabel)
         addChild(statsLabel)
         addChild(characterLabel)
+        addChild(difficultyLabel)   // Phase 7-1
         addChild(promptLabel)
         layoutLabels()
         // Phase 6-15 — 신기록일 때만 NewBest 시퀀스 시작. false면 0건 발화로 자연 차단.
@@ -164,6 +180,11 @@ final class ResultScene: SKScene {
         characterLabel.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.resultCharacterOffsetY
+        )
+        // Phase 7-1 — characterLabel(+115) 위쪽(+155)에 표시.
+        difficultyLabel.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultDifficultyOffsetY
         )
         promptLabel.position = CGPoint(
             x: frame.midX,

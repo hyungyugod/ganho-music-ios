@@ -6,6 +6,7 @@
 //  Phase 3-4 · bestLabel 추가 — HighScoreRepository.current를 화면 중앙에 표시
 //  Phase 3-5 · playsLabel 추가 — StatisticsRepository.current.playCount 화면 표시 (라벨 4개 재배치)
 //  Phase 5-1 · 캐릭터 선택 카드 5장 추가 — selectedCharacterID + hit test
+//  Phase 7-1 · 난이도 선택 카드 3장 추가 (-120행) — selectedDifficulty + hit test 우선 + 영구 저장
 //
 
 import SpriteKit
@@ -29,6 +30,12 @@ final class TitleScene: SKScene {
     private var characterCards: [CharacterCardNode] = []
     /// Phase 5-6 — 캐릭터 선택 영속 계층. didMove에서 .current로 복원, select(_:)에서 save 호출.
     private let preferenceRepo = CharacterPreferenceRepository()
+    /// Phase 7-1 — 현재 선택된 난이도. 기본 .easy. GameScene 전달은 touchesBegan에서.
+    private var selectedDifficulty: Difficulty = .easy
+    /// Phase 7-1 — 3 난이도 카드 인스턴스 보관. setupDifficultyCards에서 생성, layoutDifficultyCards에서 위치 갱신, touchesBegan에서 hit test 우선.
+    private var difficultyCards: [DifficultyCardNode] = []
+    /// Phase 7-1 — 난이도 선택 영속 계층. didMove에서 .current로 복원, selectDifficulty(_:)에서 save 호출.
+    private let difficultyRepo = DifficultyPreferenceRepository()
 
     // MARK: - Factory
     /// GameScene.newGameScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
@@ -43,7 +50,9 @@ final class TitleScene: SKScene {
         backgroundColor = .ganhoBgDeep
         setupLabels()
         selectedCharacterID = preferenceRepo.current   // Phase 5-6 — 마지막 선택 복원 (없으면 .kim)
+        selectedDifficulty = difficultyRepo.current    // Phase 7-1 — 마지막 난이도 복원 (없으면 .easy)
         setupCharacterCards()
+        setupDifficultyCards()                          // Phase 7-1 — 난이도 카드 3장 신설
         startPromptBlink()
     }
 
@@ -52,6 +61,7 @@ final class TitleScene: SKScene {
         super.didChangeSize(oldSize)
         layoutLabels()
         layoutCharacterCards()
+        layoutDifficultyCards()                         // Phase 7-1 — 난이도 카드 위치 재계산
     }
 
     // MARK: - Setup
@@ -153,24 +163,76 @@ final class TitleScene: SKScene {
         }
     }
 
+    // MARK: - Difficulty Cards (Phase 7-1)
+    /// 3 난이도 카드 생성 + addChild + 초기 선택 상태 적용.
+    /// Difficulty.allCases (CaseIterable) — 3번 반복(.easy/.normal/.hard).
+    private func setupDifficultyCards() {
+        for id in Difficulty.allCases {
+            let card = DifficultyCardNode(id: id)
+            card.setSelected(id == selectedDifficulty)
+            difficultyCards.append(card)
+            addChild(card)
+        }
+        layoutDifficultyCards()
+    }
+
+    /// 3 카드 가로 일렬, frame.midX 기준 중앙 정렬. CharacterCard와 동일 패턴 — width/spacing만 다름.
+    private func layoutDifficultyCards() {
+        let count = difficultyCards.count
+        guard count > 0 else { return }
+        let width = GameConfig.difficultyCardWidth
+        let spacing = GameConfig.difficultyCardSpacing
+        let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
+        let startX = frame.midX - totalWidth / 2 + width / 2
+        let y = frame.midY + GameConfig.difficultyCardOffsetY
+        for (index, card) in difficultyCards.enumerated() {
+            card.position = CGPoint(
+                x: startX + CGFloat(index) * (width + spacing),
+                y: y
+            )
+        }
+    }
+
+    /// 선택 난이도 변경 + 3 카드 알파/scale 일괄 갱신 + 디스크 저장.
+    private func selectDifficulty(_ id: Difficulty) {
+        selectedDifficulty = id
+        difficultyRepo.save(id)   // 선택 변경 즉시 디스크 반영
+        for card in difficultyCards {
+            card.setSelected(card.id == id)
+        }
+    }
+
     // MARK: - Touch
     /// 화면 어디든 탭 1회 → GameScene 전환. 중복 탭은 isTransitioning으로 차단.
-    /// Phase 5-1 — 카드 영역 탭은 *선택 변경*(early return), 카드 외 영역만 기존 GameScene 전환.
+    /// Phase 5-1 — 캐릭터 카드 영역 탭은 *선택 변경*(early return), 카드 외 영역만 기존 GameScene 전환.
+    /// Phase 7-1 — 난이도 카드 hit test를 *맨 먼저*. 매치 시 즉시 selectDifficulty + 저장 + return.
+    /// 우선순위: 난이도(7-1) → 캐릭터(5-1) → GameScene 전환.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // 1) 카드 hit test 먼저 — 카드 탭은 선택 변경, GameScene 전환 X
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+        // 1) Phase 7-1 — 난이도 카드 hit test 최우선. 매치 시 difficulty select + 저장 + return.
+        for card in difficultyCards {
+            if card.contains(location) {
+                selectDifficulty(card.id)
+                return
+            }
+        }
+        // 2) 캐릭터 카드 hit test — 카드 탭은 선택 변경, GameScene 전환 X
         for card in characterCards {
             if card.contains(location) {
                 select(card.id)
                 return
             }
         }
-        // 2) 그 외 영역 — 기존 동작
+        // 3) 그 외 영역 — 기존 동작
         guard !isTransitioning else { return }
         guard let view = self.view else { return }
         isTransitioning = true
-        let gameScene = GameScene.newGameScene(characterID: selectedCharacterID)
+        // Phase 7-1 — 두 인자 모두 명시. GameScene factory가 default(.kim/.easy)를 가지지만 의도 명확화.
+        let gameScene = GameScene.newGameScene(
+            characterID: selectedCharacterID,
+            difficulty: selectedDifficulty
+        )
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(gameScene, transition: fade)
     }

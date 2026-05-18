@@ -5,6 +5,7 @@
 //  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)
 //  Phase 4-6 · 5초 도주 모드 추가 (isFleeing + startFleeing + update 방향 분기)
 //  Phase 4-7 · startFleeing 시그니처에 onEnd 콜백 매개변수 추가 (default = {})
+//  Phase 7-1 · 난이도별 base/max 속도 인스턴스 프로퍼티 외부화 + apply(_:Difficulty)
 //
 
 import SpriteKit
@@ -18,6 +19,12 @@ final class EnemyNode: SKSpriteNode {
     /// Phase 4-6 — 도주 모드 플래그. true면 update에서 velocity 방향이 반전된다.
     /// startFleeing(duration:) 메서드만 토글한다 (외부 직접 쓰기 금지 정책).
     var isFleeing: Bool = false
+
+    /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameConfig.enemyBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
+    /// update(deltaTime:targetPosition:speedT:)에서 base + (end - base) × speedT 보간식의 base.
+    var baseSpeedStart: CGFloat = GameConfig.enemyBaseSpeed
+    /// Phase 7-1 — 난이도별 끝 속도 (pt/s). default = GameConfig.enemyMaxSpeed → easy 동일 회귀 0.
+    var baseSpeedEnd: CGFloat = GameConfig.enemyMaxSpeed
 
     // MARK: - Init
     init() {
@@ -48,6 +55,15 @@ final class EnemyNode: SKSpriteNode {
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Apply
+    /// Phase 7-1 — 난이도 정체성 단일 진입점.
+    /// dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
+    /// GameScene+Setup.setupEnemy에서 1줄 호출.
+    func apply(_ difficulty: Difficulty) {
+        baseSpeedStart = GameConfig.enemySpeedStartByDifficulty[difficulty] ?? GameConfig.enemyBaseSpeed
+        baseSpeedEnd   = GameConfig.enemySpeedEndByDifficulty[difficulty]   ?? GameConfig.enemyMaxSpeed
     }
 
     // MARK: - Flee
@@ -84,9 +100,11 @@ final class EnemyNode: SKSpriteNode {
         }
         let unitX = dx / magnitude
         let unitY = dy / magnitude
-        // Phase 2-8 — 선형 보간: speedT 0 = base(60), 1 = max(110).
-        let speed = GameConfig.enemyBaseSpeed
-            + (GameConfig.enemyMaxSpeed - GameConfig.enemyBaseSpeed) * speedT
+        // Phase 2-8 — 선형 보간: speedT 0 = base, 1 = max.
+        // Phase 7-1 — GameConfig 상수 → 인스턴스 프로퍼티 참조(난이도별 차등).
+        // easy의 baseSpeedStart/End는 GameConfig.enemyBaseSpeed/MaxSpeed와 정확히 일치 → 회귀 0.
+        let speed = baseSpeedStart
+            + (baseSpeedEnd - baseSpeedStart) * speedT
         // Phase 4-6 — 도주 모드면 player 반대 방향(-1). 추적이면 +1. 한 줄 분기.
         let direction: CGFloat = isFleeing ? -1 : 1
         physicsBody?.velocity = CGVector(

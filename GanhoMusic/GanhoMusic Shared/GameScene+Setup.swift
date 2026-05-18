@@ -111,6 +111,7 @@ extension GameScene {
             y: GameConfig.mapHeight / 2
         )
         player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
+        player.apply(difficulty)    // Phase 7-1 — 난이도별 baseSpeedStart/End set. character 먼저 → difficulty 나중(주의사항 1).
         worldNode.addChild(player)
     }
 
@@ -143,6 +144,7 @@ extension GameScene {
             x: GameConfig.mapWidth  * 3 / 4,
             y: GameConfig.mapHeight * 3 / 4
         )
+        enemy.apply(difficulty)   // Phase 7-1 — 난이도별 baseSpeedStart/End set.
         worldNode.addChild(enemy)
     }
 

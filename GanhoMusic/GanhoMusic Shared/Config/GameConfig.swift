@@ -231,8 +231,7 @@ enum GameConfig {
     static let characterCardSpacing: CGFloat = 10
     /// 카드 이름 라벨 폰트 크기 (pt). 카드 폭(48) 안에 한국어 3자 들어가야 함.
     static let characterCardFontSize: CGFloat = 12
-    /// 카드 줄 y 오프셋 (pt). frame.midY 기준 아래쪽. promptLabel(-80)보다 더 아래.
-    static let characterCardOffsetY: CGFloat = -160
+    // Phase 7-1 — characterCardOffsetY는 §"Difficulty"(파일 하단)로 이동 — 값 -160 → -200으로 난이도 행 신설에 맞춰 한 칸 더 내림.
     /// 선택되지 않은 카드 알파. 선택 카드(1.0)와 시각 대비.
     static let characterCardDeselectedAlpha: CGFloat = 0.5
     /// Phase 5-5 — 선택된 카드 확대 배율. 1.0 기본에서 1.08배. 인접 카드 spacing(10pt)와 검증:
@@ -413,4 +412,72 @@ enum GameConfig {
     /// "+1"/"+2" 라벨 zPosition. sparkle(30) 위, HUD(100) 아래 —
     /// 노트 사라진 픽셀 위에 떠 있되 HUD 점수/타이머는 안 가림.
     static let scorePopupZPosition: CGFloat = 50
+
+    // MARK: - Difficulty (Phase 7-1)
+    /// 난이도별 플레이어 시작 속도 (pt/s). GDD §5 표. easy(140)는 기존 playerBaseSpeed와 동일 —
+    /// apply 누락 시 graceful fallback. PlayerNode가 자기 baseSpeedStart에 set.
+    static let playerSpeedStartByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 140, .normal: 160, .hard: 160
+    ]
+    /// 난이도별 플레이어 끝 속도 (pt/s). 본 sprint는 *보간 미적용* — 미리 추가만(주의사항 7).
+    /// 다음 보강 sprint에서 PlayerNode.update가 진행률 ↑ 시 baseSpeedEnd까지 보간.
+    static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 210, .normal: 250, .hard: 250
+    ]
+    /// 난이도별 적 시작 속도 (pt/s). easy(60)는 기존 enemyBaseSpeed와 동일 — 회귀 0 보장.
+    static let enemySpeedStartByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 60, .normal: 170, .hard: 200
+    ]
+    /// 난이도별 적 끝 속도 (pt/s). easy(110)는 기존 enemyMaxSpeed와 동일 — 회귀 0 보장.
+    static let enemySpeedEndByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 110, .normal: 290, .hard: 340
+    ]
+    /// 난이도별 동시 음표 최대 수. easy(5)는 기존 noteMaxConcurrent와 동일 — 회귀 0 보장.
+    static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
+        .easy: 5, .normal: 4, .hard: 4
+    ]
+    /// 난이도별 음표 TTL (초). easy = `.infinity` → applyLifetime 가드로 자가 소멸 미부착 → 기존 동작 정확 보존.
+    /// normal/hard만 자가 소멸 SKAction 부착(주의사항 2).
+    static let noteLifetimeByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: .infinity, .normal: 3.5, .hard: 2.8
+    ]
+    /// 난이도별 F 동시 최대 수. easy(2)는 기존 projectileMaxConcurrent와 동일.
+    static let projectileMaxConcurrentByDifficulty: [Difficulty: Int] = [
+        .easy: 2, .normal: 10, .hard: 14
+    ]
+    /// 난이도별 F 동시 burst 발사 수. easy=1 → 기존 1발 루프와 동일 → 회귀 0 (주의사항 4).
+    static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
+        .easy: 1, .normal: 3, .hard: 4
+    ]
+    /// 난이도별 F 발사 주기 시작값 (초). easy(3.5)는 기존 projectileFireInterval와 동일.
+    static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: 3.5, .normal: 1.0, .hard: 0.8
+    ]
+    /// 난이도별 F 발사 주기 끝값 (초). easy(2.0)는 기존 projectileFireIntervalEnd와 동일.
+    static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: 2.0, .normal: 0.35, .hard: 0.25
+    ]
+
+    /// 난이도 카드 1장 가로 (pt). 3장 일렬 — 더 큼직(80 vs 캐릭터카드 48) — 화면 상위 인터랙션.
+    static let difficultyCardWidth: CGFloat = 80
+    /// 난이도 카드 1장 세로 (pt). 이름 + 부제 두 라벨이 들어가야 해서 캐릭터카드(60)보다 약간 작은 56.
+    static let difficultyCardHeight: CGFloat = 56
+    /// 난이도 카드 사이 간격 (pt). 3장 일렬 — 전체 폭 = 3×80 + 2×16 = 272pt.
+    static let difficultyCardSpacing: CGFloat = 16
+    /// 난이도 카드 줄 y 오프셋 (pt). frame.midY 기준. promptLabel(-80) 하단과 카드 상단(-92) 간격 12pt 안전.
+    static let difficultyCardOffsetY: CGFloat = -120
+    /// 난이도 카드 이름 라벨 폰트 크기 (pt). "하/중/상" 한 글자 강조 — 캐릭터카드(12)보다 크게.
+    static let difficultyCardFontSize: CGFloat = 20
+    /// 난이도 카드 부제 라벨 폰트 크기 (pt). 한국어 5~7자가 80pt 폭 안에 들어가야 함.
+    static let difficultyCardSubtitleFontSize: CGFloat = 10
+    /// 캐릭터 카드 줄 y 오프셋 (pt) — Phase 7-1 — 난이도 행(-120) 신설로 -160 → -200으로 한 칸 더 내림.
+    /// 직접 리터럴이었으면 GameConfig 상수로 흡수 + 참조 변경(SPEC §5).
+    static let characterCardOffsetY: CGFloat = -200
+    /// UserDefaults에 마지막 난이도 선택을 raw String으로 저장할 키.
+    /// 호출부에 리터럴 노출 금지 — DifficultyPreferenceRepository만 사용.
+    static let difficultyPreferenceUserDefaultsKey: String = "selectedDifficulty"
+    /// ResultScene 난이도 라벨 y 오프셋 (pt). characterLabel(115) 더 위쪽 — "난이도: 상" / "🎮 김간호" / "GAME OVER" 톤.
+    static let resultDifficultyOffsetY: CGFloat = 155
+    /// ResultScene 난이도 라벨 폰트 크기 (pt). resultStats(16)와 동급 — 보조 정보 톤.
+    static let resultDifficultyFontSize: CGFloat = 18
 }

@@ -1,214 +1,392 @@
-# Phase 6-16 — +1 / +2 점수 플로팅 텍스트
+# SPEC.md — Phase 7-1: 난이도 3단계 시스템(하/중/상)
 
 ## 개요
-음표를 수집하는 *바로 그 자리*에 짧은 "+1" 또는 "+2" 텍스트를 띄우고 위로 부드럽게 떠오르며 페이드아웃시킨다. 콤보 3 이상에서 점수가 2배가 되는 규칙(GameConfig.comboBonusThreshold)을 *황금색 "+2"* 시각 신호 하나로 학습하게 만드는 마이크로 폴리싱.
+지금까지 게임은 *easy 1개 고정*으로만 돌고 있었다. 이번 sprint는 사용자가 TitleScene에서 **하/중/상 카드 1장**을 선택해 같은 게임 코드가 *다른 속도/빈도/음표 TTL*로 돌아가도록 한다. GDD §5 표가 단일 진실 원천(single source of truth)이며, 본 sprint의 모든 수치 차등은 그 표에서 직접 끌어온다.
 
 ## 변경 유형
-**비주얼** (시각 폴리싱) — Evaluator는 시각 폴리싱 기준으로 채점한다. 게임 로직(ScoreSystem)은 미접촉, 신규 의존성 0건.
+**혼합** (게임플레이 수치 차등 + UI 카드 신설 + 영구 저장 + ResultScene 라벨)
+
+Evaluator는 "Swift 패턴 일관성 35% + 게임 로직 30% + 성능/안정성 20% + 기능 완성도 15%"의 4축 가중 평가를 그대로 적용한다.
 
 ## 게임 경험 의도
-플레이어는 "콤보 3부터 2배"라는 텍스트 설명 없이도 *황금색 +2*가 떠오르는 순간 "방금 점수가 2배 들어왔다"는 사실을 시각만으로 인지한다. +1(흰빛)과 +2(황금) 두 색상의 *대비* 그 자체가 룰북이 된다. 노트가 사라진 자리에서 텍스트가 위로 떠오르며 사라지는 마이크로 모션은 *내가 방금 무엇을 얻었는가*를 부드럽게 강조해 짧은 만족감을 만든다.
+"선택할 수 있는 자유"는 짧은 책임감을 만든다 — 내가 *상*을 골랐기에 빨라진 수간호사도 내 탓이고, *하*를 골랐기에 여유로운 음표 무한 TTL도 내 보상이다. 하/중/상은 *난이도 명칭*이 아니라 *같은 게임의 세 가지 톤*임을 텍스트로 가르치지 않고도 첫 5초 안에 체감하게 한다. 카드 색만 바뀌어도 사용자는 "이 게임은 내가 조절 가능하구나"를 학습한다.
 
 ## Sprint 범위 계약
-- **허용**:
-  - `Nodes/ScorePopupNode.swift` 신규 파일 1개 추가 (자가 소멸 노드 9호)
-  - `GameScene.swift` `onNoteCollected` 클로저 안에 ScorePopupNode 스폰 라인 추가 (sparkle 직후 위치, 4~5줄)
-  - `GameConfig.swift`에 `// MARK: - Score Popup (Phase 6-16)` 섹션 신설 + 신규 상수 7개
-  - pbxproj는 신규 .swift 파일 등록을 위해 1건 변경 (불가피)
-- **금지**:
-  - ScoreSystem 시그니처/내부 로직 변경 (recordNoteHit return value 변경 등)
-  - sparkle / 콤보 마일스톤 / 콤보 BREAK / 카메라 셰이크 / HUD / BGM / Haptics / Audio API 신규 호출 또는 수정
-  - 신규 사운드 case / 신규 햅틱 호출 / 신규 ColorTokens 색상 추가
-  - SPEC에 없는 별개 시각 효과 (파티클, 진동 추가 등)
-  - .xcassets, Info.plist, Asset Catalog 신규 항목
-- **판단 기준**: "이 변경이 없으면 +1/+2 텍스트가 노트 수집 자리에 안 뜨는가?" → YES만 허용
 
-## 변경 범위
+### 허용 (이 변경 없으면 난이도 카드 선택 시 게임 수치가 안 바뀜 → YES)
+1. `Models/Difficulty.swift` 신규 — enum + 부속 속성(displayName/storageKey/color/subtitle).
+2. `Repositories/DifficultyPreferenceRepository.swift` 신규 — CharacterPreferenceRepository 동형 패턴.
+3. `Config/GameConfig.swift` 수정 — 난이도별 차등 튜닝 표(dict) 추가 + 기존 *단일 상수*는 *easy 기준값으로 유지*(호환).
+4. `Scenes/TitleScene.swift` 수정 — 난이도 카드 3장(DifficultyCardNode) 가로 배치 + 선택 핸들러 + 영구 저장 복원.
+5. `Nodes/DifficultyCardNode.swift` 신규 — CharacterCardNode와 동형 컨테이너(SKNode 기반).
+6. `GameScene.swift` 수정 — `init`에 `difficulty: Difficulty` 추가 + factory 시그니처 확장 + `apply(difficulty:)` 노드/시스템 호출.
+7. `Nodes/PlayerNode.swift` 수정 — `apply(_ difficulty:)` 메서드 + `baseSpeedStart/End` 보간식 도입.
+8. `Nodes/EnemyNode.swift` 수정 — `apply(_ difficulty:)` 메서드 + base/max 속도를 *인스턴스 프로퍼티*로 외부화.
+9. `Systems/SpawnSystem.swift` 수정 — `apply(_ difficulty:)` 메서드 + noteMaxConcurrent/noteLifetime/projectileMaxConcurrent/burstCount/fireInterval(시작/끝) 모두 *인스턴스 프로퍼티*로 외부화.
+10. `Nodes/NoteNode.swift` 수정 — 자가 소멸 SKAction(`SKAction.sequence([wait, fade, remove])`) 부착 메서드 추가. `.infinity` 또는 sentinel로 *easy 무한 TTL* 분기 처리.
+11. `Scenes/ResultScene.swift` 수정 — 난이도 라벨 1줄 추가.
+12. `pbxproj` — 신규 3개 .swift 파일(Difficulty / DifficultyPreferenceRepository / DifficultyCardNode) 등록.
 
-### 수정할 파일
-- `GanhoMusic Shared/GameScene.swift`: `onNoteCollected` 클로저 안에 ScorePopupNode 스폰 라인 4~5줄 추가 (sparkle 발화 직후, 콤보 마일스톤 가드 *전* 위치). 다른 라인 미접촉.
-- `GanhoMusic Shared/Config/GameConfig.swift`: 파일 맨 아래 `// MARK: - Score Popup (Phase 6-16)` 섹션 신설 + 신규 상수 7개 추가. 기존 상수 미접촉.
-- `GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj`: 신규 .swift 파일 1건 등록 (Xcode 프로젝트가 새 파일을 인식하게 하기 위한 *유일한 불가피한 변경*)
+### 금지 (이 변경 없어도 난이도 카드 작동 → NO, 다음 sprint로)
+- **이교수 NPC** — 모델/노드 자체 미구현. *.hard 선택해도 이교수 등장 0건*. **다음 sprint 7-2(또는 별도)에서 처리**.
+- **hard 맵** — 맵 변형 자체 미구현. *.normal/.hard 선택해도 easy 맵(중앙 기둥 1개) 그대로 사용*. GDD §5 "맵 종류" 컬럼은 다음 sprint.
+- **석조무사 등장 여부 분기** — GDD §5는 normal까지 등장/hard 미등장이지만, 본 sprint는 *전 난이도에서 석조무사 등장 그대로* 둔다(회귀 0 우선). StoneGuardNode 코드 미접촉.
+- **목표 점수 (60/50/30)** — 졸업장 sprint 직전에 적용. 본 sprint는 ResultScene 표기에만 *선택적* 활용 가능(권장: 표기도 생략).
+- **인트로/경고/중간 컷씬 분기** — 컷씬 시스템 자체 미구현. 본 sprint 범위 외.
+- **목표 점수 달성 추적, 졸업장** — 별도 sprint.
 
-### 추가할 파일
-- `GanhoMusic Shared/Nodes/ScorePopupNode.swift`: 자가 소멸 노드 9호. SelfDismissingNode 채택. 정적 팩토리 메서드 1개 노출. 약 60~80줄.
+### 분리의 정당성
+큰 sprint 1개를 회귀 위험 낮은 작은 sprint 여러 개로 쪼개야 빠른 사이클 가능. 본 sprint는 *수치 분기 + UI 1행* 두 축만 — 회귀 영역이 좁다. 한 번에 다 묶으면 회귀 영역이 *15+ 파일*로 폭증해 1차 합격 확률 급감.
 
-## 기능 상세
+### 판단 기준
+"이 변경 없으면 난이도 카드 선택 시 게임 수치가 안 바뀌는가" → **YES만 허용**.
 
-### 기능 1: ScorePopupNode (자가 소멸 노드 9호)
-- **설명**: 노트 수집 좌표 + (0, +12) 위치에서 발생, 위로 +40pt 부드럽게 이동 + scale 0.8→1.0 + alpha 1→0 동시 진행, 0.6초 후 자가 제거되는 텍스트 노드.
-- **구현 위치**: `Nodes/ScorePopupNode.swift` (신규 파일).
-- **부착 부모**: `worldNode` 자식 — sparkle과 동일 부모. 이유: 노트 수집 좌표는 *worldNode 좌표계* 값이므로 worldNode에 부착해야 카메라 follow와 자연 동기. 콤보 마일스톤(cameraNode 자식, 화면 중앙 고정)과는 의도적으로 *다른 부모* — 마일스톤은 *글로벌* 시그널, 점수 팝업은 *지역* 시그널.
-- **시각 사양**:
-  - 폰트: SKLabelNode 기본 폰트 (fontName 미지정 — 다른 자가 소멸 노드와 동일 정책). SF Mono Bold는 시스템 폰트 패밀리 의존이 환경별로 다를 수 있어 *fontName 미지정*으로 안전. 굵기는 fontSize 28pt 자체의 가시성으로 확보.
-  - 크기: 28pt (HUD 18pt보다 크고 ComboPopup 48pt보단 작음 — *지역* 강조 톤)
-  - 색: +1 → `.ganhoPaper` (기존 흰빛/페이퍼 톤, 새 ColorTokens 추가 0건), +2 → `.ganhoYellowF` (기존 황금 토큰, F 투사체와 동일 색이지만 *콤보 황금기*와 의미 공유)
-  - 시작 위치: (0, +12) — ScorePopupNode 자체의 노드 position이 worldNote 좌표 + (0, +12)로 세팅됨
-  - 종료 위치: 시작점 + (0, +40)
-  - 스케일: 0.8 → 1.0 (살짝 *부풀어 오르는* 톤. ComboPopup의 1.0→1.4 확대보다 약하고, SparkleEffect의 1.0→0.2 수축과 반대)
-  - 알파: 1.0 → 0.0
-  - 지속 시간: 0.6초 (sparkle 0.5초보다 약간 길어 사라지는 시점이 동기되지 않음 — 시각 노이즈 분리)
-  - zPosition: sparkle(30) 위, HUD(100) 아래 → 50 권장
-- **정적 팩토리 시그니처**:
-  ```swift
-  /// 노트 수집 좌표에서 +1 또는 +2를 띄우는 자가 소멸 텍스트.
-  /// 점수 1은 흰빛(.ganhoPaper), 점수 2는 황금(.ganhoYellowF)으로 콤보 배수 시각화.
-  /// gainedPoints 외의 값은 graceful fallback (+1 흰빛) — 미래 점수 시스템 확장 안전망.
-  static func spawn(at position: CGPoint, gainedPoints: Int, parent: SKNode)
-  ```
-- **핵심 코드 구조**:
-  ```swift
-  final class ScorePopupNode: SKNode, SelfDismissingNode {
-      private let label: SKLabelNode
+---
 
-      private init(gainedPoints: Int) {
-          self.label = SKLabelNode(text: "+\(gainedPoints)")
-          super.init()
-          name = "scorePopup"
-          zPosition = GameConfig.scorePopupZPosition
-          configureLabel(color: Self.color(for: gainedPoints))
-          setScale(GameConfig.scorePopupStartScale)
-          addChild(label)
-      }
+## Difficulty enum 정의 (의사 코드)
 
-      required init?(coder: NSCoder) { fatalError(...) }
-
-      // MARK: - Spawn (static factory)
-      static func spawn(at position: CGPoint, gainedPoints: Int, parent: SKNode) {
-          let node = ScorePopupNode(gainedPoints: gainedPoints)
-          node.position = CGPoint(x: position.x,
-                                  y: position.y + GameConfig.scorePopupStartOffsetY)
-          parent.addChild(node)
-          node.animate()
-      }
-
-      // MARK: - Animate (private — spawn에서만 호출)
-      private func animate() {
-          let moveUp = SKAction.moveBy(x: 0,
-                                        y: GameConfig.scorePopupFlyUpDistance,
-                                        duration: GameConfig.scorePopupDuration)
-          let fadeOut = SKAction.fadeOut(withDuration: GameConfig.scorePopupDuration)
-          let scaleUp = SKAction.scale(to: GameConfig.scorePopupEndScale,
-                                        duration: GameConfig.scorePopupDuration)
-          let group = SKAction.group([moveUp, fadeOut, scaleUp])
-          let cleanup = SKAction.removeFromParent()
-          run(.sequence([group, cleanup]))
-      }
-
-      // MARK: - Configure
-      private func configureLabel(color: UIColor) {
-          label.fontSize = GameConfig.scorePopupFontSize
-          label.fontColor = color
-          label.verticalAlignmentMode = .center
-          label.horizontalAlignmentMode = .center
-          label.position = .zero
-      }
-
-      // MARK: - Color Mapping (pure function, fallback +1 흰빛)
-      private static func color(for gainedPoints: Int) -> UIColor {
-          switch gainedPoints {
-          case GameConfig.scorePerNote:      return .ganhoPaper
-          case GameConfig.scorePerNoteCombo: return .ganhoYellowF
-          default:                            return .ganhoPaper
-          }
-      }
-  }
-  ```
-- **패턴 답습 확인**:
-  - SelfDismissingNode 채택 ✓ (ComboPopupNode, ComboBreakNode, CountdownNode와 동일)
-  - 정적 팩토리 1개 진입점 ✓ (`spawn(at:gainedPoints:parent:)`)
-  - SKAction.group([move, fade, scale]) 동시 → SKAction.sequence([group, removeFromParent]) ✓ (ComboPopupNode 완전 답습)
-  - `self` 미사용 → `[weak self]` 캡처 불필요 ✓
-  - PhysicsBody 0건 ✓
-
-### 기능 2: GameScene onNoteCollected 1줄 호출 추가
-- **설명**: ScoreSystem이 점수를 갱신한 *직후*, sparkle 발화 *직후*, 콤보 마일스톤 가드 *전*에 ScorePopupNode를 worldNode에 스폰. 정확한 점수(1 또는 2)는 *recordNoteHit 호출 후* `scoreSystem.combo`로 분기 결정.
-- **구현 위치**: `GameScene.swift` `configureContactRouter()` 안의 `contactRouter.onNoteCollected = { ... }` 클로저. 정확히 sparkle 발화 라인(`sparkle.emit()`) **직후**, `// Phase 6-10 — 콤보 마일스톤 도달 시...` 주석 **직전**.
-- **호출 지점 컨텍스트** (현재 GameScene.swift 라인 337~342 직후):
-  ```swift
-  // ... 기존 코드 ...
-  let sparkleOrigin = note.position
-  let sparkle = SparkleEffectNode()
-  sparkle.position = sparkleOrigin
-  self.worldNode.addChild(sparkle)
-  sparkle.emit()
-
-  // === Phase 6-16 신규 (sparkle.emit() 직후, 콤보 마일스톤 가드 직전) ===
-  // Phase 6-16 — 노트 수집 자리에 "+1" 또는 "+2" 텍스트 1회 발화 (시각 채널만).
-  // recordNoteHit 직후의 combo로 점수 분기 — ScoreSystem 시그니처 미접촉(옵션 B 폴링).
-  // worldNode 부모: sparkle과 동일 좌표계 → 카메라 follow와 자연 동기.
-  let gainedPoints = self.scoreSystem.combo >= GameConfig.comboBonusThreshold
-      ? GameConfig.scorePerNoteCombo
-      : GameConfig.scorePerNote
-  ScorePopupNode.spawn(at: sparkleOrigin, gainedPoints: gainedPoints, parent: self.worldNode)
-  // === Phase 6-16 끝 ===
-
-  // Phase 6-10 — 콤보 마일스톤 도달 시 화면 중앙 텍스트 팝업 1회 발화 (멱등성).
-  // ... 기존 코드 계속 ...
-  ```
-- **`sparkleOrigin` 재사용 이유**: 이미 캡처된 좌표(노트 제거 안전). 추가 좌표 계산/노드 참조 0건.
-- **`gainedPoints` 산출 로직 정당성**: ScoreSystem.recordNoteHit은 `combo >= GameConfig.comboBonusThreshold` 시 `scorePerNoteCombo` 점수를, 아니면 `scorePerNote` 점수를 가산한다 (ScoreSystem.swift 라인 28~30). 호출부에서 *완전히 동일한 조건식*을 평가하면 *같은 결과*가 보장된다. 두 조건은 동일 GameConfig 상수를 참조 → 미래 임계값 변경 시 한 곳만 바뀌어도 두 분기가 동기.
-
-## ScoreSystem 반환값 확인 (필수 분석)
-
-**현 ScoreSystem.recordNoteHit 시그니처** (ScoreSystem.swift 라인 25~32):
 ```swift
-func recordNoteHit(at now: TimeInterval) {
-    let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
-    combo = isInWindow ? combo + 1 : 1
-    score += combo >= GameConfig.comboBonusThreshold
-        ? GameConfig.scorePerNoteCombo
-        : GameConfig.scorePerNote
-    lastCollectAt = now
+// Models/Difficulty.swift (신규)
+import UIKit
+
+/// 3 난이도 식별자. raw String — case 이름이 그대로 raw value("easy", "normal", "hard").
+/// CaseIterable 채택으로 `.allCases` 자동 생성 — TitleScene이 3 카드 일괄 생성에 사용.
+enum Difficulty: String, CaseIterable {
+    case easy, normal, hard
+
+    var displayName: String {
+        switch self {
+        case .easy:   return "하"
+        case .normal: return "중"
+        case .hard:   return "상"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .easy:   return "여유로운 실습"
+        case .normal: return "긴장의 병동"
+        case .hard:   return "이교수의 청진기"
+        }
+    }
+
+    var color: UIColor {
+        switch self {
+        case .easy:   return .ganhoMint
+        case .normal: return .ganhoYellowF
+        case .hard:   return .ganhoBloodAccent
+        }
+    }
 }
 ```
 
-**Return type은 Void**. 가산된 점수는 외부로 반환되지 않는다.
+### 케이스 × 4 부속 속성 1:1 매핑 표
+| case | rawValue (저장키) | displayName | subtitle | color (기존 토큰 재사용) |
+|---|---|---|---|---|
+| `.easy`   | `"easy"`   | "하" | "여유로운 실습"       | `.ganhoMint` |
+| `.normal` | `"normal"` | "중" | "긴장의 병동"         | `.ganhoYellowF` |
+| `.hard`   | `"hard"`   | "상" | "이교수의 청진기"     | `.ganhoBloodAccent` |
 
-**채택 fallback (옵션 B 폴링) — recordNoteHit *후* `scoreSystem.combo` 읽기**:
-- `recordNoteHit` 호출 직후 `combo` 값이 이미 갱신되어 있음 (`combo = isInWindow ? combo + 1 : 1` 후).
-- 호출부에서 *동일한* `combo >= GameConfig.comboBonusThreshold` 식을 평가하면 *동일한 분기*를 얻는다.
-- Phase 6-10이 이미 같은 패턴 사용 (`let currentCombo = self.scoreSystem.combo` 직후 마일스톤 검사) → **검증된 패턴**.
-- **ScoreSystem 시그니처/구현 미접촉** ✓
-- **회귀 0** ✓
+---
 
-대안(불채택): ScoreSystem.recordNoteHit이 Int(가산 점수)를 return하도록 변경 — 시그니처 변경 + 기존 호출부 1개 변경 + 사이드이펙트 코딩 컨벤션 변경. **본 sprint는 회귀 0이 핵심이라 불채택**.
+## GameConfig 차등 메서드 설계안 — 두 옵션 비교
 
-## GameConfig 신규 상수 목록
+현재 `GameConfig`는 **단일 상수** 구조(`static let noteMaxConcurrent: Int = 5` 등).
 
-`// MARK: - Score Popup (Phase 6-16)` 섹션 신설. 파일 맨 아래에 추가.
+### 옵션 A — 함수 분기 (`func(for: Difficulty) -> T`)
+- 장점: 호출부가 `GameConfig.noteMaxConcurrent(for: difficulty)`로 명시적.
+- 단점: 12~14개 함수 추가 → GameConfig 비대. 기존 호출처 모두 변경. **회귀 영역 ↑**.
 
-| 상수명 | 타입 | 권장 초기값 | 의미 |
+### 옵션 B — 튜닝 표(dict 리터럴) + 노드/시스템 자기 적용 ← **권장**
+- 장점: 응집도 ↑. 기존 단일 상수가 *easy 기준값으로 유지* → apply(_:) 누락 시에도 graceful fallback. 새 호출처는 dict 1회 lookup만, 기존 호출처 0건 변경.
+- 단점: 노드/시스템에 새 프로퍼티 4~6개 추가됨.
+- Spring 비유: `@ConfigurationProperties` 동형.
+
+### 권장: **옵션 B** 채택
+1. **회귀 0 보장**: 기존 `GameConfig.playerBaseSpeed` 등 단일 상수 그대로 살아남음 → apply 누락 시 easy 동작 자연 fallback.
+2. **CharacterID.playerSpeedMultiplier 패턴 답습**: 5-3에서 검증된 패턴.
+3. **테스트 친화**: dict lookup + `?? default` 으로 nil 안전.
+
+---
+
+## 변경 파일 목록 + 라인 컨텍스트
+
+### 신규
+| 파일 | 역할 |
+|---|---|
+| `GanhoMusic Shared/Models/Difficulty.swift` | enum + 4 부속 속성 |
+| `GanhoMusic Shared/Repositories/DifficultyPreferenceRepository.swift` | UserDefaults 영구 저장 (CharacterPreferenceRepository 동형) |
+| `GanhoMusic Shared/Nodes/DifficultyCardNode.swift` | SKNode 컨테이너 + 배경 색 사각형 + 한글 라벨 + 부제 라벨 + 선택 알파/scale 토글 (CharacterCardNode 동형) |
+
+### 수정
+| 파일 | 변경 위치(라인 힌트) | 변경 내용 |
+|---|---|---|
+| `Config/GameConfig.swift` | §"Note"(L56~62), §"Enemy"(L88~97), §"Projectile"(L99~110), §"Player"(L36~41) 인접 | 차등 dict 9개 + UI/저장 키 상수 8개 추가. 기존 단일 상수 미접촉. |
+| `Scenes/TitleScene.swift` | L27 properties / L42 didMove / L120 setup / L159 touchesBegan | 신규 프로퍼티 3개. didMove에 복원 + setup. touchesBegan에 난이도 hit test 우선 분기. newGameScene 호출에 `difficulty:` 인자. |
+| `GameScene.swift` | L102~121 init/factory / setupPlayer/setupEnemy / startGameProperly | `let difficulty: Difficulty` + init/factory 시그니처 확장 + 노드/시스템 `apply(difficulty)` 호출 3줄. |
+| `Nodes/PlayerNode.swift` | properties / apply 인접 | `baseSpeedStart/End` 인스턴스 프로퍼티 + `apply(_ difficulty:)` 메서드. update에서 `baseSpeedStart × speedMultiplier`. |
+| `Nodes/EnemyNode.swift` | init / update 보간식 | `baseSpeedStart/End` 인스턴스 프로퍼티 + `apply(_ difficulty:)` 메서드. update 보간식이 GameConfig → self 참조로 변경. |
+| `Systems/SpawnSystem.swift` | dependencies / trySpawnNote / fireProjectile | 인스턴스 프로퍼티 6개 + `apply(_ difficulty:)`. trySpawnNote에서 `note.applyLifetime(noteLifetime)`. fireProjectile에 burst 루프(easy=1로 회귀 0). |
+| `Nodes/NoteNode.swift` | init 인접 | `applyLifetime(_ ttl:)` 메서드 신규. 가드: `ttl.isFinite, ttl < gameDuration`. 통과 시 wait+fade+remove 시퀀스. |
+| `Scenes/ResultScene.swift` | properties / init / setupLabels / layoutLabels | `difficulty` 프로퍼티 + 라벨 1개 추가. newResultScene factory에 `difficulty:` 인자. |
+| `pbxproj` | — | 신규 3 파일 등록(`xcode-import-guide.md` 답습). |
+
+---
+
+## TitleScene 카드 배치 안
+
+### 현재 TitleScene 레이아웃 (L85~145)
+```
+frame.midY +80 : titleLabel ("김간호는 음악박사")
+frame.midY +20 : bestLabel
+frame.midY -20 : playsLabel
+frame.midY -80 : promptLabel ("TAP TO START")
+frame.midY -160: 5 캐릭터 카드 (가로 일렬)
+```
+
+### 권장 배치 — 캐릭터 카드 *위쪽*에 별도 행
+```
+frame.midY +80 : titleLabel
+frame.midY +20 : bestLabel
+frame.midY -20 : playsLabel
+frame.midY -80 : promptLabel
+frame.midY -120: 난이도 카드 3장 (하/중/상) ← 신규
+frame.midY -200: 5 캐릭터 카드 (-160 → -200으로 한 칸 더 내림)
+```
+
+`characterCardOffsetY` 현재 -160 → -200으로 조정. 신규 `difficultyCardOffsetY: -120`.
+
+### DifficultyCardNode 구조 (CharacterCardNode 동형)
+```swift
+final class DifficultyCardNode: SKNode {
+    let id: Difficulty
+    private let background: SKSpriteNode
+    private let nameLabel: SKLabelNode
+    private let subtitleLabel: SKLabelNode
+
+    init(id: Difficulty) {
+        self.id = id
+        background = SKSpriteNode(color: id.color,
+            size: CGSize(width: GameConfig.difficultyCardWidth,
+                         height: GameConfig.difficultyCardHeight))
+        nameLabel = SKLabelNode(text: id.displayName)
+        subtitleLabel = SKLabelNode(text: id.subtitle)
+        super.init()
+        name = "difficultyCard_\(id.rawValue)"
+        zPosition = 100
+        addChild(background)
+        configureLabels()
+        addChild(nameLabel)
+        addChild(subtitleLabel)
+    }
+
+    func setSelected(_ selected: Bool) {
+        alpha = selected ? 1.0 : GameConfig.characterCardDeselectedAlpha
+        let target = selected ? GameConfig.characterCardSelectedScale : 1.0
+        removeAction(forKey: "cardScale")
+        run(SKAction.scale(to: target, duration: GameConfig.characterCardScaleDuration), withKey: "cardScale")
+    }
+}
+```
+
+---
+
+## GameScene init 시그니처 변경 — 영향 분석
+
+### 현재 호출처
+| 파일 | 라인 | 호출 |
+|---|---|---|
+| `GanhoMusic iOS/GameViewController.swift` | L27 | `TitleScene.newTitleScene()` ← GameScene 안 만듦. **영향 없음**. |
+| `Scenes/TitleScene.swift` | L173 | `GameScene.newGameScene(characterID:)` ← **유일한 직접 호출** |
+| `GanhoMusic macOS/GameViewController.swift` | L17 | `GameScene.newGameScene()` ← 미지원 타깃. default 인자로 자동 호환. |
+| `GanhoMusic tvOS/GameViewController.swift` | L17 | `GameScene.newGameScene()` ← 동일. |
+
+### 회귀 0 보장
+1. `newGameScene(characterID: .kim, difficulty: .easy)` — **두 인자 모두 default**.
+2. iOS의 TitleScene 호출 1군데만 `difficulty: selectedDifficulty` 추가.
+3. macOS/tvOS(공식 미지원)는 기존 코드 그대로 컴파일 통과.
+
+```swift
+// TitleScene.touchesBegan
+let gameScene = GameScene.newGameScene(
+    characterID: selectedCharacterID,
+    difficulty: selectedDifficulty   // ← 추가
+)
+```
+
+---
+
+## GameConfig 신규 상수 — GDD §5 표 1:1 매핑
+
+### GDD §5 원본 표 (인용)
+| 항목 | 하(easy) | 중(normal) | 상(hard) |
 |---|---|---|---|
-| `scorePopupFontSize` | `CGFloat` | `28` | "+1"/"+2" 라벨 폰트 크기 (pt). HUD(18)보다 크고 ComboPopup(48)보다 작음 — *지역* 강조. |
-| `scorePopupStartOffsetY` | `CGFloat` | `12` | 노트 수집 좌표에서 시작 y 오프셋 (pt). 노트 본체(16pt) 위쪽 살짝 — 노트와 텍스트가 같은 픽셀 안에서 겹치지 않게. |
-| `scorePopupFlyUpDistance` | `CGFloat` | `40` | 위로 떠오르는 총 거리 (pt). ComboPopup(80)의 절반 — *지역* 시그널은 작게. sparkleSpawnDistance(24)보다 길어 sparkle과 시각 분리. |
-| `scorePopupDuration` | `TimeInterval` | `0.6` | 1회 표시 총 길이 (초). sparkle(0.5)보다 살짝 길어 사라지는 시점 비동기. comboPopup(1.0)보다 짧음 — *지역* 톤. |
-| `scorePopupStartScale` | `CGFloat` | `0.8` | 시작 scale. 1.0(원래 크기)보다 작게 시작해 *부풀어 오르는* 톤. |
-| `scorePopupEndScale` | `CGFloat` | `1.0` | 끝 scale. ComboPopup(1.4 확대)보다 약함 — *지역* 시그널 절제. |
-| `scorePopupZPosition` | `CGFloat` | `50` | zPosition. sparkle(30) 위, HUD(100) 아래. 자식이 노트가 사라진 *바로 그 픽셀* 위에 있으되 HUD 점수/타이머는 안 가림. |
+| 플레이어 속도 | 140→210 px/s | 160→250 px/s | 160→250 px/s |
+| 동시 음표 수 | 5개 | 4개 | 4개 |
+| 음표 TTL | 무한 | 3.5초 | 2.8초 |
+| 수간호사 속도 | 60→110 px/s | 170→290 px/s | 200→340 px/s |
+| F 최대 동시 수 | 2개 | 10개 | 14개 |
+| 동시 F 투척 수 | 1개 | 3개 | 4개 |
+| F 투척 주기 | 3.5→2.0초 | 1.0→0.35초 | 0.8→0.25초 |
 
-**모든 매직 넘버 0 — GameConfig 상수화 ✓**
+### dict 리터럴 의사 코드
+```swift
+// MARK: - Difficulty (Phase 7-1)
+static let playerSpeedStartByDifficulty: [Difficulty: CGFloat] = [
+    .easy: 140, .normal: 160, .hard: 160
+]
+static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
+    .easy: 210, .normal: 250, .hard: 250
+]
+static let enemySpeedStartByDifficulty: [Difficulty: CGFloat] = [
+    .easy: 60, .normal: 170, .hard: 200
+]
+static let enemySpeedEndByDifficulty: [Difficulty: CGFloat] = [
+    .easy: 110, .normal: 290, .hard: 340
+]
+static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
+    .easy: 5, .normal: 4, .hard: 4
+]
+static let noteLifetimeByDifficulty: [Difficulty: TimeInterval] = [
+    .easy: .infinity, .normal: 3.5, .hard: 2.8
+]
+static let projectileMaxConcurrentByDifficulty: [Difficulty: Int] = [
+    .easy: 2, .normal: 10, .hard: 14
+]
+static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
+    .easy: 1, .normal: 3, .hard: 4
+]
+static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
+    .easy: 3.5, .normal: 1.0, .hard: 0.8
+]
+static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
+    .easy: 2.0, .normal: 0.35, .hard: 0.25
+]
+
+// UI / 저장 / Result 신규 상수
+static let difficultyCardWidth: CGFloat = 80
+static let difficultyCardHeight: CGFloat = 56
+static let difficultyCardSpacing: CGFloat = 16
+static let difficultyCardOffsetY: CGFloat = -120
+static let difficultyCardFontSize: CGFloat = 20
+static let difficultyCardSubtitleFontSize: CGFloat = 10
+static let characterCardOffsetY: CGFloat = -200   // 기존 -160 → -200
+static let difficultyPreferenceUserDefaultsKey: String = "selectedDifficulty"
+static let resultDifficultyOffsetY: CGFloat = 155
+static let resultDifficultyFontSize: CGFloat = 18
+```
+
+---
+
+## 기능 상세
+
+### 기능 1: Difficulty enum + 영구 저장
+- 파일: `Models/Difficulty.swift`, `Repositories/DifficultyPreferenceRepository.swift`
+- CharacterID + CharacterPreferenceRepository 동형 패턴 답습.
+- 기본값 `.easy`. UserDefaults 키 `selectedDifficulty`. raw String 직렬화.
+
+### 기능 2: DifficultyCardNode
+- 파일: `Nodes/DifficultyCardNode.swift`
+- CharacterCardNode 동형 — 배경 SKSpriteNode + nameLabel + subtitleLabel(추가) + setSelected 토글.
+- subtitleLabel은 nameLabel 아래 -14pt.
+
+### 기능 3: TitleScene 3 카드 + 선택/저장/복원
+- MARK `// MARK: - Difficulty Cards` 신규 섹션.
+- `selectedDifficulty` 프로퍼티 + `difficultyCards: [DifficultyCardNode]` + `difficultyRepo`.
+- didMove에서 `selectedDifficulty = difficultyRepo.current`.
+- touchesBegan: 캐릭터 카드 hit test *이전*에 난이도 카드 우선 분기.
+
+### 기능 4: GameScene init + factory 시그니처 확장
+- 두 인자 모두 default, 회귀 0.
+
+### 기능 5: PlayerNode/EnemyNode/SpawnSystem `apply(_ difficulty:)` 도입
+- 각 노드/시스템이 자기 수치를 자기가 결정.
+- GameScene+Setup.swift `setupPlayer`/`setupEnemy`에서 1줄씩 추가.
+- `startGameProperly` 진입부에 `spawnSystem.apply(difficulty)` 1줄.
+
+### 기능 6: NoteNode TTL 자가 소멸
+- `applyLifetime(_ ttl:)` 신규 메서드.
+- 가드: `guard ttl.isFinite, ttl < GameConfig.gameDuration else { return }`.
+- 통과 시 `SKAction.sequence([wait, fade, remove])` 부착 (withKey: "noteLifetime").
+
+### 기능 7: SpawnSystem 차등 적용 + F burst 도입
+- 인스턴스 프로퍼티 6개 (default = 기존 단일 상수값).
+- `fireProjectile()`에 `for _ in 0..<projectileBurstCount` 루프. 각 발마다 `currentProjectileCount < projectileMax` 가드.
+- easy=1 → 루프 1회 = 기존과 동일. **회귀 0**.
+
+### 기능 8: EnemyNode 보간식이 인스턴스 프로퍼티 참조
+- `update`의 `GameConfig.enemyBaseSpeed/MaxSpeed` → `self.baseSpeedStart/End`.
+
+### 기능 9: ResultScene 난이도 라벨
+- `difficultyLabel.text = "난이도: \(difficulty.displayName)"`.
+- GameScene.endGame()에서 newResultScene 호출에 `difficulty:` 인자 추가.
+
+---
 
 ## 회귀 0 자연 차단 메커니즘
 
-Phase 6-15(NEW BEST!)가 `isNewBest` 분기로 회귀를 자연 차단했듯, 본 sprint는 **`onNoteCollected` 진입 시에만 ScorePopupNode가 생성됨**으로 자연 차단된다.
+1. **GameScene init 호출처 1군데**: `TitleScene.swift:173` 단 1곳만 인자 1개 추가.
+2. **macOS/tvOS GameViewController** (미지원, 수정 금지): default 인자로 자동 호환.
+3. **기존 GameConfig 단일 상수 보존**: `playerBaseSpeed=140`, `enemyBaseSpeed=60`, `noteMaxConcurrent=5` 등 *easy 기준값으로 유지*. apply(_:) 누락 시에도 기본 동작은 *현재 easy와 정확히 동일*.
+4. **NoteNode TTL**: easy = `.infinity` → applyLifetime 분기로 noop → 기존 동작과 동일.
+5. **F burst**: easy = 1 → 루프 1회 = 기존 1발 루프와 동일.
+6. **카드 hit test 우선순위**: 난이도 카드 → 캐릭터 카드 → GameScene 전환. 카드 영역 외 탭은 기존 동작.
 
-**차단 메커니즘 다층**:
-1. **호출 지점 단일** — ScorePopupNode 스폰은 `onNoteCollected` 클로저 안 1지점에서만 발생. 다른 경로(F 피격, enemy 접촉, 시간 만료, 콤보 끊김, 게임오버) 어디서도 호출 0.
-2. **gameState 가드 간접 의존** — `onNoteCollected`는 SpriteKit physics callback이지만, `gameState != .playing`일 때는 player가 정지되고 player.physicsBody?.velocity = .zero 처리되어 노트와 새로 충돌할 일이 없음 (이미 endGame 안에서 정지 처리). gameOver 후 잔존 노트 접촉 가능성은 기존 sparkle/마일스톤도 동일한 위험을 가지지만 한 판 내 1회만 endGame 호출되므로 무시 가능.
-3. **자가 소멸** — ScorePopupNode 자체가 0.6초 후 removeFromParent. update loop 미접촉, 메모리 누적 0.
-4. **시그니처 미접촉** — ScoreSystem.recordNoteHit, ContactRouter.onNoteCollected, GameConfig 기존 상수, ColorTokens 모두 *읽기만*. 쓰기는 신규 상수와 신규 노드 파일에 한정.
-5. **새 의존성 0** — AudioManager / HapticsManager / BGMPlayer / Repository 모두 미호출. 신규 enum case 0.
-6. **부모 노드 worldNode 선택의 안전성** — sparkle(이미 worldNode 자식)과 동일 부모 → 카메라 follow / 좌표계 / cleanup 정책 모두 검증된 경로. cameraNode를 쓰지 않으므로 HUD/CountDown/ComboPopup의 화면 고정 z-stack과 간섭 0.
+---
 
-## 주의사항
+## 영구 저장 동작
+- **첫 실행**: `DifficultyPreferenceRepository.current` → `.easy`.
+- **사용자가 hard 선택**: `select(_ id:)` 안에서 `difficultyRepo.save(.hard)` 즉시 디스크 반영.
+- **앱 재시작**: didMove → 복원 → 카드 hit test 결과가 `.hard`로 복원되어 hard로 시작.
 
-- **부모 선택**: ScorePopupNode는 반드시 **worldNode**에 부착한다. cameraNode(화면 중앙 고정)에 부착하면 *노트가 사라진 자리*가 아니라 *화면 중앙 부근*에 뜨게 됨 → SPEC 위반. sparkle과 동일 부모 선택이 자연스럽다.
-- **좌표 캡처 순서**: `sparkleOrigin`은 이미 `note.position`을 안전하게 캡처한 변수. ScorePopupNode 스폰에 *재사용* — note.removeFromParent() 후에도 안전. 새로 `note.position`을 읽으면 *위험* (note가 트리에서 이미 빠진 후일 수 있음).
-- **gainedPoints 산출 시점**: 반드시 `self.scoreSystem.recordNoteHit(at:)` **호출 후** 평가. 호출 전에는 직전 콤보값이라 부정확. 현재 GameScene 코드 흐름은 recordNoteHit이 onNoteCollected 클로저 첫 줄에서 이미 호출되므로, sparkle 발화 후 시점은 자동으로 *post-recordNoteHit* 상태.
-- **새 ColorTokens 0**: SPEC에서 ".ganhoWhite"를 언급했으나 현 ColorTokens에는 `ganhoWhite` 토큰이 *없다*. 가장 가까운 흰빛 토큰은 **`.ganhoPaper`** (HEX #F4F1DE — paperWhite). 새 색 추가 0건 정책에 따라 `.ganhoPaper`로 매핑. +2 황금색은 `.ganhoYellowF`(HEX #FFD23F) 그대로 사용.
-- **SKLabelNode fontName 미지정**: SPEC가 "SF Mono Bold ~28pt"를 권장했으나, 본 프로젝트의 다른 자가 소멸 텍스트 노드(ComboPopupNode, ComboBreakNode, CountdownNode)는 모두 *fontName 미지정* (시스템 폰트 기본 굵기 의존). 일관성과 환경 안전성을 위해 ScorePopupNode도 fontName 미지정 유지. fontSize 28pt로 가시성 확보. 미래 폰트 통합 sprint에서 일괄 처리.
-- **빌드 에러 가능성**: 신규 .swift 파일을 추가하면 Xcode가 *Target Membership*을 자동 부여하지 못할 수 있음. Generator는 `Nodes/` 폴더에 파일을 추가한 후, pbxproj의 PBXBuildFile / PBXFileReference / PBXGroup / PBXSourcesBuildPhase 4지점에 `ScorePopupNode.swift` 항목을 추가하고 *iOS 타겟에만* 등록한다 (`GanhoMusic iOS` target). macOS / tvOS는 미지원 정책(components.md).
-- **`spawn` static factory 내부에서 `private init` 호출**: ScorePopupNode는 외부에서 `init`을 직접 호출하지 못하게 init을 private으로 두고 spawn factory 하나만 노출. 이렇게 하면 외부 호출자가 spawn 한 경로로만 노드를 만들 수 있어 *position 설정 누락* 같은 사용자 실수가 차단된다.
-- **animate를 private으로**: spawn 외에서 호출될 일이 없으므로 private. ComboPopupNode는 외부에서 `popup.animate()`로 호출하는 패턴이지만, 본 노드는 *정적 팩토리 일체형*이므로 한 단계 더 캡슐화. 패턴 진화 — 9호 노드에서 정적 팩토리 + private animate의 깔끔한 형태로 발전.
+---
+
+## 주의사항 (8개)
+
+1. **PlayerNode.apply(difficulty:) ↔ apply(_ characterID:) 호출 순서**.
+   - 5-3의 `apply(_ characterID:)`는 `speedMultiplier`를 set.
+   - 본 sprint의 `apply(_ difficulty:)`는 `baseSpeedStart/End`를 set.
+   - 둘은 *서로 다른 프로퍼티*를 set하므로 순서 무관. 일관성을 위해 **`apply(characterID)` 먼저, `apply(difficulty)` 나중**으로 통일.
+
+2. **noteLifetime의 `.infinity` 처리 정책**.
+   - `SKAction.wait(forDuration: .infinity)`는 *유효하지 않은 행동*.
+   - **정책**: `applyLifetime`에서 `guard ttl.isFinite, ttl < gameDuration else { return }` — easy = 기존 동작 정확 보존.
+
+3. **SpawnSystem hard-coded 상수 → 인스턴스 프로퍼티 주입**.
+   - 현재 SpawnSystem 라인 5곳에서 `GameConfig.X` 직접 참조.
+   - 변환 후 모두 `self.X` 인스턴스 프로퍼티 참조. **default = GameConfig 기존 단일 상수**.
+
+4. **F burst SpawnSystem.fireProjectile 라인 검토**.
+   - `for _ in 0..<projectileBurstCount { ... 기존 1발 코드 ... }`로 감싸기.
+   - **각 발마다 `currentProjectileCount() < projectileMax` 가드** — 동시 max 초과 시 즉시 break/return.
+   - easy=1 → 루프 1회 = 기존과 동일. 회귀 0.
+
+5. **dict subscript Optional 반환 — fallback 필수**.
+   - 모든 lookup에 `?? GameConfig.기존단일상수` fallback.
+   - **강제 언래핑 `!` 금지** (Swift 규칙 9).
+
+6. **DifficultyCardNode와 CharacterCardNode 코드 중복 — 본 sprint는 허용**.
+   - 공통 부모 추출(BaseCardNode) 유혹 — **금지**: Sprint 범위 위반. 중복 허용, 리팩터는 별도 sprint.
+
+7. **PlayerNode 속도 보간 미적용 (본 sprint는 *시작값만*)**.
+   - GDD §5는 플레이어 속도도 시간 보간이지만, PlayerNode는 현재 진행률 미보유.
+   - **본 sprint 정책**: `baseSpeedStart`만 적용. `baseSpeedEnd`는 GameConfig에 미리 추가하되 *읽지 않음*.
+   - 보강 sprint에 명시.
+
+8. **TitleScene 카드 layout 충돌 점검**.
+   - `characterCardOffsetY` -160 → -200. 라벨 5개(title/best/plays/prompt) y는 +80/+20/-20/-80 그대로.
+   - 신규 -120 행에 난이도 카드 3장(80×56). prompt(-80) 하단과 카드 상단(-92) 간격 12pt 안전.
+   - 1024×768 landscape 가정. 카드 가로 총합 272pt = 폭의 27%.
+
+---
+
+## 빌드 가능성 체크리스트
+- [ ] 3 신규 파일 pbxproj 등록.
+- [ ] macOS/tvOS GameViewController 미수정.
+- [ ] `Difficulty.allCases.count == 3` — CaseIterable 자동 보장.
+- [ ] dict 리터럴이 3 케이스 모두 명시.
+- [ ] `NoteNode.applyLifetime` 가드로 easy 무한 TTL 자연 noop.
+- [ ] PlayerNode 속도 = `baseSpeedStart × speedMultiplier`.
+- [ ] EnemyNode 속도 = `self.baseSpeedStart + (self.baseSpeedEnd - self.baseSpeedStart) × speedT`.
+- [ ] SpawnSystem burst 루프 안에 max 가드 매 발 검사.
+- [ ] TitleScene touchesBegan 우선순위: 난이도 → 캐릭터 → GameScene 전환.

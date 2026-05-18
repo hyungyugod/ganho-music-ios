@@ -6,6 +6,7 @@
 //  Phase 2-2 · SKPhysicsBody 첫 도입 + velocity 기반 이동 (1-4 자체 클램프 제거)
 //  Phase 5-3 · 캐릭터별 이동속도 차등 (speedMultiplier 주입)
 //  Phase 5-R · CharacterID 단일 진입점 메서드 apply(_:) 추출 (순수 리팩터)
+//  Phase 7-1 · 난이도별 기준 속도 차등 (baseSpeedStart/End 인스턴스 프로퍼티 + apply(_:Difficulty))
 //
 
 import SpriteKit
@@ -23,6 +24,13 @@ final class PlayerNode: SKSpriteNode {
     /// Phase 5-3 — 외부(GameScene)가 setupPlayer에서 주입하는 속도 배율.
     /// 기본 1.0이라 *주입 전*에도 안전(.kim과 동일 속도). update(deltaTime:)에서 곱셈으로 적용.
     var speedMultiplier: CGFloat = 1.0
+
+    /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameConfig.playerBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
+    /// update(deltaTime:)에서 speedMultiplier와 곱해져 최종 속도 산출.
+    var baseSpeedStart: CGFloat = GameConfig.playerBaseSpeed
+    /// Phase 7-1 — 난이도별 끝 속도 (pt/s). 본 sprint는 *시작값만* 적용 — 미리 저장만(주의사항 7).
+    /// 다음 보강 sprint에서 진행률 보간식 도입 시 사용.
+    var baseSpeedEnd: CGFloat = GameConfig.playerBaseSpeed
 
     // MARK: - Init
     init() {
@@ -59,6 +67,15 @@ final class PlayerNode: SKSpriteNode {
         speedMultiplier = characterID.playerSpeedMultiplier
     }
 
+    /// Phase 7-1 — 난이도 정체성 단일 진입점.
+    /// dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
+    /// `apply(_ characterID:)`와 *서로 다른 프로퍼티*를 set하므로 호출 순서 무관 (주의사항 1).
+    /// 일관성을 위해 GameScene+Setup에서 character 먼저 → difficulty 나중 순서로 호출.
+    func apply(_ difficulty: Difficulty) {
+        baseSpeedStart = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
+        baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
+    }
+
     // MARK: - Update
     /// 외부에서 매 프레임 호출. PhysicsBody의 velocity로 이동 의도 전달.
     /// (Phase 2-2 — 1-3/1-4의 position 직접 변경 + 자체 클램프 패턴은 폐기.
@@ -66,7 +83,9 @@ final class PlayerNode: SKSpriteNode {
     /// - Parameter deltaTime: dt — 본 메서드는 미사용 (velocity 기반이라 엔진이 dt 처리).
     ///   시그니처는 외부 호출부 호환 위해 보존.
     func update(deltaTime: TimeInterval) {
-        let speed = GameConfig.playerBaseSpeed * speedMultiplier   // Phase 5-3 — 캐릭터별 배율 적용
+        // Phase 7-1 — baseSpeedStart × speedMultiplier. easy default가 playerBaseSpeed(140)와 같아 회귀 0.
+        // 본 sprint는 *시작값만* — baseSpeedEnd는 다음 보강 sprint(주의사항 7).
+        let speed = baseSpeedStart * speedMultiplier
         physicsBody?.velocity = CGVector(
             dx: currentDirection.dx * speed,
             dy: currentDirection.dy * speed

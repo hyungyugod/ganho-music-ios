@@ -43,6 +43,9 @@
 		A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000032 /* ComboBreakNode.swift */; };
 		A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000033 /* CountdownNode.swift */; };
 		A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000034 /* ScorePopupNode.swift */; };
+		A1C0F1B00000000000000035 /* Difficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000035 /* Difficulty.swift */; };
+		A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */; };
+		A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000037 /* DifficultyCardNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +85,9 @@
 		A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboBreakNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000033 /* CountdownNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000034 /* ScorePopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScorePopupNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000035 /* Difficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Difficulty.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyPreferenceRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000037 /* DifficultyCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyCardNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -227,6 +233,7 @@
 				A1C0F1A00000000000000032 /* ComboBreakNode.swift */,
 				A1C0F1A00000000000000033 /* CountdownNode.swift */,
 				A1C0F1A00000000000000034 /* ScorePopupNode.swift */,
+				A1C0F1A00000000000000037 /* DifficultyCardNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -260,6 +267,7 @@
 				A1C0F1A00000000000000013 /* HighScoreRepository.swift */,
 				A1C0F1A00000000000000015 /* StatisticsRepository.swift */,
 				A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */,
+				A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */,
 			);
 			name = Repositories;
 			path = "GanhoMusic Shared/Repositories";
@@ -270,6 +278,7 @@
 			children = (
 				A1C0F1A00000000000000014 /* GameStats.swift */,
 				A1C0F1A00000000000000022 /* CharacterID.swift */,
+				A1C0F1A00000000000000035 /* Difficulty.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -500,6 +509,9 @@
 				A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */,
 				A1C0F1B00000000000000033 /* CountdownNode.swift in Sources */,
 				A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */,
+				A1C0F1B00000000000000035 /* Difficulty.swift in Sources */,
+				A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */,
+				A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
