@@ -480,4 +480,55 @@ enum GameConfig {
     static let resultDifficultyOffsetY: CGFloat = 155
     /// ResultScene 난이도 라벨 폰트 크기 (pt). resultStats(16)와 동급 — 보조 정보 톤.
     static let resultDifficultyFontSize: CGFloat = 18
+
+    // MARK: - Hard Map (Phase 7-2)
+    // 좌상 방
+    static let hardMapTopLeftRoomHWallCStart:  Int = 4
+    static let hardMapTopLeftRoomHWallCEnd:    Int = 9
+    static let hardMapTopLeftRoomHWallR:       Int = 18
+    static let hardMapTopLeftRoomVWallC:       Int = 9
+    static let hardMapTopLeftRoomVWallRStart:  Int = 18
+    static let hardMapTopLeftRoomVWallREnd:    Int = 21
+    static let hardMapTopLeftRoomDoorR:        Int = 20
+
+    // 우상 방
+    static let hardMapTopRightRoomHWallCStart: Int = 38
+    static let hardMapTopRightRoomHWallCEnd:   Int = 43
+    static let hardMapTopRightRoomHWallR:      Int = 18
+    static let hardMapTopRightRoomVWallC:      Int = 38
+    static let hardMapTopRightRoomVWallRStart: Int = 18
+    static let hardMapTopRightRoomVWallREnd:   Int = 21
+    static let hardMapTopRightRoomDoorR:       Int = 20
+
+    // 좌하 방
+    static let hardMapBottomLeftRoomHWallCStart: Int = 4
+    static let hardMapBottomLeftRoomHWallCEnd:   Int = 9
+    static let hardMapBottomLeftRoomHWallR:      Int = 5
+    static let hardMapBottomLeftRoomVWallC:      Int = 9
+    static let hardMapBottomLeftRoomVWallRStart: Int = 2
+    static let hardMapBottomLeftRoomVWallREnd:   Int = 5
+    static let hardMapBottomLeftRoomDoorR:       Int = 3
+
+    // 우하 방
+    static let hardMapBottomRightRoomHWallCStart: Int = 38
+    static let hardMapBottomRightRoomHWallCEnd:   Int = 43
+    static let hardMapBottomRightRoomHWallR:      Int = 5
+    static let hardMapBottomRightRoomVWallC:      Int = 38
+    static let hardMapBottomRightRoomVWallRStart: Int = 2
+    static let hardMapBottomRightRoomVWallREnd:   Int = 5
+    static let hardMapBottomRightRoomDoorR:       Int = 3
+
+    // 중앙 기둥
+    static let hardMapCenterLeftPillarC:        Int = 17
+    static let hardMapCenterLeftPillarRStart:   Int = 11
+    static let hardMapCenterLeftPillarREnd:     Int = 12
+    static let hardMapCenterRightPillarC:       Int = 30
+    static let hardMapCenterRightPillarRStart:  Int = 11
+    static let hardMapCenterRightPillarREnd:    Int = 12
+    static let hardMapCenterTopPillarCStart:    Int = 23
+    static let hardMapCenterTopPillarCEnd:      Int = 24
+    static let hardMapCenterTopPillarR:         Int = 15
+    static let hardMapCenterBottomPillarCStart: Int = 23
+    static let hardMapCenterBottomPillarCEnd:   Int = 24
+    static let hardMapCenterBottomPillarR:      Int = 8
 }

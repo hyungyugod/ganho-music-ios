@@ -1,392 +1,297 @@
-# SPEC.md — Phase 7-1: 난이도 3단계 시스템(하/중/상)
+# SPEC.md — Phase 7-2 · Hard 맵 도입
 
 ## 개요
-지금까지 게임은 *easy 1개 고정*으로만 돌고 있었다. 이번 sprint는 사용자가 TitleScene에서 **하/중/상 카드 1장**을 선택해 같은 게임 코드가 *다른 속도/빈도/음표 TTL*로 돌아가도록 한다. GDD §5 표가 단일 진실 원천(single source of truth)이며, 본 sprint의 모든 수치 차등은 그 표에서 직접 끌어온다.
+
+GDD §6에 명시된 hard 맵을 모바일 48×24 그리드에 도입한다. 원본 웹 게임(`game.js` L289-309) 32×20 hard 맵의 *방 4개 + 중앙 기둥 다수* 디자인을 모바일 좌표계로 충실히 이식하되, *맵 가장자리에서의 절대 거리*는 원본을 유지하고 *중앙 빈 공간만 확장*하는 "옵션 C" 전략을 채택한다. setupMap이 `difficulty` 분기를 통해 easy면 기존 addCentralPillar, normal/hard면 신규 addHardMap을 호출한다.
 
 ## 변경 유형
-**혼합** (게임플레이 수치 차등 + UI 카드 신설 + 영구 저장 + ResultScene 라벨)
-
-Evaluator는 "Swift 패턴 일관성 35% + 게임 로직 30% + 성능/안정성 20% + 기능 완성도 15%"의 4축 가중 평가를 그대로 적용한다.
+**게임플레이** — 맵 형태가 플레이어/적/F 동선에 직접 영향.
 
 ## 게임 경험 의도
-"선택할 수 있는 자유"는 짧은 책임감을 만든다 — 내가 *상*을 골랐기에 빨라진 수간호사도 내 탓이고, *하*를 골랐기에 여유로운 음표 무한 TTL도 내 보상이다. 하/중/상은 *난이도 명칭*이 아니라 *같은 게임의 세 가지 톤*임을 텍스트로 가르치지 않고도 첫 5초 안에 체감하게 한다. 카드 색만 바뀌어도 사용자는 "이 게임은 내가 조절 가능하구나"를 학습한다.
+easy 맵에서 *넓은 평지* 위 단일 기둥을 익힌 플레이어는 normal/hard 전환 즉시 *코너 방 4개*가 시야에 들어오며 게임의 톤이 달라졌음을 직관한다. 코너 방은 *단기 안식처*(외벽+내벽 협공으로 F가 좁은 입구로만 들어옴)이자 동시에 *함정*(문이 한 칸뿐이라 수간호사가 막아서면 출구 차단)인 양면성을 가진다. 4개 중앙 기둥은 *대칭의 댄스플로어*를 만들어 추격전이 직선이 아닌 곡선 동선이 되도록 유도한다.
 
 ## Sprint 범위 계약
 
-### 허용 (이 변경 없으면 난이도 카드 선택 시 게임 수치가 안 바뀜 → YES)
-1. `Models/Difficulty.swift` 신규 — enum + 부속 속성(displayName/storageKey/color/subtitle).
-2. `Repositories/DifficultyPreferenceRepository.swift` 신규 — CharacterPreferenceRepository 동형 패턴.
-3. `Config/GameConfig.swift` 수정 — 난이도별 차등 튜닝 표(dict) 추가 + 기존 *단일 상수*는 *easy 기준값으로 유지*(호환).
-4. `Scenes/TitleScene.swift` 수정 — 난이도 카드 3장(DifficultyCardNode) 가로 배치 + 선택 핸들러 + 영구 저장 복원.
-5. `Nodes/DifficultyCardNode.swift` 신규 — CharacterCardNode와 동형 컨테이너(SKNode 기반).
-6. `GameScene.swift` 수정 — `init`에 `difficulty: Difficulty` 추가 + factory 시그니처 확장 + `apply(difficulty:)` 노드/시스템 호출.
-7. `Nodes/PlayerNode.swift` 수정 — `apply(_ difficulty:)` 메서드 + `baseSpeedStart/End` 보간식 도입.
-8. `Nodes/EnemyNode.swift` 수정 — `apply(_ difficulty:)` 메서드 + base/max 속도를 *인스턴스 프로퍼티*로 외부화.
-9. `Systems/SpawnSystem.swift` 수정 — `apply(_ difficulty:)` 메서드 + noteMaxConcurrent/noteLifetime/projectileMaxConcurrent/burstCount/fireInterval(시작/끝) 모두 *인스턴스 프로퍼티*로 외부화.
-10. `Nodes/NoteNode.swift` 수정 — 자가 소멸 SKAction(`SKAction.sequence([wait, fade, remove])`) 부착 메서드 추가. `.infinity` 또는 sentinel로 *easy 무한 TTL* 분기 처리.
-11. `Scenes/ResultScene.swift` 수정 — 난이도 라벨 1줄 추가.
-12. `pbxproj` — 신규 3개 .swift 파일(Difficulty / DifficultyPreferenceRepository / DifficultyCardNode) 등록.
+- **허용**: hard 맵 좌표 상수 신설(GameConfig), `addHardMap()` 함수 신설(GameScene+Setup), `setupMap()`에 difficulty 분기, normal/hard 같은 hard 맵 공유.
+- **금지**:
+  - 원본 normal 전용 중간 맵(game.js L272-287) 별도 구현 — GDD §6가 hard 공용으로 결정.
+  - 이교수 NPC, 석조무사 hard 미등장 분기, 컷씬, 졸업장.
+  - addCentralPillar / addOuterWalls 기존 동작 변경.
+  - 플레이어/적/석조무사 기본 스폰 좌표 변경 (§"충돌 검증"에서 무충돌 증명).
+  - 새 색 토큰 추가 — 모든 벽 `.ganhoPaper` 재사용.
+- **판단 기준**: "이 변경 없으면 hard 맵 정상 동작 안 함?" → YES만 허용.
 
-### 금지 (이 변경 없어도 난이도 카드 작동 → NO, 다음 sprint로)
-- **이교수 NPC** — 모델/노드 자체 미구현. *.hard 선택해도 이교수 등장 0건*. **다음 sprint 7-2(또는 별도)에서 처리**.
-- **hard 맵** — 맵 변형 자체 미구현. *.normal/.hard 선택해도 easy 맵(중앙 기둥 1개) 그대로 사용*. GDD §5 "맵 종류" 컬럼은 다음 sprint.
-- **석조무사 등장 여부 분기** — GDD §5는 normal까지 등장/hard 미등장이지만, 본 sprint는 *전 난이도에서 석조무사 등장 그대로* 둔다(회귀 0 우선). StoneGuardNode 코드 미접촉.
-- **목표 점수 (60/50/30)** — 졸업장 sprint 직전에 적용. 본 sprint는 ResultScene 표기에만 *선택적* 활용 가능(권장: 표기도 생략).
-- **인트로/경고/중간 컷씬 분기** — 컷씬 시스템 자체 미구현. 본 sprint 범위 외.
-- **목표 점수 달성 추적, 졸업장** — 별도 sprint.
-
-### 분리의 정당성
-큰 sprint 1개를 회귀 위험 낮은 작은 sprint 여러 개로 쪼개야 빠른 사이클 가능. 본 sprint는 *수치 분기 + UI 1행* 두 축만 — 회귀 영역이 좁다. 한 번에 다 묶으면 회귀 영역이 *15+ 파일*로 폭증해 1차 합격 확률 급감.
-
-### 판단 기준
-"이 변경 없으면 난이도 카드 선택 시 게임 수치가 안 바뀌는가" → **YES만 허용**.
+## 변경 범위
+- 수정: `Config/GameConfig.swift`, `GameScene+Setup.swift`
+- 신규 파일 0건, pbxproj 변경 0건.
 
 ---
 
-## Difficulty enum 정의 (의사 코드)
+## 옵션 비교
 
-```swift
-// Models/Difficulty.swift (신규)
-import UIKit
-
-/// 3 난이도 식별자. raw String — case 이름이 그대로 raw value("easy", "normal", "hard").
-/// CaseIterable 채택으로 `.allCases` 자동 생성 — TitleScene이 3 카드 일괄 생성에 사용.
-enum Difficulty: String, CaseIterable {
-    case easy, normal, hard
-
-    var displayName: String {
-        switch self {
-        case .easy:   return "하"
-        case .normal: return "중"
-        case .hard:   return "상"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .easy:   return "여유로운 실습"
-        case .normal: return "긴장의 병동"
-        case .hard:   return "이교수의 청진기"
-        }
-    }
-
-    var color: UIColor {
-        switch self {
-        case .easy:   return .ganhoMint
-        case .normal: return .ganhoYellowF
-        case .hard:   return .ganhoBloodAccent
-        }
-    }
-}
-```
-
-### 케이스 × 4 부속 속성 1:1 매핑 표
-| case | rawValue (저장키) | displayName | subtitle | color (기존 토큰 재사용) |
+| 옵션 | 전략 | 좌상 방 가로벽 c | 우상 방 가로벽 c | 결정 |
 |---|---|---|---|---|
-| `.easy`   | `"easy"`   | "하" | "여유로운 실습"       | `.ganhoMint` |
-| `.normal` | `"normal"` | "중" | "긴장의 병동"         | `.ganhoYellowF` |
-| `.hard`   | `"hard"`   | "상" | "이교수의 청진기"     | `.ganhoBloodAccent` |
+| A | 절대 보존 + 정중앙 배치(c+8, r+2) | c12~17 | c30~35 | ❌ |
+| B | 비율 ×1.5/×1.2 | c6~14 | c33~41 | ❌ |
+| C | **원본 절대 좌표 + 우/하단 거울 대칭** | c4~9 | c38~43 | ✅ |
 
 ---
 
-## GameConfig 차등 메서드 설계안 — 두 옵션 비교
+## 옵션 C 최종 좌표 표
 
-현재 `GameConfig`는 **단일 상수** 구조(`static let noteMaxConcurrent: Int = 5` 등).
+좌표계 규약:
+- 모바일 그리드: c=0..47, r=0..23. TILE=20pt.
+- SpriteKit y는 아래에서 위로 증가. **r이 클수록 시각 상단**.
+- 거울 대칭: `mirroredC = 47 - c`, `mirroredR = 23 - r`.
+- 원본 game.js의 r=5(원본 캔버스 위쪽) → SpriteKit r=18(시각 상단).
 
-### 옵션 A — 함수 분기 (`func(for: Difficulty) -> T`)
-- 장점: 호출부가 `GameConfig.noteMaxConcurrent(for: difficulty)`로 명시적.
-- 단점: 12~14개 함수 추가 → GameConfig 비대. 기존 호출처 모두 변경. **회귀 영역 ↑**.
+### 코너 방 4개
 
-### 옵션 B — 튜닝 표(dict 리터럴) + 노드/시스템 자기 적용 ← **권장**
-- 장점: 응집도 ↑. 기존 단일 상수가 *easy 기준값으로 유지* → apply(_:) 누락 시에도 graceful fallback. 새 호출처는 dict 1회 lookup만, 기존 호출처 0건 변경.
-- 단점: 노드/시스템에 새 프로퍼티 4~6개 추가됨.
-- Spring 비유: `@ConfigurationProperties` 동형.
+| 방 | 가로벽 c 범위 | 가로벽 r | 세로벽 r 범위 | 세로벽 c | 문 (c, r) |
+|---|---|---|---|---|---|
+| 좌상 방(시각 상단·좌) | c4~c9 | r=18 | r=18~21 | c=9 | (9, 20) |
+| 우상 방(시각 상단·우) | c38~c43 | r=18 | r=18~21 | c=38 | (38, 20) |
+| 좌하 방(시각 하단·좌) | c4~c9 | r=5 | r=2~5 | c=9 | (9, 3) |
+| 우하 방(시각 하단·우) | c38~c43 | r=5 | r=2~5 | c=38 | (38, 3) |
 
-### 권장: **옵션 B** 채택
-1. **회귀 0 보장**: 기존 `GameConfig.playerBaseSpeed` 등 단일 상수 그대로 살아남음 → apply 누락 시 easy 동작 자연 fallback.
-2. **CharacterID.playerSpeedMultiplier 패턴 답습**: 5-3에서 검증된 패턴.
-3. **테스트 친화**: dict lookup + `?? default` 으로 nil 안전.
+### 중앙 기둥 4개
 
----
-
-## 변경 파일 목록 + 라인 컨텍스트
-
-### 신규
-| 파일 | 역할 |
-|---|---|
-| `GanhoMusic Shared/Models/Difficulty.swift` | enum + 4 부속 속성 |
-| `GanhoMusic Shared/Repositories/DifficultyPreferenceRepository.swift` | UserDefaults 영구 저장 (CharacterPreferenceRepository 동형) |
-| `GanhoMusic Shared/Nodes/DifficultyCardNode.swift` | SKNode 컨테이너 + 배경 색 사각형 + 한글 라벨 + 부제 라벨 + 선택 알파/scale 토글 (CharacterCardNode 동형) |
-
-### 수정
-| 파일 | 변경 위치(라인 힌트) | 변경 내용 |
-|---|---|---|
-| `Config/GameConfig.swift` | §"Note"(L56~62), §"Enemy"(L88~97), §"Projectile"(L99~110), §"Player"(L36~41) 인접 | 차등 dict 9개 + UI/저장 키 상수 8개 추가. 기존 단일 상수 미접촉. |
-| `Scenes/TitleScene.swift` | L27 properties / L42 didMove / L120 setup / L159 touchesBegan | 신규 프로퍼티 3개. didMove에 복원 + setup. touchesBegan에 난이도 hit test 우선 분기. newGameScene 호출에 `difficulty:` 인자. |
-| `GameScene.swift` | L102~121 init/factory / setupPlayer/setupEnemy / startGameProperly | `let difficulty: Difficulty` + init/factory 시그니처 확장 + 노드/시스템 `apply(difficulty)` 호출 3줄. |
-| `Nodes/PlayerNode.swift` | properties / apply 인접 | `baseSpeedStart/End` 인스턴스 프로퍼티 + `apply(_ difficulty:)` 메서드. update에서 `baseSpeedStart × speedMultiplier`. |
-| `Nodes/EnemyNode.swift` | init / update 보간식 | `baseSpeedStart/End` 인스턴스 프로퍼티 + `apply(_ difficulty:)` 메서드. update 보간식이 GameConfig → self 참조로 변경. |
-| `Systems/SpawnSystem.swift` | dependencies / trySpawnNote / fireProjectile | 인스턴스 프로퍼티 6개 + `apply(_ difficulty:)`. trySpawnNote에서 `note.applyLifetime(noteLifetime)`. fireProjectile에 burst 루프(easy=1로 회귀 0). |
-| `Nodes/NoteNode.swift` | init 인접 | `applyLifetime(_ ttl:)` 메서드 신규. 가드: `ttl.isFinite, ttl < gameDuration`. 통과 시 wait+fade+remove 시퀀스. |
-| `Scenes/ResultScene.swift` | properties / init / setupLabels / layoutLabels | `difficulty` 프로퍼티 + 라벨 1개 추가. newResultScene factory에 `difficulty:` 인자. |
-| `pbxproj` | — | 신규 3 파일 등록(`xcode-import-guide.md` 답습). |
-
----
-
-## TitleScene 카드 배치 안
-
-### 현재 TitleScene 레이아웃 (L85~145)
-```
-frame.midY +80 : titleLabel ("김간호는 음악박사")
-frame.midY +20 : bestLabel
-frame.midY -20 : playsLabel
-frame.midY -80 : promptLabel ("TAP TO START")
-frame.midY -160: 5 캐릭터 카드 (가로 일렬)
-```
-
-### 권장 배치 — 캐릭터 카드 *위쪽*에 별도 행
-```
-frame.midY +80 : titleLabel
-frame.midY +20 : bestLabel
-frame.midY -20 : playsLabel
-frame.midY -80 : promptLabel
-frame.midY -120: 난이도 카드 3장 (하/중/상) ← 신규
-frame.midY -200: 5 캐릭터 카드 (-160 → -200으로 한 칸 더 내림)
-```
-
-`characterCardOffsetY` 현재 -160 → -200으로 조정. 신규 `difficultyCardOffsetY: -120`.
-
-### DifficultyCardNode 구조 (CharacterCardNode 동형)
-```swift
-final class DifficultyCardNode: SKNode {
-    let id: Difficulty
-    private let background: SKSpriteNode
-    private let nameLabel: SKLabelNode
-    private let subtitleLabel: SKLabelNode
-
-    init(id: Difficulty) {
-        self.id = id
-        background = SKSpriteNode(color: id.color,
-            size: CGSize(width: GameConfig.difficultyCardWidth,
-                         height: GameConfig.difficultyCardHeight))
-        nameLabel = SKLabelNode(text: id.displayName)
-        subtitleLabel = SKLabelNode(text: id.subtitle)
-        super.init()
-        name = "difficultyCard_\(id.rawValue)"
-        zPosition = 100
-        addChild(background)
-        configureLabels()
-        addChild(nameLabel)
-        addChild(subtitleLabel)
-    }
-
-    func setSelected(_ selected: Bool) {
-        alpha = selected ? 1.0 : GameConfig.characterCardDeselectedAlpha
-        let target = selected ? GameConfig.characterCardSelectedScale : 1.0
-        removeAction(forKey: "cardScale")
-        run(SKAction.scale(to: target, duration: GameConfig.characterCardScaleDuration), withKey: "cardScale")
-    }
-}
-```
-
----
-
-## GameScene init 시그니처 변경 — 영향 분석
-
-### 현재 호출처
-| 파일 | 라인 | 호출 |
-|---|---|---|
-| `GanhoMusic iOS/GameViewController.swift` | L27 | `TitleScene.newTitleScene()` ← GameScene 안 만듦. **영향 없음**. |
-| `Scenes/TitleScene.swift` | L173 | `GameScene.newGameScene(characterID:)` ← **유일한 직접 호출** |
-| `GanhoMusic macOS/GameViewController.swift` | L17 | `GameScene.newGameScene()` ← 미지원 타깃. default 인자로 자동 호환. |
-| `GanhoMusic tvOS/GameViewController.swift` | L17 | `GameScene.newGameScene()` ← 동일. |
-
-### 회귀 0 보장
-1. `newGameScene(characterID: .kim, difficulty: .easy)` — **두 인자 모두 default**.
-2. iOS의 TitleScene 호출 1군데만 `difficulty: selectedDifficulty` 추가.
-3. macOS/tvOS(공식 미지원)는 기존 코드 그대로 컴파일 통과.
-
-```swift
-// TitleScene.touchesBegan
-let gameScene = GameScene.newGameScene(
-    characterID: selectedCharacterID,
-    difficulty: selectedDifficulty   // ← 추가
-)
-```
-
----
-
-## GameConfig 신규 상수 — GDD §5 표 1:1 매핑
-
-### GDD §5 원본 표 (인용)
-| 항목 | 하(easy) | 중(normal) | 상(hard) |
+| 기둥 | c 범위 | r 범위 | 모양 |
 |---|---|---|---|
-| 플레이어 속도 | 140→210 px/s | 160→250 px/s | 160→250 px/s |
-| 동시 음표 수 | 5개 | 4개 | 4개 |
-| 음표 TTL | 무한 | 3.5초 | 2.8초 |
-| 수간호사 속도 | 60→110 px/s | 170→290 px/s | 200→340 px/s |
-| F 최대 동시 수 | 2개 | 10개 | 14개 |
-| 동시 F 투척 수 | 1개 | 3개 | 4개 |
-| F 투척 주기 | 3.5→2.0초 | 1.0→0.35초 | 0.8→0.25초 |
+| 중앙-좌 (세로형) | c=17 | r=11~12 | 1×2 |
+| 중앙-우 (세로형) | c=30 | r=11~12 | 1×2 |
+| 중앙-상 (가로형) | c=23~24 | r=15 | 2×1 |
+| 중앙-하 (가로형) | c=23~24 | r=8 | 2×1 |
 
-### dict 리터럴 의사 코드
+---
+
+## GameConfig 신규 상수 (~30개)
+
+`Config/GameConfig.swift` 끝에 `// MARK: - Hard Map (Phase 7-2)` 섹션:
+
 ```swift
-// MARK: - Difficulty (Phase 7-1)
-static let playerSpeedStartByDifficulty: [Difficulty: CGFloat] = [
-    .easy: 140, .normal: 160, .hard: 160
-]
-static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
-    .easy: 210, .normal: 250, .hard: 250
-]
-static let enemySpeedStartByDifficulty: [Difficulty: CGFloat] = [
-    .easy: 60, .normal: 170, .hard: 200
-]
-static let enemySpeedEndByDifficulty: [Difficulty: CGFloat] = [
-    .easy: 110, .normal: 290, .hard: 340
-]
-static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
-    .easy: 5, .normal: 4, .hard: 4
-]
-static let noteLifetimeByDifficulty: [Difficulty: TimeInterval] = [
-    .easy: .infinity, .normal: 3.5, .hard: 2.8
-]
-static let projectileMaxConcurrentByDifficulty: [Difficulty: Int] = [
-    .easy: 2, .normal: 10, .hard: 14
-]
-static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
-    .easy: 1, .normal: 3, .hard: 4
-]
-static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
-    .easy: 3.5, .normal: 1.0, .hard: 0.8
-]
-static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
-    .easy: 2.0, .normal: 0.35, .hard: 0.25
-]
+// 좌상 방
+static let hardMapTopLeftRoomHWallCStart:  Int = 4
+static let hardMapTopLeftRoomHWallCEnd:    Int = 9
+static let hardMapTopLeftRoomHWallR:       Int = 18
+static let hardMapTopLeftRoomVWallC:       Int = 9
+static let hardMapTopLeftRoomVWallRStart:  Int = 18
+static let hardMapTopLeftRoomVWallREnd:    Int = 21
+static let hardMapTopLeftRoomDoorR:        Int = 20
 
-// UI / 저장 / Result 신규 상수
-static let difficultyCardWidth: CGFloat = 80
-static let difficultyCardHeight: CGFloat = 56
-static let difficultyCardSpacing: CGFloat = 16
-static let difficultyCardOffsetY: CGFloat = -120
-static let difficultyCardFontSize: CGFloat = 20
-static let difficultyCardSubtitleFontSize: CGFloat = 10
-static let characterCardOffsetY: CGFloat = -200   // 기존 -160 → -200
-static let difficultyPreferenceUserDefaultsKey: String = "selectedDifficulty"
-static let resultDifficultyOffsetY: CGFloat = 155
-static let resultDifficultyFontSize: CGFloat = 18
+// 우상 방
+static let hardMapTopRightRoomHWallCStart: Int = 38
+static let hardMapTopRightRoomHWallCEnd:   Int = 43
+static let hardMapTopRightRoomHWallR:      Int = 18
+static let hardMapTopRightRoomVWallC:      Int = 38
+static let hardMapTopRightRoomVWallRStart: Int = 18
+static let hardMapTopRightRoomVWallREnd:   Int = 21
+static let hardMapTopRightRoomDoorR:       Int = 20
+
+// 좌하 방
+static let hardMapBottomLeftRoomHWallCStart: Int = 4
+static let hardMapBottomLeftRoomHWallCEnd:   Int = 9
+static let hardMapBottomLeftRoomHWallR:      Int = 5
+static let hardMapBottomLeftRoomVWallC:      Int = 9
+static let hardMapBottomLeftRoomVWallRStart: Int = 2
+static let hardMapBottomLeftRoomVWallREnd:   Int = 5
+static let hardMapBottomLeftRoomDoorR:       Int = 3
+
+// 우하 방
+static let hardMapBottomRightRoomHWallCStart: Int = 38
+static let hardMapBottomRightRoomHWallCEnd:   Int = 43
+static let hardMapBottomRightRoomHWallR:      Int = 5
+static let hardMapBottomRightRoomVWallC:      Int = 38
+static let hardMapBottomRightRoomVWallRStart: Int = 2
+static let hardMapBottomRightRoomVWallREnd:   Int = 5
+static let hardMapBottomRightRoomDoorR:       Int = 3
+
+// 중앙 기둥
+static let hardMapCenterLeftPillarC:        Int = 17
+static let hardMapCenterLeftPillarRStart:   Int = 11
+static let hardMapCenterLeftPillarREnd:     Int = 12
+static let hardMapCenterRightPillarC:       Int = 30
+static let hardMapCenterRightPillarRStart:  Int = 11
+static let hardMapCenterRightPillarREnd:    Int = 12
+static let hardMapCenterTopPillarCStart:    Int = 23
+static let hardMapCenterTopPillarCEnd:      Int = 24
+static let hardMapCenterTopPillarR:         Int = 15
+static let hardMapCenterBottomPillarCStart: Int = 23
+static let hardMapCenterBottomPillarCEnd:   Int = 24
+static let hardMapCenterBottomPillarR:      Int = 8
 ```
 
 ---
 
 ## 기능 상세
 
-### 기능 1: Difficulty enum + 영구 저장
-- 파일: `Models/Difficulty.swift`, `Repositories/DifficultyPreferenceRepository.swift`
-- CharacterID + CharacterPreferenceRepository 동형 패턴 답습.
-- 기본값 `.easy`. UserDefaults 키 `selectedDifficulty`. raw String 직렬화.
+### 기능 1: setupMap() 분기 도입
 
-### 기능 2: DifficultyCardNode
-- 파일: `Nodes/DifficultyCardNode.swift`
-- CharacterCardNode 동형 — 배경 SKSpriteNode + nameLabel + subtitleLabel(추가) + setSelected 토글.
-- subtitleLabel은 nameLabel 아래 -14pt.
+`setupWorld()`의 `addOuterWalls()` + `addCentralPillar()` 직접 호출을 `setupMap()` 단일 진입점으로 추출 + difficulty 분기.
 
-### 기능 3: TitleScene 3 카드 + 선택/저장/복원
-- MARK `// MARK: - Difficulty Cards` 신규 섹션.
-- `selectedDifficulty` 프로퍼티 + `difficultyCards: [DifficultyCardNode]` + `difficultyRepo`.
-- didMove에서 `selectedDifficulty = difficultyRepo.current`.
-- touchesBegan: 캐릭터 카드 hit test *이전*에 난이도 카드 우선 분기.
+```swift
+func setupWorld() {
+    worldNode.position = .zero
+    addChild(worldNode)
+    setupMap()
+}
 
-### 기능 4: GameScene init + factory 시그니처 확장
-- 두 인자 모두 default, 회귀 0.
+func setupMap() {
+    addOuterWalls()
+    switch difficulty {
+    case .easy:
+        addCentralPillar()
+    case .normal, .hard:
+        addHardMap()
+    }
+}
+```
 
-### 기능 5: PlayerNode/EnemyNode/SpawnSystem `apply(_ difficulty:)` 도입
-- 각 노드/시스템이 자기 수치를 자기가 결정.
-- GameScene+Setup.swift `setupPlayer`/`setupEnemy`에서 1줄씩 추가.
-- `startGameProperly` 진입부에 `spawnSystem.apply(difficulty)` 1줄.
+switch에 **default 미사용** — Difficulty enum 신규 case 추가 시 컴파일러 경고.
 
-### 기능 6: NoteNode TTL 자가 소멸
-- `applyLifetime(_ ttl:)` 신규 메서드.
-- 가드: `guard ttl.isFinite, ttl < GameConfig.gameDuration else { return }`.
-- 통과 시 `SKAction.sequence([wait, fade, remove])` 부착 (withKey: "noteLifetime").
+### 기능 2: addHardMap()
 
-### 기능 7: SpawnSystem 차등 적용 + F burst 도입
-- 인스턴스 프로퍼티 6개 (default = 기존 단일 상수값).
-- `fireProjectile()`에 `for _ in 0..<projectileBurstCount` 루프. 각 발마다 `currentProjectileCount < projectileMax` 가드.
-- easy=1 → 루프 1회 = 기존과 동일. **회귀 0**.
+옵션 C 좌표 그대로 코너 방 4개 + 중앙 기둥 4개 생성.
 
-### 기능 8: EnemyNode 보간식이 인스턴스 프로퍼티 참조
-- `update`의 `GameConfig.enemyBaseSpeed/MaxSpeed` → `self.baseSpeedStart/End`.
+```swift
+func addHardMap() {
+    // 코너 방 4개 (가로벽 + 세로벽 doorR 분기)
+    addHorizontalWall(cStart: GameConfig.hardMapTopLeftRoomHWallCStart,
+                      cEnd:   GameConfig.hardMapTopLeftRoomHWallCEnd,
+                      r:      GameConfig.hardMapTopLeftRoomHWallR)
+    addVerticalWall(c:       GameConfig.hardMapTopLeftRoomVWallC,
+                    rStart:  GameConfig.hardMapTopLeftRoomVWallRStart,
+                    rEnd:    GameConfig.hardMapTopLeftRoomVWallREnd,
+                    doorR:   GameConfig.hardMapTopLeftRoomDoorR)
+    // … 우상/좌하/우하 동형 …
 
-### 기능 9: ResultScene 난이도 라벨
-- `difficultyLabel.text = "난이도: \(difficulty.displayName)"`.
-- GameScene.endGame()에서 newResultScene 호출에 `difficulty:` 인자 추가.
+    // 중앙 기둥 4개
+    addRectPillar(cStart: GameConfig.hardMapCenterLeftPillarC,
+                  cEnd:   GameConfig.hardMapCenterLeftPillarC,
+                  rStart: GameConfig.hardMapCenterLeftPillarRStart,
+                  rEnd:   GameConfig.hardMapCenterLeftPillarREnd)
+    // … 중앙-우/상/하 동형 …
+}
+```
 
----
+### 기능 3: 헬퍼 3개
 
-## 회귀 0 자연 차단 메커니즘
+```swift
+private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int) {
+    addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r)
+}
 
-1. **GameScene init 호출처 1군데**: `TitleScene.swift:173` 단 1곳만 인자 1개 추가.
-2. **macOS/tvOS GameViewController** (미지원, 수정 금지): default 인자로 자동 호환.
-3. **기존 GameConfig 단일 상수 보존**: `playerBaseSpeed=140`, `enemyBaseSpeed=60`, `noteMaxConcurrent=5` 등 *easy 기준값으로 유지*. apply(_:) 누락 시에도 기본 동작은 *현재 easy와 정확히 동일*.
-4. **NoteNode TTL**: easy = `.infinity` → applyLifetime 분기로 noop → 기존 동작과 동일.
-5. **F burst**: easy = 1 → 루프 1회 = 기존 1발 루프와 동일.
-6. **카드 hit test 우선순위**: 난이도 카드 → 캐릭터 카드 → GameScene 전환. 카드 영역 외 탭은 기존 동작.
+private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int) {
+    for r in rStart...rEnd where r != doorR {
+        addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r)
+    }
+}
 
----
+private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int) {
+    let t = GameConfig.tileSize
+    let widthTiles  = CGFloat(cEnd - cStart + 1)
+    let heightTiles = CGFloat(rEnd - rStart + 1)
+    let pillarSize = CGSize(width: widthTiles * t, height: heightTiles * t)
+    let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
+    pillar.position = CGPoint(
+        x: (CGFloat(cStart) + widthTiles  / 2) * t,
+        y: (CGFloat(rStart) + heightTiles / 2) * t
+    )
+    let body = SKPhysicsBody(rectangleOf: pillarSize)
+    body.isDynamic          = false
+    body.friction           = 0
+    body.restitution        = 0
+    body.categoryBitMask    = PhysicsCategory.wall
+    body.collisionBitMask   = 0
+    body.contactTestBitMask = 0
+    pillar.physicsBody = body
+    worldNode.addChild(pillar)
+}
+```
 
-## 영구 저장 동작
-- **첫 실행**: `DifficultyPreferenceRepository.current` → `.easy`.
-- **사용자가 hard 선택**: `select(_ id:)` 안에서 `difficultyRepo.save(.hard)` 즉시 디스크 반영.
-- **앱 재시작**: didMove → 복원 → 카드 hit test 결과가 `.hard`로 복원되어 hard로 시작.
-
----
-
-## 주의사항 (8개)
-
-1. **PlayerNode.apply(difficulty:) ↔ apply(_ characterID:) 호출 순서**.
-   - 5-3의 `apply(_ characterID:)`는 `speedMultiplier`를 set.
-   - 본 sprint의 `apply(_ difficulty:)`는 `baseSpeedStart/End`를 set.
-   - 둘은 *서로 다른 프로퍼티*를 set하므로 순서 무관. 일관성을 위해 **`apply(characterID)` 먼저, `apply(difficulty)` 나중**으로 통일.
-
-2. **noteLifetime의 `.infinity` 처리 정책**.
-   - `SKAction.wait(forDuration: .infinity)`는 *유효하지 않은 행동*.
-   - **정책**: `applyLifetime`에서 `guard ttl.isFinite, ttl < gameDuration else { return }` — easy = 기존 동작 정확 보존.
-
-3. **SpawnSystem hard-coded 상수 → 인스턴스 프로퍼티 주입**.
-   - 현재 SpawnSystem 라인 5곳에서 `GameConfig.X` 직접 참조.
-   - 변환 후 모두 `self.X` 인스턴스 프로퍼티 참조. **default = GameConfig 기존 단일 상수**.
-
-4. **F burst SpawnSystem.fireProjectile 라인 검토**.
-   - `for _ in 0..<projectileBurstCount { ... 기존 1발 코드 ... }`로 감싸기.
-   - **각 발마다 `currentProjectileCount() < projectileMax` 가드** — 동시 max 초과 시 즉시 break/return.
-   - easy=1 → 루프 1회 = 기존과 동일. 회귀 0.
-
-5. **dict subscript Optional 반환 — fallback 필수**.
-   - 모든 lookup에 `?? GameConfig.기존단일상수` fallback.
-   - **강제 언래핑 `!` 금지** (Swift 규칙 9).
-
-6. **DifficultyCardNode와 CharacterCardNode 코드 중복 — 본 sprint는 허용**.
-   - 공통 부모 추출(BaseCardNode) 유혹 — **금지**: Sprint 범위 위반. 중복 허용, 리팩터는 별도 sprint.
-
-7. **PlayerNode 속도 보간 미적용 (본 sprint는 *시작값만*)**.
-   - GDD §5는 플레이어 속도도 시간 보간이지만, PlayerNode는 현재 진행률 미보유.
-   - **본 sprint 정책**: `baseSpeedStart`만 적용. `baseSpeedEnd`는 GameConfig에 미리 추가하되 *읽지 않음*.
-   - 보강 sprint에 명시.
-
-8. **TitleScene 카드 layout 충돌 점검**.
-   - `characterCardOffsetY` -160 → -200. 라벨 5개(title/best/plays/prompt) y는 +80/+20/-20/-80 그대로.
-   - 신규 -120 행에 난이도 카드 3장(80×56). prompt(-80) 하단과 카드 상단(-92) 간격 12pt 안전.
-   - 1024×768 landscape 가정. 카드 가로 총합 272pt = 폭의 27%.
+**중요**: `addVerticalWall`이 문(doorR) 한 칸을 *건너뛰는* 구현 — SKSpriteNode가 *상단부+하단부 2개*로 쪼개진다. 통짜로 만들면 PhysicsBody가 문을 막아 플레이어 입장 불가.
 
 ---
 
-## 빌드 가능성 체크리스트
-- [ ] 3 신규 파일 pbxproj 등록.
-- [ ] macOS/tvOS GameViewController 미수정.
-- [ ] `Difficulty.allCases.count == 3` — CaseIterable 자동 보장.
-- [ ] dict 리터럴이 3 케이스 모두 명시.
-- [ ] `NoteNode.applyLifetime` 가드로 easy 무한 TTL 자연 noop.
-- [ ] PlayerNode 속도 = `baseSpeedStart × speedMultiplier`.
-- [ ] EnemyNode 속도 = `self.baseSpeedStart + (self.baseSpeedEnd - self.baseSpeedStart) × speedT`.
-- [ ] SpawnSystem burst 루프 안에 max 가드 매 발 검사.
-- [ ] TitleScene touchesBegan 우선순위: 난이도 → 캐릭터 → GameScene 전환.
+## 플레이어/적/석조무사 스폰 충돌 검증
+
+### Player 스폰 (mapWidth/4, mapHeight/2) = (240, 240) = (c=12, r=12)
+모든 hard 맵 벽(c∈[4,9]∪[17]∪[23,24]∪[30]∪[38,43], r∈[2,5]∪[8]∪[11,12]∪[15]∪[18,21])과 무충돌:
+- c=12 → 모든 c 범위 밖
+- 또는 r=12 → c=17/30의 r=11~12 범위와 r 일치하지만 **c 다름** → 무충돌
+
+**시프트 불필요**.
+
+### Enemy 스폰 (mapWidth*3/4, mapHeight*3/4) = (720, 360) = (c=36, r=18)
+- c=36 → 우상/우하 방 c=38 범위 밖
+- 모든 중앙 기둥과 c/r 불일치
+- **무충돌**
+
+### StoneGuard waypoint
+| Waypoint | 타일 | 충돌 |
+|---|---|---|
+| (200, 100) | (10, 5) | 무충돌 (좌하 방 c4~9 밖) |
+| (760, 100) | (38, 5) | ⚠️ **우하 방 가로벽 r=5 c=38~43 안** — 시각 겹침. PhysicsBody 충돌은 stoneGuard의 collisionBitMask에 wall 미포함 시 시각만. |
+| (760, 380) | (38, 19) | ⚠️ **우상 방 세로벽 c=38 r=18~21 안** — 시각 겹침 |
+| (200, 380) | (10, 19) | 무충돌 |
+
+**해결**: GDD §5상 StoneGuard는 *normal까지만 등장*, hard 미등장. 현재 코드는 무조건 호출이라 normal에서 시각 겹침 발생 가능. 게임 로직(추적/이스터에그)에는 영향 0 — *별도 sprint*에서 등장 분기 처리. 본 sprint는 waypoint 좌표 미접촉.
+
+### 외곽 벽 중복
+- 외벽 r=0/23, c=0/47. hard 맵 좌표 모두 r∈[2,21], c∈[4,43] → **중복 0**.
+
+---
+
+## 회귀 0 자연 차단
+
+| 항목 | 차단 메커니즘 |
+|---|---|
+| easy 플레이 | switch `.easy` → addCentralPillar 그대로. 한 줄도 안 건드림. |
+| 외곽 벽 | setupMap이 addOuterWalls를 *변경 없이* 호출. |
+| 플레이어/적 스폰 | §"충돌 검증"에서 무충돌 증명. |
+| 음표/F 스폰 시스템 | SpawnSystem 미접촉. 벽 검사는 SpriteKit physics에 위임. |
+| HUD/카메라/이스터에그 | 모든 시스템 미접촉. |
+| pbxproj | 신규 파일 0개. |
+
+---
+
+## 주의사항 (필독)
+
+1. **PhysicsBody 정책 완전 일치** — addRectPillar의 body 7줄은 addCentralPillar와 byte-equal. category=wall, isDynamic=false, friction=0, restitution=0, collisionBitMask=0, contactTestBitMask=0.
+
+2. **벽 색 `.ganhoPaper` 1종만** — 새 토큰 0건.
+
+3. **타일 좌표 → 픽셀 변환** — anchorPoint 기본값 .center 가정. 직사각형 중심 = `((cStart + widthTiles/2) × tileSize, (rStart + heightTiles/2) × tileSize)`.
+
+4. **SpriteKit y 위로 증가** — 원본 game.js와 *상하 반전*. SPEC 좌표 표는 이미 *SpriteKit r 기준*으로 변환 완료. 원본 r을 그대로 베끼지 말 것.
+
+5. **외곽 벽 중복 방지** — hard 맵 좌표 모두 r∈[2,21], c∈[4,43] 내부. 자연 차단.
+
+6. **문은 세로벽에서만 분기** — 원본 디자인 충실. 가로벽 doorC 매개변수 없음.
+
+7. **세로벽 SKSpriteNode 분리** — doorR 한 칸을 *건너뛰어* 상단부+하단부 2개로 쪼갠다. 통짜 + 빈 픽셀은 PhysicsBody가 문을 막아 플레이어 입장 불가.
+
+8. **setupWorld 호출 순서 보존** — `worldNode.position = .zero` → `addChild(worldNode)` → `setupMap()`.
+
+9. **normal/hard 공용 정책** — GDD §6 "hard맵(normal·hard 공용)" 명시. switch case `.normal, .hard`.
+
+10. **easy 무변경 보장** — easy 분기는 기존 addCentralPillar와 완전 동일.
+
+11. **switch default 미사용** — Difficulty 신규 case 추가 시 컴파일러 경고.
+
+12. **stoneGuard 시각 겹침** — normal에서 우측 코너 방 벽과 stoneGuard가 시각 겹칠 수 있음. 게임 로직 영향 0. *별도 sprint*.
+
+13. **NoteSpawn / ProjectileSpawn 무관** — SpawnSystem 코드 미접촉.
+
+---
+
+## 작업 체크리스트
+
+- [ ] GameConfig.swift 끝에 hard 맵 상수 ~30개.
+- [ ] setupWorld()를 setupMap() 단일 호출로 교체.
+- [ ] setupMap() 신설 — switch 분기.
+- [ ] addHardMap() 신설.
+- [ ] 헬퍼 3개 (addRectPillar / addHorizontalWall / addVerticalWall).
+- [ ] PhysicsBody 7줄 byte-equal.
+- [ ] 강제 언래핑/매직 넘버 0건.
+- [ ] 빌드 SUCCEEDED + 시뮬 시 easy/normal/hard 시각 확인.

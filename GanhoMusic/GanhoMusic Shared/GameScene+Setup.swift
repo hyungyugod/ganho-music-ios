@@ -19,9 +19,120 @@ extension GameScene {
     func setupWorld() {
         worldNode.position = .zero
         addChild(worldNode)
+        setupMap()
+    }
 
+    /// Phase 7-2 — 맵 구성 단일 진입점. 외곽 벽 + difficulty 분기.
+    /// switch default 미사용: Difficulty 신규 case 추가 시 컴파일러 경고로 자연 검출.
+    func setupMap() {
         addOuterWalls()
-        addCentralPillar()   // Phase 2-2 신설 — GDD §6 easy 맵 명세
+        switch difficulty {
+        case .easy:
+            addCentralPillar()
+        case .normal, .hard:
+            addHardMap()
+        }
+    }
+
+    /// Phase 7-2 — hard 맵(normal·hard 공용). 옵션 C 좌표 — 원본 game.js L289-309의
+    /// *맵 가장자리 절대 거리* 보존 + *중앙 빈 공간만 확장*. 거울 대칭 (mirroredC=47-c, mirroredR=23-r).
+    func addHardMap() {
+        // 코너 방 4개 — 가로벽 + 세로벽(doorR 한 칸 분기)
+
+        // 좌상 방
+        addHorizontalWall(cStart: GameConfig.hardMapTopLeftRoomHWallCStart,
+                          cEnd:   GameConfig.hardMapTopLeftRoomHWallCEnd,
+                          r:      GameConfig.hardMapTopLeftRoomHWallR)
+        addVerticalWall(c:       GameConfig.hardMapTopLeftRoomVWallC,
+                        rStart:  GameConfig.hardMapTopLeftRoomVWallRStart,
+                        rEnd:    GameConfig.hardMapTopLeftRoomVWallREnd,
+                        doorR:   GameConfig.hardMapTopLeftRoomDoorR)
+
+        // 우상 방
+        addHorizontalWall(cStart: GameConfig.hardMapTopRightRoomHWallCStart,
+                          cEnd:   GameConfig.hardMapTopRightRoomHWallCEnd,
+                          r:      GameConfig.hardMapTopRightRoomHWallR)
+        addVerticalWall(c:       GameConfig.hardMapTopRightRoomVWallC,
+                        rStart:  GameConfig.hardMapTopRightRoomVWallRStart,
+                        rEnd:    GameConfig.hardMapTopRightRoomVWallREnd,
+                        doorR:   GameConfig.hardMapTopRightRoomDoorR)
+
+        // 좌하 방
+        addHorizontalWall(cStart: GameConfig.hardMapBottomLeftRoomHWallCStart,
+                          cEnd:   GameConfig.hardMapBottomLeftRoomHWallCEnd,
+                          r:      GameConfig.hardMapBottomLeftRoomHWallR)
+        addVerticalWall(c:       GameConfig.hardMapBottomLeftRoomVWallC,
+                        rStart:  GameConfig.hardMapBottomLeftRoomVWallRStart,
+                        rEnd:    GameConfig.hardMapBottomLeftRoomVWallREnd,
+                        doorR:   GameConfig.hardMapBottomLeftRoomDoorR)
+
+        // 우하 방
+        addHorizontalWall(cStart: GameConfig.hardMapBottomRightRoomHWallCStart,
+                          cEnd:   GameConfig.hardMapBottomRightRoomHWallCEnd,
+                          r:      GameConfig.hardMapBottomRightRoomHWallR)
+        addVerticalWall(c:       GameConfig.hardMapBottomRightRoomVWallC,
+                        rStart:  GameConfig.hardMapBottomRightRoomVWallRStart,
+                        rEnd:    GameConfig.hardMapBottomRightRoomVWallREnd,
+                        doorR:   GameConfig.hardMapBottomRightRoomDoorR)
+
+        // 중앙 기둥 4개 — 대칭의 댄스플로어
+        // 중앙-좌 (1×2 세로형)
+        addRectPillar(cStart: GameConfig.hardMapCenterLeftPillarC,
+                      cEnd:   GameConfig.hardMapCenterLeftPillarC,
+                      rStart: GameConfig.hardMapCenterLeftPillarRStart,
+                      rEnd:   GameConfig.hardMapCenterLeftPillarREnd)
+        // 중앙-우 (1×2 세로형)
+        addRectPillar(cStart: GameConfig.hardMapCenterRightPillarC,
+                      cEnd:   GameConfig.hardMapCenterRightPillarC,
+                      rStart: GameConfig.hardMapCenterRightPillarRStart,
+                      rEnd:   GameConfig.hardMapCenterRightPillarREnd)
+        // 중앙-상 (2×1 가로형)
+        addRectPillar(cStart: GameConfig.hardMapCenterTopPillarCStart,
+                      cEnd:   GameConfig.hardMapCenterTopPillarCEnd,
+                      rStart: GameConfig.hardMapCenterTopPillarR,
+                      rEnd:   GameConfig.hardMapCenterTopPillarR)
+        // 중앙-하 (2×1 가로형)
+        addRectPillar(cStart: GameConfig.hardMapCenterBottomPillarCStart,
+                      cEnd:   GameConfig.hardMapCenterBottomPillarCEnd,
+                      rStart: GameConfig.hardMapCenterBottomPillarR,
+                      rEnd:   GameConfig.hardMapCenterBottomPillarR)
+    }
+
+    /// Phase 7-2 — 가로벽 헬퍼. 단일 행 r에 cStart..cEnd 길이 만큼 1행 직사각형 1개.
+    private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int) {
+        addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r)
+    }
+
+    /// Phase 7-2 — 세로벽 헬퍼. doorR 한 칸을 *건너뛰며* 1×1 직사각형 여러 개 생성.
+    /// 통짜로 만들면 PhysicsBody가 문을 막아 플레이어 입장 불가 — SKSpriteNode 분리 필수(주의사항 7).
+    private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int) {
+        for r in rStart...rEnd where r != doorR {
+            addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r)
+        }
+    }
+
+    /// Phase 7-2 — 직사각형 벽 1개 생성. anchorPoint 기본값 .center 가정 —
+    /// 중심 = ((cStart + widthTiles/2) × tileSize, (rStart + heightTiles/2) × tileSize).
+    /// PhysicsBody 정책은 addCentralPillar와 byte-equal(주의사항 1).
+    private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int) {
+        let t = GameConfig.tileSize
+        let widthTiles  = CGFloat(cEnd - cStart + 1)
+        let heightTiles = CGFloat(rEnd - rStart + 1)
+        let pillarSize = CGSize(width: widthTiles * t, height: heightTiles * t)
+        let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
+        pillar.position = CGPoint(
+            x: (CGFloat(cStart) + widthTiles  / 2) * t,
+            y: (CGFloat(rStart) + heightTiles / 2) * t
+        )
+        let body = SKPhysicsBody(rectangleOf: pillarSize)
+        body.isDynamic           = false
+        body.friction            = 0
+        body.restitution         = 0
+        body.categoryBitMask     = PhysicsCategory.wall
+        body.collisionBitMask    = 0
+        body.contactTestBitMask  = 0
+        pillar.physicsBody = body
+        worldNode.addChild(pillar)
     }
 
     func addOuterWalls() {
