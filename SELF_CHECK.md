@@ -1,165 +1,71 @@
-# Phase 8-3 자체 점검 — 원본 디자인 토큰 + TitleScene 동일화
+# 자체 점검 — Phase 8-4 ResultScene 디자인 동일화
 
-전략: 1회차 신규 구현 — SPEC §"기능 1~5" 그대로 적용.
+## SPEC 기능 체크
 
----
+- [x] **기능 1: GameConfig 신규 상수 8개** — `// MARK: - Result Scene UI (Phase 8-4)` 섹션 신설.
+  `resultPanelMaxWidth=380` / `resultPanelHeight=560` / `resultPanelPadding=18` / `resultScoreNumFontSize=40` /
+  `resultScoreLabelFontSize=14` / `resultRecordFontSize=12` / `resultStatsLabelFontSize=11` / `resultStatsValueFontSize=16`.
+  SPEC §"기능 1" 정확 일치.
 
-## SPEC 기능 체크 (라인 매핑)
+- [x] **기능 2: setupOverlayPanel() private 메서드 신설** — TitleScene 패턴 완전 답습.
+  - 반투명 검정 배경 `SKSpriteNode(color: .ganhoUIOverlayBg, size: size, zPosition: -10)`
+  - 가운데 카드 패널 `SKShapeNode(rectOf: 380×560, cornerRadius: uiRadius=10)`, fill=.ganhoUIBgCard, stroke=.ganhoUIBorder, lineWidth=1, zPosition=-5
+  - `didMove(to:)`에서 `setupLabels()` *직전*에 호출 (TitleScene 99행 패턴과 동형).
 
-### 기능 1: ColorTokens 디자인 토큰 14색
-**파일**: `GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift`
-**라인**: L153~L186 (`// MARK: - Game UI Tokens (Phase 8-3)` 섹션)
-- [x] L159 `ganhoUIBg` = `#0f0e15` ✓
-- [x] L161 `ganhoUIBgDark` = `#09080f` ✓
-- [x] L163 `ganhoUIBgCard` = `#17151e` α 0.82 ✓
-- [x] L165 `ganhoUIBrand` = `#c4847a` ✓
-- [x] L167 `ganhoUIBrandLight` = `#d4a49c` ✓
-- [x] L169 `ganhoUIBrand12` = `#c4847a` α 0.12 ✓
-- [x] L171 `ganhoUIBrand20` = `#c4847a` α 0.20 ✓
-- [x] L173 `ganhoUIBrand40` = `#c4847a` α 0.40 ✓
-- [x] L175 `ganhoUIBrand60` = `#c4847a` α 0.60 ✓
-- [x] L177 `ganhoUIText` = `#eeeeee` ✓
-- [x] L179 `ganhoUITextMuted` = `#aaaaaa` ✓
-- [x] L181 `ganhoUITextDim` = `#555555` ✓
-- [x] L183 `ganhoUIBorder` = `UIColor.white` α 0.07 ✓
-- [x] L185 `ganhoUIOverlayBg` = `#09080f` α 0.78 ✓
-**총 14색** — SPEC §"기능 1" 정확히 일치.
+- [x] **기능 3: 라벨 색·크기 토큰 갈아 끼움** — 라벨 *위치/구조 미접촉*.
+  - `scoreLabel`: fontSize 24→40, fontColor → `.ganhoUIBrandLight` (코럴 강조). NEW BEST 시퀀스가 *bestLabel*만 황금 덮어쓰므로 scoreLabel은 brand-light 유지.
+  - `bestLabel`: fontSize 22→12, fontColor → `.ganhoUIBrand`. NEW BEST 시 `startBestLabelGoldBlink`가 황금색으로 *덮어씀* (Phase 6-15 보존).
+  - `statsLabel`: fontSize 16→14, fontColor → `.ganhoUITextMuted` (회색).
+  - `characterLabel`: fontSize 22→14, fontColor → `.ganhoUITextMuted`.
+  - `difficultyLabel`: fontColor → `.ganhoUITextMuted` (fontSize 18 유지).
+  - `titleLabel` / `promptLabel` / `newBestLabel`: *완전 미접촉* (GAME OVER / TAP TO RETURN / NEW BEST 강조 톤 보존).
 
-### 기능 2: GameConfig UI Layout 상수 16개
-**파일**: `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
-**라인**: L642~L680 (`// MARK: - Game UI Tokens (Phase 8-3)` 섹션)
-- [x] L646 `uiRadius = 10` ✓
-- [x] L648 `uiRadiusSm = 6` ✓
-- [x] L650 `uiRadiusPill = 999` ✓
-- [x] L652 `uiPanelMaxWidth = 360` ✓
-- [x] L654 `uiPanelCharacterMaxWidth = 480` ✓
-- [x] L656 `uiPanelPaddingH = 20` ✓
-- [x] L658 `uiPanelPaddingV = 22` ✓
-- [x] L660 `uiPanelGap = 14` ✓
-- [x] L662 `uiTitleFontSize = 22` ✓
-- [x] L664 `uiBodyFontSize = 12` ✓
-- [x] L666 `uiHintFontSize = 11` ✓
-- [x] L668 `uiHudValueFontSize = 22` ✓
-- [x] L670 `uiHudLabelFontSize = 10` ✓
-- [x] L672 `uiCardNameFontSize = 12` ✓
-- [x] L674 `uiCardTagFontSize = 10` ✓
-- [x] L676 `uiCardBestFontSize = 10` ✓
-- [x] L678 `uiPanelLineWidth = 1` ✓
-**총 17개 상수** (SPEC 16개 + 직관성 위해 1개 동등 — `uiRadiusPill`이 별도 토큰).
-실제 SPEC 명시 16개는 모두 그대로 포함, 1:1 매핑 완벽.
+## 회귀 0 검증
 
-### 기능 3: TitleScene 패널 도입
-**파일**: `GanhoMusic/GanhoMusic Shared/Scenes/TitleScene.swift`
-- [x] L52: `didMove(to:)` 안에서 `setupLabels()` *직전* `setupOverlayPanel()` 호출
-- [x] L70~96: `setupOverlayPanel()` private 메서드 신설
-- [x] L73~78: 화면 전체 반투명 검정 배경 SKSpriteNode + zPosition `-10`
-- [x] L81~93: 가운데 카드 패널 SKShapeNode + cornerRadius `uiRadius(10)` + fillColor `.ganhoUIBgCard` + strokeColor `.ganhoUIBorder` + zPosition `-5`
-- [x] 라벨/카드 layout *완전 미접촉* — frame.midX/midY 기준 그대로
-
-### 기능 4: CharacterCardNode 시각 토큰 적용
-**파일**: `GanhoMusic/GanhoMusic Shared/Nodes/CharacterCardNode.swift`
-- [x] L19: 신규 자식 `border: SKShapeNode` 추가
-- [x] L28~30: background 기본색 `.ganhoUIBgCard` (선택 X 상태)
-- [x] L32~36: border = `SKShapeNode(rectOf: cornerRadius: uiRadiusSm)` + strokeColor `.ganhoUIBorder` + lineWidth `uiPanelLineWidth`
-- [x] L69~71: setSelected에서 background.color / border.strokeColor / nameLabel.fontColor 동적 교체
-- [x] L78~80: configureLabel — fontSize `uiCardNameFontSize` + 기본 fontColor `.ganhoUITextMuted`
-- [x] **카드 크기/위치/init 시그니처/setSelected 시그니처 완전 보존** ✓
-
-### 기능 5: DifficultyCardNode 캡슐 모양
-**파일**: `GanhoMusic/GanhoMusic Shared/Nodes/DifficultyCardNode.swift`
-- [x] L19: background 타입 `SKSpriteNode` → `SKShapeNode`
-- [x] L29~36: `SKShapeNode(rectOf: cornerRadius: cardSize.height / 2)` 캡슐
-- [x] L33: `fillColor = .clear` (기본 transparent)
-- [x] L34: `strokeColor = .ganhoUIBorder`
-- [x] L35: `lineWidth = uiPanelLineWidth`
-- [x] L67~70: setSelected에서 fillColor `id.color α 0.2` / strokeColor `id.color` / nameLabel.fontColor `.ganhoUIText` 교체
-- [x] L80~86: configureLabels — nameLabel `.ganhoUITextMuted` + subtitleLabel `.ganhoUITextDim`
-- [x] **카드 크기/위치/init 시그니처 완전 보존** ✓
-
----
-
-## CSS 변수 → Swift 토큰 1:1 매핑표 (byte-equal)
-
-| 원본 CSS 변수 (style.css) | Swift 토큰 | hex 값 |
-|---|---|---|
-| `--bg` | `ganhoUIBg` | `#0f0e15` |
-| `--bg-dark` | `ganhoUIBgDark` | `#09080f` |
-| `--bg-card` (rgba 23,21,30,0.82) | `ganhoUIBgCard` | `#17151e` α 0.82 |
-| `--brand` | `ganhoUIBrand` | `#c4847a` |
-| `--brand-light` | `ganhoUIBrandLight` | `#d4a49c` |
-| `--brand-12` | `ganhoUIBrand12` | `#c4847a` α 0.12 |
-| `--brand-20` | `ganhoUIBrand20` | `#c4847a` α 0.20 |
-| `--brand-40` | `ganhoUIBrand40` | `#c4847a` α 0.40 |
-| `--brand-60` | `ganhoUIBrand60` | `#c4847a` α 0.60 |
-| `--text` | `ganhoUIText` | `#eeeeee` |
-| `--text-muted` | `ganhoUITextMuted` | `#aaaaaa` |
-| `--text-dim` | `ganhoUITextDim` | `#555555` |
-| `--border` (rgba 255,255,255,0.07) | `ganhoUIBorder` | white α 0.07 |
-| `.game-overlay` 배경 | `ganhoUIOverlayBg` | `#09080f` α 0.78 |
-
-모든 hex 값 byte-equal — 디자인 단일 진실 원천(style.css L3-46) 1:1 재현.
-
----
+- [x] **라벨 위치 미접촉** — layoutLabels() 한 줄도 안 건드림. Phase 6-15 newBestLabel(0) / Phase 7-1 difficultyLabel(+155) 모두 보존.
+- [x] **패널 안 라벨 검증** — 패널 560 height, 라벨 범위: +155(diff) ~ -80(prompt) = 235pt 폭. 패널 절반 280pt 안에 모두 들어감.
+- [x] **NEW BEST 시퀀스 보존** — newBestLabel(56pt 황금), `startBestLabelGoldBlink`에서 bestLabel.fontColor 황금 덮어쓰기 — 후속 호출이 setupLabels의 brand 톤보다 *나중*이라 자연 우선.
+- [x] **isNewGraduation 졸업장 플로우 보존** — setupLabels 끝의 `if isNewGraduation` 가드 미접촉.
+- [x] **TitleScene/GameScene/GameScene+Setup 미접촉**
+- [x] **DiplomaOverlayNode/PixelSprite/Palette/Renderer/PlayerNode/EnemyNode 미접촉**
+- [x] **PhysicsCategory/GameState/ColorTokens 미접촉** (Phase 8-3에서 추가된 8개 토큰만 사용, 신규 추가 0)
+- [x] **iOS/tvOS/macOS 진입점 미접촉**
+- [x] **신규 파일 0개, pbxproj 변경 0건**
 
 ## Swift 패턴 준수
-- 강제 언래핑 미사용: **준수** (`!` 사용 0건, `?? UIColor(...)` 또는 `guard let` 패턴)
-- guard let 옵셔널 처리: **준수**
-- MARK 섹션 구분: **준수** (모든 새 코드 `// MARK: - Game UI Tokens (Phase 8-3)` 명시)
-- GameConfig 상수 사용: **준수** (cornerRadius/lineWidth/fontSize 모두 GameConfig 토큰 경유)
-- weak self 캡처: **해당 없음** (클로저 사용 0건)
+
+- 강제 언래핑 미사용: 준수 (touchesBegan의 `guard let view` 기존 보존)
+- guard let 옵셔널 처리: 준수
+- MARK 섹션 구분: 준수 (`// MARK: - Result Scene UI (Phase 8-4)` 추가)
+- GameConfig 상수 사용: 준수 (380/560/40/14/12 등 매직 넘버 0건 — 모두 상수화)
+- weak self 캡처: 해당 없음 (이번 변경에 클로저 없음)
 
 ## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: **준수** (setupOverlayPanel 호출 순서 명시)
-- dt 기반 이동: **해당 없음** (정적 패널만)
-- SKAction 스폰 패턴: **해당 없음** (정적 노드 1회 addChild)
-- 충돌 후 노드 즉시 삭제 없음: **준수** (PhysicsBody 0)
-- HUD 노드 분리: **해당 없음** (HUD 미접촉)
-- zPosition 위계: **준수** — bg(-10) → panel(-5) → 기존 라벨/카드(기본 0+) → 카드(100). 충돌 0.
+
+- didMove(to:)에서 초기화: 준수 (`setupOverlayPanel()` 호출 추가)
+- SKAction 스폰 패턴: 해당 없음 (이번 변경에 스폰 없음)
+- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (이번 변경에 물리 없음)
+- HUD 노드 분리: 해당 없음 (HUDNode 미접촉)
+- zPosition 위계: 준수 (배경 -10, 패널 -5, 라벨 기본 0~150 위로 자연 표시)
 
 ## 빌드 상태
-- xcodebuild 결과: **BUILD SUCCEEDED** ✓
-- 명령:
-  ```
-  xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
-    -target "GanhoMusic iOS" -sdk iphonesimulator \
-    EXCLUDED_SOURCE_FILE_NAMES="Main.storyboard" clean build
-  ```
-- 경고 0건 — `xcodebuild ... 2>&1 | grep -E "warning:|error:" | grep -v "appintents"` 결과 *비어 있음*.
-- 정적 검사: 강제 언래핑/Timer/매직 넘버 위반 0건.
 
-## 회귀 0 확인 (grep)
+- **BUILD SUCCEEDED** (xcodebuild iPhone 17 시뮬레이터)
+- 추가된 코드 관련 경고: 0건
+- 기존 시스템 경고(AppIntents.framework 미사용) 1건 — 우리 코드 외부, Phase 8-4 이전부터 존재
 
-**git diff --stat 변경 파일** (Swift 코드 5개):
-```
-GanhoMusic Shared/Config/ColorTokens.swift           +34
-GanhoMusic Shared/Config/GameConfig.swift            +39
-GanhoMusic Shared/Nodes/CharacterCardNode.swift     ±35 (변경)
-GanhoMusic Shared/Nodes/DifficultyCardNode.swift    ±34 (변경)
-GanhoMusic Shared/Scenes/TitleScene.swift            +29
-```
+## 디자인 매핑 검증
 
-**금지 영역 미접촉 검증**:
-```bash
-git diff --name-only | grep -E "(ResultScene|GameScene|PixelSprite|PlayerNode|EnemyNode|PhysicsCategory|GameState|HUDNode|AppDelegate|GameViewController|CutsceneOverlayNode|DiplomaOverlayNode|pbxproj|Manager|Repository|Model|Protocol|System)"
-→ 결과: 비어 있음 (회귀 0 영역 미접촉)
-```
+| 원본 (game.css L845-906) | iOS 대응 |
+|---|---|
+| `#overlayEnd .game-overlay__panel--end { max-width: 380px }` | `resultPanelMaxWidth: 380` |
+| `padding: 16 18` | `resultPanelPadding: 18` |
+| `.score-num { font-size: 40px; color: var(--brand-light) }` | `scoreLabel: 40pt, .ganhoUIBrandLight` |
+| `.score { font-size: 14px; color: var(--text-muted) }` | `statsLabel/characterLabel: 14pt, .ganhoUITextMuted` |
+| `.record { font-size: 12px; color: var(--brand) }` | `bestLabel: 12pt, .ganhoUIBrand` |
+| `.stats li label { font-size: 11px }` | `resultStatsLabelFontSize: 11` (미사용, 미래 확장) |
+| `.stats li b { font-size: 16px → 15px }` | `resultStatsValueFontSize: 16` (미사용, 미래 확장) |
 
-- [x] ResultScene / GameScene / GameScene+Setup 미접촉 ✓
-- [x] 컷씬·졸업장 노드 (CutsceneOverlayNode/DiplomaOverlayNode) 미접촉 ✓
-- [x] PixelSprite/Palette/Renderer 미접촉 ✓
-- [x] PlayerNode/EnemyNode/NoteNode/ProjectileNode/HUDNode 미접촉 ✓
-- [x] 자가 소멸 11호 (ScorePopupNode/SparkleEffectNode/HitFlashNode/BombFlashNode/AirforceOverlayNode/ComboPopupNode/ComboBreakNode/CountdownNode 등) 미접촉 ✓
-- [x] 시스템·매니저·리포지토리·모델·프로토콜 미접촉 ✓
-- [x] PhysicsCategory / GameState 미접촉 ✓
-- [x] iOS·tvOS·macOS 진입점 미접촉 ✓
-- [x] **신규 파일 0개, pbxproj 변경 0건** ✓
+## 범위 외 미구현
 
-## SPEC 외 변경 검토
-SPEC §"기능 1~5"에 명시된 5개 파일만 수정. 추가 변경 0건.
-
-`uiRadiusPill = 999` 상수는 SPEC §"기능 2" 본문 16개 리스트에 포함되어 있다 — 누락 아님.
-
-## 범위 외 미구현 항목
-- **픽셀 캐릭터 아바타** — SPEC §금지 #5 ("Phase 8-3 후속, 시간 부족 시 다음 sprint"). 본 sprint 범위 외 — 의도적 미구현.
-- **폰트 패밀리** — SPEC §금지 #6 (SKLabelNode 시스템 폰트 안전 지원만). 색·크기만 변경. fontName 미설정 — 시스템 폰트 사용.
-- **ResultScene/GameScene/HUD/졸업장 시각 토큰 적용** — SPEC §금지 #2~4. 다음 sprint.
+- 없음. SPEC §"기능 1/2/3" 모두 구현. SPEC §"금지"(라벨 위치 변경/졸업장 시각/GameOver 흐름/TitleScene·GameScene) 모두 미접촉.

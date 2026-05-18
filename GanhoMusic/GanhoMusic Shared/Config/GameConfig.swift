@@ -676,4 +676,26 @@ enum GameConfig {
     static let uiCardBestFontSize: CGFloat = 10
     /// 패널/카드 보더 line-width 1px
     static let uiPanelLineWidth: CGFloat = 1
+
+    // MARK: - Result Scene UI (Phase 8-4)
+    /// 원본 #overlayEnd .game-overlay__panel--end (game.css L877-906) 1:1 매핑.
+    /// 반투명 검정 배경(.ganhoUIOverlayBg) + 가운데 380 너비 카드 패널(.ganhoUIBgCard) + 점수 40pt 코럴 serif.
+    /// 라벨 위치는 *기존 유지*, 시각 토큰만 갈아 끼움(Phase 8-4 SPEC).
+
+    /// 카드 패널 max-width — 원본 380px
+    static let resultPanelMaxWidth: CGFloat = 380
+    /// 카드 패널 height (pt) — 모바일 풀스크린 비율에 맞춰. 라벨 6개(+155 ~ -80)가 패널 안에 들어가도록 560.
+    static let resultPanelHeight: CGFloat = 560
+    /// 카드 패널 padding (pt) — 원본 padding 16 18 (좌우)
+    static let resultPanelPadding: CGFloat = 18
+    /// 점수 숫자 font-size — 원본 40px serif (모바일 32). 큰 점수 라벨 (.score-num)
+    static let resultScoreNumFontSize: CGFloat = 40
+    /// 점수 라벨 font-size — 원본 14px text-muted (.game-overlay__score)
+    static let resultScoreLabelFontSize: CGFloat = 14
+    /// 베스트 record font-size — 원본 12px brand (.game-overlay__record)
+    static let resultRecordFontSize: CGFloat = 12
+    /// 통계 라벨 font-size — 원본 11px upper case (.game-overlay__stats li label)
+    static let resultStatsLabelFontSize: CGFloat = 11
+    /// 통계 값 font-size — 원본 16px tabular (.game-overlay__stats li b, end-scope 15)
+    static let resultStatsValueFontSize: CGFloat = 16
 }

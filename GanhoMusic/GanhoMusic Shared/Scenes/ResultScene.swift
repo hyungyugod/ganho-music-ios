@@ -8,6 +8,7 @@
 //  Phase 5-7 · 캐릭터 이름 라벨 추가 (init 6번째 인자 characterName)
 //  Phase 6-15 · 신기록 시 "NEW BEST!" 황금 라벨 + heavy 햅틱 + NewMail 사운드 + bestLabel 황금 깜빡임
 //  Phase 7-1 · 난이도 라벨 1줄 추가 (init 7번째 인자 difficulty)
+//  Phase 8-4 · 원본 #overlayEnd 종료 패널 시각 동일화 — 반투명 배경 + 380 카드 패널 + 라벨 색·크기 토큰 갈아 끼움
 //
 
 import SpriteKit
@@ -124,6 +125,7 @@ final class ResultScene: SKScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgDeep
+        setupOverlayPanel()                             // Phase 8-4 — 원본 #overlayEnd 배경 + 380 카드 패널 (라벨 *뒤*에 배치)
         setupLabels()
     }
 
@@ -134,6 +136,36 @@ final class ResultScene: SKScene {
     }
 
     // MARK: - Setup
+    /// Phase 8-4 — 원본 웹게임 `#overlayEnd .game-overlay__panel--end` 톤 재현.
+    /// TitleScene.setupOverlayPanel 패턴 완전 답습 — 신규 파일 0건, 동형 구조.
+    /// 1) 화면 전체 반투명 검정 사각형(zPosition -10) — 게임 영역 차단 톤.
+    /// 2) 가운데 카드 패널 SKShapeNode(zPosition -5) — 원본 max-width 380px 재현.
+    /// 라벨 layout은 *미접촉* — Phase 7-1(+155) ~ Phase 3-3(-80) 모두 패널(560 height) 안에 자연 배치.
+    private func setupOverlayPanel() {
+        // 1) 화면 전체 반투명 검정 배경 — 원본 .game-overlay 배경
+        let bg = SKSpriteNode(color: .ganhoUIOverlayBg, size: size)
+        bg.position = CGPoint(x: frame.midX, y: frame.midY)
+        bg.zPosition = -10
+        bg.name = "overlayBackground"
+        addChild(bg)
+
+        // 2) 가운데 카드 패널 — 원본 #overlayEnd .game-overlay__panel--end (max-width 380px)
+        let panel = SKShapeNode(
+            rectOf: CGSize(
+                width: GameConfig.resultPanelMaxWidth,
+                height: GameConfig.resultPanelHeight
+            ),
+            cornerRadius: GameConfig.uiRadius
+        )
+        panel.fillColor = .ganhoUIBgCard
+        panel.strokeColor = .ganhoUIBorder
+        panel.lineWidth = GameConfig.uiPanelLineWidth
+        panel.position = CGPoint(x: frame.midX, y: frame.midY)
+        panel.zPosition = -5
+        panel.name = "overlayPanel"
+        addChild(panel)
+    }
+
     private func setupLabels() {
         configureLabel(titleLabel,      fontSize: GameConfig.resultTitleFontSize)
         configureLabel(scoreLabel,      fontSize: GameConfig.resultScoreFontSize)
@@ -142,6 +174,22 @@ final class ResultScene: SKScene {
         configureLabel(characterLabel,  fontSize: GameConfig.resultCharacterFontSize)
         configureLabel(difficultyLabel, fontSize: GameConfig.resultDifficultyFontSize)   // Phase 7-1
         configureLabel(promptLabel,     fontSize: GameConfig.resultPromptFontSize)
+        // Phase 8-4 — 원본 #overlayEnd 시각 토큰 갈아 끼움. configureLabel 후 *오버라이드*로 라벨 위치/구조는 미접촉.
+        // 점수 숫자: 40pt 코럴 강조 (.score-num) — 단, NEW BEST 시퀀스가 황금색으로 덮어쓰므로 isNewBest=true 시
+        //          revealNewBest → startBestLabelGoldBlink가 *bestLabel*만 황금 처리. scoreLabel은 brand-light 유지.
+        scoreLabel.fontSize = GameConfig.resultScoreNumFontSize
+        scoreLabel.fontColor = .ganhoUIBrandLight
+        // 베스트 기록: 12pt brand (.game-overlay__record) — NEW BEST 시퀀스가 황금색으로 *덮어씀* (보존).
+        bestLabel.fontSize = GameConfig.resultRecordFontSize
+        bestLabel.fontColor = .ganhoUIBrand
+        // 통계: 14pt text-muted (.game-overlay__score 톤) — 보조 정보 회색.
+        statsLabel.fontColor = .ganhoUITextMuted
+        statsLabel.fontSize = GameConfig.resultScoreLabelFontSize
+        // 캐릭터 이름: 14pt text-muted (보조 정보 회색).
+        characterLabel.fontColor = .ganhoUITextMuted
+        characterLabel.fontSize = GameConfig.resultScoreLabelFontSize
+        // 난이도: text-muted (.white → 보조 정보 회색). fontSize는 기존 값(18) 유지.
+        difficultyLabel.fontColor = .ganhoUITextMuted
         scoreLabel.text = "🎵 \(finalScore)"
         // Phase 3-4 — 신기록이면 강조 문구, 아니면 기존 최고치 표시.
         bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "BEST 🏆 \(bestScore)"
