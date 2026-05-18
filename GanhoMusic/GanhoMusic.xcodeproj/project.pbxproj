@@ -50,6 +50,9 @@
 		A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */; };
 		A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000040 /* GraduationRepository.swift */; };
 		A1C0F1B00000000000000041 /* DiplomaOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */; };
+		A1C0F1B00000000000000042 /* PixelSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000042 /* PixelSprite.swift */; };
+		A1C0F1B00000000000000043 /* PixelPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000043 /* PixelPalette.swift */; };
+		A1C0F1B00000000000000044 /* PixelSpriteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +99,9 @@
 		A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerDifficultyScoreRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000040 /* GraduationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraduationRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiplomaOverlayNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000042 /* PixelSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelSprite.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000043 /* PixelPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPalette.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelSpriteRenderer.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -244,6 +250,7 @@
 				A1C0F1A00000000000000037 /* DifficultyCardNode.swift */,
 				A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */,
 				A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */,
+				A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -291,6 +298,8 @@
 				A1C0F1A00000000000000014 /* GameStats.swift */,
 				A1C0F1A00000000000000022 /* CharacterID.swift */,
 				A1C0F1A00000000000000035 /* Difficulty.swift */,
+				A1C0F1A00000000000000042 /* PixelSprite.swift */,
+				A1C0F1A00000000000000043 /* PixelPalette.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -528,6 +537,9 @@
 				A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */,
 				A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */,
 				A1C0F1B00000000000000041 /* DiplomaOverlayNode.swift in Sources */,
+				A1C0F1B00000000000000042 /* PixelSprite.swift in Sources */,
+				A1C0F1B00000000000000043 /* PixelPalette.swift in Sources */,
+				A1C0F1B00000000000000044 /* PixelSpriteRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -44,4 +44,97 @@ extension UIColor {
     /// F 투사체. HEX #FFD23F. assets.md §1 yellowF.
     static let ganhoYellowF = UIColor(named: "yellowF")
         ?? UIColor(red: 0xFF / 255, green: 0xD2 / 255, blue: 0x3F / 255, alpha: 1)
+
+    // MARK: - Pixel Palette (Phase 8-1)
+    // 원본 web game (game.js L645-655 common 9키 + L657-692 charMap 4종)의 hex 값을
+    // *문자열 byte-equal* 변환. 모든 색은 #RRGGBB 6자리 소문자 — 원본 그대로.
+
+    // 공통 9키 (game.js L645-655)
+    /// 피부 — game.js 'S' #fbe0d0
+    static let ganhoPixelSkin = UIColor(hex: "#fbe0d0")
+    /// 흰옷 — game.js 'W' #ffffff
+    static let ganhoPixelUniform = UIColor(hex: "#ffffff")
+    /// 코럴 십자 — game.js 'C' #c4847a
+    static let ganhoPixelCross = UIColor(hex: "#c4847a")
+    /// 하의 — game.js 'P' #9ec9e8 (--nurse-pants fallback)
+    static let ganhoPixelPants = UIColor(hex: "#9ec9e8")
+    /// 신발 — game.js 'B' #a85f56
+    static let ganhoPixelShoes = UIColor(hex: "#a85f56")
+    /// 눈 동공 — game.js 'E' #2a1f25
+    static let ganhoPixelEye = UIColor(hex: "#2a1f25")
+    /// 흰자 하이라이트 — game.js 'L' #ffffff
+    static let ganhoPixelEyeHighlight = UIColor(hex: "#ffffff")
+    /// 볼터치 — game.js 'R' #f5a8a0
+    static let ganhoPixelCheek = UIColor(hex: "#f5a8a0")
+    /// 입 — game.js 'M' #c4847a
+    static let ganhoPixelMouth = UIColor(hex: "#c4847a")
+
+    // kim 전용 (game.js L687-691)
+    /// kim 번머리 본체 — game.js 'H' #3a2a20 (--nurse-bun fallback)
+    static let ganhoPixelBunHair = UIColor(hex: "#3a2a20")
+    /// kim 번머리 음영 — game.js 'b' #5a4230 (--nurse-bun-shadow fallback)
+    static let ganhoPixelBunShadow = UIColor(hex: "#5a4230")
+
+    // jung 전용 (game.js L658-663)
+    /// jung 짧은머리 본체 — game.js 'J' #2a1a12
+    static let ganhoPixelHairJung = UIColor(hex: "#2a1a12")
+    /// jung 짧은머리 음영 — game.js 'j' #180c08
+    static let ganhoPixelHairJungShadow = UIColor(hex: "#180c08")
+    /// jung 곡괭이 헤드(금속) — game.js 'K' #9aa0a8
+    static let ganhoPixelPickHead = UIColor(hex: "#9aa0a8")
+    /// jung 곡괭이 자루(갈색) — game.js 'k' #7a4f2a
+    static let ganhoPixelPickHandle = UIColor(hex: "#7a4f2a")
+
+    // geon 전용 (game.js L665-672)
+    /// geon 단정 머리 본체 — game.js 'G' #30221c
+    static let ganhoPixelHairGeon = UIColor(hex: "#30221c")
+    /// geon 단정 머리 음영 — game.js 'g' #1a0f0a
+    static let ganhoPixelHairGeonShadow = UIColor(hex: "#1a0f0a")
+    /// geon 안경테 — game.js 'F' #1f1a1f
+    static let ganhoPixelGlassFrame = UIColor(hex: "#1f1a1f")
+    /// geon 안경 렌즈(반사) — game.js 'f' #e8f0f8
+    static let ganhoPixelGlassLens = UIColor(hex: "#e8f0f8")
+    /// geon 책 표지 — game.js 'O' #8a5a32
+    static let ganhoPixelBookCover = UIColor(hex: "#8a5a32")
+    /// geon 책 속지 — game.js 'p' #f6ebd9
+    static let ganhoPixelBookPage = UIColor(hex: "#f6ebd9")
+
+    // im 전용 (game.js L674-678)
+    /// im 긴머리 본체 — game.js 'I' #3a2618
+    static let ganhoPixelHairIm = UIColor(hex: "#3a2618")
+    /// im 긴머리 음영 — game.js 'i' #22150c
+    static let ganhoPixelHairImShadow = UIColor(hex: "#22150c")
+    /// im 고양이귀 머리띠 — game.js 'T' #ff9db0
+    static let ganhoPixelCatEar = UIColor(hex: "#ff9db0")
+
+    // lee 전용 (game.js L681-685)
+    /// lee 단발 본체 — game.js 'Q' #5a3a22 (단발은 흰자 'L'과 키 충돌 회피 위해 Q/q)
+    static let ganhoPixelHairLee = UIColor(hex: "#5a3a22")
+    /// lee 단발 음영 — game.js 'q' #3a2414
+    static let ganhoPixelHairLeeShadow = UIColor(hex: "#3a2414")
+    /// lee 강아지귀 머리띠 — game.js 'D' #b07a58
+    static let ganhoPixelDogEar = UIColor(hex: "#b07a58")
+}
+
+// MARK: - UIColor Hex Init (Phase 8-1)
+extension UIColor {
+    /// `"#rrggbb"` 또는 `"rrggbb"` 6자리 hex 문자열에서 UIColor 생성.
+    /// 원본 web game의 hex 리터럴(#fbe0d0 등)을 그대로 옮기기 위한 헬퍼.
+    /// 파싱 실패 시 magenta로 graceful fallback — *눈에 띄게* 잘못된 hex를 표면화한다.
+    /// Spring 비유: 환경설정 파싱 실패 시 명백한 sentinel 값을 노출하는 패턴.
+    convenience init(hex: String) {
+        var raw = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.hasPrefix("#") {
+            raw = String(raw.dropFirst())
+        }
+        guard raw.count == 6, let value = UInt32(raw, radix: 16) else {
+            // 잘못된 hex는 즉시 시각 인식 가능한 magenta로 표시 — 디버깅 친화.
+            self.init(red: 1, green: 0, blue: 1, alpha: 1)
+            return
+        }
+        let r = CGFloat((value >> 16) & 0xFF) / 255.0
+        let g = CGFloat((value >> 8)  & 0xFF) / 255.0
+        let b = CGFloat( value        & 0xFF) / 255.0
+        self.init(red: r, green: g, blue: b, alpha: 1)
+    }
 }

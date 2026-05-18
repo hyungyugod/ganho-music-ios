@@ -628,4 +628,13 @@ enum GameConfig {
     /// 본문 자동 줄바꿈 최대 폭 비율 (scene.width × ratio). 0.7 = cutsceneBodyWidthRatio와 동급.
     /// 양 가장자리 15% 여백 — 한국어 본문이 폭 안에 자연 줄바꿈.
     static let diplomaBodyWidthRatio: CGFloat = 0.7
+
+    // MARK: - Pixel Sprite (Phase 8-1)
+    /// 16×20 픽셀 스프라이트의 점(pt) 단위 확대 배율. 화면에서 32×40pt로 보이도록 2배 확대.
+    /// physicsBody 크기(playerWidth/playerHeight)는 *그대로* — 게임 hitbox 회귀 0.
+    /// 시각만 커지므로 카메라 follow / 충돌 / 맵 경계 영향 0.
+    static let pixelSpriteScale: CGFloat = 2
+    /// 걷기 애니메이션의 step1↔step2 교차 주기 (초). 0.18 = 1초당 ~5.5회 교차 — *총총* 보행 톤.
+    /// 너무 짧으면 후드득 떨림, 너무 길면 *멈춤*처럼 보임. 픽셀 retro 게임 평균 보행 주기.
+    static let pixelWalkFrameInterval: TimeInterval = 0.18
 }

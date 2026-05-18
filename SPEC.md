@@ -1,197 +1,398 @@
-# Phase 7-5 — 시뮬레이터 핫픽스 (전환 시점 4종 버그)
+# Phase 8-1 — 픽셀 아트 인프라 + 5캐릭터 일괄 이식
 
 ## 개요
-Phase 7-1~7-4 도입 후 시뮬레이터에서 발견된 전환 시점 버그 4개를 한 sprint에 묶어 수정. 사용자 보고: "메뉴 이상 / 컷씬 강제 / 종료 화면 이상". 진단 결과 4개 root cause 식별.
+원본 웹 게임(game.js L462-630, L640-700)의 *16×20 문자열 배열 픽셀 데이터*와 *색 팔레트 매핑*을 Swift로 그대로 이식. PlayerNode가 단색 사각형 → 픽셀 아트 모자이크로 전환. 5캐릭터(kim/jung/geon/im/lee) × 4방향(down/up/left/right) × 3프레임(idle/step1/step2) 일괄 처리.
 
 ## 변경 유형
-**버그 수정** — 신규 기능 0, 오직 기존 버그 4건 수정.
+**비주얼** (시각 폴리싱 큰 단위)
 
 ## Sprint 범위 계약
 
-### 수정할 4개 버그
-
-**버그 1: 카드 절단** — 소형 화면(iPhone SE 640×480)에서 캐릭터 카드 5장이 잘림.
-- 원인: Phase 7-1이 `characterCardOffsetY` -160 → -200으로 옮겨 작은 화면 하단 초과.
-- 수정: 난이도 카드를 *titleLabel 아래/bestLabel 위* (상단)에 배치. characterCardOffsetY를 -160으로 되돌림.
-
-**버그 2: 인트로 컷씬 매번 강제 표시** — 사용자가 "강제로 떠서 이상" 보고.
-- 원인: Phase 7-3이 모든 didMove에서 무조건 컷씬 표시.
-- 수정: UserDefaults 플래그 `hasSeenIntroCutscene` 도입. 첫 게임 1회만 표시 후 영구 스킵. 사용자 결정: "최초 1회만 표시".
-
-**버그 3: 졸업장 좌표 어긋남** — 작은 화면에서 졸업장 위치 깨짐.
-- 원인: Phase 7-4가 anchor를 `frame.midX/midY`로 전달하는데 ResultScene은 `size`가 1024×768로 고정. 실제 frame과 불일치.
-- 수정: anchor를 `size.width/2, size.height/2`로 변경.
-
-**버그 4: ResultScene 터치 경합** — 졸업장이 떠 있는데 탭하면 TitleScene 동시 전환.
-- 원인: ResultScene.touchesBegan이 `isTransitioning`만 검사. 졸업장 존재 여부 미검사.
-- 수정: `children.contains(where: { $0.name == "diplomaOverlay" })` 시 early return.
-
 ### 허용
-1. `TitleScene.swift` — 난이도 카드 배치 변경 (상단 이동)
-2. `GameConfig.swift` — `difficultyCardOffsetY` 값 변경(-120 → +60), `characterCardOffsetY` 되돌림(-200 → -160), 신규 키 `hasSeenIntroCutscene` UserDefaults 키
-3. `GameScene.swift` — showIntroCutscene 진입 시 UserDefaults 플래그 검사 + 컷씬 dismiss 시 플래그 set
-4. `ResultScene.swift` — touchesBegan에 졸업장 가드 1줄 추가, presentDiploma anchor 계산 변경
-5. pbxproj 변경 0건 (신규 파일 0개)
+1. `Models/PixelSprite.swift` 신규 — 16×20 String 배열 + 정적 데이터 (5캐릭터 베이스 + 오버레이)
+2. `Models/PixelPalette.swift` 신규 — Character → [Character: UIColor] 색 매핑
+3. `Nodes/PixelSpriteRenderer.swift` 신규 — String 배열 + 팔레트 → SKTexture 변환. UIGraphicsBeginImageContextWithOptions + CGContext + UIImage + SKTexture(image:).
+4. `PlayerNode.swift` 수정 — SKSpriteNode `color:` 단색 모드 제거 + `texture:` 픽셀 렌더링. `apply(_ characterID:)`에서 캐릭터별 텍스처 갱신. update에서 dir/frame 갱신 시 텍스처 교체.
+5. `ColorTokens.swift` 확장 — 픽셀 팔레트 색 ~25개 (skin/hair/cross/pants/shoes/eyes/etc) 추가
+6. `GameConfig` 확장 — `pixelSpriteScale: CGFloat = 2` (16×20 → 32×40), 프레임 사이클 주기 등
+7. `pbxproj` 신규 3 파일 등록
 
 ### 금지
-- 캐릭터 픽셀 아트 도입 (다음 sprint)
-- 컷씬 시스템 자체 제거
-- 새 노드/매니저/리포지토리 추가
-- 게임 로직 (점수/난이도/적/F) 변경
-- 졸업 판정 로직 변경
+1. 수간호사(EnemyNode) 픽셀 — 다음 sprint
+2. 음표/F/StoneGuard 픽셀 디테일 — 다음 sprint
+3. 다크/라이트 테마 토글 — 별도 sprint
+4. 캐릭터 카드 아바타 픽셀 (CharacterCardNode) — 다음 sprint
+5. SKAction.animate(withTextures:) 자동 애니메이션 — 본 sprint는 PlayerNode가 *수동으로* dir/frame 결정 후 텍스처 교체
 
----
+### 판단 기준
+"이 변경 없으면 김간호가 픽셀 아트로 안 보이는가?" → YES만 허용.
+
+## 변경 범위
+
+### 신규
+- `Models/PixelSprite.swift` — 데이터 정의 (5캐릭터 ~500줄)
+- `Models/PixelPalette.swift` — 색 매핑 (5캐릭터 분기 ~100줄)
+- `Nodes/PixelSpriteRenderer.swift` — String → SKTexture 변환 (~80줄)
+
+### 수정
+- `Nodes/PlayerNode.swift` — SKSpriteNode texture 모드. dir/frame 인스턴스 프로퍼티 + setter에서 텍스처 교체. update에서 walking 시 step1/step2 토글.
+- `Config/ColorTokens.swift` — 픽셀 팔레트 색 추가 (`ganhoPixelSkin`, `ganhoPixelBunHair` 등 ~25개)
+- `Config/GameConfig.swift` — pixelSpriteScale, pixelWalkFrameInterval 등 신규 상수
+- `pbxproj` 신규 3 파일 등록
+
+### 회귀 0 영역 (절대 미접촉)
+- EnemyNode / StoneGuard / ProjectileNode / NoteNode / DPadNode / HUDNode
+- 자가 소멸 노드 11호 (Airplane~Diploma)
+- CharacterCardNode / DifficultyCardNode
+- ContactRouter / ScoreSystem / SpawnSystem / CameraShakeAction
+- BGMPlayer / AudioManager / HapticsManager
+- Repositories 4종 / Models (CharacterID, Difficulty, GameStats) / Protocols / Errors
+- GameScene / GameScene+Setup / TitleScene / ResultScene
+- iOS·tvOS·macOS 진입점
 
 ## 기능 상세
 
-### 기능 1: 카드 레이아웃 재배치 (버그 1 수정)
+### 기능 1: PixelSprite 데이터 구조
 
-**현재 레이아웃** (640pt 화면 기준):
-```
-midY +80 : titleLabel
-midY +20 : bestLabel
-midY -20 : playsLabel
-midY -80 : promptLabel
-midY -120: 난이도 카드 3장 (Phase 7-1 신규)
-midY -200: 캐릭터 카드 5장 (Phase 7-1이 -160 → -200으로 이동)
-```
-→ 640pt 화면 midY=320, -200 시 y=120pt. 카드 높이 60pt 절반 30pt 내려가면 *하단에서 90pt* — *경계 위태*.
-
-**수정 후 레이아웃**:
-```
-midY +120: titleLabel (조금 위로)
-midY +80 : 난이도 카드 3장 (titleLabel 아래)
-midY +20 : bestLabel
-midY -20 : playsLabel
-midY -80 : promptLabel
-midY -160: 캐릭터 카드 5장 (-160 되돌림, 원래 위치)
-```
-→ 카드가 *위·아래로 나뉘어* 상단 카드는 80pt, 하단 카드는 -160pt. *작은 화면 안전*.
-
-**변경 상수**:
-- `titleLabelOffsetY: CGFloat = +120` (기존 +80에서 위로)
-- `difficultyCardOffsetY: CGFloat = +80` (기존 -120에서 *상단*으로 이동)
-- `characterCardOffsetY: CGFloat = -160` (기존 -200 되돌림)
-
-TitleScene.swift의 `layoutLabels` 또는 `setupLabels`에서 `titleLabel.position.y`를 GameConfig 상수로 참조하도록 변경. 현재 하드코딩이면 GameConfig 상수 신설.
-
-### 기능 2: 컷씬 최초 1회만 (버그 2 수정)
-
-**UserDefaults 키 신설**:
 ```swift
-static let hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"
-```
+/// 원본 game.js L462-630 동형. 16×20 문자열 배열 + 캐릭터별 오버레이.
+enum PixelSprite {
+    /// 행 = 0..19, 각 행은 16 문자. 색 코드는 PixelPalette에서 해석.
+    typealias Frame = [String]
 
-**GameScene.didMove 분기**:
-```swift
-// 현재 (Phase 7-3):
-gameState = .cutscene
-showIntroCutscene()
+    /// 캐릭터 + 방향 + 프레임 → 16×20 문자열 배열
+    static func data(for characterID: CharacterID,
+                     direction: PixelDirection,
+                     frame: PixelFrame) -> Frame {
+        var base = baseFrame(direction: direction, frame: frame)
+        applyOverlay(&base, for: characterID, direction: direction)
+        return base
+    }
 
-// 수정 후 (Phase 7-5):
-let hasSeenIntro = UserDefaults.standard.bool(forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-if hasSeenIntro {
-    // 두 번째 이상 — 컷씬 스킵, 곧장 카운트다운
-    gameState = .countdown
-    showCountdown()
-} else {
-    // 최초 1회 — 컷씬 표시 + 플래그 set
-    gameState = .cutscene
-    showIntroCutscene()
+    private static func baseFrame(direction: PixelDirection, frame: PixelFrame) -> Frame {
+        // game.js L465-486 정면 base (kim 번머리 기본)
+        var base: Frame = [
+            "................", // 0
+            "......HHHH......", // 1 번 꼭대기
+            ".....HbbbbH.....", // 2 번 본체
+            "....HHbbbbHH....", // 3 번 밑단
+            "..HHHHHHHHHHHH..", // 4 헤어라인
+            "..HHSSSSSSSSHH..", // 5 잔머리+이마
+            "..SSEESSSSEESS..", // 6 눈
+            "..SSELSSSSELSS..", // 7 눈 하이라이트
+            "..RSSSSMMSSSSR..", // 8 볼+입
+            "..SSSSSSSSSSSS..", // 9
+            "...SSSSSSSSSS...", // 10 턱
+            "....WWWWWWWW....", // 11 어깨/상의
+            "...WWWWCCWWWW...", // 12 가슴 십자 상단
+            "...WWWCCCCWWW...", // 13 가슴 십자 중단
+            "....WWWWWWWW....", // 14 상의 밑단
+            "....PPPPPPPP....", // 15 하의 시작
+            "....PPP..PPP....", // 16
+            "....PPP..PPP....", // 17
+            "....BB....BB....", // 18 발
+            "....BB....BB...."  // 19
+        ]
+        // 방향 분기 (game.js L488-511)
+        switch direction {
+        case .up:
+            base[1] = "......HHHH......"
+            base[2] = ".....HbbbbH....."
+            base[3] = "....HHbbbbHH...."
+            base[4] = "..HHHHHHHHHHHH.."
+            base[5] = "..HHHHHHHHHHHH.."
+            base[6] = "..HHHHHHHHHHHH.."
+            base[7] = "..HHHHHHHHHHHH.."
+            base[8] = "..HHHHHHHHHHHH.."
+            base[9] = "..HHHHHHHHHHHH.."
+            base[10] = "...HHHHHHHHHH..."
+        case .left:
+            base[6] = "..SSSSSSSSEESS.."
+            base[7] = "..SSSSSSSSELSS.."
+            base[8] = "..SSSSSMMSSSSR.."
+        case .right:
+            base[6] = "..SSEESSSSSSSS.."
+            base[7] = "..SSELSSSSSSSS.."
+            base[8] = "..RSSSSMMSSSSS.."
+        case .down: break
+        }
+        // 프레임 분기 (game.js L513-520)
+        switch frame {
+        case .step1:
+            base[18] = "....BB...BBB...."
+            base[19] = "....BBB...BB...."
+        case .step2:
+            base[18] = "....BBB...BB...."
+            base[19] = "....BB...BBB...."
+        case .idle: break
+        }
+        return base
+    }
+
+    private static func applyOverlay(_ base: inout Frame,
+                                     for characterID: CharacterID,
+                                     direction: PixelDirection) {
+        switch characterID {
+        case .kim: break  // 기본 번머리, base 그대로
+        case .jung: applyJungOverlay(&base, direction: direction)
+        case .geon: applyGeonOverlay(&base, direction: direction)
+        case .im:   applyImOverlay(&base, direction: direction)
+        case .lee:  applyLeeOverlay(&base, direction: direction)
+        }
+    }
+
+    // applyJungOverlay/applyGeonOverlay/applyImOverlay/applyLeeOverlay는 game.js L526-627
+    // 정확히 동형 — 문자열 치환 패턴 그대로.
+}
+
+enum PixelDirection: String {
+    case down, up, left, right
+}
+
+enum PixelFrame {
+    case idle, step1, step2
 }
 ```
 
-**showIntroCutscene 안의 onDismiss 콜백**에서 플래그 set:
+**game.js L526-627의 jung/geon/im/lee 오버레이 4개 함수를 정확히 옮긴다.**
+
+### 기능 2: PixelPalette 색 매핑
+
 ```swift
-onDismiss: { [weak self] in
-    guard let self = self else { return }
-    UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-    self.gameState = .countdown
-    self.showCountdown()
+/// 문자 → UIColor 매핑. 공통 9키 + 캐릭터별 키 (kim:H/b, jung:J/j/K/k, geon:G/g/F/f/O/p, im:I/i/T, lee:Q/q/D).
+enum PixelPalette {
+    /// 공통 팔레트 (game.js L645-655)
+    private static let common: [Character: UIColor] = [
+        "S": .ganhoPixelSkin,        // #fbe0d0 피부
+        "W": .ganhoPixelUniform,     // #ffffff 흰옷
+        "C": .ganhoPixelCross,       // #c4847a 코럴 십자
+        "P": .ganhoPixelPants,       // #9ec9e8 하의
+        "B": .ganhoPixelShoes,       // #a85f56 신발
+        "E": .ganhoPixelEye,         // #2a1f25 눈동공
+        "L": .ganhoPixelEyeHighlight,// #ffffff 흰자
+        "R": .ganhoPixelCheek,       // #f5a8a0 볼터치
+        "M": .ganhoPixelMouth        // #c4847a 입
+    ]
+
+    static func palette(for characterID: CharacterID) -> [Character: UIColor] {
+        var merged = common
+        let charSpecific: [Character: UIColor]
+        switch characterID {
+        case .kim:
+            charSpecific = ["H": .ganhoPixelBunHair, "b": .ganhoPixelBunShadow]
+        case .jung:
+            charSpecific = [
+                "J": .ganhoPixelHairJung, "j": .ganhoPixelHairJungShadow,
+                "K": .ganhoPixelPickHead, "k": .ganhoPixelPickHandle
+            ]
+        case .geon:
+            charSpecific = [
+                "G": .ganhoPixelHairGeon, "g": .ganhoPixelHairGeonShadow,
+                "F": .ganhoPixelGlassFrame, "f": .ganhoPixelGlassLens,
+                "O": .ganhoPixelBookCover, "p": .ganhoPixelBookPage
+            ]
+        case .im:
+            charSpecific = [
+                "I": .ganhoPixelHairIm, "i": .ganhoPixelHairImShadow,
+                "T": .ganhoPixelCatEar
+            ]
+        case .lee:
+            // game.js L681-685: "L"(흰자)와 충돌 회피 위해 단발은 "Q"/"q"
+            charSpecific = [
+                "Q": .ganhoPixelHairLee, "q": .ganhoPixelHairLeeShadow,
+                "D": .ganhoPixelDogEar
+            ]
+        }
+        for (k, v) in charSpecific { merged[k] = v }
+        return merged
+    }
 }
 ```
 
-### 기능 3: 졸업장 좌표 보정 (버그 3 수정)
+### 기능 3: PixelSpriteRenderer
 
-**ResultScene.presentDiploma 변경**:
+String 배열 + 팔레트 → SKTexture 변환. UIGraphicsImageRenderer + CGContext + UIImage + SKTexture(image:).
+
 ```swift
-// 현재 (Phase 7-4):
-anchor: CGPoint(x: frame.midX, y: frame.midY),
-
-// 수정 후 (Phase 7-5):
-anchor: CGPoint(x: size.width / 2, y: size.height / 2),
-```
-
-**근거**: ResultScene이 `.resizeFill` 모드 + size를 1024×768 고정 생성. SKScene의 self size는 항상 (1024, 768)이지만 frame은 view 크기 동적. background SKSpriteNode가 sceneSize 기준이므로 anchor도 같은 기준이어야 정렬.
-
-### 기능 4: 졸업장 터치 가드 (버그 4 수정)
-
-**ResultScene.touchesBegan 변경**:
-```swift
-// 현재:
-override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    guard !isTransitioning else { return }
-    // ...기존 로직...
-}
-
-// 수정 후:
-override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    guard !isTransitioning else { return }
-    // 졸업장이 표시 중이면 TitleScene 전환을 막는다. 졸업장 자체가 isUserInteractionEnabled=true로
-    // 자기 터치를 흡수하므로 *이 경로*는 거의 도달 안 하지만, edge case 안전망.
-    if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
-    guard let view = self.view else { return }
-    // ...기존 TitleScene 전환 로직...
+enum PixelSpriteRenderer {
+    /// 16×20 문자열 배열을 픽셀 단위 UIImage → SKTexture로 변환.
+    /// filteringMode = .nearest로 픽셀 완벽 보존.
+    static func texture(from sprite: PixelSprite.Frame,
+                        palette: [Character: UIColor]) -> SKTexture {
+        let width = 16
+        let height = 20
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height))
+        let image = renderer.image { ctx in
+            for (row, line) in sprite.enumerated() where row < height {
+                for (col, char) in line.enumerated() where col < width {
+                    guard let color = palette[char] else { continue }  // "." 등은 투명
+                    color.setFill()
+                    ctx.fill(CGRect(x: col, y: row, width: 1, height: 1))
+                }
+            }
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .nearest  // 픽셀 perfect
+        return texture
+    }
 }
 ```
 
----
+### 기능 4: PlayerNode 픽셀 모드 전환
 
-## 변경 파일 목록
+```swift
+final class PlayerNode: SKSpriteNode {
+    private var pixelDirection: PixelDirection = .down
+    private var pixelFrame: PixelFrame = .idle
+    private var frameAccumulator: TimeInterval = 0
+    private var currentCharacterID: CharacterID = .kim
 
-1. `Config/GameConfig.swift`:
-   - `titleLabelOffsetY: CGFloat = 120` 신설
-   - `difficultyCardOffsetY` 값 -120 → +80
-   - `characterCardOffsetY` 값 -200 → -160
-   - `hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"` 신설
+    // 기존 init은 size + color(.ganhoMint) 사용
+    // 신규 init은 texture 초기화
+    override init() {
+        let texture = PixelSpriteRenderer.texture(
+            from: PixelSprite.data(for: .kim, direction: .down, frame: .idle),
+            palette: PixelPalette.palette(for: .kim)
+        )
+        super.init(texture: texture, color: .clear,
+                   size: CGSize(width: 16 * GameConfig.pixelSpriteScale,
+                                height: 20 * GameConfig.pixelSpriteScale))
+        // physicsBody 등 기존 설정 유지...
+    }
 
-2. `Scenes/TitleScene.swift`:
-   - titleLabel.position.y가 하드코딩이면 GameConfig.titleLabelOffsetY 참조로 변경 (또는 layout 메서드 안에서 frame.midY + offset)
-   - 다른 라벨 위치 변경 0 — 난이도 카드와 캐릭터 카드의 offsetY *상수만* 바뀌어서 자연 재배치
+    func apply(_ characterID: CharacterID) {
+        currentCharacterID = characterID
+        refreshTexture()
+        // 기존 speedMultiplier 적용은 별도 메서드 유지
+    }
 
-3. `GameScene.swift`:
-   - didMove 끝부분 if/else 분기 (hasSeenIntro 검사)
-   - showIntroCutscene 안 onDismiss 클로저에 UserDefaults set 추가
+    /// update에서 매 프레임 호출. 이동 방향 변경 시 dir 갱신 + 텍스처 교체.
+    func updatePixelDirection(_ velocity: CGVector) {
+        let newDir: PixelDirection
+        if abs(velocity.dx) > abs(velocity.dy) {
+            newDir = velocity.dx >= 0 ? .right : .left
+        } else if abs(velocity.dy) > 0.1 {
+            newDir = velocity.dy >= 0 ? .up : .down
+        } else {
+            // 정지 — 마지막 방향 유지
+            return
+        }
+        if newDir != pixelDirection {
+            pixelDirection = newDir
+            refreshTexture()
+        }
+    }
 
-4. `Scenes/ResultScene.swift`:
-   - presentDiploma의 anchor 변경
-   - touchesBegan에 졸업장 가드 1줄 추가
+    /// update에서 매 프레임 호출. 걷는 중일 때 step1/step2 교차.
+    func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
+        guard isMoving else {
+            if pixelFrame != .idle {
+                pixelFrame = .idle
+                refreshTexture()
+            }
+            return
+        }
+        frameAccumulator += deltaTime
+        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
+            frameAccumulator = 0
+            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
+            refreshTexture()
+        }
+    }
 
-5. **신규 파일 0개**, **pbxproj 변경 0건**.
+    private func refreshTexture() {
+        texture = PixelSpriteRenderer.texture(
+            from: PixelSprite.data(for: currentCharacterID,
+                                    direction: pixelDirection,
+                                    frame: pixelFrame),
+            palette: PixelPalette.palette(for: currentCharacterID)
+        )
+    }
+}
+```
 
----
+**GameScene.update**에서 PlayerNode에 velocity + dt 전달하면 자동 갱신 — *기존 GameScene 코드 변경 0*. PlayerNode가 자기 update 메서드 안에서 처리.
+
+### 기능 5: ColorTokens 픽셀 팔레트 ~25개 신설
+
+`Config/ColorTokens.swift`에 `// MARK: - Pixel Palette (Phase 8-1)` 섹션:
+
+```swift
+static let ganhoPixelSkin = UIColor(hex: "#fbe0d0")
+static let ganhoPixelUniform = UIColor(hex: "#ffffff")
+static let ganhoPixelCross = UIColor(hex: "#c4847a")
+static let ganhoPixelPants = UIColor(hex: "#9ec9e8")
+static let ganhoPixelShoes = UIColor(hex: "#a85f56")
+static let ganhoPixelEye = UIColor(hex: "#2a1f25")
+static let ganhoPixelEyeHighlight = UIColor(hex: "#ffffff")
+static let ganhoPixelCheek = UIColor(hex: "#f5a8a0")
+static let ganhoPixelMouth = UIColor(hex: "#c4847a")
+// kim
+static let ganhoPixelBunHair = UIColor(hex: "#3a2a20")
+static let ganhoPixelBunShadow = UIColor(hex: "#5a4230")
+// jung
+static let ganhoPixelHairJung = UIColor(hex: "#2a1a12")
+static let ganhoPixelHairJungShadow = UIColor(hex: "#180c08")
+static let ganhoPixelPickHead = UIColor(hex: "#9aa0a8")
+static let ganhoPixelPickHandle = UIColor(hex: "#7a4f2a")
+// geon
+static let ganhoPixelHairGeon = UIColor(hex: "#30221c")
+static let ganhoPixelHairGeonShadow = UIColor(hex: "#1a0f0a")
+static let ganhoPixelGlassFrame = UIColor(hex: "#1f1a1f")
+static let ganhoPixelGlassLens = UIColor(hex: "#e8f0f8")
+static let ganhoPixelBookCover = UIColor(hex: "#8a5a32")
+static let ganhoPixelBookPage = UIColor(hex: "#f6ebd9")
+// im
+static let ganhoPixelHairIm = UIColor(hex: "#3a2618")
+static let ganhoPixelHairImShadow = UIColor(hex: "#22150c")
+static let ganhoPixelCatEar = UIColor(hex: "#ff9db0")
+// lee
+static let ganhoPixelHairLee = UIColor(hex: "#5a3a22")
+static let ganhoPixelHairLeeShadow = UIColor(hex: "#3a2414")
+static let ganhoPixelDogEar = UIColor(hex: "#b07a58")
+```
+
+**UIColor(hex:) 확장 추가 필요** — 기존 ColorTokens에 있는지 확인. 없으면 `extension UIColor { init(hex: String) }` 헬퍼 추가.
+
+### 기능 6: GameConfig 픽셀 상수
+
+```swift
+// MARK: - Pixel Sprite (Phase 8-1)
+static let pixelSpriteScale: CGFloat = 2  // 16×20 → 32×40 (Phase 5 PlayerNode size 16×20과 비교해 2배)
+static let pixelWalkFrameInterval: TimeInterval = 0.18  // step1↔step2 교차 주기
+```
+
+기존 `playerSize` (16×20) 그대로 유지. PlayerNode size를 GameConfig.pixelSpriteScale × playerSize로 갱신할지 결정. *현재 16×20pt 그대로* 두면 너무 작아 보일 수 있음 — pixelSpriteScale로 2배 확대해 32×40pt 화면 픽셀.
+
+physicsBody 크기는 *원래 hitbox 크기 그대로* 유지 (게임 로직 회귀 0).
 
 ## 회귀 0 자연 차단
 
-1. **카드 레이아웃 — `characterCardOffsetY` 되돌림** = 작은 화면 안전 + Phase 5 캐릭터 카드 동작 그대로 (-160은 Phase 5 원래 값).
-2. **컷씬 스킵 — UserDefaults bool 기본 false** = 첫 실행 사용자(키 없음)에게는 *컷씬 표시*로 동작. 이후 영원히 스킵. 키 자체가 새 키라 기존 키와 충돌 0.
-3. **졸업장 좌표 — size.width/2** = sceneSize와 동일 기준. background가 sceneSize 크기이므로 정렬 자동.
-4. **터치 가드 — 졸업장 노드 name 검사** = 졸업장 없을 때 children에 해당 노드 0 → early return 발화 0. 기존 동작 그대로.
-
----
+1. **PlayerNode init 시그니처 호환** — 외부 호출 변경 0 (생성자만 내부 변경)
+2. **apply(_ characterID:) 그대로** — 5-3의 캐릭터 분기 호출 호환
+3. **physicsBody / velocity / collisionBitMask 미접촉** — 게임 로직 0 영향
+4. **EnemyNode / StoneGuard 단색 유지** — 본 sprint 범위는 PlayerNode만
+5. **GameScene.update 호출 패턴 보존** — PlayerNode가 자기 update에서 픽셀 처리
+6. **scale 적용은 size 인자에서 1회만** — 매 프레임 setScale 0회
 
 ## 주의사항
 
-1. **TitleScene 레이아웃 픽셀 검증** — frame.midY + offset 합산 결과가 *작은 화면(640pt)*에서도 화면 안에 들어가는지. titleLabel +120 → 화면 상단 -80pt 위치 (640pt 화면 위쪽 200pt에서 안전). 캐릭터 카드 -160 → 화면 중앙 -160 = 화면 하단 -160 (640pt 화면 80pt 위치). 안전.
+1. **이미지 좌표계 vs SpriteKit 좌표계** — UIGraphicsImageRenderer는 *y가 아래로 증가*, SpriteKit은 *y가 위로 증가*. SKTexture(image:)가 자동 처리하지만 *행 0이 위쪽인지 아래쪽인지* 확인 필요. 원본 게임에서 행 0이 *맨 위* (번 꼭대기). SKTexture가 UIImage를 *그대로* 표시하므로 SpriteKit에서도 행 0이 *위쪽*에 보이도록 자동 처리. 단, 만약 *상하 뒤집힘* 증상 발생하면 UIImage 생성 시 `ctx.translateBy + scaleBy(1, -1)` 처리 필요.
 
-2. **UserDefaults bool 기본값** — Apple 보장: 키 없으면 false 반환. 최초 사용자 자동으로 hasSeenIntro = false → 컷씬 표시 → onDismiss에서 true set → 이후 영원 스킵.
+2. **filteringMode .nearest 필수** — 픽셀 perfect 보존. 기본값 .linear는 *번지는* 효과.
 
-3. **showIntroCutscene 안에서 UserDefaults set** — `[weak self]` 캡처 후에도 UserDefaults.standard 접근은 self 무관. self 해제 시에도 플래그는 set됨(부수 효과 안전).
+3. **텍스처 재생성 빈도** — refreshTexture()는 *방향/프레임 변경 시에만* 호출. 매 update에서 *조건 확인 후* 변경 시에만 재생성. step1↔step2 교차는 0.18초마다 1회.
 
-4. **isUserInteractionEnabled 자동 흡수** — DiplomaOverlayNode가 *자식 노드 자기* 터치 흡수. children 가드는 *edge case 안전망*이지 핵심 차단은 노드 자체 isUserInteractionEnabled.
+4. **메모리 관리** — SKTexture는 ARC 자동 정리. PlayerNode가 매번 texture 프로퍼티 갱신 시 이전 텍스처는 자동 해제. 누적 0.
 
-5. **시뮬레이터 끊김** — 본 sprint *범위 외*. SpriteKit + PhysicsBody 다수 = 시뮬레이터 한계. 실기에서는 보통 60fps. 별도 sprint에서 프로파일링 필요 시 진행.
+5. **5캐릭터 오버레이 정확성** — game.js L526-627의 4개 오버레이 함수를 *byte-equal* 변환. 한 문자라도 오차 시 픽셀 깨짐. 특히 `base[N].substring(0, 14) + 'XX'` 패턴은 Swift `String.prefix(14) + "XX"` 또는 `String(base[N].prefix(14)) + "XX"`.
 
-6. **GameConfig 상수 변경 — 정수 값만** = 함수/타입 시그니처 변경 0. 컴파일 영향 0.
+6. **CharacterID.rawValue 매핑** — Swift CharacterID enum과 game.js의 'kim'/'jung'/'geon'/'im'/'lee'가 일치 확인. 이미 일치(Phase 5에서 정의).
 
-7. **TitleScene titleLabel offsetY가 하드코딩이면** GameConfig 신규 상수 도입. 그 외 라벨(bestLabel/playsLabel/promptLabel) 위치는 변경 0 — 난이도 카드를 +80에 두면 *bestLabel(+20)과 60pt 간격* 안전.
+7. **UIColor(hex:) 확장** — 기존 ColorTokens.swift에 hex init 헬퍼 있으면 재사용. 없으면 새로 추가.
+
+8. **physicsBody 크기 보존** — 픽셀 스프라이트가 시각적으로 32×40이 되어도 physicsBody는 원래 14×14 또는 16×16 그대로. 게임 hitbox 변경 0.
+
+9. **layout & camera follow** — PlayerNode 크기 변경이 카메라 follow / 충돌 / 맵 경계에 영향 0인지 확인. PlayerNode position은 *중심*이므로 size 변경 시 *시각만* 커짐, 위치 좌표 동일.
+
+10. **GameScene.update에서 PlayerNode.tickWalkFrame 호출 추가 필요** — 자동 갱신을 위해 매 update에서 PlayerNode에 dt 전달. 추가 1줄.

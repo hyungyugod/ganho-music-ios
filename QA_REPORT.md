@@ -1,156 +1,291 @@
-# QA 검수 보고서 — Phase 7-5 시뮬레이터 핫픽스 (4건 버그)
+# QA 검수 보고서 — Phase 8-1 (픽셀 아트 인프라 + 5캐릭터 일괄 이식)
 
-## SPEC 기능 검증
+## 0. 사전 점검
 
-- **[PASS] 버그 1 카드 절단 — 값 변경**: `GameConfig.swift:124` titleLabelOffsetY = 120 / `:471` difficultyCardOffsetY = +80 / `:478` characterCardOffsetY = -160 정확히 적용. 640pt 화면 좌표 산술 검증 PASS (아래 §실제 사용자 시나리오 §1).
-- **[PASS] 버그 2 컷씬 최초 1회 — UserDefaults 분기**: `GameConfig.swift:573` 신규 키 `hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"` 추가. `GameScene.swift:158-165` didMove 끝 if/else 분기 (hasSeenIntro 검사). `GameScene.swift:195` onDismiss 안 `UserDefaults.standard.set(true, forKey: ...)` 1줄 추가 (guard let self 뒤 / gameState 전환 전 — 이상적 위치).
-- **[PASS] 버그 3 졸업장 좌표 — anchor 변경**: `ResultScene.swift:318` anchor = `CGPoint(x: size.width / 2, y: size.height / 2)`. sceneSize 단일 기준으로 통일.
-- **[PASS] 버그 4 졸업장 터치 가드**: `ResultScene.swift:228` `if children.contains(where: { $0.name == "diplomaOverlay" }) { return }` 1줄 추가. 가드 위치 = `guard !isTransitioning else { return }` 바로 다음 (이상적). `DiplomaOverlayNode.swift:80`에서 `name = "diplomaOverlay"` 부착 — 가드 문자열과 정확 일치.
+| 항목 | 결과 |
+|---|---|
+| SPEC.md 존재 / 읽음 | OK (489줄) |
+| SELF_CHECK.md 존재 / 읽음 | OK (399줄) |
+| docs/swift-rules.md 읽음 | OK |
+| 원본 단일 진실 원천 game.js L462-700 정독 | OK |
+| Generator 산출물 git status | M 5 / 신규 3 / 회귀 0 영역 0줄 |
 
-## 빌드 검증
+---
 
-- 결과: **BUILD SUCCEEDED**
+## 1. SPEC 기능 검증
+
+| # | 기능 | 결과 | 비고 |
+|---|---|---|---|
+| 1 | PixelSprite 데이터 구조 + base + 방향/프레임 분기 | PASS | `Models/PixelSprite.swift` 273줄 |
+| 2 | PixelPalette 공통 9키 + 캐릭터 5종 charMap | PASS | `Models/PixelPalette.swift` 82줄 |
+| 3 | PixelSpriteRenderer (UIGraphicsImageRenderer + filteringMode .nearest) | PASS | `Nodes/PixelSpriteRenderer.swift` 45줄 |
+| 4 | PlayerNode texture 모드 + apply/updatePixelDirection/tickWalkFrame | PASS | `Nodes/PlayerNode.swift` 183줄 |
+| 5 | ColorTokens 픽셀 팔레트 27개 + UIColor(hex:) | PASS | `Config/ColorTokens.swift` L48-139 |
+| 6 | GameConfig.pixelSpriteScale=2 + pixelWalkFrameInterval=0.18 | PASS | `Config/GameConfig.swift` L632-639 |
+| 7 | GameScene.update 7줄 추가 (playing 가드 안쪽) | PASS | `GameScene.swift` L341-347 |
+| 8 | pbxproj 3 신규 파일 등록 | PASS | git diff +12줄 |
+
+---
+
+## 2. 빌드 검증
+
 - 명령: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build`
-- 경고: 0건 (warning/error grep — AppIntents 제외 → 0줄)
-- 비고: 처음 시도한 'iPhone 15' 시뮬레이터가 환경에 부재 → 'iPhone 17'로 재시도 후 성공. 코드 변경 무관(시뮬레이터 환경 차이).
+- **결과: BUILD SUCCEEDED**
+- 컴파일 에러: 0건
+- 컴파일 경고: 0건 (`grep -E "warning:|error:"` 결과 — `AppIntents.framework dependency` 표준 metadata 안내 1건은 사용자 코드 무관)
+- CodeSign: 성공
+- Validate: 성공
 
-## 회귀 0 영역 검증
+---
 
-`git diff --stat`로 다음 경로에 대해 0줄 변경 확인:
+## 3. 원본 game.js와의 byte-equal 정합성 (행 단위 직접 대조)
 
-```
-TitleScene.swift / Nodes/* / Systems/* / Managers/* / Repositories/* /
-Models/* / ColorTokens.swift / PhysicsCategory.swift / GameState.swift /
-GameScene+Setup.swift / GanhoMusic iOS-tvOS-macOS/ / GanhoMusic.xcodeproj/
-```
+### 3-1. baseFrame — 정면 base (game.js L465-486)
 
-→ **(빈 출력, 0줄 변경)** — 자가 소멸 노드 11호(`CutsceneOverlayNode` / `DiplomaOverlayNode` 포함) 미접촉, 시스템·매니저·리포지토리·모델 미접촉, pbxproj 미접촉(신규 파일 0). TitleScene은 이미 `GameConfig.titleLabelOffsetY` / `difficultyCardOffsetY` / `characterCardOffsetY` 를 line 98/187/148에서 참조 중 → *값만 바뀌어 자동 재배치*, 코드 변경 0.
+20행 모두 byte-equal 확인:
 
-## 정적 검사
+| 행 | JS L465-486 | Swift PixelSprite.swift:41-62 |
+|---|---|---|
+| 1 | `'......HHHH......'` | `"......HHHH......"` ✓ |
+| 5 | `'..HHSSSSSSSSHH..'` | `"..HHSSSSSSSSHH.."` ✓ |
+| 6 | `'..SSEESSSSEESS..'` | `"..SSEESSSSEESS.."` ✓ |
+| 8 | `'..RSSSSMMSSSSR..'` | `"..RSSSSMMSSSSR.."` ✓ |
+| 13 | `'...WWWCCCCWWW...'` | `"...WWWCCCCWWW..."` ✓ |
+| 18 | `'....BB....BB....'` | `"....BB....BB...."` ✓ |
 
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| 강제 언래핑(`!`) | 0건 | 추가된 모든 라인 grep 결과 0. `UserDefaults.standard.bool/set`은 옵셔널 미반환 |
-| `Timer.` 사용 | 0건 | UserDefaults 분기는 동기 호출 |
-| `DispatchQueue` 사용 | 0건 | 비동기 처리 없음 |
-| `[weak self]` 캡처 | 준수 | onDismiss 기존 캡처 유지 + 신규 set 1줄 self 무관(부수효과 안전) |
-| guard let | 준수 | 기존 guard let self 유지 |
-| MARK 섹션 | 준수 | 신규 코드 모두 기존 MARK 안에 배치 |
-| 매직 넘버 | 0건 신규 | `"diplomaOverlay"` 는 노드 name 식별자(자체 정의된 의미체), `size.width / 2`는 SPEC 명시 좌표 |
-| GameConfig 상수화 | 준수 | UserDefaults 키, 3개 offset 모두 GameConfig에 정의 후 호출부 참조 |
+### 3-2. 방향 분기 (game.js L488-511)
 
-## 검수 결과 요약
+| 분기 | 확인 |
+|---|---|
+| `up` base[4..9] 모두 `..HHHHHHHHHHHH..` | PASS — Swift L71-76 일치 |
+| `up` base[10] `...HHHHHHHHHH...` | PASS — Swift L77 일치 |
+| `left` base[6] `..SSSSSSSSEESS..` | PASS — Swift L80 일치 |
+| `right` base[8] `..RSSSSMMSSSSS..` | PASS — Swift L87 일치 |
+
+### 3-3. 프레임 분기 (game.js L513-520)
+
+| 프레임 | JS | Swift |
+|---|---|---|
+| step1 base[18] | `'....BB...BBB....'` | `"....BB...BBB...."` ✓ |
+| step1 base[19] | `'....BBB...BB....'` | `"....BBB...BB...."` ✓ |
+| step2 base[18] | `'....BBB...BB....'` | `"....BBB...BB...."` ✓ |
+| step2 base[19] | `'....BB...BBB....'` | `"....BB...BBB...."` ✓ |
+
+### 3-4. jung 오버레이 (game.js L526-551)
+
+| 행 | JS | Swift PixelSprite.swift:131-153 |
+|---|---|---|
+| base[2] | `'....JJJJJJJJ....'` | `"....JJJJJJJJ...."` ✓ |
+| base[5] | `'..jjSSSSSSSSjj..'` | `"..jjSSSSSSSSjj.."` ✓ |
+| up base[10] | `'...JJJJJJJJJJ...'` | `"...JJJJJJJJJJ..."` ✓ |
+| base[11] | `'...WWWWWWWWWW...'` | `"...WWWWWWWWWW..."` ✓ |
+| 곡괭이 base[10] `+ 'KK'` | `substring(0, 14) + 'KK'` | `String(...prefix(14)) + "KK"` ✓ |
+| 곡괭이 base[11] `+ 'kK'` | ditto | ditto ✓ |
+| 곡괭이 base[12..15] `+ '.K'` | ditto | ditto ✓ |
+
+길이 invariant: `..." (14) + "KK"` = 16 — 유지됨.
+
+### 3-5. geon 오버레이 (game.js L552-581)
+
+| 행 | JS | Swift PixelSprite.swift:159-189 |
+|---|---|---|
+| base[2] | `'.....GGGGGGGG...'` | `".....GGGGGGGG..."` ✓ |
+| base[5] | `'..GGSSSSSSSSGG..'` | `"..GGSSSSSSSSGG.."` ✓ |
+| down 안경 base[6] | `'..SSFFSSSSFFSS..'` | `"..SSFFSSSSFFSS.."` ✓ |
+| down 렌즈 base[7] | `'..SSFfSSSSfFSS..'` | `"..SSFfSSSSfFSS.."` ✓ |
+| left base[6] | `'..SSSSSSSSFFSS..'` | `"..SSSSSSSSFFSS.."` ✓ |
+| right base[6] | `'..SSFFSSSSSSSS..'` | `"..SSFFSSSSSSSS.."` ✓ |
+| 책 base[12] `+ 'OO'` | `substring(0, 14) + 'OO'` | `String(...prefix(14)) + "OO"` ✓ |
+| 책 base[13] `+ 'Op'` | ditto | ditto ✓ |
+| 책 base[14] `+ 'OO'` | ditto | ditto ✓ |
+
+up 분기에서 geon은 안경/책 *없이* 머리만 — JS L559-577의 else 분기 안에 안경 처리가 있고, 책은 분기 *밖*에서 무조건 적용. Swift L186-189에서도 if-else 블록 *밖*에서 책을 무조건 적용 → JS 흐름과 정합.
+
+### 3-6. im 오버레이 (game.js L582-601)
+
+| 행 | JS | Swift PixelSprite.swift:196-214 |
+|---|---|---|
+| base[1] | `'....T......T....'` | `"....T......T...."` ✓ |
+| base[2] | `'...TT.IIII.TT...'` | `"...TT.IIII.TT..."` ✓ |
+| base[5] | `'..IISSSSSSSSII..'` | `"..IISSSSSSSSII.."` ✓ |
+| base[11] chain replace | `'II..WWWWWWWW..II'.replace('II..','iI..').replace('..II','..Ii')` | `"II..WWWWWWWW..II".replacingOccurrences(of:"II..",with:"iI..").replacingOccurrences(of:"..II",with:"..Ii")` ✓ |
+| base[12] | `'iI.WWWWCCWWWW.Ii'` | `"iI.WWWWCCWWWW.Ii"` ✓ |
+| base[13] | `'iI.WWWCCCCWWW.Ii'` | `"iI.WWWCCCCWWW.Ii"` ✓ |
+| base[14] | `'iI..WWWWWWWW..Ii'` | `"iI..WWWWWWWW..Ii"` ✓ |
+| up base[10] | `'..IIIIIIIIIIII..'` | `"..IIIIIIIIIIII.."` ✓ (kim의 up base[10]=`...HHHHHHHHHH...`와 다른 *왼쪽 끝까지* 패턴 — JS와 정확 일치) |
+
+체인 replace 결과 검산: `II..WWWWWWWW..II` → 첫 replace로 `iI..` 치환 → `iI..WWWWWWWW..II` → 두 번째 replace로 `..Ii` 치환 → `iI..WWWWWWWW..Ii` (16자). JS `String.prototype.replace`의 첫 매치만 치환하는 동작과 Swift `replacingOccurrences`의 전체 치환 동작 *결과상 동일* — 각 패턴이 문자열에 1번만 등장하므로 무관.
+
+### 3-7. lee 오버레이 (game.js L602-627)
+
+| 행 | JS | Swift PixelSprite.swift:221-242 |
+|---|---|---|
+| base[2] | `'.....QQQQQQQQ...'` | `".....QQQQQQQQ..."` ✓ |
+| base[5] | `'..QQSSSSSSSSQQ..'` | `"..QQSSSSSSSSQQ.."` ✓ |
+| up base[10] | `'...QQQQQQQQQQ...'` | `"...QQQQQQQQQQ..."` ✓ |
+| overlayEdge `'qq'+row.substring(2,14)+'qq'` | JS substring(2,14) = index 2..13 = 12자 | Swift `chars[2..<14]` = 12자 ✓ → `"qq" + middle + "qq"` = 16자 ✓ |
+| 강아지귀 `'...DD'+base[2].substring(5,11)+'DD...'` | substring(5,11) = 6자 | `chars[5..<11]` = 6자 ✓ → `"...DD" + middle + "DD..."` = 5+6+5=16자 ✓ |
+
+`overlayEdge` Swift 구현 (PixelSprite.swift:248-253)과 `leeSubstring5to11` (L256-259) 모두 JS substring 의미와 *byte-equal*. 두 헬퍼가 16자 invariant를 정확히 보존.
+
+### 3-8. palette hex (game.js L645-690)
+
+`grep ganhoPixel` 결과 27개 색 토큰 모두 hex byte-equal:
+
+| 키 | 원본 hex | Swift |
+|---|---|---|
+| S | `#fbe0d0` | L54 `"#fbe0d0"` ✓ |
+| W | `#ffffff` | L56 ✓ |
+| C | `#c4847a` | L58 ✓ |
+| P | `#9ec9e8` | L60 ✓ |
+| B | `#a85f56` | L62 ✓ |
+| E | `#2a1f25` | L64 ✓ |
+| L | `#ffffff` | L66 ✓ |
+| R | `#f5a8a0` | L68 ✓ |
+| M | `#c4847a` | L70 ✓ |
+| H/b | `#3a2a20` / `#5a4230` | L74/76 ✓ |
+| J/j | `#2a1a12` / `#180c08` | L80/82 ✓ |
+| K/k | `#9aa0a8` / `#7a4f2a` | L84/86 ✓ |
+| G/g | `#30221c` / `#1a0f0a` | L90/92 ✓ |
+| F/f | `#1f1a1f` / `#e8f0f8` | L94/96 ✓ |
+| O/p | `#8a5a32` / `#f6ebd9` | L98/100 ✓ |
+| I/i | `#3a2618` / `#22150c` | L104/106 ✓ |
+| T | `#ff9db0` | L108 ✓ |
+| Q/q | `#5a3a22` / `#3a2414` | L112/114 ✓ |
+| D | `#b07a58` | L116 ✓ |
+
+총 **27개 토큰 100% byte-equal**.
+
+---
+
+## 4. 회귀 0 영역 검증
+
+`git diff HEAD --` 결과:
+
+| 영역 | 결과 |
+|---|---|
+| EnemyNode / StoneGuard / Projectile / Note / DPad / HUD | 0줄 |
+| 자가 소멸 노드 11호 (Airplane/Airforce/Bomb/HitFlash/Sparkle/Countdown/ComboBreak/ComboPopup/Cutscene/Diploma/ScorePopup) | 0줄 |
+| Character/Difficulty Card | 0줄 |
+| Systems (ContactRouter / SpawnSystem / ScoreSystem / CameraShakeAction) | 0줄 |
+| Scenes (TitleScene / ResultScene) / GameScene+Setup | 0줄 |
+| Models (CharacterID / Difficulty / GameStats) | 0줄 |
+| Protocols / Repositories 6종 / Managers 3종 | 0줄 |
+| iOS / tvOS / macOS 진입점 | 0줄 |
+
+위 18개 path 일괄 diff `wc -l` → **0**. SPEC 회귀 0 계약 완전 준수.
+
+GameScene.swift diff은 SPEC §"GameScene update 1줄"이 명시한 7줄(주석 포함) 추가 — playing 가드 안쪽 L341-347. 그 외 변경 0.
+
+---
+
+## 5. 정적 검수 결과 요약
 
 | 등급 | 건수 |
 |---|---|
-| P0 치명 | **0건** |
-| P1 중요 | **0건** |
-| P2 권장 | **0건** |
+| P0 치명 | 0건 |
+| P1 중요 | 0건 |
+| P2 권장 | 2건 (지적사항 §7) |
+
+### P0 — 치명적 이슈: 없음
+
+- 강제 언래핑(`!`): 신규 4 파일 + 수정 3 파일 모두 0건 (단, `fatalError` 안의 `init(coder:)`는 SKSpriteNode 표준 패턴이라 제외)
+- `Timer.` / `DispatchQueue.`: 0건
+- 빌드 에러: 0건
+- 크래시 위험 패턴: 없음 (옵셔널 dict lookup은 `??`/`guard let`로 모두 보호)
+- 물리 충돌 델리게이트 내 노드 즉시 삭제: N/A (본 sprint 미접촉)
+
+### P1 — 중요 이슈: 없음
+
+- 매직 넘버: 없음 (16/20 그리드는 `spriteWidth`/`spriteHeight` private 상수로 분리, 0.18은 `pixelWalkFrameInterval`, 2배 스케일은 `pixelSpriteScale`)
+- guard let / if let / ?? 옵셔널 처리: 준수 (`player.physicsBody?.velocity ?? .zero`, `palette[char]`의 `guard let color`)
+- 단일 책임 원칙: 함수 평균 10~20줄, 헬퍼(`overlayEdge`/`leeSubstring5to11`)로 분리
+- MARK 섹션 구분: 신규 4 파일 모두 `// MARK: - …` 적극 사용
+- weak self: 신규 코드에 closure 캡처 없음 (UIGraphicsImageRenderer의 ctx 블록에 self 미사용)
+- SpriteKit 패턴: didMove(to:) 미접촉, dt 기반 (`tickWalkFrame(deltaTime:)`), `filteringMode = .nearest` 명시
+
+### P2 — 권장 사항
+
+#### 1. GameScene.swift 파일 크기 (594줄)
+- **위반 규칙**: spritekit-rules.md §11 — GameScene.swift 300줄 미만 유지 권고.
+- **현재**: 594줄. *본 sprint와 무관* — Phase 6/7 누적 결과. 본 sprint는 7줄만 추가했음.
+- **수정 제안**: 다음 sprint(Phase 8-2 등)에서 GameScene+Combat, GameScene+Cutscene 같은 extension 파일로 분리 권장. 본 sprint의 채점에는 *감점 반영하지 않음* — 회귀 0 영역의 누적 상태이며 본 sprint 책임 아님.
+
+#### 2. `if direction == .up` vs switch 일관성
+- **파일**: `Models/PixelSprite.swift:136, 164, 201, 226`
+- **위반 규칙**: 의도된 스타일 — JS의 `if (dir === 'up')` 패턴 byte-equal 보존을 위한 선택. switch와 if의 혼용이 *어색하지 않은가* 검토했으나, JS와의 1:1 매핑성이 더 우선이라는 SPEC §주의사항 5와 정합.
+- **수정 제안**: 변경 불필요. 현재 형태가 game.js와의 시각적 1:1 대응에 *더 안전*. P2 정보 표시 목적으로만 기록.
 
 ---
 
-## 실제 사용자 시나리오 — 4건 버그 차단 검증
+## 6. 채점
 
-### 시나리오 1: 작은 화면(iPhone SE 640×480 또는 640pt 높이 가로화면) — 버그 1 차단
+### 평가 기준 (가중 점수 4축)
 
-**좌표 산술** (midY = 320, 화면 [0, 640]):
+| 영역 | 비중 | 점수 | 가중치 적용 |
+|---|---|---|---|
+| Swift 패턴 일관성 | 35% | 10/10 | 3.50 |
+| 게임 로직 완성도 | 30% | 10/10 | 3.00 |
+| 성능 & 안정성 | 20% | 10/10 | 2.00 |
+| 기능 완성도 | 15% | 10/10 | 1.50 |
+| **가중 점수** |  |  | **10.0/10** |
 
-| 요소 | offsetY | 절대 y | 노드 높이/절반 | 상단/하단 |
-|------|---------|--------|---------------|---------|
-| titleLabel | +120 | 440 | (라벨) | top 여백 200pt ✓ |
-| difficultyCard 행 | +80 | 400 | 56/28 | top=428, bot=372 ✓ |
-| bestLabel | +20 | 340 | (라벨) | ✓ |
-| playsLabel | -20 | 300 | (라벨) | ✓ |
-| promptLabel | -80 | 240 | (라벨) | ✓ |
-| characterCard 행 | -160 | 160 | 60/30 | top=190, bot=130 (하단 130pt 여유) ✓ |
+### 점수 근거
 
-- difficultyCard ↔ titleLabel 간격: 440 - 428 = **12pt** (안전 ≥ 8pt)
-- difficultyCard ↔ bestLabel 간격: 372 - 340 = **32pt** (안전)
-- promptLabel ↔ characterCard 간격: 240 - 190 = **50pt** (안전)
-- characterCard ↔ 화면 하단: 130 - 0 = **130pt** (안전, 절단 회피)
+#### Swift 패턴 일관성: 10/10
+- 강제 언래핑 0건, Timer/DispatchQueue 0건, 매직 넘버 0건
+- guard let / ?? / if let 옵셔널 처리 일관
+- MARK 섹션 적극 사용, 함수 단일 책임 원칙 준수
+- 네이밍 lowerCamelCase + 한국어 주석 규칙 일관
+- `UIColor(hex:)` 확장에 명백한 sentinel(magenta) fallback — Spring 비유까지 주석에 명시 (사용자 학습 컨텍스트 존중)
 
-→ **버그 1 자연 차단**. Phase 7-1의 -200(하단 90pt 위태)을 -160으로 되돌리고 난이도 카드를 상단으로 분리해 위/아래 분리 레이아웃 완성.
+#### 게임 로직 완성도: 10/10
+- physicsBody 크기 *그대로* 16×20 보존 — 게임 hitbox 회귀 0 (SPEC 계약 정확 이행)
+- velocity / collisionBitMask / contactTestBitMask 변경 0
+- 텍스처 갱신은 *변경 순간에만* — 정지 시 비용 0
+- velocity 임계값 0.1 가드로 미세 잔존 속도의 텍스처 흔들림 방지
+- `apply(_ characterID:)` 단일 진입점 패턴 보존
 
-### 시나리오 2: 인트로 컷씬 최초 1회 — 버그 2 차단
+#### 성능 & 안정성: 10/10
+- SKTexture는 ARC 자동 해제 — 메모리 누수 0
+- `filteringMode = .nearest` 명시 — 픽셀 perfect 보존
+- `updatePixelDirection` / `tickWalkFrame`은 매 프레임 호출되어도 *조건부* refreshTexture — 정지 시 CPU 0
+- UIGraphicsImageRenderer는 iOS 표준 효율 API (UIGraphicsBeginImageContextWithOptions 대비 자동 컬러스페이스 관리)
+- 빌드 경고 0건
 
-| 시점 | UserDefaults `hasSeenIntroCutscene` | didMove 분기 | 결과 |
-|------|-----------------------------------|-------------|------|
-| 신규 사용자 1회차 진입 | (키 부재) → Apple 보장 default false | `else` → showIntroCutscene() | 컷씬 표시 → onDismiss에서 `set(true)` |
-| 2회차 진입 | true | `if` → showCountdown() | 컷씬 스킵, 곧장 카운트다운 |
-| N회차(N≥2) | true | `if` 분기 동일 | 영원 스킵 |
-
-- bool 기본값 false: Apple Foundation `UserDefaults.bool(forKey:)` 키 부재 시 false 반환 (공식 문서). 자연 최초 표시.
-- set 위치: onDismiss 안 guard let self 직후 / gameState 전환 전 → self 해제 가능성 0(이미 guard 통과), 컷씬 끝나기 전 시점이 아니므로 사용자가 컷씬을 *읽고 탭한 시점*에 정확히 set.
-- *부수효과 안전*: `UserDefaults.standard` 정적 접근이므로 self 무관, self 해제되어도 플래그 set 보장.
-
-→ **버그 2 자연 차단**.
-
-### 시나리오 3: 작은 화면에서 졸업장 위치 — 버그 3 차단
-
-- ResultScene `.resizeFill` 모드 + `size = 1024×768` 고정.
-- `self.size` = (1024, 768) 항상.
-- `self.frame` = view 크기에 따라 동적(작은 화면에서 ≠ 1024×768).
-- background SKSpriteNode가 sceneSize 기준으로 배치됨.
-- 변경 전 `frame.midX/midY` = view 크기 기준 → 작은 화면에서 background와 anchor 좌표계 *불일치* → 졸업장 위치 어긋남.
-- 변경 후 `size.width/2, size.height/2` = (512, 384) → background와 *같은 sceneSize 좌표계* → 정렬 보장.
-
-→ **버그 3 자연 차단**.
-
-### 시나리오 4: 졸업장 표시 중 탭 — 버그 4 차단
-
-| 경로 | 차단 메커니즘 | 단계 |
-|------|--------------|------|
-| 졸업장 자체 탭 | `DiplomaOverlayNode.isUserInteractionEnabled = true` (line 83) → 자기가 흡수 | 1차 |
-| edge case로 ResultScene에 도달 | `children.contains(where: { $0.name == "diplomaOverlay" })` → true → early return | 2차 안전망 |
-| 졸업장 없을 때 일반 탭 | children에 매치 노드 0 → contains false → 가드 발화 0 → 기존 TitleScene 전환 동작 그대로 | 회귀 0 |
-
-- 가드 위치 = `guard !isTransitioning else { return }` 직후 = **이상적 위치** (다른 가드보다 *앞*에서 졸업장 조기 차단, view 추출 전).
-- 노드 name 일치 검증: `DiplomaOverlayNode.swift:80` 에서 `name = "diplomaOverlay"` 부착 — 가드의 문자열 리터럴과 정확히 일치.
-
-→ **버그 4 자연 차단**.
+#### 기능 완성도: 10/10
+- SPEC 6개 기능 + GameScene 1줄 추가 + pbxproj 3 파일 등록 100% 완료
+- game.js L462-627 **byte-equal** 검증 — base 20행 + 방향 16행 + 프레임 4행 + jung 12행 + geon 14행 + im 12행 + lee 12행 = **총 90행 모두 일치**
+- 팔레트 hex **27개 모두 일치**
+- 회귀 0 영역 18개 path 모두 0줄 diff
 
 ---
 
-## 통과 항목 (4건 모두 정밀 적용)
+## 7. 통과 항목
 
-- SPEC §5 변경 파일 목록의 4개 파일 중 *실제 코드 변경*은 3개 파일(GameConfig / GameScene / ResultScene) — TitleScene은 이미 상수 참조 중이라 변경 불필요. 허용 외 파일 변경 0건.
-- 신규 파일 0개, pbxproj 변경 0건.
-- 자가 소멸 노드 11호(CutsceneOverlayNode / DiplomaOverlayNode 포함) 미접촉 — 회귀 0.
-- 시스템·매니저·리포지토리·모델 / ColorTokens / PhysicsCategory / GameState / GameScene+Setup / iOS·tvOS·macOS 진입점 미접촉.
-- 강제 언래핑 / Timer / DispatchQueue / 매직 넘버 신규 0건.
-- 빌드 SUCCEEDED + 경고 0건.
-
----
-
-## 채점
-
-### 항목별 점수
-
-| 영역 | 점수 | 근거 |
-|------|------|------|
-| Swift 패턴 일관성 | 10/10 | 강제 언래핑 0, Timer 0, DispatchQueue 0, GameConfig 상수화 100%, MARK 섹션 준수, weak self 캡처 유지. UserDefaults 키도 GameConfig에 흡수. |
-| 게임 로직 완성도 | 10/10 | 4건 버그 모두 root cause 정확 진단 + 정밀 차단. didMove if/else 분기 / onDismiss set 위치 / anchor 좌표계 통일 / 가드 위치(isTransitioning 직후) 모두 *이상적*. |
-| 성능 & 안정성 | 10/10 | `children.contains(where:)` O(n) but n ≤ 10 + early return으로 사용자 체감 0. UserDefaults bool 호출 1회/씬 진입(딕셔너리 lookup 마이크로초). 부수효과 self 해제 안전. |
-| 기능 완성도 | 10/10 | SPEC 4건 1:1 매핑, 회귀 0 자연 차단, 빌드 SUCCEEDED, 작은 화면(640pt) 좌표 산술 검증 PASS. |
-
-### 가중 점수
-
-```
-0.35 × 10 + 0.30 × 10 + 0.20 × 10 + 0.15 × 10
-= 3.50 + 3.00 + 2.00 + 1.50
-= 10.0/10
-```
-
-**가중 점수: 10.0 / 10**
-
-> **자기 검토 (관대함 점검)**: "10점이면 내가 관대한가?" — 점검 결과:
-> - SPEC 4건 모두 정확한 위치에 정확한 변경. 위치 1개라도 어긋났으면 감점.
-> - 가드 위치(`isTransitioning` 직후), onDismiss set 위치(guard let self 직후), anchor 기준(sceneSize 일관)이 *이상적 위치*에서 정확.
-> - 회귀 0 영역 grep 0줄, 빌드 경고 0건, 정적 검사 0건.
-> - 핫픽스는 *원래 작은 변경*. 변경 범위·정확도·검증성 모두 만점 수준. 관대함이 아닌 *정밀한 작은 sprint*에 대한 정당한 평가.
+- 빌드: BUILD SUCCEEDED, 경고 0
+- 정적 분석: 강제 언래핑 0 / Timer 0 / DispatchQueue 0
+- 게임 hitbox: physicsBody 크기 보존 (회귀 0)
+- 회귀 0 영역: 18개 path 모두 git diff 0줄
+- byte-equal 정합성: 90행 + 27 hex 모두 일치
+- Swift 컨벤션: 네이밍 / 옵셔널 / MARK / 매직 넘버 / 단일 책임 모두 준수
+- 사용자 학습 컨텍스트(Spring 비유) 주석에 반영됨
 
 ---
 
-## 최종 판정: **합격**
+## 8. 최종 판정
 
-**구체적 개선 지시**: 없음. 4건 버그 모두 코드 수준에서 차단됨. 사용자 시나리오(작은 화면, 최초/재진입, 졸업장 표시 중 탭) 4가지 모두 자연 차단 메커니즘 검증 완료.
+# 합격 (10.0/10)
+
+### 핵심 평가
+
+원본 game.js L462-627의 픽셀 데이터 90행과 L645-690의 팔레트 27 hex를 **단 한 문자의 오차 없이** Swift로 byte-equal 이식. JavaScript의 `substring(start, end)` 의미와 Swift `Array.subscript(range)`의 인덱스 차이(JS는 end 미포함, Swift `..<`도 미포함)를 헬퍼(`overlayEdge`, `leeSubstring5to11`)로 byte-equal 보존. JS의 chain replace 패턴은 `replacingOccurrences` 체인으로 의미 보존. physicsBody / velocity / collisionBitMask / contactTestBitMask 미접촉으로 게임 로직 회귀 0. 회귀 0 영역 18개 path 모두 0줄 diff.
+
+검수 중 *한 번 더 엄격하게 보았을 때*에도 P0/P1 등급 이슈 0건. P2 권장사항 2건은 모두 본 sprint와 무관(GameScene 누적 크기) 또는 의도된 선택(JS와의 1:1 시각 대응)이라 점수 감점 없음. 가중 점수 4축에서 모두 10점이 정당한 결과 — 본 sprint는 *픽셀 정합성*이라는 단일 목표를 측정 가능한 기준(byte-equal)으로 100% 달성.
+
+### 후속 sprint 권고 (참고용, 본 합격 판정과 무관)
+
+1. **Phase 8-2 (EnemyNode 픽셀화)**: 같은 PixelSpriteRenderer 인프라를 EnemyNode에도 적용. 본 sprint의 PixelSprite enum을 `static func enemyData(...)`로 확장하거나 별도 enum 분리.
+2. **GameScene 분리**: 594줄 → 300줄 미만 권고. extension 파일(GameScene+Combat, GameScene+Lifecycle)로 분할.
+3. **테스트 카탈로그**: TitleScene에서 5캐릭터 선택 → 인게임에서 4방향 D-Pad 입력 → 발 프레임 교차 시각 확인. 회귀 0 영역이라 시각 검사만 권고.
+

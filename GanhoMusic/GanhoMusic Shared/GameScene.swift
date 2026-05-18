@@ -338,6 +338,14 @@ class GameScene: SKScene {
         // 2) PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
         player.update(deltaTime: dt)
 
+        // Phase 8-1 — PlayerNode 픽셀 방향/걷기 프레임 갱신 (시각만 — 게임 로직 무관).
+        // velocity가 set된 *직후* 읽어야 이번 프레임의 의도가 즉시 반영됨.
+        // physicsBody?.velocity는 옵셔널 — guard let 패턴(주의사항 5).
+        let velocity = player.physicsBody?.velocity ?? .zero
+        let isMoving = abs(velocity.dx) > 0.1 || abs(velocity.dy) > 0.1
+        player.updatePixelDirection(velocity)
+        player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
+
         // 3) 카메라 follow — Phase 1-5: 드론 follow. player가 늘 화면 정중앙. 클램프 없음 (회피 게임 본질)
         cameraNode.position = player.position
 

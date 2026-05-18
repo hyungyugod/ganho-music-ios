@@ -7,6 +7,8 @@
 //  Phase 5-3 · 캐릭터별 이동속도 차등 (speedMultiplier 주입)
 //  Phase 5-R · CharacterID 단일 진입점 메서드 apply(_:) 추출 (순수 리팩터)
 //  Phase 7-1 · 난이도별 기준 속도 차등 (baseSpeedStart/End 인스턴스 프로퍼티 + apply(_:Difficulty))
+//  Phase 8-1 · 단색 SKSpriteNode → 픽셀 텍스처 모드. PixelSprite + PixelPalette + PixelSpriteRenderer 사용.
+//             4방향 + 걷기 애니메이션을 PlayerNode가 *자기 update*에서 수동 처리.
 //
 
 import SpriteKit
@@ -14,6 +16,8 @@ import SpriteKit
 /// 김간호 캐릭터. 외부(GameScene)가 매 프레임 currentDirection을 갱신해주면,
 /// update(deltaTime:)에서 PhysicsBody의 velocity로 이동 의도를 전달한다.
 /// Phase 2-2 — SKPhysicsBody 부착 (1-1에서 정의된 PhysicsCategory가 드디어 활성화).
+/// Phase 8-1 — texture 모드 전환. physicsBody 크기는 *그대로* 16×20 — 게임 hitbox 회귀 0.
+///             시각만 32×40pt로 확대(pixelSpriteScale=2) — 카메라 follow / 충돌 / 맵 경계 영향 0.
 final class PlayerNode: SKSpriteNode {
 
     // MARK: - Properties
@@ -32,17 +36,41 @@ final class PlayerNode: SKSpriteNode {
     /// 다음 보강 sprint에서 진행률 보간식 도입 시 사용.
     var baseSpeedEnd: CGFloat = GameConfig.playerBaseSpeed
 
+    // MARK: - Pixel Sprite State (Phase 8-1)
+    /// 현재 픽셀 텍스처가 표현하는 방향. velocity 부호 변화 시 갱신 후 refreshTexture 호출.
+    /// 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음(자연 톤).
+    private var pixelDirection: PixelDirection = .down
+    /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
+    private var pixelFrame: PixelFrame = .idle
+    /// step1↔step2 교차 누적 시간 (초). GameConfig.pixelWalkFrameInterval 도달 시 토글 + 0 리셋.
+    private var frameAccumulator: TimeInterval = 0
+    /// 현재 픽셀 텍스처가 표현하는 캐릭터. apply(_ characterID:) 호출 시 갱신.
+    /// init 직후 .kim — apply 호출 전에도 그래픽이 깨지지 않도록 graceful default.
+    private var currentCharacterID: CharacterID = .kim
+
     // MARK: - Init
     init() {
-        let size = CGSize(
+        // Phase 8-1 — physicsBody 크기는 원래대로 16×20 (게임 로직 회귀 0).
+        // 시각 크기는 pixelSpriteScale(2)배 — 32×40pt 화면 픽셀.
+        let physicsSize = CGSize(
             width:  GameConfig.playerWidth,
             height: GameConfig.playerHeight
         )
-        super.init(texture: nil, color: .ganhoMint, size: size)
+        let visualSize = CGSize(
+            width:  GameConfig.playerWidth  * GameConfig.pixelSpriteScale,
+            height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
+        )
+        // 초기 텍스처는 .kim의 down/idle. apply(_ characterID:)로 캐릭터 확정 시 갱신.
+        let initialTexture = PixelSpriteRenderer.texture(
+            from: PixelSprite.data(for: .kim, direction: .down, frame: .idle),
+            palette: PixelPalette.palette(for: .kim)
+        )
+        super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "player"
 
         // Phase 2-2 — PhysicsBody 부착 (dynamic, velocity 통제, 회전/마찰/탄성/감쇠 모두 0)
-        let body = SKPhysicsBody(rectangleOf: size)
+        // Phase 8-1 — body 크기는 *시각 크기와 무관하게* physicsSize 사용 → 기존 hitbox 보존.
+        let body = SKPhysicsBody(rectangleOf: physicsSize)
         body.isDynamic           = true
         body.allowsRotation      = false
         body.friction            = 0
@@ -61,10 +89,12 @@ final class PlayerNode: SKSpriteNode {
     // MARK: - Apply
     /// Phase 5-R — 캐릭터 정체성 단일 진입점.
     /// 외부(GameScene+Setup)는 setter를 직접 알지 않고 CharacterID 하나만 넘긴다.
-    /// 기능 변화 0 — 5-2(color) + 5-3(speedMultiplier) 두 setter를 *내부에서 그대로* 호출.
+    /// Phase 8-1 — color 단색 setter 폐기. 대신 currentCharacterID 갱신 + refreshTexture 호출.
+    /// 기존 speedMultiplier 적용은 유지 — 캐릭터별 차등 속도(5-3) 그대로.
     func apply(_ characterID: CharacterID) {
-        color = characterID.color
+        currentCharacterID = characterID
         speedMultiplier = characterID.playerSpeedMultiplier
+        refreshTexture()
     }
 
     /// Phase 7-1 — 난이도 정체성 단일 진입점.
@@ -76,7 +106,7 @@ final class PlayerNode: SKSpriteNode {
         baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
     }
 
-    // MARK: - Update
+    // MARK: - Update (Movement)
     /// 외부에서 매 프레임 호출. PhysicsBody의 velocity로 이동 의도 전달.
     /// (Phase 2-2 — 1-3/1-4의 position 직접 변경 + 자체 클램프 패턴은 폐기.
     ///  물리 엔진이 매 프레임 자동으로 위치 갱신 + 충돌 처리.)
@@ -89,6 +119,65 @@ final class PlayerNode: SKSpriteNode {
         physicsBody?.velocity = CGVector(
             dx: currentDirection.dx * speed,
             dy: currentDirection.dy * speed
+        )
+    }
+
+    // MARK: - Update (Pixel Animation, Phase 8-1)
+    /// GameScene.update가 매 프레임 호출. PlayerNode가 자기 텍스처를 갱신.
+    /// velocity dx/dy 부호 + 절대값 비교로 4방향 산출. 정지 시 마지막 방향 유지.
+    /// 텍스처 재생성은 *방향이 실제로 바뀐 프레임에만* — 매 프레임 호출이라도 정지 시 비용 0.
+    func updatePixelDirection(_ velocity: CGVector) {
+        let absDx = abs(velocity.dx)
+        let absDy = abs(velocity.dy)
+        // 거의 정지(임계값 0.1 미만) — 방향 유지(텍스처 재생성 없음).
+        // physics 엔진의 미세 잔존 velocity가 *흔들림*으로 보이지 않도록 임계값 가드.
+        guard absDx > 0.1 || absDy > 0.1 else { return }
+        let newDir: PixelDirection
+        if absDx > absDy {
+            newDir = velocity.dx >= 0 ? .right : .left
+        } else {
+            // SpriteKit 좌표계: +y는 위쪽 → dy > 0이면 up.
+            newDir = velocity.dy >= 0 ? .up : .down
+        }
+        if newDir != pixelDirection {
+            pixelDirection = newDir
+            refreshTexture()
+        }
+    }
+
+    /// GameScene.update가 매 프레임 호출. 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
+    /// 텍스처 재생성은 *변경 순간에만* — 매 프레임 호출이라도 변화 없으면 비용 0.
+    /// - Parameter isMoving: 외부에서 판단(velocity != .zero 등). 명시 인자로 받아 책임 분리.
+    func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
+        guard isMoving else {
+            // 정지 — idle로 전환 (이미 idle이면 noop, 텍스처 재생성 없음).
+            if pixelFrame != .idle {
+                pixelFrame = .idle
+                frameAccumulator = 0
+                refreshTexture()
+            }
+            return
+        }
+        // 이동 중 — 누적 시간이 임계 도달 시 step1↔step2 토글.
+        frameAccumulator += deltaTime
+        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
+            frameAccumulator = 0
+            // 처음 idle → step1, 이후 step1 ↔ step2 교차.
+            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
+            refreshTexture()
+        }
+    }
+
+    // MARK: - Texture Refresh
+    /// 현재 캐릭터/방향/프레임 조합으로 텍스처를 재생성하고 SKSpriteNode.texture에 set.
+    /// SKTexture 이전 값은 ARC로 자동 해제 — 메모리 누수 0.
+    /// 호출 빈도: 캐릭터 적용 1회 + 방향 변경 시 + 프레임 변경 시 (0.18초 주기 ↔ idle 진입).
+    private func refreshTexture() {
+        texture = PixelSpriteRenderer.texture(
+            from: PixelSprite.data(for: currentCharacterID,
+                                   direction: pixelDirection,
+                                   frame: pixelFrame),
+            palette: PixelPalette.palette(for: currentCharacterID)
         )
     }
 }
