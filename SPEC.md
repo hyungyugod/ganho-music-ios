@@ -1,168 +1,195 @@
-# Phase 8-5 — HUD 디자인 동일화 (상단 가로 슬롯)
+# Phase 9-4 — 체크보드 바닥 + 난이도별 맵 구조 확장
 
 ## 개요
-원본 웹게임 `.game-hud` (game.css L232-289)의 *상단 가로 슬롯 배치* + *2단 구조(라벨 위 + 값 아래)* + *코럴 톤 컬러*를 모바일 HUDNode에 이식. 현재 *좌상단 세로 스택*에서 *상단 가로 4슬롯*으로 재구성. 시각 토큰 적용.
+
+현재 게임 월드는 단색 배경(`.ganhoBgDeep`) 위에 외곽 벽 4개 + 난이도별 내부 벽(easy: 중앙 기둥 1개 / normal·hard: 동일한 hard 맵)만 배치되어 있다. 본 Phase는 (1) 체크보드 바닥 격자를 worldNode 안에 1회 빌드하여 시각 정체성을 코럴 톤으로 통일하고, (2) `Difficulty.normal`에 "방 2개 + 복도" 전용 맵을 신설해 hard와 차별화한다. 결과적으로 3 난이도가 시각·구조 양면에서 모두 다른 정체성을 갖게 된다.
 
 ## 변경 유형
-**비주얼**
+
+**비주얼 + 게임플레이 혼합** — 체크보드는 순수 비주얼(physicsBody 0), 난이도별 맵 분기는 게임플레이 변경(normal 맵 신설 → physicsBody 추가 + 스폰/이동 영역 변동).
+
+## 게임 경험 의도
+
+웹 원본의 코럴 톤 카드 패널 미감을 게임 월드 바닥까지 확장해 *"같은 게임을 계속 보고 있다"*는 일관된 감각을 준다. 또 normal 난이도가 더 이상 hard의 복제가 아니라 *방 두 개를 오가는 동선*이라는 자기만의 톤을 갖게 하여, 사용자가 "중 = 살짝 어려운 하"가 아니라 "중 = 다른 결의 도전"으로 인지하도록 한다.
 
 ## Sprint 범위 계약
 
-### 허용
-1. `Config/GameConfig.swift` — HUD 신규 layout 상수 (slot spacing, value font 22, label font 10, top margin 등)
-2. `Nodes/HUDNode.swift` — 가로 4 슬롯 구조 (TIME / SCORE / COMBO / 캐릭터). 각 슬롯이 SKNode 컨테이너 + 라벨 + 값 2개 자식. 콤보 3+ 시 brand-light 갈아 끼움.
-3. `GameScene.swift layoutHUD` — 위치 좌상단 → 상단 중앙으로 변경. hud.position = (0, +halfH - margin).
-
-### 금지
-1. tensionBlink 코드 변경 (Phase 6-14 시퀀스 보존, 색만 갈아 끼움)
-2. setCharacterName 시그니처 변경
-3. 콤보 마일스톤 / NEW BEST / 졸업장 등 자가 소멸 노드 시각 변경 — 다음 sprint
-4. TitleScene / ResultScene 미접촉
-5. SKAction 콤보 bump 애니메이션 도입 — 다음 sprint (시각 토큰 우선)
-
-### 판단 기준
-"HUD가 상단 가로 4슬롯에 라벨+값 2단 구조로 표시되는가?" → YES만 허용.
+- **허용 변경**
+  - `GameScene+Setup.swift`의 `setupBackground()` / `setupMap()` 내부 동작
+  - `GameConfig.swift`에 체크보드 토큰 hex/zPosition 상수 + Normal Map 좌표 상수 추가
+  - `GameScene+Setup.swift`에 normal 전용 빌더 `addNormalMap()` + 체크보드 빌더 `addCheckerboardFloor()` 메서드 추가
+  - `setupMap()`의 switch 분기: `.normal`을 `addHardMap()`에서 떼어내 `addNormalMap()`으로 연결
+- **금지 변경**
+  - Player/Enemy/StoneGuard/Note/Projectile 노드 0줄 수정
+  - HUD/TitleScene/ResultScene/Repository 0줄 수정
+  - 카메라 follow 로직 (`update()` 안 cameraNode.position 라인) 변경 금지
+  - `addOuterWalls()` / `addCentralPillar()` / `addHardMap()` / 헬퍼(`addRectPillar`, `addHorizontalWall`, `addVerticalWall`) 0줄 변경 — Phase 7-2 회귀 0 보장
+  - SpawnSystem의 `randomNotePosition()` 수정 금지 — 본 sprint는 normal 맵 벽과 정확한 회피 미보장(다음 sprint 보강)
+  - `setupPlayer()` / `setupEnemy()` / `setupStoneGuard()` 위치 변경 금지
+- **판단 기준**: "이 변경이 없으면 체크보드 또는 normal 맵 분기가 동작하지 않는가?" → YES만 허용.
 
 ## 변경 범위
-- 수정: GameConfig.swift, HUDNode.swift, GameScene.swift (layoutHUD 1군데)
-- 신규 파일 0개, pbxproj 0건.
 
-## 기능 1: GameConfig 신규 상수
+### 수정할 파일
 
-```swift
-// MARK: - HUD Layout (Phase 8-5)
-static let hudTopMargin: CGFloat = 28           // 화면 상단에서 hud anchor 거리
-static let hudSlotSpacing: CGFloat = 80         // 슬롯 4개 간격 (수평)
-static let hudValueFontSize: CGFloat = 22       // 원본 .game-hud__value 22px
-static let hudLabelFontSize: CGFloat = 10       // 원본 .game-hud__label 10px
-static let hudSlotInnerGap: CGFloat = 4         // 라벨 ↔ 값 세로 간격
-static let hudLabelLetterSpacing: CGFloat = 2   // 원본 letter-spacing 2px (SKLabelNode 미지원, 기록만)
-```
+- `GanhoMusic Shared/GameScene+Setup.swift`
+  - `setupWorld()`: `addChild(worldNode)` 직후 `addCheckerboardFloor()` 호출 추가
+  - `setupMap()`: switch 분기 수정 — `.normal` case를 `addNormalMap()`으로 연결
+  - 새 메서드 `addNormalMap()` 1개 추가 (extension 내부)
+  - 새 메서드 `addCheckerboardFloor()` 1개 추가 (private, 자식 노드 1개를 worldNode에 부착)
 
-## 기능 2: HUDNode 가로 슬롯 재구성
+- `GanhoMusic Shared/Config/GameConfig.swift`
+  - "MARK: - Checkerboard Floor (Phase 9-4)" 섹션 추가
+  - "MARK: - Normal Map (Phase 9-4)" 섹션 추가
 
-기존 세로 스택 (scoreLabel/timeLabel/comboLabel) 폐기. 4개 *슬롯 SKNode* 자식 배치.
+### 추가할 파일
 
-```swift
-final class HUDNode: SKNode {
-    // 각 슬롯 — SKNode 컨테이너 + 라벨(위) + 값(아래)
-    private let timeSlot: HUDSlotNode
-    private let scoreSlot: HUDSlotNode
-    private let comboSlot: HUDSlotNode
-    private let nameSlot: HUDSlotNode
+- 없음. 새 파일을 만들면 Xcode 프로젝트 .pbxproj 수정이 필요해 빌드 리스크 ↑. **모든 신규 코드는 기존 파일에 추가**한다.
 
-    override init() {
-        timeSlot = HUDSlotNode(label: "TIME", initialValue: "00:45")
-        scoreSlot = HUDSlotNode(label: "SCORE", initialValue: "0")
-        comboSlot = HUDSlotNode(label: "COMBO", initialValue: "0")
-        nameSlot = HUDSlotNode(label: "PLAYER", initialValue: "")
-        super.init()
-        // 가로 4 슬롯, 중앙 정렬 — 슬롯 1개 폭 80, 총 240, 양옆에 -120/+120
-        let spacing = GameConfig.hudSlotSpacing
-        timeSlot.position = CGPoint(x: -spacing * 1.5, y: 0)
-        scoreSlot.position = CGPoint(x: -spacing * 0.5, y: 0)
-        comboSlot.position = CGPoint(x: +spacing * 0.5, y: 0)
-        nameSlot.position = CGPoint(x: +spacing * 1.5, y: 0)
-        addChild(timeSlot); addChild(scoreSlot); addChild(comboSlot); addChild(nameSlot)
-    }
+## 기능 상세
 
-    func update(score: Int, remainingTime: TimeInterval, combo: Int) {
-        scoreSlot.setValue("\(score)")
-        let seconds = max(0, Int(ceil(remainingTime)))
-        timeSlot.setValue(String(format: "00:%02d", seconds))
-        comboSlot.setValue("\(combo)")
-        // 콤보 hot — 3 이상 brand-light, 그 외 text
-        comboSlot.setValueColor(combo >= 3 ? .ganhoUIBrandLight : .ganhoUIText)
-    }
+### 기능 1: 체크보드 바닥
 
-    func setCharacterName(_ name: String) {
-        nameSlot.setValue(name)
-    }
+- **설명**: 맵 전체(48×24 타일 = 960×480pt)에 두 색이 시장 패턴으로 교차되는 정사각형 바닥. SKNode 한 컨테이너 안에 1152개(48×24) SKSpriteNode 자식으로 구성 — *한 번만 빌드*되고 이후 추가 노드 생성/삭제 0건.
 
-    // tensionBlink — timeSlot의 값 라벨에 적용 (기존 timeLabel과 동일 효과)
-    func startTensionBlink() {
-        timeSlot.startBlink(color: .ganhoUIBrandLight)
-    }
+- **구현 위치**: `GameScene+Setup.swift` extension의 private `addCheckerboardFloor()` 메서드.
 
-    func stopTensionBlink() {
-        timeSlot.stopBlink(restoreColor: .ganhoUIText)
-    }
-}
+- **색상 (코럴 톤 조화)**
+  - **floorA (밝은 차콜)**: `#1a1722` — `ganhoUIBgCard`(#17151e α=0.82)와 동일 패밀리의 *살짝 밝은* 매트 차콜. 카드 패널 톤과 자연 연속.
+  - **floorB (어두운 차콜)**: `#13111a` — `ganhoUIBgDark`(#09080f)보다 살짝 밝지만 floorA보다 어두운 중간값.
 
-/// HUD 단일 슬롯 — 라벨(위 10pt dim) + 값(아래 22pt bold text).
-final class HUDSlotNode: SKNode {
-    private let labelNode: SKLabelNode
-    private let valueNode: SKLabelNode
+- **타일 크기**: `GameConfig.tileSize`(20pt) 그대로 재사용.
 
-    init(label: String, initialValue: String) {
-        labelNode = SKLabelNode(text: label)
-        valueNode = SKLabelNode(text: initialValue)
-        super.init()
-        labelNode.fontSize = GameConfig.hudLabelFontSize
-        labelNode.fontColor = .ganhoUITextDim
-        labelNode.verticalAlignmentMode = .center
-        labelNode.horizontalAlignmentMode = .center
-        labelNode.position = CGPoint(x: 0, y: GameConfig.hudValueFontSize / 2 + GameConfig.hudSlotInnerGap)
-        valueNode.fontSize = GameConfig.hudValueFontSize
-        valueNode.fontColor = .ganhoUIText
-        valueNode.verticalAlignmentMode = .center
-        valueNode.horizontalAlignmentMode = .center
-        valueNode.position = CGPoint(x: 0, y: -GameConfig.hudLabelFontSize / 2 - GameConfig.hudSlotInnerGap)
-        addChild(labelNode); addChild(valueNode)
-    }
+- **z-order**:
+  - 체크보드 컨테이너: `zPosition = -100` (`GameConfig.checkerboardZPosition`)
+  - 외곽 벽 / 기둥: zPosition 0 (변경 X)
+  - Player/Enemy/StoneGuard: zPosition 5 (변경 X)
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+- **한 번만 빌드** (성능 핵심)
+  - `setupWorld()`에서 *1회만* `addCheckerboardFloor()` 호출
+  - `update()` 안에서 절대 호출 금지
+  - 각 타일에 `physicsBody = nil` (시각 전용)
 
-    func setValue(_ s: String) { valueNode.text = s }
-    func setValueColor(_ c: UIColor) { valueNode.fontColor = c }
+### 기능 2: easy 맵 — 중앙 기둥 1개 (체크보드 위)
 
-    func startBlink(color: UIColor) {
-        let toAccent = SKAction.run { [weak self] in self?.valueNode.fontColor = color }
-        let toBase = SKAction.run { [weak self] in self?.valueNode.fontColor = .ganhoUIText }
-        let wait = SKAction.wait(forDuration: GameConfig.tensionBlinkHalfPeriod)
-        let cycle = SKAction.sequence([toAccent, wait, toBase, wait])
-        valueNode.run(.repeatForever(cycle), withKey: GameConfig.tensionBlinkActionKey)
-    }
+- **설명**: 현재 `addCentralPillar()` 그대로 유지. 체크보드만 추가되어 시각이 갱신됨. **코드 변경 0**.
 
-    func stopBlink(restoreColor: UIColor) {
-        valueNode.removeAction(forKey: GameConfig.tensionBlinkActionKey)
-        valueNode.fontColor = restoreColor
-    }
-}
-```
+### 기능 3: normal 맵 — 방 2개 + 복도
 
-## 기능 3: GameScene.layoutHUD 위치 변경
+- **설명**: 맵을 좌·우 두 방으로 나누는 *중앙 세로 벽*과 그 벽의 *중간 한 칸 문(door)*으로 복도를 구성. 좌·우 방 안에 작은 장식 기둥 각 1개.
 
-좌상단 → 상단 중앙:
+- **좌표계 (맵 48×24 타일, tileSize=20pt, 원점 좌하단)**
 
-```swift
-func layoutHUD() {
-    let halfH = size.height / 2
-    hud.position = CGPoint(
-        x: 0,                                   // 가로 중앙
-        y: +(halfH - GameConfig.hudTopMargin)   // 상단에서 28pt 아래
-    )
-}
-```
+  - **중앙 세로 분리벽**: c=23, r=2..21
+  - **분리벽의 문(door)**: r=11~12 (2칸 연속 문 — 플레이어 통과 보장)
+    - `addVerticalWall(c: 23, rStart: 2, rEnd: 10, doorR: -1)` (윗 절반)
+    - `addVerticalWall(c: 23, rStart: 13, rEnd: 21, doorR: -1)` (아랫 절반)
+    - 가운데 r=11,12 빈 칸이 자연스럽게 문 역할
 
-기존 hudMarginX는 미사용.
+  - **좌방 장식 기둥**: cStart=10, cEnd=11, rStart=11, rEnd=12 (2×2 타일)
+  - **우방 장식 기둥**: cStart=36, cEnd=37, rStart=11, rEnd=12 (2×2 타일, 좌우 거울 대칭)
 
----
+  - **GameConfig 상수 신설**
 
-## 회귀 0 자연 차단
+    ```swift
+    // MARK: - Normal Map (Phase 9-4)
+    static let normalMapDividerC: Int = 23
+    static let normalMapDividerUpperRStart: Int = 2
+    static let normalMapDividerUpperREnd: Int = 10
+    static let normalMapDividerLowerRStart: Int = 13
+    static let normalMapDividerLowerREnd: Int = 21
+    static let normalMapLeftPillarCStart: Int = 10
+    static let normalMapLeftPillarCEnd: Int = 11
+    static let normalMapLeftPillarRStart: Int = 11
+    static let normalMapLeftPillarREnd: Int = 12
+    static let normalMapRightPillarCStart: Int = 36
+    static let normalMapRightPillarCEnd: Int = 37
+    static let normalMapRightPillarRStart: Int = 11
+    static let normalMapRightPillarREnd: Int = 12
+    static let normalMapNoDoorSentinel: Int = -1
+    ```
 
-1. **HUDNode 외부 인터페이스 보존** — `update(score:remainingTime:combo:)`, `setCharacterName(_:)`, `startTensionBlink()`, `stopTensionBlink()` 시그니처 그대로
-2. **GameScene 호출자 미변경** — hud 메서드 호출 전부 동일 시그니처
-3. **TitleScene / ResultScene 미접촉** — 다음 sprint
-4. **tensionBlink 액션 키 유지** — `GameConfig.tensionBlinkActionKey` 재사용
-5. **신규 색 0** — `.ganhoUIText`/`.ganhoUITextDim`/`.ganhoUIBrandLight` 모두 Phase 8-3 추가됨
+- **참고: `addVerticalWall` 시그니처 재확인**
+
+  음수 `doorR=-1` 전달 시 `r != -1`은 모든 양의 r에 대해 true → 모든 칸이 벽으로 채워짐 (의도와 정확 일치, 코드 0줄 변경).
+
+### 기능 4: hard 맵 — 변경 없음
+
+- 현재 `addHardMap()` 그대로 유지. switch 분기에서 `.hard`만 단독 case로 분리 — 결과는 동일하나 의도 명확.
+
+- **변경 전**
+
+  ```swift
+  case .easy:           addCentralPillar()
+  case .normal, .hard:  addHardMap()
+  ```
+
+- **변경 후**
+
+  ```swift
+  case .easy:   addCentralPillar()
+  case .normal: addNormalMap()
+  case .hard:   addHardMap()
+  ```
+
+- switch에 `default` 미사용 — Phase 7-2 패턴 답습.
+
+### 기능 5: setupBackground 정책
+
+- **변경 없음**. `backgroundColor = .ganhoBgDeep` 유지. 이유:
+  1. 체크보드는 worldNode 자식 → 카메라가 맵 경계 밖으로 살짝 비추는 *틈 픽셀*을 배경색이 덮음 (graceful fallback)
+  2. ResultScene/TitleScene이 같은 `.ganhoBgDeep`를 쓰므로 *씬 전환 시 동일 배경*이 자연 연속
+
+## 회귀 방지
+
+- **Phase 9-1~9-3 (Title/HUD/Result 디자인 동일화) 0줄 변경**
+- **Phase 8-1~8-5 (픽셀 아트/HUD 4슬롯) 0줄 변경**
+- **카메라 follow 0줄 변경**: GameScene.swift `update()` 안 `cameraNode.position = player.position` 라인 보존.
+- **외곽 벽/기존 hard 맵 코드 0줄 변경**: `addOuterWalls()` / `addCentralPillar()` / `addHardMap()` / `addRectPillar` / `addHorizontalWall` / `addVerticalWall` 모두 read-only.
+- **easy 회귀**: 체크보드 추가가 *유일한* 시각 변화.
+- **hard 회귀**: switch case 분리만 발생, hard 호출 경로는 결과 동일.
+- **SpawnSystem 회피 로직**: 본 sprint 의도적 수용 — note는 *벽 위에 떠 있을 뿐* 플레이어 통과 차단 X.
+
+## 매직 넘버 정책
+
+- 체크보드 두 색은 **hex 문자열 상수**로 `GameConfig.swift`에 정의.
+- zPosition, 컨테이너 name, 모든 normal 맵 타일 좌표는 *전부* `GameConfig.swift`의 새 MARK 섹션에 상수화.
+- 호출부(`GameScene+Setup.swift`)에는 리터럴 0건 등장 — Phase 7-2 패턴 답습.
+
+## 평가 가중치 — 점수 잃기 쉬운 지점
+
+### Swift 패턴 일관성 (35%)
+- 1152개 SKSpriteNode 생성 루프에 매직 넘버(48, 24) 직접 등장 시 감점 → `GameConfig.mapColumns / mapRows` 참조 필수.
+- hex 문자열을 호출부에 리터럴로 두면 감점 → 반드시 `GameConfig.checkerboardFloorAHex` 경유.
+
+### 게임 로직 완성도 (30%)
+- 체크보드 빌드는 `setupWorld()` 안에서 1회만 실행 — `update()` 안 호출 금지.
+- 음수 doorR (`-1`) 호출이 graceful noop인지 Evaluator 검증.
+- normal 분기가 enum 패턴 매칭으로 자연 분기되는지 확인 (default 미사용).
+
+### 성능 & 안정성 (20%)
+- 1152개 노드가 한 번에 worldNode에 들어가도 60fps 유지.
+- 체크보드 컨테이너 name 부착 (`GameConfig.checkerboardContainerName`).
+- physicsBody 0 부착 — 반드시 *시각 전용*.
+- 강제 언래핑 0건.
+
+### 기능 완성도 (15%)
+- 체크보드가 모든 난이도(easy/normal/hard)에서 *동일하게* 보여야 함.
+- normal 맵 분리벽 가운데에 *실제로 통과 가능한 문 2칸*이 비어야 함.
 
 ## 주의사항
 
-1. **HUDSlotNode 신규 클래스** — HUDNode.swift 안에 같이 둘지 별도 파일 둘지. *같은 파일 안* 권장 (HUDNode 내부 구현 디테일).
-2. **이모지 제거** — 기존 "🎵 0", "⏱ 00:45", "🔥 0"의 이모지 제거. 원본은 라벨(TIME/SCORE/COMBO) 텍스트만. 더 깨끗.
-3. **위치 변환** — 좌상단 anchor에서 상단 중앙으로. hudMarginX/Y 의미 변경. hudMarginX는 deprecated, 신규 hudTopMargin 사용.
-4. **콤보 핫 색** — combo >= 3 시 valueNode.fontColor = .ganhoUIBrandLight. 3 미만은 .ganhoUIText.
-5. **tensionBlink 색** — Phase 6-14의 빨강(.ganhoBloodAccent)에서 원본 톤(.ganhoUIBrandLight) 또는 그대로 유지? 사용자 의도가 *원본 동일*이라 원본 토큰(.ganhoUIBrandLight) 채택.
-6. **landscape 1024 폭에서 슬롯 4 × 80 = 320 폭** — 중앙 ±160. 화면 안.
-7. **GameConfig.hudFontSize 18 (기존)** — 더 이상 HUDNode가 직접 사용 안 함. 그대로 두되 deprecated 명시 또는 제거. 본 sprint는 *유지* (안전).
+1. **체크보드 z-order 검증**: 음수 zPosition도 SpriteKit 정상 동작.
+2. **컬러 색차 검증**: `#1a1722` vs `#13111a` — 두 색 구분 가능성 시각 검증.
+3. **doorR=-1 sentinel**: 가독성을 위해 `GameConfig.normalMapNoDoorSentinel: Int = -1` 상수 사용.
+4. **빌드 에러 가능성**:
+   - `addRectPillar` / `addVerticalWall`은 `private` → `addNormalMap()`이 *같은 파일* extension 안에 있어야 접근 가능.
+   - `UIColor(hex:)`는 ColorTokens.swift에 이미 존재.
+
+---
+
+**핵심 파일 경로**
+- `GanhoMusic/GanhoMusic Shared/GameScene+Setup.swift`
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+- `GanhoMusic/GanhoMusic Shared/GameScene.swift` (참조만, 0줄 변경)
+- `GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift` (UIColor(hex:) 헬퍼만 사용, 0줄 변경)

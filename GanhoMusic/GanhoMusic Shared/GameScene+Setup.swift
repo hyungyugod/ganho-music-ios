@@ -19,18 +19,21 @@ extension GameScene {
     func setupWorld() {
         worldNode.position = .zero
         addChild(worldNode)
+        // Phase 9-4 — 체크보드 바닥. setupMap()보다 *먼저* 호출해서
+        // 외곽 벽/기둥(z=0)이 자연스럽게 바닥(z=-100) 위에 얹히도록 한다.
+        addCheckerboardFloor()
         setupMap()
     }
 
     /// Phase 7-2 — 맵 구성 단일 진입점. 외곽 벽 + difficulty 분기.
+    /// Phase 9-4 — .normal 케이스가 .hard에서 떨어져 addNormalMap()으로 연결.
     /// switch default 미사용: Difficulty 신규 case 추가 시 컴파일러 경고로 자연 검출.
     func setupMap() {
         addOuterWalls()
         switch difficulty {
-        case .easy:
-            addCentralPillar()
-        case .normal, .hard:
-            addHardMap()
+        case .easy:   addCentralPillar()
+        case .normal: addNormalMap()
+        case .hard:   addHardMap()
         }
     }
 
@@ -96,6 +99,65 @@ extension GameScene {
                       cEnd:   GameConfig.hardMapCenterBottomPillarCEnd,
                       rStart: GameConfig.hardMapCenterBottomPillarR,
                       rEnd:   GameConfig.hardMapCenterBottomPillarR)
+    }
+
+    /// Phase 9-4 — normal 맵. 좌·우 두 방을 가르는 중앙 세로 분리벽(c=23) + 가운데 r=11~12 두 칸 문 +
+    /// 좌방/우방 안 2×2 장식 기둥. addVerticalWall은 private(같은 파일 한정)이라
+    /// 본 메서드는 *반드시* 같은 extension 블록 안에 있어야 한다.
+    func addNormalMap() {
+        // 중앙 세로 분리벽 — 윗 절반 (r=2..10). doorR=-1 sentinel → 모든 r에서 벽 채워짐.
+        addVerticalWall(c:      GameConfig.normalMapDividerC,
+                        rStart: GameConfig.normalMapDividerUpperRStart,
+                        rEnd:   GameConfig.normalMapDividerUpperREnd,
+                        doorR:  GameConfig.normalMapNoDoorSentinel)
+        // 중앙 세로 분리벽 — 아랫 절반 (r=13..21). 가운데 r=11,12는 두 빌더 모두 건드리지 않아
+        // 자연스럽게 *통과 가능한 2칸 문*이 형성된다.
+        addVerticalWall(c:      GameConfig.normalMapDividerC,
+                        rStart: GameConfig.normalMapDividerLowerRStart,
+                        rEnd:   GameConfig.normalMapDividerLowerREnd,
+                        doorR:  GameConfig.normalMapNoDoorSentinel)
+        // 좌방 장식 기둥 — 2×2 타일.
+        addRectPillar(cStart: GameConfig.normalMapLeftPillarCStart,
+                      cEnd:   GameConfig.normalMapLeftPillarCEnd,
+                      rStart: GameConfig.normalMapLeftPillarRStart,
+                      rEnd:   GameConfig.normalMapLeftPillarREnd)
+        // 우방 장식 기둥 — 2×2 타일, 좌우 거울 대칭.
+        addRectPillar(cStart: GameConfig.normalMapRightPillarCStart,
+                      cEnd:   GameConfig.normalMapRightPillarCEnd,
+                      rStart: GameConfig.normalMapRightPillarRStart,
+                      rEnd:   GameConfig.normalMapRightPillarREnd)
+    }
+
+    /// Phase 9-4 — 체크보드 바닥. 1152개(mapColumns × mapRows = 48×24) SKSpriteNode를
+    /// *컨테이너 한 개*에 자식으로 묶어 worldNode에 부착한다.
+    /// physicsBody 0 부착(시각 전용), zPosition = checkerboardZPosition(-100).
+    /// 호출은 setupWorld()에서 1회만 — update() 안 호출 금지(성능 핵심).
+    private func addCheckerboardFloor() {
+        let container = SKNode()
+        container.name = GameConfig.checkerboardContainerName
+        container.zPosition = GameConfig.checkerboardZPosition
+
+        let t = GameConfig.tileSize
+        let half = t / 2
+        let floorA = UIColor(hex: GameConfig.checkerboardFloorAHex)
+        let floorB = UIColor(hex: GameConfig.checkerboardFloorBHex)
+        let tileSize = CGSize(width: t, height: t)
+
+        for c in 0..<GameConfig.mapColumns {
+            for r in 0..<GameConfig.mapRows {
+                // 시장 패턴(market check): (c + r)의 홀짝성으로 두 색 교차.
+                let color = ((c + r) % 2 == 0) ? floorA : floorB
+                let tile = SKSpriteNode(color: color, size: tileSize)
+                tile.position = CGPoint(
+                    x: CGFloat(c) * t + half,
+                    y: CGFloat(r) * t + half
+                )
+                // 시각 전용 — physicsBody 미부착. 1152개 노드가 물리 시뮬에 들어가면 60fps 위협.
+                container.addChild(tile)
+            }
+        }
+
+        worldNode.addChild(container)
     }
 
     /// Phase 7-2 — 가로벽 헬퍼. 단일 행 r에 cStart..cEnd 길이 만큼 1행 직사각형 1개.

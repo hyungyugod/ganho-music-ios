@@ -708,4 +708,53 @@ enum GameConfig {
     static let hudLabelFontSize: CGFloat = 10       // 원본 .game-hud__label 10px
     static let hudSlotInnerGap: CGFloat = 4         // 라벨 ↔ 값 세로 간격
     static let hudLabelLetterSpacing: CGFloat = 2   // 원본 letter-spacing 2px (SKLabelNode 미지원, 기록만)
+
+    // MARK: - Checkerboard Floor (Phase 9-4)
+    /// 체크보드 바닥 — 1152개(48×24) SKSpriteNode를 컨테이너 한 개에 묶어 worldNode에 부착.
+    /// physicsBody 0 부착(시각 전용). setupWorld()에서 1회만 빌드 → update() 안 호출 금지.
+
+    /// 체크보드 floorA hex(밝은 차콜) — ganhoUIBgCard(#17151e α=0.82) 패밀리의 살짝 밝은 매트 차콜.
+    /// 카드 패널 톤과 자연 연속. 원본 game.css 코럴 톤 정체성을 게임 월드 바닥까지 확장.
+    static let checkerboardFloorAHex: String = "#1a1722"
+    /// 체크보드 floorB hex(어두운 차콜) — ganhoUIBgDark(#09080f)보다 살짝 밝지만 floorA보다 어두운 중간값.
+    static let checkerboardFloorBHex: String = "#13111a"
+    /// 체크보드 컨테이너 zPosition. 외곽 벽/기둥(0)·Player/Enemy/StoneGuard(5) 아래.
+    /// 음수 zPosition도 SpriteKit 정상 동작 — 시각 깊이 분리.
+    static let checkerboardZPosition: CGFloat = -100
+    /// 체크보드 컨테이너 노드 이름. 디버깅/탐색용 식별자 — 호출부 리터럴 노출 금지.
+    static let checkerboardContainerName: String = "checkerboardFloor"
+
+    // MARK: - Normal Map (Phase 9-4)
+    /// normal 맵 — 좌·우 두 방 + 중앙 세로 분리벽 + 가운데 r=11~12 문 + 좌·우 장식 기둥.
+    /// 좌표계: 맵 48×24 타일, tileSize=20pt, 원점 좌하단.
+
+    /// 중앙 세로 분리벽 컬럼(c=23) — 맵 가로 정중앙 부근.
+    static let normalMapDividerC: Int = 23
+    /// 분리벽 윗 절반 시작 행. 문(r=11,12) 위쪽 구간.
+    static let normalMapDividerUpperRStart: Int = 2
+    /// 분리벽 윗 절반 끝 행. r=10까지 — r=11,12는 문으로 비워둠.
+    static let normalMapDividerUpperREnd: Int = 10
+    /// 분리벽 아랫 절반 시작 행. r=13부터 — r=11,12 문 아래.
+    static let normalMapDividerLowerRStart: Int = 13
+    /// 분리벽 아랫 절반 끝 행. r=21까지 — 외곽 벽(r=23) 안쪽 두 칸 여유.
+    static let normalMapDividerLowerREnd: Int = 21
+    /// 좌방 장식 기둥 시작 컬럼.
+    static let normalMapLeftPillarCStart: Int = 10
+    /// 좌방 장식 기둥 끝 컬럼. 2×2 타일 — (c=10..11, r=11..12).
+    static let normalMapLeftPillarCEnd: Int = 11
+    /// 좌방 장식 기둥 시작 행.
+    static let normalMapLeftPillarRStart: Int = 11
+    /// 좌방 장식 기둥 끝 행.
+    static let normalMapLeftPillarREnd: Int = 12
+    /// 우방 장식 기둥 시작 컬럼. 좌우 거울 대칭(mirroredC = 47 - leftC).
+    static let normalMapRightPillarCStart: Int = 36
+    /// 우방 장식 기둥 끝 컬럼.
+    static let normalMapRightPillarCEnd: Int = 37
+    /// 우방 장식 기둥 시작 행.
+    static let normalMapRightPillarRStart: Int = 11
+    /// 우방 장식 기둥 끝 행.
+    static let normalMapRightPillarREnd: Int = 12
+    /// addVerticalWall(doorR:)에 전달할 sentinel — 문 없음(전체 벽).
+    /// 음수 -1이라 `r != -1`이 모든 양의 r에서 true → 모든 칸 벽으로 채워짐.
+    static let normalMapNoDoorSentinel: Int = -1
 }
