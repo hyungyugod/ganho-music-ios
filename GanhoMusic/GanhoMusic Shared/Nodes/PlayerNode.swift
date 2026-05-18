@@ -36,6 +36,11 @@ final class PlayerNode: SKSpriteNode {
     /// 다음 보강 sprint에서 진행률 보간식 도입 시 사용.
     var baseSpeedEnd: CGFloat = GameConfig.playerBaseSpeed
 
+    /// Phase 9-5 — 무적 플래그. true면 ContactRouter 콜백(enemy/projectile) 본문에서 즉시 return.
+    /// 정간호 돌진(0.26초)·이간호 텔레포트(0.5초)에서만 set/clear.
+    /// 외부(SkillSystem)가 SKAction.run 클로저에서 true ↔ false 토글 — `[weak self]` 캡처 필수(주의사항 5).
+    var isInvulnerable: Bool = false
+
     // MARK: - Pixel Sprite State (Phase 8-1)
     /// 현재 픽셀 텍스처가 표현하는 방향. velocity 부호 변화 시 갱신 후 refreshTexture 호출.
     /// 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음(자연 톤).

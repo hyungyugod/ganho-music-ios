@@ -104,24 +104,29 @@ extension GameScene {
     /// Phase 9-4 — normal 맵. 좌·우 두 방을 가르는 중앙 세로 분리벽(c=23) + 가운데 r=11~12 두 칸 문 +
     /// 좌방/우방 안 2×2 장식 기둥. addVerticalWall은 private(같은 파일 한정)이라
     /// 본 메서드는 *반드시* 같은 extension 블록 안에 있어야 한다.
+    /// Phase 9-5 — 중앙 세로 분리벽만 breakable: true (정간호 돌진으로 파괴 가능).
+    /// 장식 기둥(좌방/우방)은 breakable: false 유지 — 게임 균형 회귀 0.
     func addNormalMap() {
         // 중앙 세로 분리벽 — 윗 절반 (r=2..10). doorR=-1 sentinel → 모든 r에서 벽 채워짐.
+        // Phase 9-5 — 분리벽만 breakable: true. 정간호 돌진 시 1칸 파괴 가능.
         addVerticalWall(c:      GameConfig.normalMapDividerC,
                         rStart: GameConfig.normalMapDividerUpperRStart,
                         rEnd:   GameConfig.normalMapDividerUpperREnd,
-                        doorR:  GameConfig.normalMapNoDoorSentinel)
+                        doorR:  GameConfig.normalMapNoDoorSentinel,
+                        breakable: true)
         // 중앙 세로 분리벽 — 아랫 절반 (r=13..21). 가운데 r=11,12는 두 빌더 모두 건드리지 않아
         // 자연스럽게 *통과 가능한 2칸 문*이 형성된다.
         addVerticalWall(c:      GameConfig.normalMapDividerC,
                         rStart: GameConfig.normalMapDividerLowerRStart,
                         rEnd:   GameConfig.normalMapDividerLowerREnd,
-                        doorR:  GameConfig.normalMapNoDoorSentinel)
-        // 좌방 장식 기둥 — 2×2 타일.
+                        doorR:  GameConfig.normalMapNoDoorSentinel,
+                        breakable: true)
+        // 좌방 장식 기둥 — 2×2 타일. breakable: false (장식이라 파괴 비대상).
         addRectPillar(cStart: GameConfig.normalMapLeftPillarCStart,
                       cEnd:   GameConfig.normalMapLeftPillarCEnd,
                       rStart: GameConfig.normalMapLeftPillarRStart,
                       rEnd:   GameConfig.normalMapLeftPillarREnd)
-        // 우방 장식 기둥 — 2×2 타일, 좌우 거울 대칭.
+        // 우방 장식 기둥 — 2×2 타일, 좌우 거울 대칭. breakable: false.
         addRectPillar(cStart: GameConfig.normalMapRightPillarCStart,
                       cEnd:   GameConfig.normalMapRightPillarCEnd,
                       rStart: GameConfig.normalMapRightPillarRStart,
@@ -161,22 +166,29 @@ extension GameScene {
     }
 
     /// Phase 7-2 — 가로벽 헬퍼. 단일 행 r에 cStart..cEnd 길이 만큼 1행 직사각형 1개.
-    private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int) {
-        addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r)
+    /// Phase 9-5 — breakable 파라미터 추가 (default false → 회귀 0).
+    private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int, breakable: Bool = false) {
+        addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r, breakable: breakable)
     }
 
     /// Phase 7-2 — 세로벽 헬퍼. doorR 한 칸을 *건너뛰며* 1×1 직사각형 여러 개 생성.
     /// 통짜로 만들면 PhysicsBody가 문을 막아 플레이어 입장 불가 — SKSpriteNode 분리 필수(주의사항 7).
-    private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int) {
+    /// Phase 9-5 — breakable 파라미터 추가 (default false → hard 맵 호출자 회귀 0).
+    /// breakable=true 호출 시 각 칸 SKSpriteNode가 name="breakableWall"을 부여받아
+    /// SkillSystem.dashClimb의 enumerate가 식별 가능.
+    private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int, breakable: Bool = false) {
         for r in rStart...rEnd where r != doorR {
-            addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r)
+            addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r, breakable: breakable)
         }
     }
 
     /// Phase 7-2 — 직사각형 벽 1개 생성. anchorPoint 기본값 .center 가정 —
     /// 중심 = ((cStart + widthTiles/2) × tileSize, (rStart + heightTiles/2) × tileSize).
     /// PhysicsBody 정책은 addCentralPillar와 byte-equal(주의사항 1).
-    private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int) {
+    /// Phase 9-5 — breakable 파라미터 추가 (default false → 외곽/장식/hard 맵 호출자 회귀 0).
+    /// breakable=true면 노드에 name="breakableWall" 부여 — SkillSystem.dashClimb 발동 시
+    /// worldNode.enumerateChildNodes(withName: breakableWallName)이 식별 가능.
+    private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int, breakable: Bool = false) {
         let t = GameConfig.tileSize
         let widthTiles  = CGFloat(cEnd - cStart + 1)
         let heightTiles = CGFloat(rEnd - rStart + 1)
@@ -186,6 +198,9 @@ extension GameScene {
             x: (CGFloat(cStart) + widthTiles  / 2) * t,
             y: (CGFloat(rStart) + heightTiles / 2) * t
         )
+        if breakable {
+            pillar.name = GameConfig.breakableWallName
+        }
         let body = SKPhysicsBody(rectangleOf: pillarSize)
         body.isDynamic           = false
         body.friction            = 0
@@ -327,5 +342,49 @@ extension GameScene {
         let first = GameConfig.stoneGuardWaypoints[0]
         stoneGuard.position = CGPoint(x: first.x, y: first.y)
         worldNode.addChild(stoneGuard)
+    }
+
+    // MARK: - Skill Button (Phase 9-5)
+    /// 좌하단 SkillButtonNode를 cameraNode 자식으로 추가. D-Pad(우하단)와 대칭.
+    /// configure(skill:)로 라벨 + 김간호 비활성 상태 자동 set.
+    /// onTap 콜백은 [weak self] 캡처 — SkillSystem.tryActivate 위임.
+    func setupSkillButton() {
+        cameraNode.addChild(skillButton)
+        skillButton.configure(skill: characterID.skill)
+        skillButton.onTap = { [weak self] in
+            self?.skillSystem.tryActivate()
+        }
+        layoutSkillButton()
+    }
+
+    // MARK: - HUD Skill Slot (Phase 9-5)
+    /// 좌하단 SkillButtonNode 위에 HUDSkillSlotNode 부착(cameraNode 자식).
+    /// configure(skill:)로 라벨 + 김간호 빈 슬롯 자동 set.
+    func setupHUDSkillSlot() {
+        cameraNode.addChild(hudSkillSlot)
+        hudSkillSlot.configure(skill: characterID.skill)
+        layoutHUDSkillSlot()
+    }
+
+    /// scene.size 변경 시 SkillButtonNode 위치 재계산. addChild 0건 — 멱등.
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌하단 = (-x, -y).
+    func layoutSkillButton() {
+        let halfW = size.width  / 2
+        let halfH = size.height / 2
+        skillButton.position = CGPoint(
+            x: -(halfW - GameConfig.skillButtonMarginX),
+            y: -(halfH - GameConfig.skillButtonMarginY)
+        )
+    }
+
+    /// scene.size 변경 시 HUDSkillSlotNode 위치 재계산. addChild 0건 — 멱등.
+    /// SkillButtonNode 바로 위(hudSkillSlotOffsetY = 50pt 위).
+    func layoutHUDSkillSlot() {
+        let halfW = size.width  / 2
+        let halfH = size.height / 2
+        hudSkillSlot.position = CGPoint(
+            x: -(halfW - GameConfig.skillButtonMarginX),
+            y: -(halfH - GameConfig.skillButtonMarginY) + GameConfig.hudSkillSlotOffsetY
+        )
     }
 }

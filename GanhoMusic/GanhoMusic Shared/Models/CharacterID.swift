@@ -47,4 +47,17 @@ enum CharacterID: String, CaseIterable {
         case .geon: return 0.90   // 묵직
         }
     }
+
+    /// Phase 9-5 — 캐릭터별 능동 스킬. `.kim`은 .none (스킬 없음 = 정공법 정체성).
+    /// SkillSystem.configure(scene:skill:)에 전달되어 활성 스킬 확정.
+    /// switch default 미사용 — 5 case exhaustive(미래 신규 케이스 추가 시 자연 컴파일 에러).
+    var skill: PlayerSkill {
+        switch self {
+        case .kim:  return .none
+        case .jung: return .dashClimb
+        case .geon: return .bookClubRally
+        case .im:   return .charmStudent
+        case .lee:  return .taiwanTrip
+        }
+    }
 }

@@ -53,6 +53,10 @@
 		A1C0F1B00000000000000042 /* PixelSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000042 /* PixelSprite.swift */; };
 		A1C0F1B00000000000000043 /* PixelPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000043 /* PixelPalette.swift */; };
 		A1C0F1B00000000000000044 /* PixelSpriteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */; };
+		A1C0F1B00000000000000045 /* PlayerSkill.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000045 /* PlayerSkill.swift */; };
+		A1C0F1B00000000000000046 /* SkillSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000046 /* SkillSystem.swift */; };
+		A1C0F1B00000000000000047 /* SkillButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000047 /* SkillButtonNode.swift */; };
+		A1C0F1B00000000000000048 /* HUDSkillSlotNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -102,6 +106,10 @@
 		A1C0F1A00000000000000042 /* PixelSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelSprite.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000043 /* PixelPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPalette.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelSpriteRenderer.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000045 /* PlayerSkill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSkill.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000046 /* SkillSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillSystem.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000047 /* SkillButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillButtonNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDSkillSlotNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -251,6 +259,8 @@
 				A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */,
 				A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */,
 				A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */,
+				A1C0F1A00000000000000047 /* SkillButtonNode.swift */,
+				A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -273,6 +283,7 @@
 				A1C0F15E000000000000000E /* ContactRouter.swift */,
 				A1C0F15F000000000000000F /* ScoreSystem.swift */,
 				A1C0F1A00000000000000030 /* CameraShakeAction.swift */,
+				A1C0F1A00000000000000046 /* SkillSystem.swift */,
 			);
 			name = Systems;
 			path = "GanhoMusic Shared/Systems";
@@ -300,6 +311,7 @@
 				A1C0F1A00000000000000035 /* Difficulty.swift */,
 				A1C0F1A00000000000000042 /* PixelSprite.swift */,
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
+				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -540,6 +552,10 @@
 				A1C0F1B00000000000000042 /* PixelSprite.swift in Sources */,
 				A1C0F1B00000000000000043 /* PixelPalette.swift in Sources */,
 				A1C0F1B00000000000000044 /* PixelSpriteRenderer.swift in Sources */,
+				A1C0F1B00000000000000045 /* PlayerSkill.swift in Sources */,
+				A1C0F1B00000000000000046 /* SkillSystem.swift in Sources */,
+				A1C0F1B00000000000000047 /* SkillButtonNode.swift in Sources */,
+				A1C0F1B00000000000000048 /* HUDSkillSlotNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -39,6 +39,14 @@ final class ScoreSystem {
         }
     }
 
+    /// Phase 9-5 — 임간호 매혹 발동 중 enchanted F를 수집했을 때 호출.
+    /// 일반 note hit과 달리 *콤보 누적 없이* 보너스 점수만 가산 — 매혹의 정체성(*공격을 점수로*).
+    /// charmStudentBonusScore(4) = scorePerNoteCombo(2)의 2배. 1회 한정 스킬에 합당한 보상.
+    /// 시그니처는 기존 recordNoteHit과 분리 — 호출부에서 두 경로가 명확히 갈림(DRY 위배 의도적).
+    func recordCharmedNoteHit() {
+        score += GameConfig.charmStudentBonusScore
+    }
+
     /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).
     func reset() {
         score = 0

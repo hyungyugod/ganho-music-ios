@@ -159,6 +159,10 @@ final class SpawnSystem {
         let unitX = dx / magnitude
         let unitY = dy / magnitude
 
+        // Phase 9-5 — 임간호 매혹 활성 시 새로 발사되는 F도 출생 즉시 enchanted.
+        // SpawnSystem.start 시그니처는 *그대로* — 여기서 scene 캐스팅으로 GameScene/SkillSystem 조회.
+        // weak scene이 nil이면 isCharmActive=false 자연 fallback(주의사항 2).
+        let isCharmed = (scene as? GameScene)?.skillSystem.isCharmActive ?? false
         for _ in 0..<projectileBurstCount {
             // 각 발마다 max 가드 — 동시 max 초과 시 중단.
             guard currentProjectileCount() < projectileMaxConcurrent else { return }
@@ -168,6 +172,10 @@ final class SpawnSystem {
                 dx: unitX * GameConfig.projectileSpeed,
                 dy: unitY * GameConfig.projectileSpeed
             )
+            // Phase 9-5 — 매혹 활성 중 출생 시 즉시 enchanted set.
+            if isCharmed {
+                projectile.applyEnchanted()
+            }
             world.addChild(projectile)
         }
     }

@@ -757,4 +757,69 @@ enum GameConfig {
     /// addVerticalWall(doorR:)에 전달할 sentinel — 문 없음(전체 벽).
     /// 음수 -1이라 `r != -1`이 모든 양의 r에서 true → 모든 칸 벽으로 채워짐.
     static let normalMapNoDoorSentinel: Int = -1
+
+    // MARK: - Skill (Phase 9-5)
+    /// 캐릭터별 스킬 시스템. SkillSystem이 호출, HUDSkillSlotNode가 시각화.
+    /// 4 스킬(정/건/임/이) + 김간호는 *스킬 없음*(정공법 정체성).
+
+    // 공통 — SkillButtonNode (좌하단 1탭 발동)
+    /// 스킬 버튼 반지름 (pt). D-Pad 한 변(44)과 시각 균형.
+    static let skillButtonRadius: CGFloat = 32
+    /// 버튼 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
+    /// D-Pad(dpadMarginX=90)와 대칭 — 두 손가락 자연 위치.
+    static let skillButtonMarginX: CGFloat = 90
+    /// 버튼 하단 가장자리에서의 안쪽 마진 (pt). D-Pad와 동일 높이로 정렬.
+    static let skillButtonMarginY: CGFloat = 90
+    /// 김간호 비활성 알파. dpadAlpha(0.7)보다 낮아 "비활성" 시그널 강조.
+    static let skillButtonInactiveAlpha: CGFloat = 0.3
+    /// 활성 알파. dpadAlpha(0.7)보다 살짝 높아 *눌러야 할 버튼*임 강조.
+    static let skillButtonActiveAlpha: CGFloat = 0.85
+    /// HUDSkillSlotNode가 SkillButtonNode 중심에서 위로 얼마나 떨어진 곳에 배치되는가 (pt).
+    /// 32(반지름) + 12(링 반지름) + 6(여백) ≈ 50.
+    static let hudSkillSlotOffsetY: CGFloat = 50
+
+    // 정간호 — 암벽등반 돌진 (.dashClimb)
+    /// 돌진 이동 거리 (pt). 3 tile = 60pt.
+    static let dashClimbDistance: CGFloat = 60
+    /// 돌진 지속 시간 (초). 돌진 중 isInvulnerable.
+    static let dashClimbDuration: TimeInterval = 0.26
+    /// 돌진 쿨다운 (초). 22초.
+    static let dashClimbCooldown: TimeInterval = 22
+
+    // 건간호 — 북클럽 소집 (.bookClubRally)
+    /// 끌어오기 반경 (pt). 6 tile = 120pt 안의 노트만 대상.
+    static let bookClubRallyRadius: CGFloat = 120
+    /// 끌어오기 SKAction.move duration (초). easeIn 곡선과 함께 *자연스러운 가속*.
+    static let bookClubRallyMoveDuration: TimeInterval = 0.4
+    /// 북클럽 쿨다운 (초). 20초.
+    static let bookClubRallyCooldown: TimeInterval = 20
+
+    // 임간호 — 나는야 모범생 (.charmStudent, 게임당 1회)
+    /// 매혹 지속 시간 (초). 이 시간 동안 F가 enchanted 상태.
+    static let charmStudentDuration: TimeInterval = 1.5
+    /// 매혹된 노트 수집 시 보너스 점수. scorePerNoteCombo(2)의 2배 = 4점.
+    static let charmStudentBonusScore: Int = 4
+
+    // 이간호 — 대만여행 / 텔레포트 (.taiwanTrip)
+    /// 텔레포트 거리 (pt). 5 tile = 100pt.
+    static let taiwanTripJumpDistance: CGFloat = 100
+    /// 텔레포트 직후 무적 지속 시간 (초). 깜빡임 액션도 같은 시간.
+    static let taiwanTripInvulnerableDuration: TimeInterval = 0.5
+    /// 텔레포트 쿨다운 (초). 22초.
+    static let taiwanTripCooldown: TimeInterval = 22
+    /// 무적 깜빡임 시 최소 알파.
+    static let taiwanTripFlashAlpha: CGFloat = 0.4
+    /// 깜빡임 한 단계 길이 (초). 0.1 = 0.5초 동안 5회 깜빡임 (1.0 ↔ 0.4).
+    static let taiwanTripFlashHalfPeriod: TimeInterval = 0.1
+
+    // HUDSkillSlotNode
+    /// 쿨다운 진행 링의 반지름 (pt). 작은 인디케이터.
+    static let hudSkillSlotRingRadius: CGFloat = 12
+    /// 링의 라인 두께 (pt).
+    static let hudSkillSlotRingLineWidth: CGFloat = 2
+
+    // 식별자 (벽 파괴 enumerate 대상)
+    /// breakable 벽의 노드 이름. SkillSystem의 dashClimb이 enumerate 시 사용.
+    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
+    static let breakableWallName: String = "breakableWall"
 }

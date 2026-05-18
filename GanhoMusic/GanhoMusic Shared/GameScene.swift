@@ -67,6 +67,9 @@ class GameScene: SKScene {
     let spawnSystem = SpawnSystem()       // Phase 2-10 — spawn 책임 분리
     let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
+    let skillSystem = SkillSystem()       // Phase 9-5 — 캐릭터별 스킬 시스템
+    let skillButton = SkillButtonNode()   // Phase 9-5 — 좌하단 1탭 발동 버튼
+    let hudSkillSlot = HUDSkillSlotNode() // Phase 9-5 — 스킬 쿨다운 진행 시각화
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
     // Phase 7-4 — 캐릭터 × 난이도 매트릭스 / 최초 졸업 일시 저장소. HighScoreRepository와 *병행*.
@@ -141,6 +144,9 @@ class GameScene: SKScene {
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
+        setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 좌하단에
+        setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
+        skillSystem.configure(scene: self, skill: characterID.skill)  // Phase 9-5 — 활성 스킬 set
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         configureContactRouter()                       // Phase 2-11 — 콜백 4개 등록
         physicsWorld.contactDelegate = contactRouter   // Phase 2-11 — 분기는 ContactRouter가 담당
@@ -258,6 +264,8 @@ class GameScene: SKScene {
         super.didChangeSize(oldSize)
         layoutDPad()
         layoutHUD()
+        layoutSkillButton()    // Phase 9-5 — 화면 회전/resize 시 좌하단 SkillButton 재배치
+        layoutHUDSkillSlot()   // Phase 9-5 — 화면 회전/resize 시 SkillButton 위 HUDSkillSlot 재배치
     }
 
     /// scene.size 변경 시(viewport 회전·resize)에 위치만 재계산. addChild 0건 — 멱등 보장.
@@ -332,10 +340,17 @@ class GameScene: SKScene {
         // Phase 2-5 — 콤보 윈도우 만료 검사 (Phase 2-12: ScoreSystem에 위임)
         scoreSystem.tickComboExpiry(currentTime: currentTime)
 
+        // Phase 9-5 — SkillSystem 매 프레임 진행 (쿨다운/지속시간 감산).
+        skillSystem.update(dt: dt)
+
         // 1) D-Pad 입력을 PlayerNode로 위임 (DPadNode → PlayerNode 직접 참조 금지 → GameScene 경유)
-        player.currentDirection = dpad.currentDirection
+        // Phase 9-5 — 정간호 돌진 중에는 D-Pad 입력 무시(SKAction.move가 위치 제어). 가드 1줄.
+        if !skillSystem.isDashing {
+            player.currentDirection = dpad.currentDirection
+        }
 
         // 2) PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
+        // 돌진 중에는 currentDirection이 zero로 유지되어 velocity 0 — SKAction.move만 위치 변경.
         player.update(deltaTime: dt)
 
         // Phase 8-1 — PlayerNode 픽셀 방향/걷기 프레임 갱신 (시각만 — 게임 로직 무관).
@@ -367,6 +382,9 @@ class GameScene: SKScene {
             triggerComboBreak(brokenAt: lastComboValue)
         }
         lastComboValue = currentCombo
+
+        // Phase 9-5 — HUDSkillSlot 진행률 시각화. SkillSystem.progress는 4 상태 분기 후 반환.
+        hudSkillSlot.update(progress: skillSystem.progress)
     }
 
     // MARK: - Contact Router
@@ -375,10 +393,25 @@ class GameScene: SKScene {
     /// onProjectileHitWall은 self 미사용 — [weak self] 불필요.
     private func configureContactRouter() {
         contactRouter.onEnemyHit = { [weak self] in
-            self?.endGame()
-        }
-        contactRouter.onProjectileHitPlayer = { [weak self] in
             guard let self = self else { return }
+            // Phase 9-5 — 이간호 텔레포트/정간호 돌진 중 무적 가드.
+            // SkillSystem이 player.isInvulnerable을 자체 시퀀스로 토글.
+            if self.player.isInvulnerable { return }
+            self.endGame()
+        }
+        contactRouter.onProjectileHitPlayer = { [weak self] node in
+            guard let self = self else { return }
+            // Phase 9-5 — enchanted F 가드. ProjectileNode.isEnchanted = true면
+            // 일반 endGame이 아니라 *수집*으로 처리 — 점수 가산 + 노드 제거 후 early return.
+            if let projectile = node as? ProjectileNode, projectile.isEnchanted {
+                self.scoreSystem.recordCharmedNoteHit()
+                self.haptics.light()
+                self.audio.play(.noteCollected)
+                projectile.run(.removeFromParent())
+                return
+            }
+            // Phase 9-5 — 일반 F도 무적 시(이간호 텔레포트) 차단.
+            if self.player.isInvulnerable { return }
             // Phase 6-9 — 시각 임팩트 2채널: 카메라 셰이크 + 빨간 플래시.
             // haptics.heavy() (6-1) + audio.play(.gameOver) (6-2) + BGM stop (6-4)은
             // endGame() 내부에서 이미 발화 — 5채널 멀티모달 피격 피드백 완성.

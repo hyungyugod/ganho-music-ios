@@ -17,8 +17,10 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     var onEnemyHit: () -> Void = {}
     /// player ↔ stoneGuard 접촉 시. Phase 4-2 — stub. 본체는 4-3에서.
     var onStoneGuardContact: () -> Void = {}
-    /// player ↔ projectile 접촉 시.
-    var onProjectileHitPlayer: () -> Void = {}
+    /// player ↔ projectile 접촉 시. Phase 9-5 — projectile 노드 인자 추가
+    /// (enchanted 상태 분기 필수). 콜백 본문에서 `node as? ProjectileNode` 캐스팅 후
+    /// `isEnchanted` 가드 → 점수 가산 + 노드 제거 / 일반 F는 endGame 흐름.
+    var onProjectileHitPlayer: (SKNode) -> Void = { _ in }
     /// projectile ↔ wall 접촉 시. 인자: 제거할 projectile 노드.
     var onProjectileHitWall: (SKNode) -> Void = { _ in }
     /// player ↔ note 접촉 시. 인자: 제거할 note 노드.
@@ -48,14 +50,17 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     // MARK: - Private
     private func handleProjectileContact(_ contact: SKPhysicsContact) {
         let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        // Phase 9-5 — projectile 본체 식별을 두 분기(player/wall) *모두* 공통화.
+        // bodyA/bodyB 중 projectile 카테고리인 쪽을 골라 node 전달.
+        let projectileBody = contact.bodyA.categoryBitMask == PhysicsCategory.projectile
+            ? contact.bodyA
+            : contact.bodyB
         if categories & PhysicsCategory.player != 0 {
-            onProjectileHitPlayer()
+            guard let node = projectileBody.node else { return }
+            onProjectileHitPlayer(node)
             return
         }
         if categories & PhysicsCategory.wall != 0 {
-            let projectileBody = contact.bodyA.categoryBitMask == PhysicsCategory.projectile
-                ? contact.bodyA
-                : contact.bodyB
             guard let node = projectileBody.node else { return }
             onProjectileHitWall(node)
         }
