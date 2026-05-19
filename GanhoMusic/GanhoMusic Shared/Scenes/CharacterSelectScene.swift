@@ -5,23 +5,22 @@
 //  Phase 10-1b · 시작 시퀀스 2단계 — 캐릭터 5장 + 태그 라벨 + 뒤로/시작 버튼 2개
 //  Sprint 2 · 메뉴 v2 리스킨 — 3-stop warm gradient + AccentLine 헤더 + GlassPill 뒤로 +
 //               DarkContextChip 난이도 + 5장 글래스 외곽 컨테이너 + 색 점 + DarkContextChip 스킬 정보 +
-//               PrimaryButton confirm. overlay 패널 제거. backButton 인스턴스 → backPill 교체.
+//               PrimaryButton confirm.
+//  Sprint 6 · 흐름 재편 — init(difficulty:) 제거, difficulty/difficultyChip 모두 삭제.
+//               5장 카드 위에 CharacterFaceNode 부착(zPos 105). 백버튼 텍스트 "← 메인".
+//               .kim 분기는 DifficultySelectScene으로, 그 외는 SkillExplanationScene(characterID:)으로.
 //
-//  StartScene → 본 씬 → SkillExplanationScene(or GameScene .kim 스킵).
-//  difficulty는 init 인자로 받아 *불변 상태*로 보관. Swift 컴파일 타임 강제.
-//  CharacterCardNode 내부 변경 0건 — 카드 *외부*에 글래스 컨테이너/색 점/태그 라벨을 별도 자식으로 부착.
+//  StartScene → 본 씬 → SkillExplanationScene(or DifficultySelectScene .kim 분기).
+//  CharacterCardNode 내부 변경 0건 — 카드 *외부*에 글래스 컨테이너/색 점/태그 라벨/얼굴 노드를 별도 자식으로 부착.
 //
 
 import SpriteKit
 
-/// 캐릭터 선택 단일 결정 씬. v2 리스킨: 그라데이션 + AccentLine 헤더 + GlassPill 뒤로 + DarkContextChip 난이도 +
-/// 5장 글래스 외곽 컨테이너(카드 위) + 우상단 색 점 + 하단 DarkContextChip 스킬 정보 + 가운데 confirm 버튼.
-/// difficulty는 *불변 입력* — init 주입 후 그대로 다음 씬으로 전달.
+/// 캐릭터 선택 단일 결정 씬. v2 리스킨 + Sprint 6 흐름 재편.
+/// Sprint 6 — difficulty 필드 제거. 캐릭터 ID만 결정해서 다음 씬으로 넘김.
 final class CharacterSelectScene: SKScene {
 
     // MARK: - Properties
-    /// init 주입된 난이도. 불변. 다음 씬(SkillExplanation 또는 GameScene)으로 그대로 전달.
-    private let difficulty: Difficulty
     /// 씬 전환 가드.
     private var isTransitioning = false
     /// Sprint 2 — 헤더 라벨(Jua, navyDeep).
@@ -40,32 +39,28 @@ final class CharacterSelectScene: SKScene {
     private var cardContainers: [CharacterID: SKShapeNode] = [:]
     /// Sprint 2 — 5장 카드 우상단 색 점.
     private var cardColorDots: [CharacterID: SKShapeNode] = [:]
+    /// Sprint 6 — 5장 카드 위 얼굴 노드. PNG swap 호환 — `CharacterFaceNode`는 SKNode 서브클래스.
+    private var characterFaces: [CharacterID: CharacterFaceNode] = [:]
     /// Sprint 2 — 좌상단 뒤로 GlassPill.
     private var backPill: GlassPillNode?
-    /// Sprint 2 — 우상단 난이도 DarkContextChip.
-    private var difficultyChip: DarkContextChipNode?
     /// Sprint 2 — 하단 스킬 정보 DarkContextChip(선택 변경 시 rebuild).
     private var skillInfoChip: DarkContextChipNode?
-    private let confirmButton = PrimaryButtonNode(text: "이 친구로 시작")
+    private let confirmButton = PrimaryButtonNode(text: "다음")
     private let preferenceRepo = CharacterPreferenceRepository()
     /// Sprint 2 — 그라데이션 배경 노드. didChangeSize 시 재생성을 위해 참조 보관.
     private var gradientBackground: GradientBackgroundNode?
 
     // MARK: - Factory
-    /// difficulty 인자를 받아 인스턴스 생성. StartScene이 유일 호출자.
-    class func newCharacterSelectScene(difficulty: Difficulty) -> CharacterSelectScene {
-        let scene = CharacterSelectScene(
-            size: CGSize(width: 1024, height: 768),
-            difficulty: difficulty
-        )
+    /// Sprint 6 — 인자 제거. StartScene이 유일 호출자.
+    class func newCharacterSelectScene() -> CharacterSelectScene {
+        let scene = CharacterSelectScene(size: CGSize(width: 1024, height: 768))
         scene.scaleMode = .resizeFill
         return scene
     }
 
     // MARK: - Init
-    /// difficulty는 `let` 이므로 super.init 전에 저장. ResultScene 동형 패턴.
-    private init(size: CGSize, difficulty: Difficulty) {
-        self.difficulty = difficulty
+    /// Sprint 6 — difficulty 입력 제거.
+    override init(size: CGSize) {
         super.init(size: size)
     }
 
@@ -78,10 +73,11 @@ final class CharacterSelectScene: SKScene {
         backgroundColor = .ganhoBgWarmTop  // Sprint 2 — 1프레임 fallback도 warm.
         setupGradientBackground()           // Sprint 2 — 3-stop warm gradient.
         setupHeader()                       // Sprint 2 — AccentLine + Jua + Gowun Dodum 부제.
-        setupTopBar()                       // Sprint 2 — GlassPill 뒤로 + DarkContextChip 난이도.
+        setupTopBar()                       // Sprint 6 — GlassPill 뒤로만 (난이도 칩 제거).
         selectedCharacterID = preferenceRepo.current
         setupCardContainers()               // Sprint 2 — 카드 외곽 글래스 5개.
         setupCharacterCards()
+        setupCharacterFaces()               // Sprint 6 — 얼굴 노드 5개.
         setupCardColorDots()                // Sprint 2 — 카드 우상단 색 점 5개.
         setupTagLabels()
         applyGlassContainerSelection(id: selectedCharacterID)
@@ -96,6 +92,7 @@ final class CharacterSelectScene: SKScene {
         layoutTopBar()
         layoutCardContainers()
         layoutCharacterCards()
+        layoutCharacterFaces()              // Sprint 6.
         layoutCardColorDots()
         layoutTagLabels()
         layoutConfirmButton()
@@ -155,7 +152,8 @@ final class CharacterSelectScene: SKScene {
         )
     }
 
-    // MARK: - Setup (Sprint 2 · Top Bar)
+    // MARK: - Setup (Sprint 6 · Top Bar — 백버튼만)
+    /// Sprint 6 — 난이도 칩 삭제. 백 GlassPill만 좌상단에 배치.
     private func setupTopBar() {
         let back = GlassPillNode(
             text: GameConfig.characterSelectBackPillText,
@@ -166,13 +164,6 @@ final class CharacterSelectScene: SKScene {
         )
         backPill = back
         addChild(back)
-
-        let chip = DarkContextChipNode(
-            label: GameConfig.characterSelectDifficultyChipLabel,
-            badge: difficulty.shortName
-        )
-        difficultyChip = chip
-        addChild(chip)
         layoutTopBar()
     }
 
@@ -183,13 +174,6 @@ final class CharacterSelectScene: SKScene {
                 + GameConfig.characterSelectBackPillWidth / 2,
             y: y
         )
-        if let chip = difficultyChip {
-            let chipHalfWidth = chip.calculateAccumulatedFrame().width / 2
-            chip.position = CGPoint(
-                x: frame.maxX - GameConfig.characterSelectTopBarMarginX - chipHalfWidth,
-                y: y
-            )
-        }
     }
 
     // MARK: - Setup (Sprint 2 · Card Containers · Glass Outer)
@@ -241,6 +225,29 @@ final class CharacterSelectScene: SKScene {
             card.position = CGPoint(
                 x: cardBaseX(for: card.id),
                 y: cardBaseY(for: card.id)
+            )
+        }
+    }
+
+    // MARK: - Setup (Sprint 6 · Character Faces)
+    /// Sprint 6 — 5장 카드 위에 CharacterFaceNode 부착. zPos 105(카드 100, 색점 110 사이).
+    /// PNG swap 호환 — SKNode 서브클래스이므로 향후 SKSpriteNode(texture:) 교체 시 좌표·zPos 보존.
+    private func setupCharacterFaces() {
+        for id in CharacterID.allCases {
+            let face = CharacterFaceNode(id: id)
+            face.setScale(GameConfig.characterFaceScale)
+            face.zPosition = GameConfig.characterFaceZPosition
+            characterFaces[id] = face
+            addChild(face)
+        }
+        layoutCharacterFaces()
+    }
+
+    private func layoutCharacterFaces() {
+        for (id, face) in characterFaces {
+            face.position = CGPoint(
+                x: cardBaseX(for: id),
+                y: cardBaseY(for: id) + GameConfig.characterFaceOffsetYWithinCard
             )
         }
     }
@@ -353,7 +360,7 @@ final class CharacterSelectScene: SKScene {
 
     // MARK: - Card Geometry Helpers (Sprint 2 · §Q5)
     /// 카드 5장 가로 정렬 — 기존 layoutCharacterCards 좌표식과 동일.
-    /// 헬퍼로 분리 — 카드/컨테이너/색 점/태그 라벨이 모두 같은 헬퍼를 호출하여 좌표 동기화.
+    /// 헬퍼로 분리 — 카드/컨테이너/색 점/태그 라벨/얼굴이 모두 같은 헬퍼를 호출하여 좌표 동기화.
     private func cardBaseX(for id: CharacterID) -> CGFloat {
         let allCases = CharacterID.allCases
         let count = allCases.count
@@ -433,7 +440,7 @@ final class CharacterSelectScene: SKScene {
             transitionToStart()
             return
         }
-        // 3) confirm 버튼 — .kim이면 GameScene 직진, 그 외는 SkillExplanation.
+        // 3) confirm 버튼.
         if confirmButton.contains(location) {
             transitionToNext()
         }
@@ -448,25 +455,23 @@ final class CharacterSelectScene: SKScene {
         view.presentScene(scene, transition: fade)
     }
 
-    /// 시작 — .kim은 GameScene 직진(스킬 없음 = 스킬 화면 스킵), 그 외는 SkillExplanation.
-    /// SPEC §3 4단계 흐름 + §"기능 3" 김간호 스킵 정책 일관 표현.
+    /// Sprint 6 — 다음 — .kim은 DifficultySelect 직진(스킬 화면 스킵),
+    /// 그 외(스킬 보유 4명)는 SkillExplanation으로.
     private func transitionToNext() {
         guard let view = self.view else { return }
         isTransitioning = true
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         switch selectedCharacterID {
         case .kim:
-            // 김간호 — 스킬 화면 스킵 → GameScene 직진.
-            let gameScene = GameScene.newGameScene(
-                characterID: selectedCharacterID,
-                difficulty: difficulty
+            // Sprint 6 — 김간호: 스킬 화면 스킵 → 난이도 선택으로.
+            let scene = DifficultySelectScene.newDifficultySelectScene(
+                characterID: selectedCharacterID
             )
-            view.presentScene(gameScene, transition: fade)
+            view.presentScene(scene, transition: fade)
         case .jung, .geon, .im, .lee:
             // 스킬 보유 캐릭터 — SkillExplanationScene으로.
             let scene = SkillExplanationScene.newSkillExplanationScene(
-                characterID: selectedCharacterID,
-                difficulty: difficulty
+                characterID: selectedCharacterID
             )
             view.presentScene(scene, transition: fade)
         }

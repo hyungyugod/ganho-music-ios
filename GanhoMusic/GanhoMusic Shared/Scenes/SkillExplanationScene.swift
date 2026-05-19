@@ -21,7 +21,6 @@ final class SkillExplanationScene: SKScene {
 
     // MARK: - Properties
     private let characterID: CharacterID
-    private let difficulty: Difficulty
     private var isTransitioning = false
     /// Sprint 2 — 헤더 라벨(Jua, navyDeep).
     private let headerLabel = SKLabelNode(text: GameConfig.skillExplanationHeaderText)
@@ -57,20 +56,20 @@ final class SkillExplanationScene: SKScene {
     private let controlHintLabel = SKLabelNode(text: GameConfig.skillExplanationControlHintText)
     /// 하단 BackButtonNode "← 캐릭터 다시" — 기능 K6 — 기존 좌우 배치 유지.
     private let backButton = BackButtonNode(text: "← 캐릭터 다시")
-    private let startButton = PrimaryButtonNode(text: "시작")
+    /// Sprint 6 — "시작"이 아니라 "다음" — 다음 단계가 DifficultySelectScene이므로.
+    private let startButton = PrimaryButtonNode(text: "다음")
     /// Sprint 2 — 그라데이션 배경 노드.
     private var gradientBackground: GradientBackgroundNode?
 
     // MARK: - Factory
-    /// characterID + difficulty 둘 다 *명시 주입*. CharacterSelectScene이 유일 호출자.
+    /// Sprint 6 — difficulty 인자 제거. 난이도 결정은 흐름의 *마지막*(DifficultySelectScene)으로 이동.
+    /// CharacterSelectScene이 유일 호출자.
     class func newSkillExplanationScene(
-        characterID: CharacterID,
-        difficulty: Difficulty
+        characterID: CharacterID
     ) -> SkillExplanationScene {
         let scene = SkillExplanationScene(
             size: CGSize(width: 1024, height: 768),
-            characterID: characterID,
-            difficulty: difficulty
+            characterID: characterID
         )
         scene.scaleMode = .resizeFill
         return scene
@@ -78,9 +77,9 @@ final class SkillExplanationScene: SKScene {
 
     // MARK: - Init
     /// Sprint 4 (walk 미적용 버전) — PNG 우선·픽셀 fallback 패턴. PlayerNode.loadTexture와 동형.
-    private init(size: CGSize, characterID: CharacterID, difficulty: Difficulty) {
+    /// Sprint 6 — difficulty 입력 제거.
+    private init(size: CGSize, characterID: CharacterID) {
         self.characterID = characterID
-        self.difficulty = difficulty
         // Sprint 4 — v6 PNG 자산(Assets.xcassets/Characters/) 우선 사용, 미보유 캐릭터는 픽셀 fallback.
         let texture: SKTexture = {
             let pngName = "\(characterID.rawValue)_down_idle_1"
@@ -206,8 +205,12 @@ final class SkillExplanationScene: SKScene {
         topBackPill = back
         addChild(back)
 
+        // Sprint 6 — 브레드크럼 순서 재편: 캐릭터 · [스킬] · 난이도.
+        // 시각상 "현재 위치 = 스킬"이 코랄 뱃지로 강조됨(DarkContextChipNode 내부 변경 0).
+        // 라벨 "\(characterID.displayName) · 스킬 · 난이도" 패턴 — 김간호는 이 화면을 스킵하므로
+        // 실제 표시 대상은 .jung/.geon/.im/.lee 4명. 그 외 캐릭터도 displayName 조합 안전.
         let chip = DarkContextChipNode(
-            label: "\(difficulty.shortName) · \(characterID.displayName)",
+            label: "\(characterID.displayName) · 스킬 · 난이도",
             badge: GameConfig.skillExplanationBreadcrumbBadge
         )
         breadcrumbChip = chip
@@ -565,26 +568,28 @@ final class SkillExplanationScene: SKScene {
             return
         }
         if startButton.contains(location) {
-            transitionToGame()
+            transitionToDifficulty()
         }
     }
 
+    /// Sprint 6 — newCharacterSelectScene을 인자 없이 호출.
     private func transitionToCharacterSelect() {
         guard let view = self.view else { return }
         isTransitioning = true
-        let scene = CharacterSelectScene.newCharacterSelectScene(difficulty: difficulty)
+        let scene = CharacterSelectScene.newCharacterSelectScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(scene, transition: fade)
     }
 
-    private func transitionToGame() {
+    /// Sprint 6 — 다음 단계는 GameScene이 아니라 DifficultySelectScene.
+    /// 난이도 결정이 흐름의 *마지막*으로 이동했다.
+    private func transitionToDifficulty() {
         guard let view = self.view else { return }
         isTransitioning = true
-        let gameScene = GameScene.newGameScene(
-            characterID: characterID,
-            difficulty: difficulty
+        let scene = DifficultySelectScene.newDifficultySelectScene(
+            characterID: characterID
         )
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(gameScene, transition: fade)
+        view.presentScene(scene, transition: fade)
     }
 }

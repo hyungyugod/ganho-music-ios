@@ -7,17 +7,18 @@
 //               카드 spring/링 글로우 + 시작 버튼 pulse + 전환 잔향. *게임플레이 변경 0건*.
 //  Sprint 2 · 메뉴 v2 리스킨 — 3-stop warm gradient + GlassPill BEST/PLAYS + Jua 2-라인 타이틀
 //               + AccentLine + Gowun Dodum 태그라인. overlay 패널 제거. 음표 emitter는 보존.
+//  Sprint 6 · 흐름 재편 — 난이도 카드 3장을 *제거*하고 좌측에 NurseAvatarNode 큰 그림을 부착.
+//               난이도 결정은 5단계 흐름의 *마지막*(DifficultySelectScene)으로 이동.
+//               transitionToNext는 CharacterSelectScene을 *인자 없이* 호출(difficulty 제거).
 //
-//  TitleScene의 구조를 답습하되 *난이도 선택*에만 집중. 캐릭터 카드는 다음 단계(CharacterSelectScene)로 이전.
-//  "어디든 탭" 패턴을 제거 — 시작 버튼 명시 탭만 진행.
 //  10-1b 완성 시점부터 "시작" → CharacterSelectScene 전환.
 //
 
 import SpriteKit
 
 /// 앱 첫 진입 씬. v2 리스킨: 그라데이션 + AccentLine + 2-라인 Jua 타이틀 + 태그라인 +
-/// 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill + 난이도 3장 + 시작 버튼.
-/// 카메라/월드 개념 없음 — 라벨은 frame.midX/midY 기준 직접 배치.
+/// 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill + 좌측 NurseAvatarNode + 시작 버튼.
+/// Sprint 6 — 난이도 카드/repo/select 로직 모두 삭제. characterRepo만 유지(다음 씬이 자기 repo로 다시 읽음).
 final class StartScene: SKScene {
 
     // MARK: - Properties
@@ -35,12 +36,6 @@ final class StartScene: SKScene {
     private var playsPill: GlassPillNode?
     /// 시작 버튼 — 명시 탭만 다음 단계로 진행.
     private let startButton = PrimaryButtonNode(text: "시작")
-    /// 현재 선택된 난이도. 기본 .easy. 다음 씬으로 전달.
-    private var selectedDifficulty: Difficulty = .easy
-    /// 3 난이도 카드 인스턴스 보관. setupDifficultyCards에서 생성, layout/hit test에 재사용.
-    private var difficultyCards: [DifficultyCardNode] = []
-    /// 난이도 선택 영속 계층. didMove에서 .current로 복원, selectDifficulty(_:)에서 save 호출.
-    private let difficultyRepo = DifficultyPreferenceRepository()
     /// 캐릭터 선택 영속 계층. didMove에서 .current로 복원 — 10-1a는 GameScene 직진 시점에 사용.
     /// 10-1b 이후는 CharacterSelectScene이 자기 repo로 다시 읽는다(불변 흐름).
     private let characterRepo = CharacterPreferenceRepository()
@@ -49,6 +44,8 @@ final class StartScene: SKScene {
     private var gradientBackground: GradientBackgroundNode?
     /// Phase 10-2 — 음표 파티클 컨테이너. 씬 사이즈 의존 — didChangeSize 시 재생성.
     private var musicNoteEmitter: MusicNoteEmitterNode?
+    /// Sprint 6 — 좌측 김간호 큰 그림. SKShapeNode 컨테이너. didChangeSize에서 재배치.
+    private var nurseAvatar: NurseAvatarNode?
 
     // MARK: - Factory
     /// TitleScene.newTitleScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
@@ -66,8 +63,7 @@ final class StartScene: SKScene {
         setupMusicNoteEmitter()               // Phase 10-2 — 보존. zPos -15.
         setupStatPills()                      // Sprint 2 — BEST/PLAYS GlassPill 2개.
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
-        selectedDifficulty = difficultyRepo.current
-        setupDifficultyCards()
+        setupNurseAvatar()                    // Sprint 6 — 좌측 김간호 큰 그림.
         setupStartButton()
         attachStartButtonPulse()              // Phase 10-2 — 시작 버튼 호흡 pulse
     }
@@ -79,7 +75,7 @@ final class StartScene: SKScene {
         rebuildMusicNoteEmitter()
         layoutStatPills()
         layoutTitleBlock()
-        layoutDifficultyCards()
+        layoutNurseAvatar()                   // Sprint 6.
         layoutStartButton()
     }
 
@@ -157,7 +153,7 @@ final class StartScene: SKScene {
 
     // MARK: - Setup (Sprint 2 · Title Block)
     /// Sprint 2 — AccentLine + Jua 2-라인 타이틀 + Gowun Dodum 태그라인.
-    /// 우측 정렬 — 타이틀 블록이 우측, 좌측은 캐릭터 placeholder 영역(비워둠).
+    /// 우측 정렬 — 타이틀 블록이 우측, 좌측은 NurseAvatarNode 영역.
     private func setupTitleBlock() {
         // 라인 1 — "김간호는" navyDeep.
         titleLine1.text = "김간호는"
@@ -209,42 +205,23 @@ final class StartScene: SKScene {
         )
     }
 
-    // MARK: - Difficulty Cards
-    /// 3 난이도 카드 생성 + addChild + 초기 선택 상태 적용. TitleScene 7-1 패턴 답습.
-    private func setupDifficultyCards() {
-        for id in Difficulty.allCases {
-            let card = DifficultyCardNode(id: id)
-            card.setSelected(id == selectedDifficulty)
-            difficultyCards.append(card)
-            addChild(card)
-        }
-        layoutDifficultyCards()
+    // MARK: - Setup (Sprint 6 · Nurse Avatar)
+    /// Sprint 6 — 좌측 김간호 큰 그림. mockup main-screen-v2.html 좌측 6% 정렬.
+    /// PNG swap 호환 — SKNode 서브클래스라 향후 SKSpriteNode(texture:)로 교체 가능.
+    private func setupNurseAvatar() {
+        let avatar = NurseAvatarNode()
+        avatar.setScale(GameConfig.nurseAvatarScale)
+        avatar.zPosition = GameConfig.nurseAvatarZPosition
+        nurseAvatar = avatar
+        addChild(avatar)
+        layoutNurseAvatar()
     }
 
-    /// 3 카드 가로 일렬, frame.midX 기준 중앙 정렬.
-    private func layoutDifficultyCards() {
-        let count = difficultyCards.count
-        guard count > 0 else { return }
-        let width = GameConfig.difficultyCardWidth
-        let spacing = GameConfig.difficultyCardSpacing
-        let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
-        let startX = frame.midX - totalWidth / 2 + width / 2
-        let y = frame.midY + GameConfig.difficultyCardOffsetY
-        for (index, card) in difficultyCards.enumerated() {
-            card.position = CGPoint(
-                x: startX + CGFloat(index) * (width + spacing),
-                y: y
-            )
-        }
-    }
-
-    /// 선택 난이도 변경 + 3 카드 일괄 갱신 + 디스크 저장.
-    private func selectDifficulty(_ id: Difficulty) {
-        selectedDifficulty = id
-        difficultyRepo.save(id)
-        for card in difficultyCards {
-            card.setSelected(card.id == id)
-        }
+    private func layoutNurseAvatar() {
+        nurseAvatar?.position = CGPoint(
+            x: frame.minX + GameConfig.nurseAvatarOffsetX,
+            y: frame.midY + GameConfig.nurseAvatarOffsetY
+        )
     }
 
     // MARK: - Start Button
@@ -283,28 +260,20 @@ final class StartScene: SKScene {
     }
 
     // MARK: - Touch
-    /// 우선순위: 난이도 카드 → 시작 버튼.
-    /// 카드 외 영역 탭은 무동작 — "어디든 탭" 패턴 의도적 제거.
+    /// Sprint 6 — 카드 hit test 분기 삭제. 시작 버튼 hit test만.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        // 1) 난이도 카드 hit test — 매치 시 select + 저장 + return.
-        for card in difficultyCards {
-            if card.contains(location) {
-                selectDifficulty(card.id)
-                return
-            }
-        }
-        // 2) 시작 버튼 hit test — 매치 시 다음 단계로.
         if startButton.contains(location) {
             transitionToNext()
         }
     }
 
-    /// 시작 버튼 탭 시 다음 단계로 전환.
-    /// Phase 10-2 — *게임플레이 동작 불변* — selectedDifficulty 전달, presentScene 대상,
-    /// sceneTransitionDuration 모두 그대로. 카드/타이틀/버튼 슬라이드업 + fade-out *prelude*만 추가.
+    /// 시작 버튼 탭 시 다음 단계(CharacterSelect)로 전환.
+    /// Sprint 6 — 난이도 인자 전달 제거. CharacterSelectScene.newCharacterSelectScene()을 *인자 없이* 호출.
+    /// Phase 10-2 — *게임플레이 동작 불변* — presentScene 대상, sceneTransitionDuration 모두 그대로.
+    /// 타이틀/시작버튼/NurseAvatar 슬라이드업 + fade-out *prelude*만 추가.
     private func transitionToNext() {
         guard let view = self.view else { return }
         isTransitioning = true
@@ -314,7 +283,7 @@ final class StartScene: SKScene {
         // Phase 10-2 — 음표 emitter 정지(추가 스폰 중단). 떠 있는 음표는 자가 정리.
         musicNoteEmitter?.stopEmitting()
 
-        // Phase 10-2 — 카드/타이틀/시작 버튼 *살짝 위로* 슬라이드 + fadeOut.
+        // Phase 10-2 — 타이틀/시작 버튼/NurseAvatar *살짝 위로* 슬라이드 + fadeOut.
         let slideUp = SKAction.moveBy(
             x: 0,
             y: GameConfig.startSceneExitSlideDistance,
@@ -326,19 +295,18 @@ final class StartScene: SKScene {
         )
         // 같은 액션 인스턴스를 여러 노드에 run하면 SpriteKit이 내부적으로 복사 — 안전.
         let exit = SKAction.group([slideUp, fadeOut])
-        for card in difficultyCards { card.run(exit) }
         startButton.run(exit)
         titleLine1.run(exit)
         titleLine2.run(exit)
         taglineLabel.run(exit)
+        nurseAvatar?.run(exit)
 
-        // Phase 10-2 — 슬라이드 완료 후 presentScene. *씬 전환 대상/난이도 전달 불변*.
+        // Phase 10-2 — 슬라이드 완료 후 presentScene.
+        // Sprint 6 — newCharacterSelectScene을 *인자 없이* 호출(difficulty 제거).
         let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
-        let present = SKAction.run { [weak self, weak view] in
-            guard let self = self, let view = view else { return }
-            let nextScene = CharacterSelectScene.newCharacterSelectScene(
-                difficulty: self.selectedDifficulty
-            )
+        let present = SKAction.run { [weak view] in
+            guard let view = view else { return }
+            let nextScene = CharacterSelectScene.newCharacterSelectScene()
             let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
             view.presentScene(nextScene, transition: fade)
         }

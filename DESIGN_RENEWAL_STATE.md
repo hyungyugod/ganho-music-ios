@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 5 합격 — 코드 작업 완료, Sprint 4 PNG 자산 대기 중)
-**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 6 합격 — 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터)
+**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5/6 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -39,6 +39,7 @@ Sprint 2 진행해줘
 | **3** | 인게임 (GameScene + HUD + 컨트롤) | ✅ 합격 | 9.22/10 | 1/3 |
 | **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
 | **5** | ResultScene 3분기 | ✅ 합격 | 9.70/10 | 1/3 |
+| **6** | 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터 | ✅ 합격 | 9.53/10 | 1/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -95,6 +96,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 6 — 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.53/10** (게임로직 9.8 · Swift패턴 9.4 · 비주얼 9.2 · UX 9.5)
+- QA 반복: 1회 (한 번에 통과 — Evaluator subagent stream timeout으로 부모 하네스가 직접 핵심 검증 수행)
+- 비고: 5단계 흐름(Start→Character→Skill→Difficulty→Game) + .kim 4단계(스킬 스킵) 신설. mockup 2종 수정(character-select / skill-explanation) + 1종 신규(difficulty-select-v2.html ~510줄). Swift 수정 4건(StartScene 난이도 카드 70~100줄 삭제·NurseAvatarNode 부착 / CharacterSelectScene init(size:) 단순화·5장 얼굴 부착·.kim→Difficulty 분기 / SkillExplanationScene difficulty 인자 제거·시작→다음·Difficulty 전이 / GameConfig 신규 상수 ~50개·characterSelectBackPillText "← 메인" 값 교체) + 신규 3건(DifficultySelectScene 448줄 / CharacterFaceNode 660줄 5캐릭터 SVG→SKShapeNode / NurseAvatarNode 374줄 김간호 큰 그림 SVG→SKShapeNode). GameScene.newGameScene(characterID:difficulty:) 시그니처 byte-identical, 보호 영역 17파일 + 공용 노드 8파일 + Managers/Repositories/GameState/PhysicsCategory/ColorTokens 모두 git diff 0줄. 강제 언래핑 0건, Timer 0건. 빌드 SUCCEEDED 신규 워닝 0건.
+- **사용자 후속 작업 권장 (SPRINT_6_REQUEST.md §7)**: (1) Sprint 4 PNG 자산 도착 시 CharacterFaceNode → SKSpriteNode 교체(좌표/스케일 동일 유지). (2) NurseAvatarNode 호흡 애니메이션(scale 1.02↔0.98 3초 주기). (3) 캐릭터→스킬→난이도 단계 전이 chime 사운드. (4) 시뮬레이터 실기로 5명 얼굴 식별·NurseAvatar 4영역 분간 시각 검증.
 
 ---
 

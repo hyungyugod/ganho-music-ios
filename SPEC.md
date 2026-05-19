@@ -1,431 +1,258 @@
-# Sprint 5 — ResultScene 3분기 v2 리스킨 + DiplomaOverlayNode 우드컷
+# SPEC.md — Sprint 6: 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터
 
 ## 개요
-ResultScene과 DiplomaOverlayNode를 `mockups/result-screen-v2.html` 시각에 맞춰 리스킨한다. 점수·저장·햅틱·사운드·전환 로직은 한 줄도 건드리지 않으며, **세 분기(A 일반 / B 신기록 / C 졸업장)** 의 시각 차이만 토큰·폰트·파편·우드컷 패턴으로 표현한다.
+현재 메인화면이 mockup과 정반대(난이도 카드는 있는데 김간호 캐릭터 SVG 그림이 없음)인 상태를 바로잡고, 사용자 의도대로 "스킬 다음에 난이도"가 오는 5단계 흐름(Start → Character → Skill → Difficulty → Game)을 신설한다. 캐릭터 5명의 얼굴은 mockup HTML의 SVG path를 SKShapeNode 조합으로 코드화하여 PNG 자산 없이도 카드에서 식별 가능하게 한다.
 
 ## 변경 유형
-**비주얼** — ResultScene 시각 갱신 + DiplomaOverlayNode 종이 패턴/명조 폰트 갱신. 게임 로직 / 저장소 5개 / 햅틱·사운드 발화 조건 0 변경.
+**혼합 (비주얼 + UX 흐름 재편)** — Evaluator는 비주얼 일관성(25%) + 가독성/UX(15%) 항목에 SPRINT_6_REQUEST.md §5의 추가 체크 7건을 적용한다. 단, 게임 로직 회귀 0(40%)·Swift 패턴(20%) 절대 기준은 그대로.
 
 ## 게임 경험 의도
-플레이어가 결과 화면에서 *세 가지 감정*을 명확히 구분되게 한다 — (A) 일반: "괜찮았어, 한 번 더 해볼까?"의 따뜻한 위로, (B) 신기록: "내가 해냈다!"의 황금 폭발과 별 파편의 환호, (C) 졸업장: "긴 실습을 마쳤다"의 종이 증서가 주는 의례적 무게감. 게임 종료가 "벌"이 아니라 "보상"으로 느껴지도록 부정 단어("GAME OVER")를 따뜻한 카피("실습 종료")로 교체한다.
+1. **첫인상의 정체성 회복** — 메인화면을 켰을 때 가장 먼저 보이는 것은 "이 게임의 주인공"이어야 한다. 현재는 추상적인 난이도 카드만 보여 사용자가 "누구의 이야기"인지 인지하기 전에 시스템 선택을 강요당한다. 김간호 SVG를 좌측에 두면 그림이 곧 약속(promise)이 된다.
+2. **결정 비용을 흐름 뒤로 미루기** — 캐릭터를 모르고 난이도부터 정하는 것은 "RPG에서 직업도 모르고 난이도부터 정하는" 부자연스러움. 캐릭터 → 스킬 학습 → "그래서 이 친구로 얼마나 도전할래?"가 인지 순서다. 난이도 화면이 마지막에 와야 캐릭터·스킬 정보를 정리해서 보여줄 수 있다.
+3. **김간호 분기의 차별점 보존** — 김간호는 스킬이 없는 정공법 캐릭터이므로 스킬 화면은 스킵하되, 난이도는 똑같이 거쳐야 한다. 이 4단계 분기가 "정공법 = 빠른 시작"이라는 캐릭터 정체성을 동작으로 드러낸다.
 
 ## Sprint 범위 계약
 
-### IN — 이번 Sprint에서 변경
-- `Scenes/ResultScene.swift` — 시각 레이아웃·색·폰트·신규 자식 노드(부제, 글래스 stat, 공유/다시시작 버튼, sparkle 5발). `setupOverlayPanel()` 색 토큰 갈아 끼움. `setupLabels()` 가지치기 + 신규 라벨/노드 부착. `revealNewBest()`에 sparkle 5발 호출 추가.
-- `Nodes/DiplomaOverlayNode.swift` — `configureBackground()`에 우드컷 패턴 SKShape 자식 + double-border 자식 추가. 라벨 fontName을 명조(`fontSerif`)로 교체. 라벨 색·도장 자식 추가.
-- `Config/GameConfig.swift` — Sprint 5 신규 상수만 **추가**. 폰트 이름 상수 `fontSerif` 1개 추가(파일 없어도 시스템 fallback로 안전). 기존 상수 변경 0.
-- `Config/ColorTokens.swift` — Diploma 전용 토큰 4개 추가 (`ganhoDiplomaPaper`, `ganhoDiplomaBorder`, `ganhoDiplomaTextDeep`, `ganhoDiplomaTextMuted`). 기존 토큰 변경 0.
+### 허용 (SPEC 기능의 정상 동작에 필수적인 최소 연동 변경)
+- **mockup 작업 3건**:
+  - A-1: `mockups/character-select-v2.html` 수정 (난이도 칩 제거, 백버튼 텍스트 변경)
+  - A-2: `mockups/skill-explanation-v2.html` 수정 (브레드크럼 순서 + 시작 → 다음)
+  - A-3: `mockups/difficulty-select-v2.html` 신규 생성 (캐릭터·스킬 요약 + 난이도 3장)
+- **Swift 코드 작업 7건**:
+  - B-1: `Scenes/StartScene.swift` 재구성 (난이도 카드 제거 + NurseAvatarNode 부착)
+  - B-2: `Scenes/CharacterSelectScene.swift` 수정 (init 시그니처 변경 + 난이도 칩 제거 + CharacterFaceNode 부착)
+  - B-3: `Nodes/CharacterFaceNode.swift` 신규 (5캐릭터 얼굴 SVG → SKShapeNode 코드화)
+  - B-4: `Nodes/NurseAvatarNode.swift` 신규 (메인화면 김간호 큰 그림 SVG → SKShapeNode 코드화)
+  - B-5: `Scenes/SkillExplanationScene.swift` 수정 (init 시그니처 difficulty 제거 + 시작 → 다음 + 다음 씬 변경)
+  - B-6: `Scenes/DifficultySelectScene.swift` 신규 (캐릭터 요약 + 난이도 3장 + 시작)
+  - B-7: `Config/GameConfig.swift` 상수 추가 (difficultySelect*, characterFace*, nurseAvatar*)
+- **라우팅 인자 변경** (SPRINT_6_REQUEST.md §1 변경표 그대로):
+  - Start → CharacterSelect: `(difficulty:)` → `()`
+  - CharacterSelect → SkillExplanation: `(characterID:, difficulty:)` → `(characterID:)`
+  - CharacterSelect → DifficultySelect (.kim): `(characterID:)` **신규**
+  - SkillExplanation → DifficultySelect: `(characterID:)` **신규**
+  - DifficultySelect → GameScene: `(characterID:, difficulty:)` **신규**
 
-### OUT — 절대 변경 금지
-- **`ResultScene.init` 9개 인자 시그니처** (`size`, `score`, `bestScore`, `isNewBest`, `stats`, `characterName`, `difficulty`, `isNewGraduation`, `graduatedAt`) — 순서·이름·타입 한 글자도 변경 금지. `newResultScene` 정적 팩토리 시그니처도 동일.
-- `HighScoreRepository` / `StatisticsRepository` / `PerDifficultyScoreRepository` / `GraduationRepository` / `CharacterPreferenceRepository` 저장 키·로직.
-- `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 발화 *조건*과 *타이밍*.
-- DiplomaOverlayNode 본문 텍스트("다사다난한 실습을 마치고 {NAME}는 드디어 졸업하였다." 및 본문 2). `SelfDismissingNode` 자가 소멸 패턴. private init + `present(...)` 정적 팩토리.
-- 2단계 탭 정책: 졸업장 1탭 → 졸업장 닫힘 → ResultScene 노출 → ResultScene 1탭 → StartScene fade.
-- `touchesBegan`의 `diplomaOverlay` 가드, `transitionToStart` 경로(`StartScene.newStartScene()` + `SKTransition.fade`).
-- GameScene.swift의 `ResultScene.newResultScene(...)` 호출부.
-- Sprint 1~3 결과물: ColorTokens v2 16토큰, GameConfig 폰트 3, GlassPillNode / AccentLineNode / DarkContextChipNode / PrimaryButtonNode / BackButtonNode / GradientBackgroundNode.threeStop / PauseButtonNode / SparkleEffectNode 내부 0건.
+### 금지 (SPEC에 없는 독립적인 새 기능/효과)
+- SPRINT_6_REQUEST.md §7 후속 작업(호흡 애니메이션, 사운드 cue, PNG swap) — 명시적으로 "Sprint 6 통과 후 추가해도 됨" 이라 표기됨. 이번 SPEC에서는 미포함.
+- 새 캐릭터·새 스킬·새 난이도 등 게임 콘텐츠 확장.
+- 인게임(GameScene·HUD·D-Pad) 시각 변경.
+- 사용자 입력 응답 방식 변경(드래그/제스처).
 
 ### 판단 기준
-"이 변경이 없으면 SPEC 시각이 안 나오는가?" YES면 허용, NO면 금지.
+"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+예: GameConfig 상수 추가 → 동작 필수 → 허용. NurseAvatarNode 호흡 애니메이션 → 정적 시각만으로도 §5 체크 3 통과 가능 → 금지.
+
+## 변경 범위
+
+### 수정할 파일
+- `GanhoMusic Shared/Scenes/StartScene.swift`: 난이도 관련 모든 멤버/메서드 삭제, NurseAvatarNode 부착, transitionToNext 인자 없는 newCharacterSelectScene 호출로 변경
+- `GanhoMusic Shared/Scenes/CharacterSelectScene.swift`: init 시그니처 `init(size:)`로 단순화, difficulty/difficultyChip 필드 제거, 백버튼 텍스트 변경, 5장 카드에 CharacterFaceNode 부착, transitionToNext의 .kim 분기를 DifficultySelectScene으로
+- `GanhoMusic Shared/Scenes/SkillExplanationScene.swift`: init 시그니처 difficulty 제거, 브레드크럼 라벨 변경, 시작 버튼 텍스트 "다음"으로, transitionToGame → transitionToDifficulty
+- `GanhoMusic Shared/Config/GameConfig.swift`: §B-7 상수 추가 (난이도 선택 씬 + 얼굴 노드 + 김간호 큰 그림 + 백버튼 텍스트 갱신)
+- `mockups/character-select-v2.html`: A-1 사양 그대로
+- `mockups/skill-explanation-v2.html`: A-2 사양 그대로
+
+### 추가할 파일
+- `GanhoMusic Shared/Scenes/DifficultySelectScene.swift`: 5단계 흐름의 마지막 단계. 좌측 캐릭터 요약 카드 + 우측 난이도 3장 + 하단 시작 버튼
+- `GanhoMusic Shared/Nodes/CharacterFaceNode.swift`: CharacterID 별 얼굴 SVG를 SKShapeNode 조합으로 그리는 컨테이너. PNG swap 호환 구조(SKNode 서브클래스)
+- `GanhoMusic Shared/Nodes/NurseAvatarNode.swift`: 메인화면 김간호 큰 그림(머리/모자/헤드폰/팔/쉿 손가락) SKShapeNode 컨테이너
+- `mockups/difficulty-select-v2.html`: A-3 사양 그대로
 
 ---
 
-## 불변 계약 표
+## 기능 상세
 
-| 항목 | 출처 / 위치 | 보존 요구 |
+### 기능 1: StartScene 재구성 (난이도 카드 제거 + 김간호 큰 그림 부착)
+- **설명**: 메인화면을 mockup main-screen-v2.html과 100% 일치시킨다. 난이도 결정 시점을 후반으로 미루는 것이 핵심.
+- **삭제 항목**: selectedDifficulty 필드, difficultyCards 배열, difficultyRepo 필드, setupDifficultyCards/layoutDifficultyCards/selectDifficulty 메서드, touchesBegan 카드 hit test 분기, transitionToNext 안 카드 exit slide 루프, didChangeSize 안 layoutDifficultyCards 호출, didMove 안 difficultyRepo.current 라인
+- **추가 항목**: `private var nurseAvatar: NurseAvatarNode?` 필드, `setupNurseAvatar()`, `layoutNurseAvatar()`
+- **변경 항목**: `CharacterSelectScene.newCharacterSelectScene(difficulty:)` → `CharacterSelectScene.newCharacterSelectScene()`, transitionToNext exit 액션에 nurseAvatar 포함
+
+### 기능 2: CharacterSelectScene 수정 (init 단순화 + 5장 얼굴 + 난이도 칩 제거)
+- **삭제**: `difficulty: Difficulty` 필드, `difficultyChip: DarkContextChipNode?` 필드, `init(size:difficulty:)` → `init(size:)`, `newCharacterSelectScene(difficulty:)` → `newCharacterSelectScene()`
+- **추가**: `characterFaces: [CharacterID: CharacterFaceNode]` 필드, `setupCharacterFaces()`, `layoutCharacterFaces()`
+- **변경**:
+  - `GameConfig.characterSelectBackPillText` 값 `"← 난이도 다시"` → `"← 메인"`
+  - .kim 분기: `GameScene.newGameScene(...)` → `DifficultySelectScene.newDifficultySelectScene(characterID: .kim)`
+  - 그 외 분기: `SkillExplanationScene.newSkillExplanationScene(characterID:, difficulty:)` → `SkillExplanationScene.newSkillExplanationScene(characterID:)`
+
+### 기능 3: CharacterFaceNode 신규
+- mockup character-select-v2.html의 5개 `<svg class="avatar" viewBox="-50 -55 100 110">` 내부 path/circle/ellipse/rect를 SKShapeNode 조합으로 충실 재현
+- 공통 베이스: 머리 타원 64×68 fill #FFE2C6 stroke #2D2A4A
+- SVG y-down → SpriteKit y-up 변환 시 y 부호 반전 필수
+- zPosition 내부 순서: 머리(0) < 헤드폰 밴드(5) < 헤어 베이스(10) < 모자(20) < 얼굴 디테일(30) < 액세서리(40)
+- PNG swap 호환 — `SKNode` 서브클래스로 향후 `SKSpriteNode(texture:)` 교체 가능
+
+### 기능 4: NurseAvatarNode 신규
+- mockup main-screen-v2.html의 `<svg class="character" viewBox="-150 -160 300 360">` 전체를 코드화
+- 빌드: shoulders → collar → neck → head → bangs → cap → headphones → eyebrows → eyes → blush → shh mouth → arm + finger
+- 크기: `GameConfig.nurseAvatarRenderWidth: 240` 정도
+- zPosition 내부 순서: 어깨(-5) < 사이드헤어 뒤(-3) < 머리/목(0) < 앞머리(5) < 모자(10) < 헤드폰 밴드(15) < 헤드폰 컵(20) < 얼굴 디테일(25) < 팔(30) < 손가락 끝(35)
+
+### 기능 5: SkillExplanationScene 수정
+- 삭제: `difficulty: Difficulty` 필드, init/factory의 difficulty 파라미터, 기존 DarkContextChipNode difficulty 라벨 패턴
+- 변경:
+  - 브레드크럼 라벨: `"\(characterID.displayName) · 스킬 · 난이도"`
+  - 시작 버튼: `PrimaryButtonNode(text: "시작")` → `PrimaryButtonNode(text: "다음")`
+  - `transitionToCharacterSelect` 안 `newCharacterSelectScene(difficulty:)` → `newCharacterSelectScene()`
+  - `transitionToGame()` → `transitionToDifficulty()`: GameScene 대신 DifficultySelectScene 전이
+
+### 기능 6: DifficultySelectScene 신규
+- 5단계 흐름의 마지막 결정 씬
+- 레이아웃:
+  - **상단 좌측 GlassPill 백버튼**: `← 스킬 다시` (kim이면 `← 캐릭터 다시`)
+  - **상단 우측 DarkContextChip 브레드크럼**: `캐릭터 · 스킬 · 난이도`
+  - **중앙 헤더**: AccentLine 32×3 코랄 + Jua 26pt "난이도를 골라요" + Gowun Dodum 12pt 부제
+  - **좌측 미니 카드** (width 200 글래스): 코랄 이름 뱃지 + CharacterFaceNode (scale 0.65) + 스킬명(또는 "스킬 없음") + 민트 톤 속도 칩
+  - **우측 난이도 3장**: `DifficultyCardNode` 그대로 재사용
+  - **하단 PrimaryButton "시작"**
+- 백버튼 분기: `characterID == .kim ? "← 캐릭터 다시" + CharacterSelectScene : "← 스킬 다시" + SkillExplanationScene`
+- 저장: `difficultyRepo.save(id)` (저장 포맷 회귀 0)
+
+### 기능 7: GameConfig 상수 추가
+- 신규 상수 약 30~40개 (`difficultySelect*`, `characterFace*`, `nurseAvatar*`)
+- 기존 1줄 값 교체: `characterSelectBackPillText` `"← 난이도 다시"` → `"← 메인"` (이름 유지)
+
+---
+
+## Mockup 작업 세부 사양
+
+### A-1. mockups/character-select-v2.html 수정
+- 삭제: 우상단 `<div class="diff-pill">현재 난이도 <span class="badge">중</span></div>`
+- 변경: 좌상단 `← 난이도 다시` → `← 메인`
+- 변경: 우측 confirm 버튼 `이 친구로 시작 ▶` → `다음 ▶`
+- top-bar `justify-content`는 백버튼 좌측 정렬 유지
+- annotation: "🏷️ 난이도 칩" 제거, "↩️ Back = 메인으로" 추가
+
+### A-2. mockups/skill-explanation-v2.html 수정
+- 브레드크럼 칩: `난이도 · 캐릭터 · [스킬]` → `캐릭터 · [스킬] · 난이도`
+- 우측 primary 버튼: `시작 ▶` → `다음 ▶`
+- 백버튼 `← 캐릭터 다시` 유지
+- annotation 🧭 브레드크럼 항목 새 순서 반영
+
+### A-3. mockups/difficulty-select-v2.html 신규 생성
+- 기존 mockup 6종과 동일한 phone-frame + 그라데이션 + 음표 + 폰트 시스템
+- 좌측 캐릭터 요약 카드 + 우측 난이도 3장 + 하단 시작 버튼
+- annotation 6칸: "왜 이 화면이 마지막인가" / "캐릭터 요약 카드" / "난이도 3장 카드" / "브레드크럼 [난이도] 강조" / "시작 버튼만 = 명확한 마무리" / "백 = 분기별 다른 텍스트(.kim)"
+- .kim 특수 케이스 명시 1줄
+
+---
+
+## 수용 기준 (Accept Criteria)
+
+| 작업 | git diff 예상 형태 | 시각 확인 |
 |---|---|---|
-| ResultScene init 시그니처 | `ResultScene.swift` factory + init | 9개 인자 순서·이름·타입 한 글자도 동일 |
-| ResultScene 호출부 | `GameScene.swift` endGame() | 한 줄도 변경 금지 |
-| HighScoreRepository / StatisticsRepository / PerDifficultyScoreRepository / GraduationRepository | GameScene.endGame() 내부 | ResultScene 진입 *전*에 record가 완료된다는 전제. ResultScene은 *결과 데이터만* 받음 |
-| heavy 햅틱 발화 | `revealNewBest()` 첫 줄 `haptics.heavy()` | `isNewBest=true` → `scheduleNewBestReveal()` → `wait 0.3s` → `revealNewBest()` 시퀀스 보존 |
-| NewMail 사운드 발화 | `revealNewBest()` 두 번째 줄 `audio.play(.comboMilestoneStrong)` | 동일 시퀀스 |
-| DiplomaOverlayNode 본문 텍스트 | `DiplomaOverlayNode.swift` body1/body2 | 글자 그대로. {NAME} 치환 로직 보존 |
-| SelfDismissingNode 패턴 | `DiplomaOverlayNode.swift` `dismiss()` | `isUserInteractionEnabled=false` + `onDismiss=nil` + `fadeOut → removeFromParent → notify` 시퀀스 |
-| 2단계 탭 정책 | ResultScene touchesBegan + `presentDiploma`의 `onDismiss: {}` | `children.contains(where: { $0.name == "diplomaOverlay" })` 가드 유지 |
-| 1탭 → StartScene fade | ResultScene transitionToStart | `StartScene.newStartScene()` + `SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)` |
+| A-1 | diff-pill HTML 5~10줄 삭제 + back-btn 텍스트 변경 1줄 | 브라우저: 난이도 칩 없음, 좌상단 "← 메인" |
+| A-2 | 브레드크럼 1줄 + 버튼 1줄 변경 | 브라우저: "캐릭터 · 스킬 · 난이도" + "다음 ▶" |
+| A-3 | 신규 파일 1개 추가 (~300~400줄) | 브라우저: 좌 카드 + 우 3장 + 6칸 annotation |
+| B-1 | 난이도 관련 70~100줄 삭제 + NurseAvatar setup 20줄 추가 | 시뮬레이터: 좌측 김간호 그림, 난이도 카드 없음 |
+| B-2 | init 변경 + difficultyChip 30줄 삭제 + face setup 20줄 추가 | 시뮬레이터: 난이도 칩 없음, 5얼굴 식별, "← 메인" |
+| B-3 신규 | 신규 파일 1개 (~250~400줄) | 5캐릭터 얼굴 시각 차별화 |
+| B-4 신규 | 신규 파일 1개 (~150~250줄) | 메인 좌측 김간호 그림 4영역 분간 |
+| B-5 | init 시그니처 -1 + 버튼 "다음" + 다음 씬 변경 | 시뮬레이터: 다음 버튼 → 난이도 화면 |
+| B-6 신규 | 신규 파일 1개 (~350~500줄) | 시뮬레이터: 좌 요약 + 우 3장 + 시작 |
+| B-7 | 신규 상수 40~60줄 + 1줄 값 변경 | 빌드 SUCCEEDED |
+
+### 흐름 전체 검증
+1. 5단계 흐름 (.jung/.geon/.im/.lee): Start → Character → Skill → Difficulty → Game
+2. 4단계 흐름 (.kim): Start → Character → Difficulty → Game
+3. 백버튼 회귀 정확 (각 단계에서 직전으로)
+4. 저장 동작 보존 (difficultyRepo/characterRepo 호출 시점 유지)
 
 ---
 
-## 3 분기별 시각 명세
+## 보호 영역 (변경 금지 — git diff 0줄)
 
-### 분기 A: 일반 결과 (기본)
-- **트리거**: `isNewBest=false && isNewGraduation=false`
-- **배경**: 3-stop warm 그라데이션 — `GradientBackgroundNode.threeStop(...)`. zPosition 매우 낮음 (기존 검정 반투명 사각형 *교체*).
-- **카드**: 기존 `setupOverlayPanel()` SKShapeNode 활용. `fillColor`를 `UIColor.white.withAlphaComponent(0.88)` (신규 토큰 `ganhoResultCardFillV2`). cornerRadius 22.
-- **AccentLine**: 카드 상단 내부 `AccentLineNode()`, y 오프셋 +130.
-- **헤더 칩**: `DarkContextChipNode(label: "\(difficulty.shortName) 난이도 · \(characterName)", badge: nil)` 한 줄 통합.
-- **타이틀**: "실습 종료" — Jua 30pt, navyDeep.
-- **부제(신규)**: "수고했어요! 한 번 더 해볼까요?" — Gowun Dodum 12pt, navyMuted.
-- **점수**: "♪ \(finalScore)" — Jua 64pt, **ganhoCoralPrimary**.
-- **점수 라벨(신규)**: "SCORE" — Gowun Dodum 11pt, navyMuted.
-- **BEST 칩**: "🏆 BEST \(bestScore)" — 골드 톤 알약.
-- **divider(신규)**: 가로 60% navyDeep α=0.18 라인.
-- **통계 stats**: PLAYS·TOTAL 두 그룹. 숫자 Jua 14, 라벨 Gowun Dodum 11.
-- **버튼 2개**: `GlassPillNode("📤 공유")` + `PrimaryButtonNode("다시 시작")`.
-- **sparkle**: 없음.
+**Scenes/Core**:
+- `GanhoMusic Shared/GameScene.swift`
+- `GanhoMusic Shared/GameScene+Setup.swift`
+- `Scenes/ResultScene.swift`
 
-### 분기 B: 신기록 (isNewBest=true)
-A와 동일하되:
-- **타이틀**: "✨ NEW BEST! ✨" — 골드 톤 (titleLabel.text 분기로 교체 + fontColor=ganhoMusicGold). 기존 `newBestLabel`은 화면 정 가운데 큰 라벨로 유지(y 분리).
-- **부제**: "최고 기록을 갱신했어요!" — Gowun Dodum 12pt navyMuted.
-- **점수 색**: `scoreLabel.fontColor = .ganhoMusicGold`.
-- **점수 부제**: "NEW SCORE".
-- **BEST 칩**: 기존 `startBestLabelGoldBlink()` 패턴 그대로 (shimmer 알파 펄스).
-- **별 파편**: `revealNewBest()` 내부에서 `SparkleEffectNode()` 5개를 카드 주변 5개 좌표에 부착 + `emit()` 호출.
-- **shareButton 텍스트**: "📤 자랑하기".
-- **햅틱·사운드**: `revealNewBest()` 기존 `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 그대로.
+**Nodes (게임플레이)**:
+- PlayerNode, EnemyNode, StoneGuardNode, NoteNode, ProjectileNode, MusicNoteEmitterNode, HUDNode, DPadNode, SkillButtonNode, HUDSkillSlotNode, ComboPopupNode, ComboBreakNode, PauseButtonNode, PixelSpriteRenderer, DiplomaOverlayNode, SparkleEffectNode
 
-### 분기 C: 졸업장 (isNewGraduation=true && graduatedAt != nil)
-A 분기 카드 위에 `DiplomaOverlayNode`가 덮음 (기존 `presentDiploma` 호출 유지).
-- **DiplomaOverlayNode 시각**:
-  - **배경**: 기존 `background: SKSpriteNode(color: .ganhoYellowF α=0.92)` 유지.
-  - **종이 카드**: SKShapeNode 520×320 cornerRadius 8, fillColor `ganhoDiplomaPaper`(#FFF9EA), strokeColor `ganhoDiplomaBorder`(#C76F00), lineWidth 4, zRotation -2°.
-  - **우드컷 도트 패턴**: **단일 SKShapeNode + CGMutablePath** (도트 1100개를 path에 누적 — 노드 1개로 통합 = 성능 안전).
-  - **double-border**: ㄱ자 코너 데코 2개(좌상·우하), strokeColor `ganhoDiplomaBorder` lineWidth 3.
-  - **명조 폰트**: 라벨 7개 모두 `fontName = GameConfig.fontSerif` ("GowunBatang-Regular"). ttf 미존재 시 시스템 fallback (안전).
-  - **라벨 색**: titleEn/issuer/date/tap = `ganhoDiplomaTextMuted`(#8B5A0E), titleKo/body1/body2 = `ganhoDiplomaTextDeep`(#5A3A0E).
-  - **도장**: SKShapeNode 원 r=28 우하단 + "김간호\n음악대학" 라벨(Jua 9pt, coralShadow). -12° 회전.
-  - **TAP 안내**: 기존 `tapLabel` 보존.
-- **탭 동작**: 기존 `dismiss()` → `onDismiss = {}` → ResultScene 노출 → 1탭 → StartScene. **2단계 탭 정책 보존**.
+**도메인 로직**:
+- `Managers/` 전체
+- `Repositories/` 전체 (사용만, 수정 안 함)
+- `Config/GameState.swift`
+- `Config/PhysicsCategory.swift`
+- 게임 수치, 물리, 입력, AI, 저장, 사운드, 햅틱
+
+**변경 가능**:
+- StartScene, CharacterSelectScene, SkillExplanationScene
+- DifficultySelectScene (신규), CharacterFaceNode (신규), NurseAvatarNode (신규)
+- CharacterCardNode, DifficultyCardNode — **외부 부착만**, 내부 git diff 0
+- GlassPillNode, DarkContextChipNode, AccentLineNode, PrimaryButtonNode, BackButtonNode, GradientBackgroundNode — 재사용만, 내부 0
+- ColorTokens.swift — 추가만
+- GameConfig.swift — 추가만, 1줄(`characterSelectBackPillText`) 값 교체 허용
+- mockups/*.html (수정 2 + 신규 1)
 
 ---
 
-## 파일별 변경 명세
+## 주의사항 (Generator 빌드 함정)
 
-### 1) `Scenes/ResultScene.swift`
-
-#### MARK: - Properties (신규 추가)
-```swift
-private let subtitleLabel = SKLabelNode(text: "")
-private let scoreSubLabel = SKLabelNode(text: "SCORE")
-private let bestChipBg = SKShapeNode()
-private let divider = SKShapeNode()
-private let playsValueLabel = SKLabelNode(text: "")
-private let playsTitleLabel = SKLabelNode(text: "PLAYS")
-private let totalValueLabel = SKLabelNode(text: "")
-private let totalTitleLabel = SKLabelNode(text: "TOTAL")
-private let shareButton: GlassPillNode  // init에서 정식 생성 (text/size 분기)
-private let restartButton = PrimaryButtonNode(text: "다시 시작")
-private var headerChip: DarkContextChipNode?
-private var gradientBg: GradientBackgroundNode?
-private let accentLine = AccentLineNode()
-```
-
-#### MARK: - Lifecycle
-`didMove(to:)`:
-1. `setupBackgroundGradient()` (신규) — 기존 `backgroundColor` 라인 제거 또는 `.clear`. `GradientBackgroundNode.threeStop(...)`를 zPosition=-20에 부착.
-2. `setupOverlayPanel()` — 보존하되 색 토큰 갈아 끼움.
-3. `setupLabels()` — 가지치기.
-
-#### MARK: - setupOverlayPanel (수정)
-- `bg`(전체 반투명 검정) alpha=0 (그라데이션이 배경 담당).
-- `panel.fillColor = UIColor.white.withAlphaComponent(0.88)`.
-- `panel.strokeColor = .clear`.
-- cornerRadius `resultCardCornerRadiusV2 = 22`.
-
-#### MARK: - setupLabels (확장)
-순서:
-1. 기존 6개 라벨 fontName/fontSize/fontColor를 v2 토큰으로 교체 (분기별).
-2. characterLabel·difficultyLabel·statsLabel alpha=0 (headerChip + stat 그룹이 대체).
-3. headerChip 부착 (`DarkContextChipNode`).
-4. AccentLine 부착.
-5. subtitleLabel 부착 (분기별 텍스트).
-6. scoreSubLabel 부착 ("SCORE" / "NEW SCORE").
-7. divider 부착.
-8. setupStats() — PLAYS/TOTAL 4 라벨.
-9. setupButtons() — shareButton/restartButton.
-10. layoutLabels().
-11. **기존 분기 2개**(isNewBest → configureNewBestLabel + scheduleNewBestReveal / isNewGraduation → presentDiploma) **한 글자도 변경 금지**.
-
-#### MARK: - setupStats (신규)
-4 라벨 init + addChild.
-
-#### MARK: - setupButtons (신규)
-shareButton(분기별 텍스트 "📤 공유" / "📤 자랑하기") + restartButton addChild.
-
-#### MARK: - layoutLabels (확장)
-신규 자식 위치를 frame.midY 기준 offset 배치:
-| 자식 | y 오프셋 |
-|---|---|
-| accentLine | +130 |
-| headerChip | +100 |
-| titleLabel | +70 |
-| subtitleLabel | +44 |
-| scoreLabel | -2 |
-| scoreSubLabel | -32 |
-| bestLabel | -60 |
-| divider | -90 |
-| stats values | -110 (midX ± 50) |
-| stats titles | -124 (midX ± 50) |
-| shareButton | -180 (midX-70) |
-| restartButton | -180 (midX+80) |
-
-#### MARK: - revealNewBest (수정)
-```swift
-private func revealNewBest() {
-    haptics.heavy()                    // 보존 — 발화 조건/타이밍 동일
-    audio.play(.comboMilestoneStrong)  // 보존
-    // ... 기존 fadeIn / scale pulse / startBestLabelGoldBlink 보존
-    emitSparkleBurst()                 // 신규 — 마지막 라인 추가
-}
-
-private func emitSparkleBurst() {
-    for offset in GameConfig.resultSparklePositionsV2 {
-        let sparkle = SparkleEffectNode()
-        sparkle.position = CGPoint(x: frame.midX + offset.x, y: frame.midY + offset.y)
-        sparkle.zPosition = GameConfig.newBestZPosition + 1
-        addChild(sparkle)
-        sparkle.emit()
-    }
-}
-```
-
-#### MARK: - configureLabelV2 (신규 헬퍼)
-```swift
-private func configureLabelV2(_ label: SKLabelNode,
-                               text: String,
-                               fontName: String,
-                               fontSize: CGFloat,
-                               fontColor: UIColor) {
-    label.text = text
-    label.fontName = fontName
-    label.fontSize = fontSize
-    label.fontColor = fontColor
-    label.horizontalAlignmentMode = .center
-    label.verticalAlignmentMode = .center
-}
-```
-
-#### MARK: - touchesBegan (보존)
-한 줄도 변경 없음. shareButton/restartButton 시각만 — 탭은 기존 1탭 → StartScene 경로 그대로.
-
-### 2) `Nodes/DiplomaOverlayNode.swift`
-
-#### MARK: - Properties (신규)
-```swift
-private let paperCard: SKShapeNode
-private let topLeftBorder: SKShapeNode
-private let bottomRightBorder: SKShapeNode
-private let stamp: SKShapeNode
-private let stampLabel: SKLabelNode
-private let dotsPattern: SKShapeNode   // 단일 노드, CGMutablePath
-```
-
-#### MARK: - Init (수정 — 시각만 추가)
-- 기존 background SKSpriteNode + 라벨 7개 그대로.
-- `configureBackground()`에서 paperCard / dotsPattern / 코너 데코 / 도장 부착.
-- 라벨 7개 fontName을 `GameConfig.fontSerif`로 교체.
-- 라벨 색을 명조 톤으로 분기 (titleEn/issuer/date/tap = TextMuted, titleKo/body1/body2 = TextDeep).
-- **본문 텍스트 한 글자도 변경 금지**. `{NAME}` 치환 로직 그대로.
-
-#### MARK: - configureBackground (확장)
-```swift
-private func configureBackground() {
-    background.position = .zero
-    background.zPosition = 0
-
-    paperCard.path = CGPath(roundedRect: CGRect(
-        x: -GameConfig.diplomaPaperWidthV2/2,
-        y: -GameConfig.diplomaPaperHeightV2/2,
-        width: GameConfig.diplomaPaperWidthV2,
-        height: GameConfig.diplomaPaperHeightV2
-    ), cornerWidth: 8, cornerHeight: 8, transform: nil)
-    paperCard.fillColor = .ganhoDiplomaPaper
-    paperCard.strokeColor = .ganhoDiplomaBorder
-    paperCard.lineWidth = 4
-    paperCard.zRotation = -CGFloat.pi / 90  // -2°
-    paperCard.zPosition = 0.5
-    addChild(paperCard)
-
-    buildDotsPattern()
-    configureCornerDeco()
-    configureStamp()
-}
-
-private func buildDotsPattern() {
-    // 단일 SKShapeNode + CGMutablePath addEllipse N회 누적
-    let cardW = GameConfig.diplomaPaperWidthV2
-    let cardH = GameConfig.diplomaPaperHeightV2
-    let step = GameConfig.diplomaDotStepV2
-    let radius = GameConfig.diplomaDotRadiusV2
-
-    let path = CGMutablePath()
-    var x = -cardW/2 + step
-    while x < cardW/2 {
-        var y = -cardH/2 + step
-        while y < cardH/2 {
-            path.addEllipse(in: CGRect(x: x - radius, y: y - radius,
-                                        width: radius * 2, height: radius * 2))
-            y += step
-        }
-        x += step
-    }
-    dotsPattern.path = path
-    dotsPattern.fillColor = UIColor(hex: "#FFEDC6").withAlphaComponent(0.4)
-    dotsPattern.strokeColor = .clear
-    dotsPattern.zPosition = 0.7
-    dotsPattern.zRotation = -CGFloat.pi / 90
-    addChild(dotsPattern)
-}
-```
-
-#### MARK: - configureCornerDeco (신규)
-ㄱ자 path 2개(좌상·우하), strokeColor `ganhoDiplomaBorder` lineWidth 3, zRotation -2°.
-
-#### MARK: - configureStamp (신규)
-원 r=28 + 라벨 "김간호\n음악대학" Jua 9pt coralShadow. -12° 회전. 우하단.
-
-#### MARK: - dismiss / touchesBegan / present (보존)
-한 글자도 변경 없음.
-
-### 3) `Config/GameConfig.swift`
-
-#### MARK: - Sprint 5 · ResultScene v2 Layout (신규)
-```swift
-// 폰트
-static let fontSerif: String = "GowunBatang-Regular"
-
-// ResultScene v2
-static let resultCardCornerRadiusV2: CGFloat = 22
-static let resultAccentLineOffsetYV2: CGFloat = 130
-static let resultHeaderChipOffsetYV2: CGFloat = 100
-static let resultTitleOffsetYV2: CGFloat = 70
-static let resultTitleFontSizeV2: CGFloat = 30
-static let resultSubtitleOffsetYV2: CGFloat = 44
-static let resultSubtitleFontSizeV2: CGFloat = 12
-static let resultScoreOffsetYV2: CGFloat = -2
-static let resultScoreNumFontSizeV2: CGFloat = 64
-static let resultScoreSubOffsetYV2: CGFloat = -32
-static let resultBestOffsetYV2: CGFloat = -60
-static let resultBestFontSizeV2: CGFloat = 13
-static let resultDividerOffsetYV2: CGFloat = -90
-static let resultDividerWidthRatioV2: CGFloat = 0.6
-static let resultStatValueFontSizeV2: CGFloat = 14
-static let resultStatTitleFontSizeV2: CGFloat = 11
-static let resultStatValueOffsetYV2: CGFloat = -110
-static let resultStatTitleOffsetYV2: CGFloat = -124
-static let resultStatGroupSpacingXV2: CGFloat = 50
-static let resultButtonOffsetYV2: CGFloat = -180
-static let resultShareButtonWidthV2: CGFloat = 100
-static let resultShareButtonHeightV2: CGFloat = 36
-static let resultShareButtonXOffsetV2: CGFloat = -70
-static let resultRestartButtonXOffsetV2: CGFloat = 80
-
-// Sparkle 5발 좌표
-static let resultSparklePositionsV2: [CGPoint] = [
-    CGPoint(x: -150, y:  60),
-    CGPoint(x:  130, y:  40),
-    CGPoint(x: -110, y: -40),
-    CGPoint(x:  140, y: -60),
-    CGPoint(x: -180, y:   0)
-]
-
-// Diploma v2
-static let diplomaPaperWidthV2: CGFloat = 520
-static let diplomaPaperHeightV2: CGFloat = 320
-static let diplomaDotStepV2: CGFloat = 12
-static let diplomaDotRadiusV2: CGFloat = 1.0
-static let diplomaCornerDecoSizeV2: CGFloat = 30
-static let diplomaCornerDecoInsetV2: CGFloat = 6
-```
-
-### 4) `Config/ColorTokens.swift`
-
-#### MARK: - v2 Diploma Tokens (Sprint 5, 신규)
-```swift
-static let ganhoDiplomaPaper      = UIColor(hex: "#FFF9EA")
-static let ganhoDiplomaBorder     = UIColor(hex: "#C76F00")
-static let ganhoDiplomaTextDeep   = UIColor(hex: "#5A3A0E")
-static let ganhoDiplomaTextMuted  = UIColor(hex: "#8B5A0E")
-```
-
-**기존 토큰 한 줄도 변경 0**.
-
----
-
-## 검증 체크리스트 (Evaluator용)
-
-### P0 — 즉시 불합격
-- [ ] `ResultScene.init` 9개 인자 시그니처 한 글자라도 변경
-- [ ] `ResultScene.newResultScene(...)` 정적 팩토리 시그니처 변경
-- [ ] `GameScene.swift` ResultScene 호출부 한 줄이라도 변경
-- [ ] `DiplomaOverlayNode` private init / present 정적 팩토리 시그니처 변경
-- [ ] `dismiss()` 메서드의 nil 토글 / removeFromParent / fadeOut SKAction 시퀀스 변경
-- [ ] `touchesBegan`의 `diplomaOverlay` name 가드 변경
-- [ ] `transitionToStart` 경로 변경
-- [ ] `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 호출 *조건* 변경
-- [ ] DiplomaOverlayNode 본문 텍스트 한 글자라도 변경
-- [ ] Repositories 5개 호출 위치/순서 변경
-
-### P1 — Swift 패턴 (20%)
-- [ ] 강제 언래핑 `!` 0건
-- [ ] Timer 사용 0건
-- [ ] 매직 넘버 0건 (모든 수치 GameConfig 상수)
-- [ ] hex 하드코딩 0건 (ColorTokens 사용 — Sprint 5 신규 토큰 4개만 추가)
-- [ ] `// MARK:` 섹션 구분
-- [ ] private / final / let 일관성
-
-### P2 — 분기별 시각 (25%)
-- [ ] 분기 A: 타이틀 "실습 종료" navyDeep / 점수 코랄 / 부제 "수고했어요! 한 번 더 해볼까요?" / sparkle 0개 / shareButton "📤 공유"
-- [ ] 분기 B: 타이틀 "✨ NEW BEST! ✨" 골드 / 점수 골드 / 부제 "최고 기록을 갱신했어요!" / sparkle 5개 동시 / shareButton "📤 자랑하기" / heavy 햅틱 / NewMail 사운드
-- [ ] 분기 C: A 카드 위에 DiplomaOverlayNode 오버레이 / 우드컷 종이 + 도트 패턴 + 코너 데코 + 도장 / 본문 텍스트 보존
-- [ ] 2단계 탭 정책 유지
-
-### P3 — 빌드 & 호환 (15%)
-- [ ] `xcodebuild` SUCCEEDED
-- [ ] `fontSerif` ttf 부재 시에도 크래시 0 (시스템 fallback)
-- [ ] 5×3=15 캐릭터·난이도 조합 + 신기록 + 졸업장 분기 진입 가능
-
-### P4 — Sprint 1~3 보호 (40%, 회귀 0)
-- [ ] GameScene / GameScene+Setup git diff 0줄
-- [ ] StartScene / CharacterSelectScene / SkillExplanationScene git diff 0줄
-- [ ] Sprint 1 컴포넌트 6개 + PauseButtonNode 0줄
-- [ ] SparkleEffectNode 한 줄도 무변
-- [ ] Repositories 5개 / Managers 3개 / Systems / Models 0줄
-- [ ] EnemyNode/ProfessorNode/StoneGuardNode/PlayerNode 등 인게임 노드 0줄
-
----
-
-## 주의사항
-
-1. **`scheduleNewBestReveal` 시퀀스 보존**: `wait 0.3s → revealNewBest()` 흐름 한 줄도 변경 금지. sparkle 5발은 *`revealNewBest()` 내부 마지막 라인 추가*로만 부착.
-
-2. **`SparkleEffectNode` 재활용**: 이미 음표 수집 시 사용 중. ResultScene 부착 좌표/zPosition만 다르고 내부 0건 변경. `emit()` 마지막에 `removeFromParent()` 자가 소멸.
-
-3. **도트 패턴 단일 노드 통합**: 12pt 격자 약 1100개 도트를 *단일 SKShapeNode + CGMutablePath addEllipse 누적*으로 통합. 노드 수 1개 = SpriteKit 렌더 부담 최소.
-
-4. **`fontSerif` graceful fallback**: SKLabelNode(fontNamed:)는 fontName 미존재 시 시스템 폰트 fallback. 크래시 0. 사용자 후속으로 GowunBatang-Regular.ttf를 Resources/Fonts + Info.plist UIAppFonts에 추가 가능.
-
-5. **`titleLabel` vs `newBestLabel` 시각 분리**: 분기 B에서 `titleLabel`을 카드 헤더로(+70 y), `newBestLabel`을 화면 정 가운데(+0 y)로 명확 분리. 두 라벨 다 살림.
-
-6. **`statsLabel` / `characterLabel` / `difficultyLabel` deprecated**: alpha=0 비활성, addChild 보존(노드 트리 구조 유지).
-
-7. **`presentDiploma` 카드 위 덮음**: 졸업장 zPosition 300으로 카드(-5)보다 위. 분기 C에서 카드 라벨 분기 불필요 — 어차피 안 보임.
+1. **SVG y축 부호 반전 필수**: SVG y-down → SpriteKit y-up. mockup path `(x, y)` 그대로 옮기면 얼굴이 뒤집힌다. y에 -1 곱하기.
+2. **CharacterCardNode/DifficultyCardNode 내부 변경 0건**: 외부에서 *씬이* 별도 자식으로 부착. 카드 addChild 추가 금지.
+3. **zPosition 충돌 주의**: CharacterSelectScene에서 글래스 컨테이너(90) < 카드(100) < CharacterFaceNode(105) < 색 점/태그(110)
+4. **Repository 호출 시점 보존**: `difficultyRepo.current` 읽기는 DifficultySelectScene didMove에서 1회. 저장 포맷 회귀 0.
+5. **Difficulty 인자 전달 경로 끊기**: Sprint 6 후엔 **GameScene만** difficulty 받음. CharacterSelect/SkillExplanation에서 difficulty 필드/참조/factory 인자 모두 제거.
+6. **GameScene.newGameScene 시그니처 보존**: 보호 영역. `(characterID:difficulty:)` 시그니처를 DifficultySelectScene이 정확히 호출.
+7. **didChangeSize 일관성**: 신규/수정 씬 모두 sceneSize 의존 자식을 didChangeSize에서 재배치/재생성.
+8. **`!` 0건, `Timer` 0건, weak self 사용**: Swift 규칙. 1건도 자동 -1점.
+9. **UIColor raw 최소화**: 가능한 한 ColorTokens 매핑. 불가피한 경우 한 곳에 private static let.
+10. **SKShapeNode 성능**: 정적 시각이라 매 프레임 그릴 일 없음. stroke 필요한 외곽선만 stroke.
 
 ---
 
 ## OPEN_QUESTION
 
-### Q1. 우드컷 패턴 구현 방식
-**선택**: (A) ✅ **단일 SKShapeNode + CGMutablePath 도트 1100개 누적** (디폴트). 시뮬레이터 안전, 학습 난이도 낮음, 노드 수 1.
+### OQ-1: CharacterFaceNode 카드 내부 위치
+- Generator 결정 권한: `characterFaceOffsetYWithinCard` 상수로 미세 조정. 기본 +6~+10. 라벨과 겹치지 않으면 통과.
 
-대안 (B) SKShader, (C) PNG 텍스처는 자산/학습 난이도 이슈로 보류. 사용자가 시각 만족 안 되면 후속 작업 가능.
+### OQ-2: NurseAvatarNode X 위치
+- Generator 결정 권한: `nurseAvatarOffsetX: 180`(frame.minX + 180) 기본. 시뮬레이터 시각 확인 후 조정. 타이틀 블록과 겹치지 않으면 통과.
 
-### Q2. GowunBatang-Regular.ttf 임포트
-**Sprint 5 코드 측 대응**: `GameConfig.fontSerif = "GowunBatang-Regular"` 상수만 추가. SKLabelNode fallback 안전.
+### OQ-3: DifficultySelectScene 좌측 카드 — 직접 SKShapeNode
+- Generator 결정: `summaryContainer: SKShapeNode`로 직접. CharacterCardNode 재사용 금지(내부 변경 위반).
 
-**사용자 후속 작업**:
-1. https://fonts.google.com/specimen/Gowun+Batang ttf 다운로드
-2. `Resources/Fonts/GowunBatang-Regular.ttf` 추가
-3. Xcode add to target + Info.plist UIAppFonts 배열에 추가
+### OQ-4: NurseAvatarNode 사용 범위
+- Generator 결정: StartScene 전용. DifficultySelectScene 미니 카드는 CharacterFaceNode 작게 스케일.
 
-Sprint 5 평가 시 ttf 부재여도 합격 가능.
+### OQ-5: `characterSelectBackPillText` 상수
+- Generator 결정: 이름 유지, 값만 `"← 메인"`으로. 주석에 "Sprint 6 — 흐름 재편" 명시.
 
-### Q3. 분기 B `titleLabel` vs `newBestLabel`
-**선택**: (A) ✅ **두 라벨 다 살림** — y 분리. `titleLabel` 카드 헤더(+70 골드), `newBestLabel` 화면 정 가운데(+0 큰 황금). 기존 `revealNewBest` 시퀀스 보존.
+### OQ-6: SkillExplanationScene 백버튼 두 개
+- 둘 다 `transitionToCharacterSelect()`. 유지. 내부 newCharacterSelectScene 인자만 `()`로.
+
+### OQ-7: 이름 뱃지 색
+- Generator 결정: `.ganhoCoralPrimary` 통일. dotColor는 카드 점 전용.
 
 ---
 
-**SPEC 작성 완료**. Generator는 이 SPEC을 그대로 구현하면 분기 3개 시각이 mockup과 일치하면서 9개 init 인자/햅틱/사운드/저장/본문 텍스트/2단계 탭 한 글자도 회귀 없이 통과한다.
+## 합격 기준 요약
+
+| 카테고리 | 가중치 | 통과선 | Sprint 6 추가 체크 |
+|---|---|---|---|
+| 게임 로직 회귀 0 | 40% | 9.0+ (절대) | 보호 영역 17파일 git diff 0줄 |
+| Swift 패턴 | 20% | 7.0+ | `!` 0건, `Timer` 0건, 매직 넘버 0건 |
+| 비주얼 일관성 | 25% | 7.0+ | mockup 3종 시각 매칭, ColorTokens v2 토큰 우선 |
+| 가독성 & UX | 15% | 7.0+ | 5단계 + 4단계 흐름 작동, 백버튼 정확 |
+
+**가중 평균 7.5 이상** → Sprint 6 합격.
+
+**P0 자동 불합격**:
+- 빌드 에러 1건 이상
+- 보호 영역 git diff 1줄 이상
+- 흐름 단계 1개라도 끊김
+- 강제 언래핑 `!` 1건 이상
+
+---
+
+**핵심 파일 경로**:
+- 단일 진실 원천: `SPRINT_6_REQUEST.md`
+- 보호 영역 시작점: `GanhoMusic/GanhoMusic Shared/GameScene.swift`
+- 수정 대상: `GanhoMusic Shared/Scenes/{StartScene,CharacterSelectScene,SkillExplanationScene}.swift`
+- 신규: `GanhoMusic Shared/Scenes/DifficultySelectScene.swift`, `GanhoMusic Shared/Nodes/{CharacterFaceNode,NurseAvatarNode}.swift`
+- 상수: `GanhoMusic Shared/Config/GameConfig.swift`
+- Mockup: `mockups/character-select-v2.html` (수정), `mockups/skill-explanation-v2.html` (수정), `mockups/difficulty-select-v2.html` (신규)

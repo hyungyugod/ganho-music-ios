@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 난이도 선택 화면 v2 (Sprint 6 신규)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone frame === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px;
+    padding: 14px;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9;
+    max-width: 920px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 90px;
+    background: #0a0a0a;
+    border-radius: 4px;
+    z-index: 10;
+  }
+
+  /* === Top bar === */
+  .top-bar {
+    position: absolute;
+    top: 22px;
+    left: 48px;
+    right: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 14px 6px 12px;
+    border-radius: 999px;
+    font-family: 'Jua', sans-serif;
+    font-size: 13px;
+    color: #2D2A4A;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(45, 42, 74, 0.08);
+  }
+  .breadcrumb {
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(45, 42, 74, 0.25);
+  }
+  .breadcrumb .dot { opacity: 0.4; }
+  .breadcrumb .now {
+    background: #FF6B5B; color: #fff;
+    padding: 1px 8px; border-radius: 999px;
+    font-family: 'Jua', sans-serif; font-size: 11px;
+  }
+
+  /* === Header === */
+  .header {
+    position: absolute;
+    top: 13%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 4;
+  }
+  .accent-line {
+    width: 32px;
+    height: 3px;
+    background: #FF6B5B;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+  .header-title {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: #2D2A4A;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header-sub {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px;
+    color: #5A5670;
+    margin-top: 6px;
+  }
+
+  /* === Content split === */
+  .content {
+    position: absolute;
+    top: 36%;
+    left: 8%;
+    right: 8%;
+    bottom: 24%;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    z-index: 3;
+  }
+
+  /* Left: 캐릭터 요약 카드 */
+  .summary-card {
+    flex: 0 0 200px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 22px;
+    padding: 16px 14px 14px;
+    text-align: center;
+    border: 2px solid rgba(255, 107, 91, 0.3);
+    box-shadow: 0 12px 32px rgba(184, 157, 217, 0.25);
+    position: relative;
+    min-height: 240px;
+  }
+  .summary-card::before {
+    content: "건간호";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 12px;
+    padding: 3px 14px;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(255, 107, 91, 0.4);
+    white-space: nowrap;
+  }
+  .summary-card .avatar {
+    width: 90px;
+    height: 90px;
+    margin: 6px auto 10px;
+    display: block;
+  }
+  .summary-card .skill-name {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #2D2A4A;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .summary-card .speed {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(155, 224, 204, 0.4);
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1E6B57;
+  }
+
+  /* Right: 난이도 3장 */
+  .difficulties {
+    flex: 1;
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    align-items: center;
+  }
+  .diff-card {
+    flex: 0 0 110px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 14px 8px 16px;
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+    position: relative;
+  }
+  .diff-card .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+  }
+  .diff-card .name {
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: #2D2A4A;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+  .diff-card .time {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 11px;
+    color: #5A5670;
+    margin-bottom: 6px;
+  }
+  .diff-card .barrier {
+    font-size: 10px;
+    color: #8B5A0E;
+    background: rgba(255, 179, 71, 0.25);
+    padding: 2px 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+  .diff-card.selected {
+    transform: translateY(-6px) scale(1.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #FF6B5B;
+    box-shadow:
+      0 10px 28px rgba(255, 107, 91, 0.35),
+      0 4px 12px rgba(45, 42, 74, 0.15);
+  }
+  .diff-card.selected::after {
+    content: "선택됨";
+    position: absolute;
+    top: -10px; left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 10px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(255, 107, 91, 0.4);
+  }
+
+  /* === Start button === */
+  .start-btn {
+    position: absolute;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 18px;
+    padding: 12px 36px 14px;
+    border: none;
+    border-radius: 999px;
+    box-shadow:
+      0 6px 0 #C44A3D,
+      0 12px 24px rgba(255, 107, 91, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    z-index: 5;
+    letter-spacing: 0.5px;
+  }
+  .start-btn:active {
+    transform: translateX(-50%) translateY(5px);
+    box-shadow: 0 1px 0 #C44A3D, 0 4px 12px rgba(255, 107, 91, 0.4);
+  }
+  .start-btn .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* === Floating music notes === */
+  .note-deco {
+    position: absolute;
+    font-family: 'Jua', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 1;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .n1 { top: 18%; left: 14%; font-size: 20px; color: #FFB347; --r:-12deg; animation-delay:0s; }
+  .n2 { top: 26%; right: 12%; font-size: 16px; color: #B89DD9; --r:16deg; animation-delay:1s; }
+  .n3 { bottom: 28%; left: 8%; font-size: 18px; color: #FF6B5B; --r:-8deg; animation-delay:2s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+
+  /* === Annotations === */
+  .annot-title {
+    font-family: 'Jua', sans-serif;
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #FF8E80;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+  .annotation p {
+    font-size: 13px;
+    color: #b5b5bd;
+    line-height: 1.6;
+  }
+  .kim-note {
+    background: rgba(255, 179, 71, 0.12);
+    border: 1px solid rgba(255, 179, 71, 0.4);
+    color: #FFB347;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 난이도 선택 화면 v2 (Sprint 6 신규)</h1>
+  <p class="sub">캐릭터 → 스킬 → <strong>난이도</strong> 순서의 5단계 흐름. .kim은 스킬을 스킵하므로 (캐릭터 → 난이도) 4단계.</p>
+
+  <!-- ==================== PHONE MOCKUP ==================== -->
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- Music notes deco -->
+      <div class="note-deco n1" style="--r:-12deg">♪</div>
+      <div class="note-deco n2" style="--r:16deg">♫</div>
+      <div class="note-deco n3" style="--r:-8deg">♬</div>
+
+      <!-- Top bar -->
+      <div class="top-bar">
+        <button class="back-btn">← 스킬 다시</button>
+        <div class="breadcrumb">
+          <span>캐릭터</span><span class="dot">·</span>
+          <span>스킬</span><span class="dot">·</span>
+          <span class="now">난이도</span>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="accent-line"></div>
+        <div class="header-title">난이도를 골라요</div>
+        <div class="header-sub">한 번만 정해두면 충분해요</div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+
+        <!-- Left: summary card -->
+        <div class="summary-card">
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- 건간호 (mini): 안경 + 책 -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -28 -14 Q -32 -32 -14 -34 L -2 -30 L 2 -30 L 14 -34 Q 32 -32 28 -14 Q 18 -24 2 -24 L -2 -24 Q -18 -24 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+            <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+            <circle cx="-12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <circle cx="12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <line x1="-3" y1="-1" x2="3" y2="-1" stroke="#2D2A4A" stroke-width="2"/>
+            <circle cx="-12" cy="-1" r="2" fill="#2D2A4A"/>
+            <circle cx="12" cy="-1" r="2" fill="#2D2A4A"/>
+            <path d="M -4 14 Q 0 17 4 14" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+          <div class="skill-name">북클럽 결집</div>
+          <span class="speed">⚡ 속도 ×1.00</span>
+        </div>
+
+        <!-- Right: 3 difficulty cards -->
+        <div class="difficulties">
+          <div class="diff-card">
+            <div class="dot" style="background:#9BE0CC;"></div>
+            <div class="name">쉬움</div>
+            <div class="time">50초</div>
+            <div class="barrier">장벽 6개</div>
+          </div>
+          <div class="diff-card selected">
+            <div class="dot" style="background:#FFB347;"></div>
+            <div class="name">보통</div>
+            <div class="time">45초</div>
+            <div class="barrier">장벽 8개</div>
+          </div>
+          <div class="diff-card">
+            <div class="dot" style="background:#FF6B5B;"></div>
+            <div class="name">어려움</div>
+            <div class="time">35초</div>
+            <div class="barrier">장벽 10개</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Start button -->
+      <button class="start-btn">
+        시작 <span class="arrow">▶</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ==================== ANNOTATIONS ==================== -->
+  <div class="kim-note">
+    🔸 <strong>김간호(.kim) 특수 케이스</strong>: 좌측 카드의 스킬 자리에 "스킬 없음" 표시 + 백버튼 텍스트 `← 캐릭터 다시` (스킬 화면을 건너뛰므로 직전이 캐릭터 화면).
+  </div>
+
+  <div class="annot-title">이 화면의 핵심 결정 (Sprint 6 신규)</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>📍 왜 이 화면이 마지막인가</h3>
+      <p>RPG에서 "직업도 모르고 난이도부터 정하기"는 부자연스럽다. 캐릭터·스킬을 본 뒤 "그래서 이 친구로 얼마나 도전할래?"가 인지 순서. 결정 비용을 흐름 뒤로 미루기.</p>
+    </div>
+    <div class="annotation">
+      <h3>👤 캐릭터 요약 카드 (좌)</h3>
+      <p>방금 본 캐릭터·스킬을 한 번 더 노출해서 "어떤 친구로 무슨 스킬 갖고 가는지" 잊지 않게. 미니 아바타 + 코랄 이름 뱃지 + 스킬명 + 민트 속도 칩 4가지 정보 자급자족.</p>
+    </div>
+    <div class="annotation">
+      <h3>🎚️ 난이도 3장 카드 (우)</h3>
+      <p>쉬움(50초·민트) · 보통(45초·골드) · 어려움(35초·코랄). 색 점으로 톤만 분리, 시각 노이즈 없이 정보 위계. 선택 시 떠오르기(translateY -6 + scale 1.05).</p>
+    </div>
+    <div class="annotation">
+      <h3>🧭 브레드크럼 [난이도] 강조</h3>
+      <p>"캐릭터 · 스킬 · [난이도]" 우상단 칩. 난이도만 코랄 뱃지 — 사용자가 지금 어디 있는지 즉시 인지. 5단계의 마지막임을 시각으로 약속.</p>
+    </div>
+    <div class="annotation">
+      <h3>▶ 시작 버튼만 = 명확한 마무리</h3>
+      <p>다른 화면이 두 버튼(뒤로 + 다음)인 것과 다르게 여기는 시작 하나만 정가운데. 0/6px 입체 그림자 + 흰 화살표 chip — "이게 마지막 결정"이라는 시각 약속.</p>
+    </div>
+    <div class="annotation">
+      <h3>↩️ 백 = 분기별 다른 텍스트(.kim)</h3>
+      <p>.kim은 스킬 화면을 스킵하므로 백버튼이 `← 캐릭터 다시`. 그 외 4캐릭터는 `← 스킬 다시`. 같은 위치, 다른 텍스트 — 분기를 디자인이 자연 표현.</p>
+    </div>
+  </div>
+
+  <div class="annot-title">SpriteKit 구현 매핑</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>좌측 카드</h3>
+      <p>SKShapeNode(200×260, cornerRadius 22) + CharacterFaceNode(scale 0.65, zPos 105) + 코랄 이름 뱃지(SKShapeNode + SKLabelNode) + Gowun Dodum 스킬명 + ganhoScrubMint α 0.4 속도 칩.</p>
+    </div>
+    <div class="annotation">
+      <h3>우측 3장</h3>
+      <p>DifficultyCardNode 기존 컴포넌트 그대로 재사용 — 폭 88/간격 12 보존. setSelected에서 spring overshoot + 링 글로우 자동.</p>
+    </div>
+    <div class="annotation">
+      <h3>상단 바</h3>
+      <p>GlassPillNode 백버튼 + DarkContextChipNode 브레드크럼. 두 컴포넌트는 Sprint 1에서 만든 그대로 — 외부 좌표·텍스트만 분기.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

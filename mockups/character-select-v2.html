@@ -392,10 +392,9 @@
       <div class="note-deco n2" style="--r:14deg">♫</div>
       <div class="note-deco n3" style="--r:-18deg">♬</div>
 
-      <!-- Top bar: back + difficulty pill -->
-      <div class="top-bar">
-        <button class="back-btn">← 난이도 다시</button>
-        <div class="diff-pill">현재 난이도 <span class="badge">중</span></div>
+      <!-- Top bar: back only (Sprint 6 — 난이도 선택은 흐름 마지막으로 이동) -->
+      <div class="top-bar" style="justify-content: flex-start;">
+        <button class="back-btn">← 메인</button>
       </div>
 
       <!-- Header -->
@@ -579,9 +578,9 @@
         <span class="speed">⚡ 속도 ×1.00</span>
       </div>
 
-      <!-- Confirm button -->
+      <!-- Confirm button (Sprint 6 — 다음 단계: 스킬 화면(스킬 보유) 또는 난이도 화면(.kim)) -->
       <button class="confirm-btn">
-        이 친구로 시작 <span class="arrow">▶</span>
+        다음 <span class="arrow">▶</span>
       </button>
 
     </div>
@@ -621,8 +620,8 @@
       <p>모두 같은 베이스(둥근 얼굴 + 간호사 모자)에서 머리/액세서리만 변주. 시각 일관성 + 빠른 식별. 김간호=번머리, 정간호=헤어밴드+곡괭이, 건간호=안경+책, 임간호=고양이귀+긴머리, 이간호=강아지귀+단발.</p>
     </div>
     <div class="annotation">
-      <h3>🏷️ 난이도 칩 (좌상단 컨텍스트)</h3>
-      <p>"현재 난이도 [중]" — 사용자가 어디서 왔는지 잊지 않게. 다크 네이비 배경 + 코랄 뱃지로 톤 분리.</p>
+      <h3>↩️ Back = 메인으로 (Sprint 6)</h3>
+      <p>난이도가 흐름 마지막으로 이동하면서 캐릭터 선택 위에 더는 "직전 단계 = 난이도"가 없다. 백버튼은 곧장 메인(StartScene)으로 돌아간다.</p>
     </div>
     <div class="annotation">
       <h3>📋 스킬 정보 패널</h3>

@@ -1211,7 +1211,10 @@ enum GameConfig {
     static let characterSelectAccentLineOffsetY: CGFloat = 24
 
     /// 뒤로 GlassPill 텍스트.
-    static let characterSelectBackPillText: String = "← 난이도 다시"
+    /// Sprint 6 — 흐름 재편: 캐릭터 선택의 직전 단계가 StartScene(메인)으로 바뀜.
+    /// 난이도 결정은 5단계 흐름의 *마지막*(DifficultySelectScene)으로 이동했으므로
+    /// "← 난이도 다시"가 의미적으로 깨진다 — 텍스트만 "← 메인"으로 교체. 상수 이름 보존.
+    static let characterSelectBackPillText: String = "← 메인"
     /// 뒤로 GlassPill 폭(pt).
     static let characterSelectBackPillWidth: CGFloat = 120
     /// 뒤로 GlassPill 높이(pt).
@@ -1590,4 +1593,138 @@ enum GameConfig {
     static let diplomaCornerDecoZPositionV2: CGFloat = 0.8
     /// 도장 zPosition. 라벨(1) 위.
     static let diplomaStampZPositionV2: CGFloat = 1.2
+
+    // MARK: - Sprint 6 · 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터
+    // SPRINT_6_REQUEST.md §2~3 + SPEC.md "기능 상세" 1~7.
+    // 본 섹션은 *추가만* — 기존 상수 hex/값 0건 변경 (characterSelectBackPillText 1줄만 위에서 값 교체).
+    // 흐름: Start → Character → (Skill) → Difficulty → Game. .kim은 Skill 스킵.
+
+    // MARK: NurseAvatarNode (StartScene 좌측 김간호 큰 그림)
+    /// 김간호 큰 그림 전체 scale. mockup viewBox(-150 -160 300 360) 기준 width 240px 정도.
+    /// 본 노드 내부 좌표는 SVG에서 그대로 코드화 → 외부에서 xScale/yScale로 최종 크기 미세 조정.
+    static let nurseAvatarScale: CGFloat = 0.7
+    /// StartScene에서 NurseAvatarNode 좌측 6% 위치 — frame.minX 기준 +offset.
+    static let nurseAvatarOffsetX: CGFloat = 180
+    /// StartScene에서 NurseAvatarNode 바닥 정렬 — frame.midY 기준 +offset(음수: 아래로).
+    static let nurseAvatarOffsetY: CGFloat = -40
+    /// zPosition — 배경(-20/-15)·타이틀(0~5)·시작버튼(100) 사이의 8 — 시작버튼과 음표보다 아래.
+    static let nurseAvatarZPosition: CGFloat = 8
+    /// 외곽선(stroke) 라인 두께. SVG `stroke-width="4"`를 그대로 옮긴 값.
+    static let nurseAvatarOutlineWidth: CGFloat = 4
+    /// 헤드폰 밴드 라인 두께. SVG `stroke-width="10"`.
+    static let nurseAvatarHeadphoneBandWidth: CGFloat = 10
+    /// 팔 라인 두께(피부톤). SVG `stroke-width="20"`.
+    static let nurseAvatarArmWidth: CGFloat = 20
+
+    // MARK: CharacterFaceNode (CharacterSelectScene 5장 카드 위 얼굴)
+    /// 카드 안에서 얼굴 차지 비율 — viewBox 64×64를 카드(110×140) 안에 들어가게 0.55 정도.
+    static let characterFaceScale: CGFloat = 0.55
+    /// 카드 중심에서 얼굴 y 오프셋 — 라벨(이름·태그)과 겹치지 않도록 +6~+10. (OPEN_QUESTION OQ-1)
+    static let characterFaceOffsetYWithinCard: CGFloat = 8
+    /// 5장 카드 위 얼굴 노드의 zPosition. 글래스 컨테이너(90) < 카드(100) < CharacterFaceNode(105) < 색 점/태그(110).
+    static let characterFaceZPosition: CGFloat = 105
+    /// 얼굴 베이스 머리 타원 가로 반지름.
+    static let characterFaceHeadRadiusX: CGFloat = 32
+    /// 얼굴 베이스 머리 타원 세로 반지름.
+    static let characterFaceHeadRadiusY: CGFloat = 34
+    /// 얼굴 외곽선 두께. mockup `stroke-width="2.5"`.
+    static let characterFaceOutlineWidth: CGFloat = 2.5
+    /// 얼굴 부속(눈/입/볼) stroke 두께. mockup `stroke-width="2"~"3"` 평균.
+    static let characterFaceDetailLineWidth: CGFloat = 2.5
+
+    // MARK: DifficultySelectScene (신규 5단계 흐름 마지막)
+    /// 헤더 텍스트.
+    static let difficultySelectHeaderText: String = "난이도를 골라요"
+    /// 헤더 폰트 크기(pt). characterSelect/skillExplanation 헤더(22)와 동급 톤.
+    static let difficultySelectHeaderFontSize: CGFloat = 26
+    /// 헤더 y offset — frame.midY 기준.
+    static let difficultySelectHeaderOffsetY: CGFloat = 140
+    /// 헤더 부제 텍스트.
+    static let difficultySelectHeaderSubText: String = "한 번만 정해두면 충분해요"
+    /// 헤더 부제 폰트 크기(pt).
+    static let difficultySelectHeaderSubFontSize: CGFloat = 12
+    /// 헤더 부제 y offset — 헤더 라벨 기준.
+    static let difficultySelectHeaderSubOffsetY: CGFloat = -22
+    /// 헤더 위 AccentLine y offset.
+    static let difficultySelectAccentLineOffsetY: CGFloat = 24
+
+    // 백버튼 (스킬 다시 또는 캐릭터 다시 — characterID에 따라 분기)
+    /// 스킬 보유 캐릭터(.jung/.geon/.im/.lee) 백버튼 텍스트.
+    static let difficultySelectBackPillTextSkill: String = "← 스킬 다시"
+    /// 김간호(.kim) 백버튼 텍스트 — 스킬 화면을 스킵했으므로 직전이 캐릭터 선택.
+    static let difficultySelectBackPillTextCharacter: String = "← 캐릭터 다시"
+    /// 백 GlassPill 폭.
+    static let difficultySelectBackPillWidth: CGFloat = 130
+    /// 백 GlassPill 높이.
+    static let difficultySelectBackPillHeight: CGFloat = 28
+
+    // 브레드크럼 칩
+    /// 브레드크럼 칩 라벨 — 캐릭터 · 스킬 + [난이도] 뱃지.
+    /// 김간호는 스킬 화면을 스킵했지만 시각 일관성을 위해 라벨 텍스트 그대로 유지.
+    static let difficultySelectBreadcrumbLabel: String = "캐릭터 · 스킬"
+    /// 브레드크럼 칩 뱃지 — 코랄 뱃지에 표시되는 "현재 위치".
+    static let difficultySelectBreadcrumbBadge: String = "난이도"
+
+    // 상단 바 margin
+    static let difficultySelectTopBarMarginX: CGFloat = 40
+    static let difficultySelectTopBarMarginY: CGFloat = 30
+
+    // 좌측 캐릭터 요약 카드
+    /// 좌측 요약 카드 폭(pt).
+    static let difficultySelectSummaryCardWidth: CGFloat = 200
+    /// 좌측 요약 카드 높이(pt).
+    static let difficultySelectSummaryCardHeight: CGFloat = 260
+    /// 좌측 요약 카드 cornerRadius(pt).
+    static let difficultySelectSummaryCardCornerRadius: CGFloat = 22
+    /// 좌측 요약 카드 배경 fill alpha(흰색).
+    static let difficultySelectSummaryCardFillAlpha: CGFloat = 0.85
+    /// 좌측 요약 카드 stroke alpha(코랄).
+    static let difficultySelectSummaryCardStrokeAlpha: CGFloat = 0.3
+    /// 좌측 요약 카드 stroke 두께.
+    static let difficultySelectSummaryCardStrokeWidth: CGFloat = 2
+    /// 좌측 요약 카드 x 위치 offset(frame.midX 기준 음수 → 좌측).
+    static let difficultySelectSummaryCardOffsetX: CGFloat = -220
+    /// 좌측 요약 카드 y 위치 offset(frame.midY 기준).
+    static let difficultySelectSummaryCardOffsetY: CGFloat = -10
+
+    /// 요약 카드 안 이름 뱃지 폭(pt).
+    static let difficultySelectSummaryNameBadgeWidth: CGFloat = 90
+    /// 요약 카드 안 이름 뱃지 높이(pt).
+    static let difficultySelectSummaryNameBadgeHeight: CGFloat = 24
+    /// 요약 카드 안 이름 뱃지 폰트 크기(pt).
+    static let difficultySelectSummaryNameBadgeFontSize: CGFloat = 12
+    /// 요약 카드 중심에서 이름 뱃지 y offset(상단으로 +).
+    static let difficultySelectSummaryNameBadgeOffsetY: CGFloat = 110
+    /// 요약 카드 안 미니 아바타(CharacterFaceNode) scale.
+    static let difficultySelectSummaryFaceScale: CGFloat = 0.65
+    /// 요약 카드 중심에서 미니 아바타 y offset.
+    static let difficultySelectSummaryFaceOffsetY: CGFloat = 30
+    /// 요약 카드 안 스킬명 라벨 폰트 크기(pt).
+    static let difficultySelectSummarySkillFontSize: CGFloat = 14
+    /// 요약 카드 중심에서 스킬명 라벨 y offset(하단으로 -).
+    static let difficultySelectSummarySkillOffsetY: CGFloat = -50
+    /// 요약 카드 "스킬 없음" 라벨(김간호용).
+    static let difficultySelectSummarySkillNoneText: String = "스킬 없음"
+    /// 요약 카드 안 속도 칩 폭(pt).
+    static let difficultySelectSummarySpeedChipWidth: CGFloat = 100
+    /// 요약 카드 안 속도 칩 높이(pt).
+    static let difficultySelectSummarySpeedChipHeight: CGFloat = 22
+    /// 요약 카드 안 속도 칩 폰트 크기(pt).
+    static let difficultySelectSummarySpeedChipFontSize: CGFloat = 11
+    /// 요약 카드 안 속도 칩 fill alpha(민트 톤).
+    static let difficultySelectSummarySpeedChipFillAlpha: CGFloat = 0.4
+    /// 요약 카드 중심에서 속도 칩 y offset.
+    static let difficultySelectSummarySpeedChipOffsetY: CGFloat = -80
+
+    // 우측 난이도 3장
+    /// 우측 난이도 3장 그룹의 중심 x offset(frame.midX 기준).
+    static let difficultySelectDifficultyRowOffsetX: CGFloat = 110
+    /// 우측 난이도 3장 그룹의 중심 y offset(frame.midY 기준).
+    static let difficultySelectDifficultyRowOffsetY: CGFloat = -10
+
+    // 시작 버튼
+    /// 시작 버튼 y offset(frame.midY 기준, 음수 → 아래).
+    static let difficultySelectStartButtonOffsetY: CGFloat = -160
+    /// 시작 버튼 텍스트.
+    static let difficultySelectStartButtonText: String = "시작"
 }
