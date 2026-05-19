@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 스킬 설명 화면 v3 (겹침 해소 + 호흡)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px; padding: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9; max-width: 920px; margin: 0 auto 40px; position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute; top: 50%; left: 18px; transform: translateY(-50%);
+    width: 8px; height: 90px; background: #0a0a0a; border-radius: 4px; z-index: 10;
+  }
+
+  /* === Top bar === */
+  .top-bar {
+    position: absolute; top: 22px; left: 48px; right: 32px;
+    display: flex; justify-content: space-between; align-items: center; z-index: 5;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: 6px 14px; border-radius: 999px;
+    font-family: 'Jua', sans-serif; font-size: 13px; color: #2D2A4A;
+    border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(45, 42, 74, 0.08);
+  }
+  .breadcrumb {
+    background: rgba(45, 42, 74, 0.92); color: #FFE5D0;
+    padding: 6px 14px; border-radius: 999px; font-family: 'Jua', sans-serif; font-size: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .breadcrumb .dot { opacity: 0.4; }
+  .breadcrumb .now {
+    background: #FF6B5B; color: #fff; padding: 1px 8px; border-radius: 999px;
+    font-family: 'Jua', sans-serif; font-size: 11px;
+  }
+
+  /* === Header === */
+  .header {
+    position: absolute; top: 14%; left: 0; right: 0; text-align: center; z-index: 4;
+  }
+  .accent-line {
+    width: 32px; height: 3px; background: #FF6B5B; border-radius: 2px; margin: 0 auto 10px;
+  }
+  .header-title {
+    font-family: 'Jua', sans-serif; font-size: 26px; color: #2D2A4A;
+    letter-spacing: -1px; line-height: 1;
+  }
+  .header-sub {
+    font-family: 'Gowun Dodum', sans-serif; font-size: 12px; color: #5A5670; margin-top: 6px;
+  }
+
+  /* === Main content split (v3: gap 동일, 우측 본문 52%) === */
+  .content {
+    position: absolute;
+    top: 38%; left: 8%; right: 8%; bottom: 26%;
+    display: flex; gap: 32px; align-items: center;
+    z-index: 3;
+  }
+
+  /* Left: avatar card (v3: 하단 secondary 백 버튼 제거) */
+  .avatar-card {
+    flex: 0 0 200px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 16px 14px 14px;
+    text-align: center;
+    border: 2px solid rgba(255, 107, 91, 0.3);
+    box-shadow: 0 12px 32px rgba(184, 157, 217, 0.25);
+    position: relative;
+  }
+  .avatar-card::before {
+    content: "임간호";
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: #FF6B5B; color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 12px;
+    padding: 3px 14px; border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(255, 107, 91, 0.4);
+    white-space: nowrap;
+  }
+  .avatar-card .big-avatar { width: 130px; height: 130px; margin: 4px auto 8px; display: block; }
+  .avatar-card .role-tag {
+    font-family: 'Gowun Dodum', sans-serif; font-size: 12px;
+    color: #5A5670; margin-bottom: 6px;
+  }
+  .avatar-card .speed {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(155, 224, 204, 0.4);
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; color: #1E6B57;
+  }
+
+  /* Right: skill info (v3: flex 1 1 52%, "임간호의 스킬" 라벨 제거) */
+  .skill-info { flex: 1 1 52%; min-width: 0; }
+  .skill-name {
+    font-family: 'Jua', sans-serif; font-size: 36px; color: #2D2A4A;
+    line-height: 1; letter-spacing: -1px; margin-bottom: 14px;
+  }
+  /* v3: 좌측 코랄 보더 3 → 4px */
+  .skill-desc {
+    font-family: 'Gowun Dodum', sans-serif; font-size: 14px;
+    color: #2D2A4A; line-height: 1.6;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 14px 16px; border-radius: 14px;
+    border-left: 4px solid #FF6B5B;
+    margin-bottom: 12px;
+  }
+  /* v3: 메타 칩 gap 8 → 10 */
+  .skill-stats {
+    display: flex; gap: 10px;
+  }
+  .stat-chip {
+    background: rgba(45, 42, 74, 0.85);
+    color: #FFE5D0;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 11px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .stat-chip .k { color: #FFB347; font-family: 'Jua', sans-serif; }
+  .stat-chip.gold { background: rgba(255, 179, 71, 0.25); color: #8B5A0E; }
+  .stat-chip.gold .k { color: #C76F00; }
+
+  /* Control hint */
+  .control-hint {
+    position: absolute;
+    bottom: 17%; left: 50%; transform: translateX(-50%);
+    background: rgba(45, 42, 74, 0.92); color: #FFE5D0;
+    padding: 7px 16px; border-radius: 999px;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 4; backdrop-filter: blur(8px);
+  }
+  .control-hint .key {
+    background: #FF6B5B; color: #fff;
+    width: 22px; height: 22px; border-radius: 50%;
+    font-family: 'Jua', sans-serif; font-size: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* Bottom buttons (v3: primary 단독 중앙) */
+  .bottom-buttons {
+    position: absolute;
+    bottom: 4%; left: 0; right: 0;
+    display: flex; justify-content: center;
+    z-index: 5;
+  }
+  .btn {
+    font-family: 'Jua', sans-serif; border: none;
+    border-radius: 999px; cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: inline-flex; align-items: center; gap: 10px;
+    letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: #FF6B5B; color: #fff; font-size: 18px;
+    padding: 12px 36px 14px;
+    box-shadow: 0 6px 0 #C44A3D, 0 12px 24px rgba(255, 107, 91, 0.4);
+  }
+  .btn-primary:active {
+    transform: translateY(5px);
+    box-shadow: 0 1px 0 #C44A3D, 0 4px 12px rgba(255, 107, 91, 0.4);
+  }
+  .btn-primary .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 24px; height: 24px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+
+  /* Music notes */
+  .note-deco {
+    position: absolute; font-family: 'Jua', sans-serif; font-weight: bold;
+    pointer-events: none; z-index: 1;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .n1 { top: 18%; left: 12%; font-size: 18px; color: #B89DD9; --r:-12deg; animation-delay:0s; }
+  .n2 { top: 42%; right: 8%; font-size: 14px; color: #FFB347; --r:14deg; animation-delay:1s; }
+  .n3 { bottom: 30%; left: 8%; font-size: 16px; color: #FF6B5B; --r:-8deg; animation-delay:2s; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+
+  /* Annotations */
+  .annot-title { font-family: 'Jua', sans-serif; color: #fff; font-size: 18px; margin: 8px 0 14px; }
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px; margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .annotation p { font-size: 13px; color: #b5b5bd; line-height: 1.6; }
+
+  .diff-pill {
+    display: inline-block; background: #FF6B5B; color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 11px;
+    padding: 2px 10px; border-radius: 999px; margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 스킬 설명 화면 v3 <span class="diff-pill">Sprint 7 Phase B</span></h1>
+  <p class="sub">CharacterSelectScene → SkillExplanationScene · 임간호 선택 가정 · iPhone Landscape · 겹침 해소 + 호흡 +5%p</p>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- Music notes deco -->
+      <div class="note-deco n1" style="--r:-12deg">♪</div>
+      <div class="note-deco n2" style="--r:14deg">♫</div>
+      <div class="note-deco n3" style="--r:-8deg">♬</div>
+
+      <!-- Top bar — GlassPill 백 버튼(좌상단) + 브레드크럼(우상단) -->
+      <div class="top-bar">
+        <button class="back-btn">← 캐릭터 다시</button>
+        <div class="breadcrumb">
+          <span>임간호</span><span class="dot">·</span>
+          <span class="now">스킬</span><span class="dot">·</span>
+          <span>난이도</span>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="accent-line"></div>
+        <div class="header-title">스킬을 익혀요</div>
+        <div class="header-sub">한 번만 익히면 충분해요</div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+
+        <!-- Left: Avatar card (v3: 하단 secondary 백 버튼 제거) -->
+        <div class="avatar-card">
+          <svg class="big-avatar" viewBox="-60 -65 120 130" xmlns="http://www.w3.org/2000/svg">
+            <!-- Shoulders -->
+            <path d="M -48 70 Q -40 35 -20 32 L 20 32 Q 40 35 48 70 Z"
+                  fill="#FFB6C1" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M -8 33 L 0 48 L 8 33 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Neck -->
+            <rect x="-7" y="20" width="14" height="14" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="36" ry="38" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="3"/>
+            <!-- Hair (wavy long) -->
+            <path d="M -34 -10 Q -42 -38 -18 -42 L 0 -36 L 18 -42 Q 42 -38 34 -10 Q 30 8 30 18 L 32 24 Q 22 14 12 14 L -12 14 Q -22 14 -32 24 L -30 18 Q -30 8 -34 -10 Z"
+                  fill="#6B3A1F" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Eyes -->
+            <ellipse cx="-13" cy="-2" rx="3" ry="4" fill="#2D2A4A"/>
+            <ellipse cx="13" cy="-2" rx="3" ry="4" fill="#2D2A4A"/>
+            <circle cx="-12" cy="-3" r="1" fill="#fff"/>
+            <circle cx="14" cy="-3" r="1" fill="#fff"/>
+            <!-- Blush -->
+            <ellipse cx="-22" cy="10" rx="6" ry="3.5" fill="#FFB6B0" opacity="0.6"/>
+            <ellipse cx="22" cy="10" rx="6" ry="3.5" fill="#FFB6B0" opacity="0.6"/>
+            <!-- Heart on cheek (charm motif) -->
+            <path d="M -22 -10 L -19 -7 L -16 -10 L -19 -4 Z" fill="#FF6B5B"/>
+            <!-- Smile -->
+            <path d="M -6 14 Q 0 19 6 14" stroke="#2D2A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+          <div class="role-tag">매혹의 카리스마</div>
+          <span class="speed">⚡ 속도 ×1.00</span>
+          <!-- v3: 하단 secondary 백 버튼 제거 (좌상단 GlassPill이 단독 책임) -->
+        </div>
+
+        <!-- Right: Skill info (v3: "임간호의 스킬" 코랄 라벨 제거, flex 1 1 52%) -->
+        <div class="skill-info">
+          <!-- v3: 메타 라벨 영역 삭제 -->
+          <div class="skill-name">매혹</div>
+          <div class="skill-desc">
+            수간호사를 <strong style="color:#FF6B5B; font-weight:500;">매혹</strong>해 일정 시간 동안 점수가 2배가 돼요. 게임당 1회만 발동할 수 있어요.
+          </div>
+          <div class="skill-stats">
+            <span class="stat-chip"><span class="k">CD</span> 1회</span>
+            <span class="stat-chip"><span class="k">범위</span> 전체</span>
+            <span class="stat-chip gold"><span class="k">발동</span> 즉시</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Control hint -->
+      <div class="control-hint">
+        <span class="key">B</span>
+        <span>좌하단 스킬 버튼을 1번 탭하면 발동</span>
+      </div>
+
+      <!-- Bottom buttons (v3: PrimaryButton 단독 중앙) -->
+      <div class="bottom-buttons">
+        <button class="btn btn-primary">
+          다음 <span class="arrow">▶</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Annotations — 3개 (Sprint 7 Phase B 핵심 차이) -->
+  <div class="annot-title">v3 변경 요약 (v2 → v3)</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🧹 중복 제거</h3>
+      <p>하단 secondary 백 버튼 + 우측 "XX의 스킬" 라벨 제거. 좌상단 GlassPill과 우상단 브레드크럼이 단독 책임.</p>
+    </div>
+    <div class="annotation">
+      <h3>🫁 본문 호흡 +5%p</h3>
+      <p>우측 본문 47%→52%. 인용 보더 3→4px, 메타칩 gap 8→10.</p>
+    </div>
+    <div class="annotation">
+      <h3>🎯 위계 명확</h3>
+      <p>좌상단=뒤로, 우상단=위치, 본문=정보, 하단=다음 — 영역마다 정보 종류 1개씩.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

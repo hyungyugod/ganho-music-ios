@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase A 합격 — 캐릭터 선택 NIKKE 카드 리뉴얼)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A ✅ / B~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase B 합격 — 스킬 설명 겹침 해소)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B ✅ / C~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -41,8 +41,8 @@ Sprint 2 진행해줘
 | **5** | ResultScene 3분기 | ✅ 합격 | 9.70/10 | 1/3 |
 | **6** | 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터 | ✅ 합격 | 9.53/10 | 1/3 |
 | **7-A** | 캐릭터 선택 NIKKE 카드 리뉴얼 | ✅ 합격 | 9.45/10 | 1/3 |
-| **7-B** | 스킬 설명 겹침 해소 | ⏳ 대기 | - | 0/3 |
-| **7-C** | 난이도 카드 색 위계 | ⏸️ 미시작 | - | 0/3 |
+| **7-B** | 스킬 설명 겹침 해소 | ✅ 합격 | 9.77/10 | 1/3 |
+| **7-C** | 난이도 카드 색 위계 | ⏳ 대기 | - | 0/3 |
 | **7-D** | 결과창 + ScoreboardScene 신설 | ⏸️ 미시작 | - | 0/3 |
 | **7-E** | 카운트다운 오버레이 | ⏸️ 미시작 | - | 0/3 |
 | **7-F** | 빌런 4종 + 박병장 신규 | ⏸️ 미시작 | - | 0/3 |
@@ -103,6 +103,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase B — 스킬 설명 겹침 해소
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.77/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼 9.7 · UX 9.6)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: SkillExplanationScene에서 시각 충돌 4건 정리. (1) 하단 secondary BackButtonNode `addChild` 호출 제거 — 좌상단 GlassPill `topBackPill`이 백 버튼 단독 책임. (2) 우측 본문 상단 `metaLabel`("XX의 스킬") `addChild` 호출 제거 — 우상단 브레드크럼 `breadcrumbChip`이 위치 정보 단독 책임. (3) `didChangeSize(_:)`의 `layoutMetaLabel()` 호출 제거. (4) `setupSkillQuoteBox()` 폭/보더, `layoutStatChips()` spacing을 V3 상수 참조로 교체. GameConfig 신규 상수 5종(`skillExplanationQuoteBoxWidthV3=332`, `ContentWidthRatioV3=0.52`, `QuoteBoxBorderWidthV3=4`, `StatChipSpacingV3=10`, `BottomButtonGapV3=18`). 기존 v2 상수(300/3/8) 값 보존. `backButton` / `metaLabel` 인스턴스 자체는 보존(시그니처 0 변경) — `touchesBegan`의 `contains` 가드는 부모(씬) 없어 hit-test false 반환으로 안전. 신규 mockup `skill-explanation-v3.html` ~280줄. 보호 영역 13파일(Phase A 결과물 4 + 게임 로직 4 + 보호 노드 5) 모두 git diff 0줄. `init(characterID:)` / `transitionToCharacterSelect()` / `transitionToDifficulty()` byte-identical. 강제 언래핑 0, Timer 0, update()-내-addChild 0. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (Phase B 합격 영향 0)**: `setupMetaLabel()` / `layoutMetaLabel()` 두 함수가 dead-leaning 상태. SPEC OQ-2 보존 원칙(인스턴스 시그니처 보존)에 따라 의도적 잔류. 차기 정리 Sprint에서 함수 자체 삭제 또는 isHidden 플래그 검토 가능.
 
 ### Sprint 7 Phase A — 캐릭터 선택 NIKKE 카드 리뉴얼
 - 시작: 2026-05-19

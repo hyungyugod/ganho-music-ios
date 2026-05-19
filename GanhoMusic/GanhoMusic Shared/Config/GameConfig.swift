@@ -1911,4 +1911,25 @@ enum GameConfig {
     /// 하단 스킬 정보 칩 최대 폭(320pt). v2 무한 → v3 320 clamp.
     /// 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
     static let characterSelectSkillInfoMaxWidth: CGFloat = 320
+
+    // MARK: - Sprint 7 Phase B · Skill Explanation v3 (겹침 해소 + 호흡)
+    // SPRINT_7_REQUEST.md §3.2 — 본문 폭 47%→52%, 인용 보더 3px→4px,
+    // 메타칩 gap 8→10, 버튼 gap 12→18. 기존 v2 상수는 값 유지(회귀 0).
+
+    /// 우측 본문(인용 박스) 가로폭(pt) — v2 300pt(≈47%) → v3 332pt(≈52%).
+    static let skillExplanationQuoteBoxWidthV3: CGFloat = 332
+
+    /// 콘텐츠 영역 비율 (참조용) — 우측 본문 폭 계산 근거.
+    static let skillExplanationContentWidthRatioV3: CGFloat = 0.52
+
+    /// 인용 박스 좌측 코랄 보더 굵기(pt) — v2 3 → v3 4.
+    static let skillExplanationQuoteBoxBorderWidthV3: CGFloat = 4
+
+    /// 메타 칩 3개(CD/범위/발동) 사이 간격(pt) — v2 8 → v3 10.
+    static let skillExplanationStatChipSpacingV3: CGFloat = 10
+
+    /// 하단 백·시작 버튼 사이 간격(pt) — v2 12 → v3 18.
+    /// Phase B에서 백 버튼이 화면에서 제거되므로 실제 사용 빈도는 낮으나
+    /// 향후 정책 변경 시 참조용으로 보존.
+    static let skillExplanationBottomButtonGapV3: CGFloat = 18
 }

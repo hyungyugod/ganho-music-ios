@@ -132,7 +132,7 @@ final class SkillExplanationScene: SKScene {
         layoutAvatar()
         layoutAvatarNameBadge()
         layoutAvatarRoleAndSpeed()
-        layoutMetaLabel()
+        // Sprint 7 Phase B — layoutMetaLabel() 호출 제거 (씬 그래프 외부 노드).
         layoutSkillName()
         layoutSkillQuoteBox()
         layoutStatChips()
@@ -342,7 +342,10 @@ final class SkillExplanationScene: SKScene {
         )
     }
 
-    // MARK: - Setup (Sprint 2 · Right Side Meta + Skill Name)
+    // MARK: - Sprint 7 Phase B · Right Side Meta + Skill Name (metaLabel 미부착)
+    // SPRINT_7_REQUEST.md §3 — metaLabel("XX의 스킬")은 우상단 브레드크럼이 단독 책임.
+    //                          화면에서 제거(addChild 호출 안 함). 인스턴스 자체는 보존(시그니처 0 변경).
+    //                          layoutMetaLabel 호출도 제거 — 씬 그래프 외부 노드의 좌표 계산 불필요.
     private func setupMetaLabel() {
         metaLabel.text = "\(characterID.displayName)의 스킬"
         metaLabel.fontSize = GameConfig.skillExplanationMetaLabelFontSize
@@ -350,8 +353,7 @@ final class SkillExplanationScene: SKScene {
         metaLabel.horizontalAlignmentMode = .center
         metaLabel.verticalAlignmentMode = .center
         metaLabel.zPosition = 100
-        addChild(metaLabel)
-        layoutMetaLabel()
+        // Sprint 7 Phase B — addChild(metaLabel) / layoutMetaLabel() 호출 제거.
     }
 
     private func layoutMetaLabel() {
@@ -380,12 +382,13 @@ final class SkillExplanationScene: SKScene {
         )
     }
 
-    // MARK: - Setup (Sprint 2 · Quote Box)
-    /// 인용 박스 — 좌 3px 코랄 보더 + 글래스 fill 0.55 + 라운드 14pt + Gowun Dodum 14pt navyDeep 본문.
+    // MARK: - Sprint 7 Phase B · Quote Box (V3 폭 332pt + 좌측 코랄 보더 4px)
+    /// 인용 박스 — 좌 4px 코랄 보더(V3) + 글래스 fill 0.55 + 라운드 14pt + Gowun Dodum 14pt navyDeep 본문.
     /// StoryBoxNode 인스턴스 제거됨 — 텍스트 출처(`characterID.skill.fullDescription`) 그대로.
+    /// Sprint 7 Phase B — 폭 300→332(≈52%), 보더 3→4px. V3 상수만 참조, v2 상수 값 변경 0.
     private func setupSkillQuoteBox() {
         let boxSize = CGSize(
-            width: GameConfig.skillExplanationQuoteBoxWidth,
+            width: GameConfig.skillExplanationQuoteBoxWidthV3,
             height: GameConfig.skillExplanationQuoteBoxHeight
         )
         let box = SKShapeNode(
@@ -401,8 +404,8 @@ final class SkillExplanationScene: SKScene {
         skillQuoteBox = box
         addChild(box)
 
-        // 좌 3px 코랄 라운드 보더.
-        let borderWidth = GameConfig.skillExplanationQuoteBoxBorderWidth
+        // Sprint 7 Phase B — 좌측 코랄 라운드 보더 4px (v2 3px → v3 4px).
+        let borderWidth = GameConfig.skillExplanationQuoteBoxBorderWidthV3
         let leftBorder = SKShapeNode(
             rectOf: CGSize(width: borderWidth, height: boxSize.height),
             cornerRadius: borderWidth / 2
@@ -467,7 +470,8 @@ final class SkillExplanationScene: SKScene {
         guard !statChips.isEmpty else { return }
         // 가로 정렬 — 누적 폭 계산 후 우측 영역 중앙(MetaLabelOffsetX) 기준 정렬.
         let widths = statChips.map { $0.calculateAccumulatedFrame().width }
-        let spacing = GameConfig.skillExplanationStatChipSpacing
+        // Sprint 7 Phase B — V3 spacing 10pt (v2 8pt → v3 10pt). 메타 칩 호흡 +2pt.
+        let spacing = GameConfig.skillExplanationStatChipSpacingV3
         let total = widths.reduce(0, +) + spacing * CGFloat(statChips.count - 1)
         let centerX = frame.midX + GameConfig.skillExplanationMetaLabelOffsetX
         let y = frame.midY + GameConfig.skillExplanationStatChipRowOffsetY
@@ -538,18 +542,19 @@ final class SkillExplanationScene: SKScene {
         controlHintLabel.position = CGPoint(x: labelX, y: 0)
     }
 
-    // MARK: - Setup (Sprint 2 · Bottom Buttons)
+    // MARK: - Sprint 7 Phase B · Bottom Buttons (startButton 단독 중앙)
+    // SPRINT_7_REQUEST.md §3 — backButton은 좌상단 topBackPill이 단독 책임.
+    //                          하단에서 제거(addChild 호출 안 함). 인스턴스/시그니처/touchesBegan 가드는 보존.
+    //                          부모(씬) 없는 노드의 hit-test는 false 반환 → 회귀 0.
     private func setupButtons() {
-        addChild(backButton)
         addChild(startButton)
         layoutButtons()
     }
 
     private func layoutButtons() {
         let y = frame.midY + GameConfig.skillExplanationButtonRowOffsetY
-        let half = GameConfig.characterSelectButtonSpacing / 2  // 시각 일관성.
-        backButton.position = CGPoint(x: frame.midX - half, y: y)
-        startButton.position = CGPoint(x: frame.midX + half, y: y)
+        // Sprint 7 Phase B — startButton 단독 중앙 배치.
+        startButton.position = CGPoint(x: frame.midX, y: y)
     }
 
     // MARK: - Touch
