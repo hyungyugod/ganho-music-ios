@@ -1,355 +1,457 @@
-# Phase 10-1 — 시작 시퀀스 4단계 오버레이 분리
+# SPEC.md — Phase 10-2 · StartScene 모던 리스킨 (병동의 새벽 톤)
 
 ## 개요
-현재 단일 TitleScene에 빽빽이 모여 있는 [제목 + 통계 + 캐릭터 5장 + 난이도 3장 + 시작 안내]를 GDD §3의 4단계 화면 흐름으로 분리한다. 모바일 가로 화면에서 카드 8장이 동시에 깔리는 좁은 레이아웃을 해소하고 각 단계가 *한 가지 결정*에만 집중하도록 한다. GDD §10에 명시되어 있으나 미구현인 **석조무사 경고 컷씬**(easy/normal)도 추가한다.
+앱 첫 진입 StartScene이 현재 회색 박스 + 시스템 폰트의 *완성도 낮은* 인상이라 게임의 첫 톤이 약하다. **게임플레이를 일절 건드리지 않고**, 배경 그라데이션 + 떠다니는 음표 파티클 + 제목 글로우 + 카드 spring/링 글로우 인터랙션 + 버튼 pulse + 전환 잔향 5채널 비주얼 리스킨을 가한다. 무드는 **'병동의 새벽 — 청록(teal) + 살구(coral/apricot)'** — 어두운 야간 병동 위에 작곡의 살구빛이 떠오르는 톤.
 
 ## 변경 유형
-**혼합 (게임플레이 + 비주얼)** — UI 흐름은 플레이어가 게임에 진입하기 전 의식적으로 선택하게 만드는 게임플레이 일부이며, 동시에 카드 배치·타이포그래피·색의 시각 재배열이다.
+**비주얼** — 게임플레이 변경 0건. 난이도 선택 흐름·repo save·씬 전환 대상·hit test 우선순위·라벨 위치(레이아웃) 모두 동일. 시각 레이어만 신설/덮어쓰기.
 
 ## 게임 경험 의도
-플레이어가 단계마다 한 가지 결정만 내리도록 흐름을 끊어주어 *준비된 마음*으로 게임에 진입. 김간호 선택자는 스킬 화면을 자동 스킵하여 "스킬 없음 = 정공법 정체성"이라는 GDD §4 결정을 흐름에서도 일관 표현.
+플레이어가 앱을 켜자마자 "이거 정성 들인 게임이구나"를 1초 안에 인지하게 한다. 어두운 새벽 병동(딥블루→틸 그라데이션) 위로 살구색 음표 ♪가 천천히 떠오르고, 제목이 부드럽게 빛난다. 난이도를 탭하면 *spring 반동 + 살구 링 글로우*로 "아 눌렀다"는 즉각 쾌감을 받고, 시작 버튼은 *심호흡하듯* pulse 한다. 씬을 떠날 때는 카드들이 살짝 위로 슬라이드하며 다음 씬과 연결감을 만든다.
 
-## Sprint 범위 계약
+## Sprint 범위 계약 — Phase 10-2
 
-### 허용
-- 새 씬 3개: `StartScene` / `CharacterSelectScene` / `SkillExplanationScene`
-- 새 노드 3개: `StoryBoxNode` / `PrimaryButtonNode` / `BackButtonNode`
-- 새 컷씬: 석조무사 경고 — **신규 노드 신설 0건**. `CutsceneOverlayNode.present` 재사용 + GameConfig 텍스트 상수 2개만 추가
-- `TitleScene` 삭제 (10-1c 완료 후)
-- `GameViewController.swift` 1줄 변경
-- `GameConfig.swift` 새 상수 ~25개
-- `GameScene.swift` 인트로 컷씬 onDismiss 분기에 easy/normal용 석조무사 경고 호출 추가 (~10줄)
-- `CharacterID.tag: String` / `PlayerSkill.fullDescription: String` computed property 신설
+- **허용**:
+  - StartScene 내부 비주얼 노드 추가 (그라데이션 배경, 음표 파티클, 제목 글로우)
+  - DifficultyCardNode `setSelected(_:)` 시 spring scale + 링 글로우 추가 (호출 시그니처 불변)
+  - GameConfig 신규 상수 *추가*만 (Phase 10-2 MARK 섹션 신설)
+  - ColorTokens teal/coral accent 토큰 *추가*만
+  - 씬 전환 시 카드 슬라이드업 + fade 길이 미세 조정 (sceneTransitionDuration 불변, 자체 신규 상수 사용)
+  - SKAction.repeatForever pulse (시작 버튼)
 
-### 금지
-- `GameScene`의 게임플레이 로직 (update/contact/skill/setup) 변경 **0줄**
-- `ResultScene.swift` 변경 **0줄**
-- Repositories 시그니처 변경 금지
-- 새 사운드/햅틱/BGM 도입 금지
-- 캐릭터 카드/난이도 카드 *내부 시각* 변경 금지 (위치만 재배치)
-- 신규 컷씬 노드 클래스 신설 금지
+- **금지**:
+  - CharacterSelectScene·SkillExplanationScene·GameScene·ResultScene 비주얼 변경
+  - 난이도 선택 결과/저장 시점/씬 전환 대상 변경
+  - 기존 GameConfig 상수 *값 변경* (신규 추가만 허용)
+  - 기존 ColorTokens 변경 (신규 추가만 허용)
+  - StoryBoxNode·PrimaryButtonNode 내부 구조 변경 (StartScene이 *외부에서* pulse만 부착)
+  - SPEC에 없는 사운드/햅틱/BGM 추가
+  - 새 게임 메커닉·점수 보너스·이스터에그
+  - 강제 언래핑(`!`), Timer, 매직 넘버, 매 프레임 addChild
 
-### 판단 기준
-"이 변경이 없으면 4단계 흐름이 동작하지 않는가?" → YES면 허용, NO면 금지.
+- **판단 기준**: "이 변경이 없으면 SPEC의 비주얼 리스킨이 제대로 동작하지 않는가?" → YES만 허용.
 
-## 씬 구조 결정: 옵션 A — 새 SKScene 3개
+## 불변 계약 (게임플레이 0건 변경)
 
-```
-[StartScene] (앱 진입점)
-  - 제목 "김간호는 음악박사"
-  - 부제 "어느 한적한 병동의 오후"
-  - BEST / PLAYS (상단)
-  - 스토리 설명 박스
-  - 난이도 카드 3장
-  - "시작" 버튼
-        ↓ SKTransition.fade
-[CharacterSelectScene]
-  - 헤더 "함께할 친구를 골라요"
-  - 캐릭터 카드 5장 + 태그 라벨
-  - "← 난이도 다시" / "이 친구로 시작"
-        ↓ SKTransition.fade (김간호는 스킬 씬 스킵)
-[SkillExplanationScene]
-  - 헤더 "스킬을 익혀요"
-  - 큰 캐릭터 아바타
-  - 스킬명 + 설명 + 조작 안내
-  - "← 캐릭터 다시" / "시작"
-        ↓ presentScene
-[GameScene]
-  - showIntroCutscene → (easy/normal: showStoneGuardWarning) / (hard: showProfessorWarning) → countdown → playing
-```
+| 항목 | 변경 여부 |
+|---|---|
+| `selectDifficulty(_:)` 호출 시점/저장 동작 | 불변 |
+| `transitionToNext()`의 `CharacterSelectScene.newCharacterSelectScene(difficulty:)` 호출 | 불변 |
+| `isTransitioning` 가드 | 불변 |
+| 카드 hit test 우선순위 (난이도 카드 → 시작 버튼) | 불변 |
+| `HighScoreRepository().current` / `StatisticsRepository().current.playCount` 읽기 시점 | 불변 |
+| 카드 *위치*(layoutDifficultyCards 좌표 계산식) | 불변 |
+| `selectedDifficulty: Difficulty = .easy` 기본값 + `difficultyRepo.current` 복원 | 불변 |
 
-### 선택 사유
-1. **상태 격리**: 각 씬은 init 인자로 불변 상태 보유
-2. **SpriteKit 자연성**: 기존 SKTransition.fade 패턴 정착
-3. **메모리 관리**: ARC 자동 해제 — 다음 화면에선 노드 사라짐
-4. **상태 전달 비용 0**: 컴파일 타임 강제
-5. **회귀 차단**: 각 씬 touchesBegan이 자기 카드/버튼만 안다
+## 색상 토큰 정의 (ColorTokens.swift 신규)
 
-## 단계 분할 (4 sub-sprint, 한 PR 안)
+원본 톤 ganhoUIBrand(#c4847a, 코럴)와 충돌 회피 위해 *액센트* 패밀리로 별도 네이밍.
 
-### Phase 10-1a: StartScene 신설
-- 새 `StartScene.swift` 생성. 앱 진입점 변경
-- 난이도 3장만 이동 (캐릭터 5장은 다음 단계)
-- TitleScene은 *삭제하지 말고* 임시 보존
-- 빌드 검증: StartScene → 난이도 선택 → 시작 → GameScene 직진
+| 토큰 | Hex | 용도 |
+|---|---|---|
+| `ganhoAccentTeal` | `#5BD7CF` | 그라데이션 하단 + 제목 글로우 외곽 |
+| `ganhoAccentTealDeep` | `#1E3A4C` | 그라데이션 상단 (딥블루-틸 중간 톤) |
+| `ganhoAccentCoral` | `#FFB59A` | 음표 파티클 본체 + 선택 카드 링 글로우 + BEST/PLAYS 액센트 |
 
-### Phase 10-1b: CharacterSelectScene 신설
-- 캐릭터 5장 카드 이전
-- StartScene "시작" → CharacterSelectScene
-- "← 난이도 다시" → StartScene
-- "이 친구로 시작" → SkillExplanationScene (다음 단계, 임시: 김간호도 동일 경로)
-
-### Phase 10-1c: SkillExplanationScene 신설 + 김간호 스킵
-- 새 스킬 설명 씬
-- 김간호 스킵: CharacterSelectScene의 "이 친구로 시작" 핸들러에서 .kim이면 GameScene 직진
-- "← 캐릭터 다시" / "시작" 동작
-- `TitleScene.swift` 완전 삭제
-
-### Phase 10-1d: 석조무사 경고 컷씬 (easy/normal)
-- `GameScene.showIntroCutscene` onDismiss 분기에 호출 추가
-- 새 메서드 `showStoneGuardWarningCutscene()` (showProfessorWarningCutscene 미러)
-- `GameConfig` 상수 2개 (title + body, GDD §10 원문)
-- `hasSeenIntro=true` 분기에서도 경고 컷씬 표시 (매 판 환기)
+> Hex 선택 근거: teal `#5BD7CF`는 ganhoMint(#7DCFB6, 머리띠)와 다른 *더 시원하고 채도 높은* 청록 — 야간 새벽 톤. coral `#FFB59A`는 ganhoUIBrand(#c4847a, 어두운 코럴)보다 *밝고 따뜻한* 살구색 — 떠오르는 멜로디 톤. 두 색은 보색 관계로 그라데이션 위 음표가 또렷이 떠오름.
 
 ## 변경 범위
 
-### 추가할 파일
-- `Scenes/StartScene.swift`
-- `Scenes/CharacterSelectScene.swift`
-- `Scenes/SkillExplanationScene.swift`
-- `Nodes/StoryBoxNode.swift`
-- `Nodes/PrimaryButtonNode.swift`
-- `Nodes/BackButtonNode.swift`
-
 ### 수정할 파일
-- `GanhoMusic iOS/GameViewController.swift` — 1줄 (TitleScene → StartScene)
-- `GanhoMusic Shared/GameScene.swift` — 인트로 컷씬 onDismiss + 새 메서드 (~10줄)
-- `GanhoMusic Shared/Config/GameConfig.swift` — 상수 ~25개
-- `GanhoMusic Shared/Models/CharacterID.swift` — `tag` computed
-- `GanhoMusic Shared/Models/PlayerSkill.swift` — `fullDescription` computed
 
-### 삭제할 파일
-- `GanhoMusic Shared/Scenes/TitleScene.swift` (10-1c 완료 후)
+1. **`GanhoMusic Shared/Scenes/StartScene.swift`** — 비주얼 5채널 추가
+   - 그라데이션 배경 노드(zPos -20) 추가
+   - 떠다니는 음표 파티클 컨테이너(zPos -15) 추가
+   - 제목 글로우 SKEffectNode 래핑
+   - 시작 버튼 pulse 액션 부착
+   - 씬 전환 시 카드 슬라이드업 시퀀스
+
+2. **`GanhoMusic Shared/Config/GameConfig.swift`** — 신규 MARK 섹션 추가 (기존 상수 변경 0건)
+   - `// MARK: - Start Scene Visual (Phase 10-2)` 섹션 신설
+
+3. **`GanhoMusic Shared/Config/ColorTokens.swift`** — 신규 MARK 섹션 추가 (기존 토큰 변경 0건)
+   - `// MARK: - Accent (Phase 10-2)` 섹션 신설
+   - `ganhoAccentTeal`, `ganhoAccentTealDeep`, `ganhoAccentCoral` 3개 토큰
+
+4. **`GanhoMusic Shared/Nodes/DifficultyCardNode.swift`** — `setSelected(_:)` 확장
+   - 기존 alpha + scale 동작 유지
+   - **추가**: spring bounce scale (overshoot 1.12 → 정착 1.08) — 선택 시만
+   - **추가**: 살구 링 글로우 SKShapeNode 자식 — 선택 시 fade-in, 해제 시 즉시 alpha 0
+   - `id`, `setSelected(_:)` 호출 시그니처 불변 — 호출부 변경 0
+
+### 추가할 파일 (신규)
+
+5. **`GanhoMusic Shared/Nodes/GradientBackgroundNode.swift`** — 재사용성 명확 (향후 다른 씬에서도 활용 가능)
+   - SKSpriteNode 서브클래스. CGGradient + UIGraphicsImageRenderer로 1회 생성 → 텍스처 캐싱
+   - init(size: CGSize, topColor: UIColor, bottomColor: UIColor)
+
+6. **`GanhoMusic Shared/Nodes/MusicNoteEmitterNode.swift`** — 떠다니는 음표 파티클 컨테이너
+   - SKNode 서브클래스. 내부에서 SKAction.repeatForever로 음표 SKLabelNode 스폰
+   - 동시 표시 상한 GameConfig.musicNoteEmitterMaxConcurrent로 가드
+   - 자식이 화면 위로 fade-out하면 자가 removeFromParent
+
+7. **`GanhoMusic Shared/Nodes/GlowingTitleNode.swift`** — 제목 + 글로우 컨테이너 (재사용 가치 명확 — ResultScene/CharacterSelect도 향후 사용 가능)
+   - SKNode 서브클래스. 자식: SKEffectNode(CIGaussianBlur 적용한 라벨 사본 — 글로우 레이어) + 본 SKLabelNode
+   - `shouldRasterize = true`로 성능 가드
 
 ## 기능 상세
 
-### 기능 1: StartScene
-- 패턴 답습: TitleScene 구조
-- 화면 구성: 상단 BEST/PLAYS, 중앙 제목+부제+스토리 박스+난이도 3장, 하단 시작 버튼
-- "어디든 탭" 패턴 제거 — 시작 버튼 명시 탭만 진행
-- 카드/스토리 박스/버튼 모두 setupOverlayPanel(반투명 + 카드 패널) 안
+### 기능 1: 그라데이션 배경
 
-### 기능 2: CharacterSelectScene
-- 헤더 + 5명 카드 가로 1줄 + 카드 아래 태그 라벨 + 뒤로/시작 버튼 2개
-- CharacterCardNode *외부*에 태그 SKLabelNode 별도 생성 (카드 내부 변경 금지)
-- `CharacterID.tag` computed property로 텍스트 결정
+- **설명**: 단색 `.ganhoBgDeep` 대신 세로 그라데이션 노드를 zPosition -20에 깔아 새벽 톤 표현
+- **구현 위치**:
+  - `Nodes/GradientBackgroundNode.swift` (신규)
+  - `Scenes/StartScene.swift`의 `setupOverlayPanel()` *직전*에 `setupGradientBackground()` 신설
+- **핵심 코드 구조**:
 
-### 기능 3: SkillExplanationScene
-- 헤더 + 큰 아바타(좌, 120×150) + 스킬명/설명/조작 안내(우) + 뒤로/시작
-- 아바타: PixelSpriteRenderer + PixelSprite.data(for:direction:frame:) + PixelPalette.palette(for:) 재사용
-- StoryBoxNode 재사용 (스킬 설명 본문)
-- `PlayerSkill.fullDescription` computed property로 설명 결정
-
-### 기능 4: 석조무사 경고 컷씬
 ```swift
-// GameScene.swift — showIntroCutscene onDismiss 안
-onDismiss: { [weak self] in
-    guard let self = self else { return }
-    UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-    switch self.difficulty {
-    case .easy, .normal: self.showStoneGuardWarningCutscene()
-    case .hard:          self.showProfessorWarningCutscene()
+// Nodes/GradientBackgroundNode.swift
+final class GradientBackgroundNode: SKSpriteNode {
+    init(size: CGSize, topColor: UIColor, bottomColor: UIColor) {
+        let texture = Self.makeGradientTexture(size: size, top: topColor, bottom: bottomColor)
+        super.init(texture: texture, color: .clear, size: size)
+        zPosition = GameConfig.startSceneGradientZPosition
+        name = "gradientBackground"
     }
-}
 
-// 새 메서드
-private func showStoneGuardWarningCutscene() {
-    CutsceneOverlayNode.present(
-        title: GameConfig.stoneGuardWarningTitle,
-        body: GameConfig.stoneGuardWarningBody,
-        parent: cameraNode,
-        sceneSize: size,
-        onDismiss: { [weak self] in
-            guard let self = self else { return }
-            self.gameState = .countdown
-            self.showCountdown()
+    private static func makeGradientTexture(size: CGSize, top: UIColor, bottom: UIColor) -> SKTexture {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            let cgCtx = ctx.cgContext
+            let colors = [top.cgColor, bottom.cgColor] as CFArray
+            guard let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: colors,
+                locations: [0.0, 1.0]
+            ) else { return }
+            cgCtx.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: size.height),
+                end: CGPoint(x: 0, y: 0),
+                options: []
+            )
         }
+        return SKTexture(image: image)
+    }
+
+    required init?(coder aDecoder: NSCoder) { fatalError() }
+}
+```
+
+- **주의**: `backgroundColor = .ganhoBgDeep`은 유지 — 그라데이션 노드 로딩 전 1프레임 fallback 톤. 그라데이션이 위에 zPos -20으로 덮음.
+
+### 기능 2: 떠다니는 음표 파티클
+
+- **설명**: 화면 하단에서 살구색 ♪/♫ 음표가 천천히 위로 떠오르며 fade-out. 동시 표시 상한 가드.
+- **구현 위치**:
+  - `Nodes/MusicNoteEmitterNode.swift` (신규)
+  - `Scenes/StartScene.swift`의 `setupOverlayPanel()` *다음*에 `setupMusicNoteEmitter()` 신설
+- **핵심 코드 구조**:
+
+```swift
+final class MusicNoteEmitterNode: SKNode {
+    private let sceneSize: CGSize
+    private var activeCount: Int = 0
+
+    init(sceneSize: CGSize) {
+        self.sceneSize = sceneSize
+        super.init()
+        name = "musicNoteEmitter"
+        zPosition = GameConfig.startSceneMusicNoteZPosition
+        startEmitting()
+    }
+
+    required init?(coder aDecoder: NSCoder) { fatalError() }
+
+    private func startEmitting() {
+        let spawnAction = SKAction.sequence([
+            SKAction.run { [weak self] in self?.spawnOneNote() },
+            SKAction.wait(forDuration: GameConfig.musicNoteEmitterSpawnInterval)
+        ])
+        run(SKAction.repeatForever(spawnAction), withKey: "musicNoteSpawn")
+    }
+
+    private func spawnOneNote() {
+        guard activeCount < GameConfig.musicNoteEmitterMaxConcurrent else { return }
+        let glyphs = ["♪", "♫", "♩"]
+        let label = SKLabelNode(text: glyphs.randomElement() ?? "♪")
+        label.fontSize = GameConfig.musicNoteEmitterFontSize
+        label.fontColor = .ganhoAccentCoral
+        label.alpha = 0
+        let startX = CGFloat.random(in: 0...sceneSize.width)
+        label.position = CGPoint(x: startX, y: -20)
+        addChild(label)
+        activeCount += 1
+
+        let rise = SKAction.moveBy(
+            x: CGFloat.random(in: -30...30),
+            y: sceneSize.height + 40,
+            duration: GameConfig.musicNoteEmitterRiseDuration
+        )
+        let fadeIn = SKAction.fadeAlpha(to: 0.7, duration: 0.5)
+        let fadeOut = SKAction.fadeOut(withDuration: 1.0)
+        let cleanup = SKAction.run { [weak self] in
+            self?.activeCount = max(0, (self?.activeCount ?? 0) - 1)
+        }
+        let remove = SKAction.removeFromParent()
+        label.run(SKAction.sequence([
+            fadeIn,
+            SKAction.group([rise, SKAction.sequence([
+                SKAction.wait(forDuration: GameConfig.musicNoteEmitterRiseDuration - 1.0),
+                fadeOut
+            ])]),
+            cleanup,
+            remove
+        ]))
+    }
+
+    func stopEmitting() {
+        removeAction(forKey: "musicNoteSpawn")
+    }
+}
+```
+
+- **성능 가드**: `musicNoteEmitterMaxConcurrent = 15` 상한. `weak self` 캡처. 자가 removeFromParent.
+
+### 기능 3: 제목 글로우
+
+- **설명**: 기존 `titleLabel: SKLabelNode(text: "김간호는 음악박사")`를 *글로우 컨테이너로 래핑*. 글로우는 SKEffectNode + CIGaussianBlur로 표현. shouldRasterize=true로 성능 가드.
+- **구현 위치**:
+  - `Nodes/GlowingTitleNode.swift` (신규)
+  - `Scenes/StartScene.swift`의 `setupLabels()` 내부 — titleLabel 단독 addChild 대신 GlowingTitleNode로 래핑
+- **핵심 코드 구조**:
+
+```swift
+final class GlowingTitleNode: SKNode {
+    let mainLabel: SKLabelNode
+    private let glowEffect: SKEffectNode
+
+    init(text: String, fontSize: CGFloat, glowColor: UIColor) {
+        mainLabel = SKLabelNode(text: text)
+        mainLabel.fontSize = fontSize
+        mainLabel.fontColor = .ganhoPaper
+        mainLabel.horizontalAlignmentMode = .center
+        mainLabel.verticalAlignmentMode = .center
+
+        let glowLabel = SKLabelNode(text: text)
+        glowLabel.fontSize = fontSize
+        glowLabel.fontColor = glowColor
+        glowLabel.horizontalAlignmentMode = .center
+        glowLabel.verticalAlignmentMode = .center
+
+        glowEffect = SKEffectNode()
+        if let blur = CIFilter(name: "CIGaussianBlur") {
+            blur.setValue(GameConfig.titleGlowBlurRadius, forKey: "inputRadius")
+            glowEffect.filter = blur
+        }
+        glowEffect.shouldRasterize = true
+        glowEffect.shouldEnableEffects = true
+        glowEffect.zPosition = -1
+        glowEffect.addChild(glowLabel)
+
+        super.init()
+        name = "glowingTitle"
+        addChild(glowEffect)
+        addChild(mainLabel)
+    }
+
+    required init?(coder aDecoder: NSCoder) { fatalError() }
+}
+```
+
+- **주의**: `titleLabel` 프로퍼티는 유지 가능 (또는 GlowingTitleNode로 교체) — Generator 판단. **단, layoutLabels()의 좌표 계산식은 *불변***. 좌표는 GlowingTitleNode에 적용.
+
+### 기능 4: BEST/PLAYS 살구색 액센트
+
+- **설명**: `bestLabel`/`playsLabel`의 `fontColor`를 `.ganhoPaper` → `.ganhoAccentCoral`로 변경.
+- **구현 위치**: `Scenes/StartScene.swift` → `setupLabels()` 내부 색상 변경 2줄
+- **주의**: subtitleLabel의 `.ganhoUITextMuted`는 유지 — 부제는 *조용한 톤*.
+
+### 기능 5: 난이도 카드 spring + 링 글로우
+
+- **설명**: 현재 `setSelected(_:)`은 단순 alpha+scale 1.08. 여기에 *spring overshoot* + 살구 링 글로우 추가.
+- **구현 위치**: `Nodes/DifficultyCardNode.swift` → `setSelected(_:)` 내부 확장 + 신규 자식 `ringGlow: SKShapeNode` 프로퍼티 추가
+- **핵심 코드 구조**:
+
+```swift
+// DifficultyCardNode.swift
+private let ringGlow: SKShapeNode   // 신규
+
+// init(id:) 내부:
+let ringSize = CGSize(
+    width: GameConfig.difficultyCardWidth + GameConfig.difficultyCardRingGlowPadding,
+    height: GameConfig.difficultyCardHeight + GameConfig.difficultyCardRingGlowPadding
+)
+ringGlow = SKShapeNode(rectOf: ringSize, cornerRadius: ringSize.height / 2)
+ringGlow.fillColor = .clear
+ringGlow.strokeColor = .ganhoAccentCoral
+ringGlow.lineWidth = GameConfig.difficultyCardRingGlowLineWidth
+ringGlow.alpha = 0
+ringGlow.zPosition = -1
+ringGlow.glowWidth = GameConfig.difficultyCardRingGlowWidth
+
+// setSelected(_:) 확장:
+removeAction(forKey: "cardScale")
+if selected {
+    let overshoot = SKAction.scale(
+        to: GameConfig.difficultyCardSpringOvershootScale,
+        duration: GameConfig.difficultyCardSpringPhase1Duration
     )
-}
-
-// didMove의 hasSeenIntro=true 분기도 수정
-if hasSeenIntro {
-    gameState = .cutscene
-    switch difficulty {
-    case .easy, .normal: showStoneGuardWarningCutscene()
-    case .hard:          showProfessorWarningCutscene()
-    }
+    overshoot.timingMode = .easeOut
+    let settle = SKAction.scale(
+        to: GameConfig.characterCardSelectedScale,
+        duration: GameConfig.difficultyCardSpringPhase2Duration
+    )
+    settle.timingMode = .easeInEaseOut
+    run(SKAction.sequence([overshoot, settle]), withKey: "cardScale")
 } else {
-    gameState = .cutscene
-    showIntroCutscene()
+    run(SKAction.scale(to: 1.0, duration: GameConfig.characterCardScaleDuration),
+        withKey: "cardScale")
+}
+
+ringGlow.removeAction(forKey: "ringFade")
+let target: CGFloat = selected ? 1.0 : 0.0
+let duration = selected
+    ? GameConfig.difficultyCardRingGlowFadeInDuration
+    : GameConfig.difficultyCardRingGlowFadeOutDuration
+ringGlow.run(SKAction.fadeAlpha(to: target, duration: duration), withKey: "ringFade")
+```
+
+- **불변 계약**: `init(id:)` 시그니처·`setSelected(_:)` 시그니처·`id` 프로퍼티 접근성 모두 불변. StartScene의 호출 코드 변경 0줄.
+
+### 기능 6: 시작 버튼 pulse
+
+- **설명**: PrimaryButtonNode의 *외부에서* StartScene이 pulse 액션을 부착. PrimaryButtonNode 자체는 수정 0.
+- **구현 위치**: `Scenes/StartScene.swift` → `setupStartButton()` 내부에 pulse 부착
+- **핵심 코드 구조**:
+
+```swift
+private func attachStartButtonPulse() {
+    let down = SKAction.scale(to: GameConfig.startButtonPulseScaleMin, duration: GameConfig.startButtonPulseHalfDuration)
+    down.timingMode = .easeInEaseOut
+    let up = SKAction.scale(to: GameConfig.startButtonPulseScaleMax, duration: GameConfig.startButtonPulseHalfDuration)
+    up.timingMode = .easeInEaseOut
+    let pulse = SKAction.sequence([down, up])
+    startButton.run(SKAction.repeatForever(pulse), withKey: "startButtonPulse")
 }
 ```
 
-### 기능 5: StoryBoxNode
-- SKShapeNode 패널 + SKLabelNode 본문(자동 줄바꿈)
-- numberOfLines = 0, preferredMaxLayoutWidth (CutsceneOverlayNode 패턴 답습)
+- **주의**: 씬 전환 시 `removeAction(forKey: "startButtonPulse")`로 정리.
 
-### 기능 6: PrimaryButtonNode / BackButtonNode
-- 캡슐 모양 + 라벨, contains(_:) hit-test (CharacterCardNode 패턴)
-- PrimaryButton: 코럴 fill + brand stroke + ganhoPaper 텍스트
-- BackButton: 투명 fill + 흰색 7% stroke + ganhoUITextMuted 텍스트
+### 기능 7: 씬 전환 시 카드 슬라이드업 + 연결감 fade
 
-## 상태 전달
+- **설명**: `transitionToNext()`에서 *바로* presentScene 호출 대신, 카드/스토리박스/시작버튼을 살짝 위로 슬라이드 + fadeOut 후 presentScene.
+- **구현 위치**: `Scenes/StartScene.swift` → `transitionToNext()` 수정
+- **핵심 코드 구조**:
 
-| 단계 | 입력 | 출력 | 영속 |
-|---|---|---|---|
-| StartScene | (없음) | difficulty, characterID(repo current) | DifficultyPreferenceRepository.save 즉시 |
-| CharacterSelectScene | difficulty, characterID | difficulty, selectedCharacterID | CharacterPreferenceRepository.save 즉시 |
-| SkillExplanationScene | difficulty, characterID | (수정 불가) | 없음 |
-| GameScene | difficulty, characterID | (기존) | 기존 그대로 |
-
-## 뒤로 가기 매트릭스
-
-| 버튼 | From | To |
-|---|---|---|
-| Start "시작" | Start | CharacterSelect |
-| CharacterSelect "← 난이도 다시" | CharacterSelect | Start |
-| CharacterSelect "이 친구로 시작" (.kim) | CharacterSelect | GameScene 직진 |
-| CharacterSelect "이 친구로 시작" (그 외) | CharacterSelect | SkillExplanation |
-| SkillExplanation "← 캐릭터 다시" | SkillExplanation | CharacterSelect |
-| SkillExplanation "시작" | SkillExplanation | GameScene |
-
-## 회귀 방지
-
-| 영역 | 변경 |
-|---|---|
-| GameScene 게임플레이 (update/contact/skill/setup) | 0줄 |
-| ResultScene | 0줄 |
-| CharacterCardNode / DifficultyCardNode | 0줄 |
-| CutsceneOverlayNode | 0줄 |
-| PlayerNode / PixelSpriteRenderer | 0줄 |
-| Repositories | 0줄 |
-
-GameScene 유일 변경: didMove 분기 + 새 메서드 (~10줄). 게임 루프/상태/시스템 미접촉.
-
-## 매직 넘버 정책 (GameConfig 상수 ~25개)
-
-### 10-1a (StartScene)
 ```swift
-static let startSceneStoryText: String = "실습 중 마음에 떠오른 멜로디를 45초 안에 모아 보세요. 수간호사 눈을 피하는 게 핵심."
-static let startSceneSubtitleFontSize: CGFloat = 16
-static let startSceneSubtitleOffsetY: CGFloat = 80
-static let startSceneBestPlaysTopMargin: CGFloat = 40
-static let startSceneStoryBoxOffsetY: CGFloat = 0
-static let startSceneStartButtonOffsetY: CGFloat = -180
+private func transitionToNext() {
+    guard let view = self.view else { return }
+    isTransitioning = true
 
-static let storyBoxWidth: CGFloat = 440
-static let storyBoxHeight: CGFloat = 80
-static let storyBoxFontSize: CGFloat = 14
-static let storyBoxHorizontalPadding: CGFloat = 16
+    let slideUp = SKAction.moveBy(
+        x: 0,
+        y: GameConfig.startSceneExitSlideDistance,
+        duration: GameConfig.startSceneExitSlideDuration
+    )
+    slideUp.timingMode = .easeIn
+    let fadeOut = SKAction.fadeOut(withDuration: GameConfig.startSceneExitSlideDuration)
+    let exit = SKAction.group([slideUp, fadeOut])
 
-static let primaryButtonWidth: CGFloat = 160
-static let primaryButtonHeight: CGFloat = 48
-static let primaryButtonFontSize: CGFloat = 18
-static let backButtonWidth: CGFloat = 140
-static let backButtonHeight: CGFloat = 40
-static let backButtonFontSize: CGFloat = 14
-```
+    for card in difficultyCards { card.run(exit) }
+    storyBox.run(exit)
+    startButton.removeAction(forKey: "startButtonPulse")
+    startButton.run(exit)
 
-### 10-1b (CharacterSelectScene)
-```swift
-static let characterSelectHeaderText: String = "함께할 친구를 골라요"
-static let characterSelectHeaderFontSize: CGFloat = 22
-static let characterSelectHeaderOffsetY: CGFloat = 140
-static let characterSelectCardOffsetY: CGFloat = 30
-static let characterSelectTagFontSize: CGFloat = 10
-static let characterSelectTagOffsetY: CGFloat = -45
-static let characterSelectButtonRowOffsetY: CGFloat = -160
-static let characterSelectButtonSpacing: CGFloat = 40
-```
+    let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
+    run(SKAction.sequence([wait, SKAction.run { [weak self] in
+        guard let self = self else { return }
+        let nextScene = CharacterSelectScene.newCharacterSelectScene(
+            difficulty: self.selectedDifficulty
+        )
+        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        view.presentScene(nextScene, transition: fade)
+    }]))
 
-### 10-1c (SkillExplanationScene)
-```swift
-static let skillExplanationHeaderText: String = "스킬을 익혀요"
-static let skillExplanationHeaderFontSize: CGFloat = 22
-static let skillExplanationHeaderOffsetY: CGFloat = 140
-static let skillExplanationAvatarWidth: CGFloat = 120
-static let skillExplanationAvatarHeight: CGFloat = 150
-static let skillExplanationAvatarOffsetX: CGFloat = -180
-static let skillExplanationAvatarOffsetY: CGFloat = 20
-static let skillExplanationSkillNameFontSize: CGFloat = 28
-static let skillExplanationSkillNameOffsetX: CGFloat = 80
-static let skillExplanationSkillNameOffsetY: CGFloat = 80
-static let skillExplanationStoryBoxOffsetX: CGFloat = 80
-static let skillExplanationStoryBoxOffsetY: CGFloat = 0
-static let skillExplanationControlHintFontSize: CGFloat = 12
-static let skillExplanationControlHintText: String = "좌하단 스킬 버튼을 1번 탭하면 발동"
-static let skillExplanationButtonRowOffsetY: CGFloat = -160
-```
-
-### 10-1d (석조무사 경고)
-```swift
-static let stoneGuardWarningTitle: String = "경고 · 석조무사 출현"
-static let stoneGuardWarningBody: String = "수간호사의 충실한 부하 석조무사가 출현합니다! 마주치면 잡혀갑니다. 절대 만나지 마세요."
-```
-
-## CharacterID/PlayerSkill 신규 computed property
-
-### CharacterID.tag
-```swift
-var tag: String {
-    switch self {
-    case .kim:  return "번머리 실습생"
-    case .jung: return "곡괭이 근육"
-    case .geon: return "안경과 책"
-    case .im:   return "긴머리 냥"
-    case .lee:  return "단발 댕댕"
-    }
+    _ = characterRepo
 }
 ```
 
-### PlayerSkill.fullDescription
+- **불변 계약**: `CharacterSelectScene.newCharacterSelectScene(difficulty:)` 호출·`sceneTransitionDuration` 사용 불변. 슬라이드 시간은 *추가*된 prelude.
+
+## GameConfig 신규 상수 (Phase 10-2 MARK 섹션)
+
 ```swift
-var fullDescription: String {
-    switch self {
-    case .none:           return ""
-    case .dashClimb:      return "바라보는 방향으로 3타일 돌진. 벽 1칸 파괴. 쿨다운 22초."
-    case .bookClubRally:  return "주변 6타일 안 음표를 한 번에 끌어와 수집. 쿨다운 20초."
-    case .charmStudent:   return "수간호사를 매혹. F 대신 A 투척(수집 시 점수 2배). 게임당 1회."
-    case .taiwanTrip:     return "가장 먼 빈 타일로 순간이동. 착지 후 0.5초 무적. 쿨다운 22초."
-    }
-}
+// MARK: - Start Scene Visual (Phase 10-2)
+static let startSceneGradientZPosition: CGFloat = -20
+static let startSceneMusicNoteZPosition: CGFloat = -15
+
+static let musicNoteEmitterMaxConcurrent: Int = 15
+static let musicNoteEmitterSpawnInterval: TimeInterval = 0.5
+static let musicNoteEmitterFontSize: CGFloat = 18
+static let musicNoteEmitterRiseDuration: TimeInterval = 8.0
+
+static let titleGlowBlurRadius: CGFloat = 8.0
+
+static let difficultyCardSpringOvershootScale: CGFloat = 1.12
+static let difficultyCardSpringPhase1Duration: TimeInterval = 0.18
+static let difficultyCardSpringPhase2Duration: TimeInterval = 0.12
+
+static let difficultyCardRingGlowPadding: CGFloat = 10
+static let difficultyCardRingGlowLineWidth: CGFloat = 2
+static let difficultyCardRingGlowWidth: CGFloat = 6
+static let difficultyCardRingGlowFadeInDuration: TimeInterval = 0.2
+static let difficultyCardRingGlowFadeOutDuration: TimeInterval = 0.1
+
+static let startButtonPulseScaleMin: CGFloat = 0.98
+static let startButtonPulseScaleMax: CGFloat = 1.02
+static let startButtonPulseHalfDuration: TimeInterval = 1.0
+
+static let startSceneExitSlideDistance: CGFloat = 30
+static let startSceneExitSlideDuration: TimeInterval = 0.2
 ```
 
-## 평가 가중치 (본 sprint 조정)
+## ColorTokens 신규 상수
 
-| 항목 | 본 sprint |
-|---|---|
-| Swift 패턴 일관성 | 30% |
-| 게임 로직 완성도 | 25% |
-| 성능 & 안정성 | 20% |
-| 기능 완성도 | 25% |
+```swift
+// MARK: - Accent (Phase 10-2 · 병동의 새벽 톤)
+static let ganhoAccentTeal = UIColor(hex: "#5BD7CF")
+static let ganhoAccentTealDeep = UIColor(hex: "#1E3A4C")
+static let ganhoAccentCoral = UIColor(hex: "#FFB59A")
+```
 
-기능 비중 상향 — UI 흐름 재설계가 본질.
+> `UIColor(hex:)` 헬퍼 extension은 *이미 존재* — 재활용.
+
+## 성능 가드
+
+- **음표 파티클 동시 상한**: `musicNoteEmitterMaxConcurrent = 15`. 스폰 함수 진입부에서 `activeCount` 체크 후 조기 반환.
+- **그라데이션 텍스처**: didMove에서 1회만 생성. 매 프레임 재생성 0.
+- **제목 글로우 SKEffectNode**: `shouldRasterize = true` 필수.
+- **pulse/fade 액션**: 모두 `withKey:` 부여 → 씬 전환 시 정리.
+- **클로저 캡처**: 모든 `SKAction.run { ... }`에서 `[weak self]` 적용.
+- **타겟 FPS**: 60fps 유지.
 
 ## 주의사항
 
-1. 모든 씬 `isTransitioning: Bool` 가드
-2. `guard let view = self.view` 옵셔널 가드 (강제 언래핑 금지)
-3. SKAction.run / present onDismiss 모두 `[weak self]`
-4. 카드 외부 태그 라벨 — 카드 내부 변경 금지
-5. PixelSpriteRenderer 픽셀 텍스처 7.5배 확대 — `.nearest` filter로 픽셀 perfect 보존
-6. TitleScene 삭제는 10-1c 완료 *후*에만
-7. hasSeenIntro=true 분기에 경고 컷씬 표시 — 의도된 회귀(GDD §3)
-8. 컷씬 중첩 금지 — onDismiss 안에서 다음 컷씬 present (자가 소멸 후)
-9. SKLabelNode 자동 줄바꿈: numberOfLines=0 + preferredMaxLayoutWidth 둘 다
-10. switch default 미사용 (Difficulty/CharacterID 신규 case 컴파일 에러로 자연 검출)
+- **`addChild` 순서**: `setupGradientBackground` → `setupOverlayPanel` → `setupMusicNoteEmitter` → `setupLabels` → `setupDifficultyCards` → `setupStoryBox` → `setupStartButton` 순서.
+- **didChangeSize 대응**: 그라데이션 텍스처 재생성. 음표 emitter도 sceneSize 의존 → 재생성.
+- **CIGaussianBlur 옵셔널**: `CIFilter(name:)` 옵셔널 처리 필수. 강제 언래핑 금지.
+- **GameConfig 상수 삽입 위치**: 파일 끝 `}` 직전, 기존 MARK 섹션 뒤. 기존 상수 *변경 0건* — 추가만.
+- **ColorTokens 삽입 위치**: 마지막 토큰 뒤, `extension UIColor` 닫는 `}` 직전.
 
-## Generator 빌드 단계별 검증
+## 검증 체크리스트 (Generator가 구현 완료 후 SELF_CHECK.md에 기록)
 
-### 10-1a 완료
-- [ ] StartScene 표시, TitleScene 미표시
-- [ ] 난이도 카드 3장 동작
-- [ ] "시작" → GameScene (임시: 캐릭터=repo current)
-- [ ] BEST/PLAYS 라벨 갱신
-
-### 10-1b 완료
-- [ ] StartScene "시작" → CharacterSelectScene
-- [ ] 캐릭터 카드 5장 동작
-- [ ] 태그 라벨 5개 표시
-- [ ] "← 난이도 다시" → StartScene
-- [ ] "이 친구로 시작" .kim → GameScene 직진
-- [ ] 그 외 → SkillExplanationScene
-
-### 10-1c 완료
-- [ ] 큰 픽셀 아바타 정확 렌더
-- [ ] 스킬명/설명/조작 안내 표시
-- [ ] "← 캐릭터 다시" → CharacterSelectScene
-- [ ] "시작" → GameScene
-- [ ] TitleScene.swift 삭제 후 빌드 클린
-
-### 10-1d 완료
-- [ ] easy/normal: 인트로 → 석조무사 경고 → countdown
-- [ ] hard: 인트로 → 이교수 경고 → countdown (기존)
-- [ ] 2회차 easy: 인트로 스킵 → 석조무사 경고 → countdown
-- [ ] GameScene 게임 루프 회귀 0
+- [ ] StartScene 외 다른 씬(.swift) 파일 수정 0건
+- [ ] GameScene·CharacterSelectScene·SkillExplanationScene 변경 0건
+- [ ] GameConfig 기존 상수 *값 변경* 0건 (신규 MARK 섹션만 추가)
+- [ ] ColorTokens 기존 토큰 변경 0건
+- [ ] DifficultyCardNode `init(id:)` / `setSelected(_:)` 시그니처 불변
+- [ ] StartScene의 `selectDifficulty(_:)` / `transitionToNext()`의 *게임플레이 동작* 불변 (저장 시점·다음 씬·난이도 전달)
+- [ ] 강제 언래핑 `!` 사용 0건
+- [ ] `Timer.scheduledTimer` 사용 0건 — 모두 SKAction
+- [ ] 매직 넘버 0건 — 모두 GameConfig 상수
+- [ ] 클로저 `[weak self]` 캡처 적용
+- [ ] 음표 동시 상한 가드 작동 (`activeCount < musicNoteEmitterMaxConcurrent`)
+- [ ] SKEffectNode `shouldRasterize = true` 적용
+- [ ] 빌드 에러 0건, 콘솔 경고 최소화
+- [ ] 시뮬레이터에서 60fps 유지 확인 (디버그 통계)

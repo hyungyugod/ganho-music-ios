@@ -1041,4 +1041,68 @@ enum GameConfig {
     /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
     static let stoneGuardWarningBody: String =
         "수간호사의 충실한 부하 석조무사가 출현합니다! 마주치면 잡혀갑니다. 절대 만나지 마세요."
+
+    // MARK: - Start Scene Visual (Phase 10-2 · 병동의 새벽 톤)
+    /// StartScene 비주얼 리스킨. 그라데이션 배경 + 음표 파티클 + 제목 글로우 + 카드 spring + 버튼 pulse + 전환 잔향.
+    /// 본 섹션은 *추가만* — 기존 GameConfig 상수 변경 0건.
+
+    /// 그라데이션 배경 zPosition. overlayBackground(-10)보다 아래.
+    static let startSceneGradientZPosition: CGFloat = -20
+    /// 음표 파티클 zPosition. overlayBackground(-10)보다 위, overlayPanel(-5)보다 아래.
+    /// 패널 위로 음표가 *튀어나오지 않게* 의도적 후방 배치.
+    static let startSceneMusicNoteZPosition: CGFloat = -15
+
+    /// 음표 파티클 동시 표시 상한. 성능 가드.
+    static let musicNoteEmitterMaxConcurrent: Int = 15
+    /// 음표 스폰 주기 (초). 너무 잦으면 산만, 너무 적으면 휑함.
+    static let musicNoteEmitterSpawnInterval: TimeInterval = 0.5
+    /// 음표 글리프 폰트 크기 (pt). 살짝 큰 18pt — 시각 인지성 + 우아함.
+    static let musicNoteEmitterFontSize: CGFloat = 18
+    /// 음표 한 개가 화면 하단 → 상단 통과까지 걸리는 시간 (초). 8s — 느릿한 부유감.
+    static let musicNoteEmitterRiseDuration: TimeInterval = 8.0
+    /// 음표 fade-in 시간 (초).
+    static let musicNoteEmitterFadeInDuration: TimeInterval = 0.5
+    /// 음표 fade-out 시간 (초). 상승 종료 직전.
+    static let musicNoteEmitterFadeOutDuration: TimeInterval = 1.0
+    /// 음표 최대 알파. 0.7 — 배경 위에 *떠 있는* 톤.
+    static let musicNoteEmitterMaxAlpha: CGFloat = 0.7
+    /// 음표 초기 y 위치 (씬 하단 기준 offset, pt). 화면 아래에서 시작해 자연스럽게 등장.
+    static let musicNoteEmitterStartYOffset: CGFloat = -20
+    /// 음표 상승 종료 y 마진 (씬 상단 위로 추가 이동량, pt).
+    static let musicNoteEmitterRiseEndYMargin: CGFloat = 40
+    /// 음표 좌우 흔들림 범위 (절대값, pt). 자연스러운 부유 표현.
+    static let musicNoteEmitterDriftRange: CGFloat = 30
+
+    /// 제목 글로우 SKEffectNode CIGaussianBlur 반경 (pt).
+    static let titleGlowBlurRadius: CGFloat = 8.0
+
+    /// 난이도 카드 선택 시 spring overshoot scale. 1.12 → settle 1.08.
+    static let difficultyCardSpringOvershootScale: CGFloat = 1.12
+    /// spring phase 1 (overshoot)까지 걸리는 시간 (초). easeOut.
+    static let difficultyCardSpringPhase1Duration: TimeInterval = 0.18
+    /// spring phase 2 (settle)까지 걸리는 시간 (초). easeInEaseOut.
+    static let difficultyCardSpringPhase2Duration: TimeInterval = 0.12
+
+    /// 난이도 카드 살구 링 글로우 패딩 (pt). 카드 외곽보다 살짝 큰 capsule.
+    static let difficultyCardRingGlowPadding: CGFloat = 10
+    /// 링 글로우 stroke 두께 (pt).
+    static let difficultyCardRingGlowLineWidth: CGFloat = 2
+    /// 링 글로우 glow 폭 (pt). SKShapeNode glowWidth.
+    static let difficultyCardRingGlowWidth: CGFloat = 6
+    /// 링 글로우 fade-in 시간 (초). 선택 시 자연스러운 빛 띄움.
+    static let difficultyCardRingGlowFadeInDuration: TimeInterval = 0.2
+    /// 링 글로우 fade-out 시간 (초). 해제 시 빠른 정리.
+    static let difficultyCardRingGlowFadeOutDuration: TimeInterval = 0.1
+
+    /// 시작 버튼 pulse 최소 scale. 호흡 들이마시는 톤.
+    static let startButtonPulseScaleMin: CGFloat = 0.98
+    /// 시작 버튼 pulse 최대 scale. 호흡 내쉬는 톤.
+    static let startButtonPulseScaleMax: CGFloat = 1.02
+    /// 시작 버튼 pulse 반주기 (초). 1.0초 × 2 = 2초 1주기 — 심호흡 리듬.
+    static let startButtonPulseHalfDuration: TimeInterval = 1.0
+
+    /// 씬 전환 시 카드/스토리/버튼 슬라이드업 거리 (pt). 살짝만 — 연결감 위주.
+    static let startSceneExitSlideDistance: CGFloat = 30
+    /// 슬라이드업 + fadeOut 지속시간 (초). presentScene 전 prelude.
+    static let startSceneExitSlideDuration: TimeInterval = 0.2
 }

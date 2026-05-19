@@ -3,23 +3,31 @@
 //  GanhoMusic Shared
 //
 //  Phase 10-1a · 시작 시퀀스 1단계 — 제목 + BEST/PLAYS + 스토리 박스 + 난이도 3장 + 시작 버튼
+//  Phase 10-2 · 모던 리스킨 (병동의 새벽 톤) — 그라데이션 배경 + 음표 파티클 + 제목 글로우 +
+//               카드 spring/링 글로우 + 시작 버튼 pulse + 전환 잔향. *게임플레이 변경 0건*.
 //
 //  TitleScene의 구조를 답습하되 *난이도 선택*에만 집중. 캐릭터 카드는 다음 단계(CharacterSelectScene)로 이전.
 //  "어디든 탭" 패턴을 제거 — 시작 버튼 명시 탭만 진행.
-//  10-1b 완성 시점부터 "시작" → CharacterSelectScene 전환. 10-1a 임시: GameScene 직진(repo current).
+//  10-1b 완성 시점부터 "시작" → CharacterSelectScene 전환.
 //
 
 import SpriteKit
 
 /// 앱 첫 진입 씬. 제목 + BEST/PLAYS + 부제 + 스토리 박스 + 난이도 3장 + 시작 버튼.
 /// 카메라/월드 개념 없음 — 라벨은 frame.midX/midY 기준 직접 배치.
-/// TitleScene과 동형 구조 — overlay 패널, prompt blink 등 패턴 답습.
+/// Phase 10-2 — 비주얼 5채널(그라데이션 / 음표 / 글로우 제목 / 카드 spring / 버튼 pulse) 추가.
 final class StartScene: SKScene {
 
     // MARK: - Properties
     /// 씬 전환이 시작됐는지 여부. true가 되면 추가 탭은 무시 — 더블 enter 방지.
     private var isTransitioning = false
-    private let titleLabel    = SKLabelNode(text: "김간호는 음악박사")
+    /// Phase 10-2 — 기존 titleLabel을 GlowingTitleNode로 *래핑*. 라벨 자체는 유지(글로우 컨테이너 내부).
+    /// 위치 계산은 GlowingTitleNode 인스턴스에 대해 — layoutLabels 좌표식 *불변*.
+    private let titleNode = GlowingTitleNode(
+        text: "김간호는 음악박사",
+        fontSize: GameConfig.titleFontSize,
+        glowColor: .ganhoAccentTeal
+    )
     private let subtitleLabel = SKLabelNode(text: "어느 한적한 병동의 오후")
     private let bestLabel     = SKLabelNode(text: "BEST 🏆 0")
     private let playsLabel    = SKLabelNode(text: "PLAYS 0")
@@ -36,6 +44,11 @@ final class StartScene: SKScene {
     /// 캐릭터 선택 영속 계층. didMove에서 .current로 복원 — 10-1a는 GameScene 직진 시점에 사용.
     /// 10-1b 이후는 CharacterSelectScene이 자기 repo로 다시 읽는다(불변 흐름).
     private let characterRepo = CharacterPreferenceRepository()
+    /// Phase 10-2 — 그라데이션 배경 노드. didChangeSize 시 재생성을 위해 *참조 보관*.
+    /// 옵셔널 — didMove 전엔 nil.
+    private var gradientBackground: GradientBackgroundNode?
+    /// Phase 10-2 — 음표 파티클 컨테이너. 씬 사이즈 의존 — didChangeSize 시 재생성.
+    private var musicNoteEmitter: MusicNoteEmitterNode?
 
     // MARK: - Factory
     /// TitleScene.newTitleScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
@@ -47,21 +60,66 @@ final class StartScene: SKScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgDeep
-        setupOverlayPanel()              // 반투명 검정 배경 + 카드 패널 (라벨/카드 *뒤*에 배치)
+        backgroundColor = .ganhoBgDeep        // 1프레임 fallback 톤. 그라데이션이 위에 덮음.
+        setupGradientBackground()             // Phase 10-2 — zPos -20 (가장 뒤)
+        setupOverlayPanel()                   // 반투명 검정 배경 + 카드 패널 (라벨/카드 *뒤*에 배치)
+        setupMusicNoteEmitter()               // Phase 10-2 — zPos -15 (overlay 위, 패널 뒤)
         setupLabels()
         selectedDifficulty = difficultyRepo.current
         setupDifficultyCards()
         setupStoryBox()
         setupStartButton()
+        attachStartButtonPulse()              // Phase 10-2 — 시작 버튼 호흡 pulse
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
+        // Phase 10-2 — 그라데이션/음표 emitter는 sceneSize 의존 → 사이즈 변경 시 재생성.
+        rebuildGradientBackground()
+        rebuildMusicNoteEmitter()
         layoutLabels()
         layoutDifficultyCards()
         layoutStoryBox()
         layoutStartButton()
+    }
+
+    // MARK: - Setup (Phase 10-2 비주얼)
+    /// Phase 10-2 — 세로 그라데이션 배경. tealDeep(상단) → teal(하단). zPos -20.
+    /// didChangeSize에서 재생성하기 위해 인스턴스 참조 보관.
+    private func setupGradientBackground() {
+        let node = GradientBackgroundNode(
+            size: size,
+            topColor: .ganhoAccentTealDeep,
+            bottomColor: .ganhoAccentTeal
+        )
+        node.position = CGPoint(x: frame.midX, y: frame.midY)
+        gradientBackground = node
+        addChild(node)
+    }
+
+    /// Phase 10-2 — 사이즈 변경 시 그라데이션 재생성. 기존 노드는 removeFromParent.
+    private func rebuildGradientBackground() {
+        gradientBackground?.removeFromParent()
+        gradientBackground = nil
+        setupGradientBackground()
+    }
+
+    /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
+    private func setupMusicNoteEmitter() {
+        let emitter = MusicNoteEmitterNode(sceneSize: size)
+        // 원점은 씬 좌측 하단 (0,0) — emitter 내부 좌표계가 sceneSize 범위에 그대로 매핑.
+        emitter.position = .zero
+        musicNoteEmitter = emitter
+        addChild(emitter)
+    }
+
+    /// Phase 10-2 — 사이즈 변경 시 emitter 재생성. 떠 있는 음표는 자가 정리됨.
+    private func rebuildMusicNoteEmitter() {
+        musicNoteEmitter?.stopEmitting()
+        musicNoteEmitter?.removeAllChildren()
+        musicNoteEmitter?.removeFromParent()
+        musicNoteEmitter = nil
+        setupMusicNoteEmitter()
     }
 
     // MARK: - Setup
@@ -89,16 +147,19 @@ final class StartScene: SKScene {
     }
 
     private func setupLabels() {
-        configureLabel(titleLabel,    fontSize: GameConfig.titleFontSize)
         configureLabel(subtitleLabel, fontSize: GameConfig.startSceneSubtitleFontSize)
         configureLabel(bestLabel,     fontSize: GameConfig.titleBestFontSize)
         configureLabel(playsLabel,    fontSize: GameConfig.titlePlaysFontSize)
         subtitleLabel.fontColor = .ganhoUITextMuted   // 부제는 *조용한* 보조 톤
+        // Phase 10-2 — BEST/PLAYS는 살구색 액센트. 부제는 muted 유지.
+        bestLabel.fontColor = .ganhoAccentCoral
+        playsLabel.fontColor = .ganhoAccentCoral
         let best = HighScoreRepository().current
         bestLabel.text = "BEST 🏆 \(best)"
         let plays = StatisticsRepository().current.playCount
         playsLabel.text = "PLAYS \(plays)"
-        addChild(titleLabel)
+        // Phase 10-2 — titleLabel 단독 addChild → GlowingTitleNode로 래핑한 노드 addChild.
+        addChild(titleNode)
         addChild(subtitleLabel)
         addChild(bestLabel)
         addChild(playsLabel)
@@ -114,7 +175,8 @@ final class StartScene: SKScene {
     }
 
     private func layoutLabels() {
-        titleLabel.position = CGPoint(
+        // Phase 10-2 — 좌표 계산식은 *불변*. 적용 대상만 titleLabel → titleNode로 교체.
+        titleNode.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.titleLabelOffsetY
         )
@@ -199,6 +261,27 @@ final class StartScene: SKScene {
         )
     }
 
+    /// Phase 10-2 — 시작 버튼에 호흡 pulse. 0.98 ↔ 1.02, 한 주기 2초.
+    /// 외부에서 부착 — PrimaryButtonNode 내부 구조 변경 0.
+    /// 씬 전환 시 transitionToNext에서 액션 키로 정리.
+    private func attachStartButtonPulse() {
+        let down = SKAction.scale(
+            to: GameConfig.startButtonPulseScaleMin,
+            duration: GameConfig.startButtonPulseHalfDuration
+        )
+        down.timingMode = .easeInEaseOut
+        let up = SKAction.scale(
+            to: GameConfig.startButtonPulseScaleMax,
+            duration: GameConfig.startButtonPulseHalfDuration
+        )
+        up.timingMode = .easeInEaseOut
+        let pulse = SKAction.sequence([down, up])
+        startButton.run(
+            SKAction.repeatForever(pulse),
+            withKey: "startButtonPulse"
+        )
+    }
+
     // MARK: - Touch
     /// 우선순위: 난이도 카드 → 시작 버튼.
     /// 카드 외 영역 탭은 무동작 — "어디든 탭" 패턴 의도적 제거.
@@ -220,15 +303,45 @@ final class StartScene: SKScene {
     }
 
     /// 시작 버튼 탭 시 다음 단계로 전환.
-    /// 10-1a 시점: 임시로 GameScene 직진. 10-1b 완성 시점에 CharacterSelectScene으로 교체.
+    /// Phase 10-2 — *게임플레이 동작 불변* — selectedDifficulty 전달, presentScene 대상,
+    /// sceneTransitionDuration 모두 그대로. 카드/스토리/버튼 슬라이드업 + fade-out *prelude*만 추가.
     private func transitionToNext() {
         guard let view = self.view else { return }
         isTransitioning = true
-        let nextScene = CharacterSelectScene.newCharacterSelectScene(
-            difficulty: selectedDifficulty
+
+        // Phase 10-2 — 시작 버튼 pulse 정리.
+        startButton.removeAction(forKey: "startButtonPulse")
+        // Phase 10-2 — 음표 emitter 정지(추가 스폰 중단). 떠 있는 음표는 자가 정리.
+        musicNoteEmitter?.stopEmitting()
+
+        // Phase 10-2 — 카드/스토리/시작 버튼 *살짝 위로* 슬라이드 + fadeOut.
+        let slideUp = SKAction.moveBy(
+            x: 0,
+            y: GameConfig.startSceneExitSlideDistance,
+            duration: GameConfig.startSceneExitSlideDuration
         )
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(nextScene, transition: fade)
+        slideUp.timingMode = .easeIn
+        let fadeOut = SKAction.fadeOut(
+            withDuration: GameConfig.startSceneExitSlideDuration
+        )
+        // 같은 액션 인스턴스를 여러 노드에 run하면 SpriteKit이 내부적으로 복사 — 안전.
+        let exit = SKAction.group([slideUp, fadeOut])
+        for card in difficultyCards { card.run(exit) }
+        storyBox.run(exit)
+        startButton.run(exit)
+
+        // Phase 10-2 — 슬라이드 완료 후 presentScene. *씬 전환 대상/난이도 전달 불변*.
+        let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
+        let present = SKAction.run { [weak self, weak view] in
+            guard let self = self, let view = view else { return }
+            let nextScene = CharacterSelectScene.newCharacterSelectScene(
+                difficulty: self.selectedDifficulty
+            )
+            let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+            view.presentScene(nextScene, transition: fade)
+        }
+        run(SKAction.sequence([wait, present]))
+
         // characterRepo는 다음 씬이 다시 .current로 읽으므로 본 씬에서 별도 전달 불필요.
         // 정적 의존 회피 — Swift 컴파일러 unused warning 방지를 위해 명시 참조.
         _ = characterRepo

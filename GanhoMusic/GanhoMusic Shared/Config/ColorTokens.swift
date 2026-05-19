@@ -215,6 +215,19 @@ extension UIColor {
     /// professorPalette는 별도 dict라 충돌 없음 — 같은 키 'P'가 dict별로 다른 색.
     /// ganhoPixelChiefShoes(#1a1214 검정)와 유사 — 깐깐한 정장 톤.
     static let ganhoPixelProfessorPants = UIColor(hex: "#1f1a1f")
+
+    // MARK: - Accent (Phase 10-2 · 병동의 새벽 톤)
+    /// StartScene 리스킨용 액센트 패밀리. 기존 ganhoUIBrand(#c4847a, 어두운 코럴)와 *별도 네이밍*으로
+    /// 충돌 회피. 본 패밀리는 "야간 병동 위로 떠오르는 새벽 멜로디" 톤 — teal 그라데이션 + 살구 음표.
+
+    /// 그라데이션 하단 + 제목 글로우 외곽. 시원하고 채도 높은 청록 — 새벽 톤.
+    /// ganhoMint(#7DCFB6)와 *다른* 더 차가운 청록.
+    static let ganhoAccentTeal = UIColor(hex: "#5BD7CF")
+    /// 그라데이션 상단. 딥블루-틸 중간 톤 — 어두운 야간 병동의 깊이.
+    static let ganhoAccentTealDeep = UIColor(hex: "#1E3A4C")
+    /// 음표 파티클 본체 + 선택 카드 링 글로우 + BEST/PLAYS 액센트.
+    /// 밝고 따뜻한 살구색 — ganhoUIBrand(#c4847a)보다 *밝은* 떠오르는 멜로디 톤.
+    static let ganhoAccentCoral = UIColor(hex: "#FFB59A")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

@@ -66,6 +66,9 @@
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
 		A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000052 /* SkillExplanationScene.swift */; };
+		A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */; };
+		A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */; };
+		A1C0F1B00000000000000055 /* GlowingTitleNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000055 /* GlowingTitleNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -128,6 +131,9 @@
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000052 /* SkillExplanationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillExplanationScene.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackgroundNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicNoteEmitterNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000055 /* GlowingTitleNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowingTitleNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -286,6 +292,9 @@
 				A1C0F1A0000000000000004D /* StoryBoxNode.swift */,
 				A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */,
 				A1C0F1A0000000000000004F /* BackButtonNode.swift */,
+				A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */,
+				A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */,
+				A1C0F1A00000000000000055 /* GlowingTitleNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -592,6 +601,9 @@
 				A1C0F1B00000000000000050 /* StartScene.swift in Sources */,
 				A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */,
 				A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */,
+				A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */,
+				A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */,
+				A1C0F1B00000000000000055 /* GlowingTitleNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

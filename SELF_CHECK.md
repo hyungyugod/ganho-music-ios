@@ -1,80 +1,107 @@
-# 자체 점검 — Phase 10-1 시작 시퀀스 4단계 오버레이 분리
+# 자체 점검 — Phase 10-2 · StartScene 모던 리스킨 (병동의 새벽 톤)
 
-전략: (1회차)
+## SPEC 검증 체크리스트 (13개 항목 — SPEC.md §검증 체크리스트)
 
-## SPEC 기능 체크
+- [x] **StartScene 외 다른 씬(.swift) 파일 수정 0건**
+  - 수정한 씬 파일: `Scenes/StartScene.swift` 단 1개. CharacterSelectScene / SkillExplanationScene / GameScene / ResultScene 모두 미변경.
+- [x] **GameScene·CharacterSelectScene·SkillExplanationScene 변경 0건**
+  - grep 확인: 본 sprint에서 해당 파일 수정 이력 없음.
+- [x] **GameConfig 기존 상수 *값 변경* 0건 (신규 MARK 섹션만 추가)**
+  - `// MARK: - Start Scene Visual (Phase 10-2 · 병동의 새벽 톤)` 섹션 신설. 기존 1044라인 → 신규 추가만으로 1120라인으로 확장. 기존 상수 변경 없음. (단, Phase 10-1d 주석의 오타 "시그니형" → "시그니처" 1자 정정 — *값* 변경 아님)
+- [x] **ColorTokens 기존 토큰 변경 0건**
+  - `// MARK: - Accent (Phase 10-2 · 병동의 새벽 톤)` 섹션 신설. `ganhoAccentTeal` / `ganhoAccentTealDeep` / `ganhoAccentCoral` 3개 토큰만 추가. `UIColor(hex:)` 헬퍼는 *기존* — 재활용.
+- [x] **DifficultyCardNode `init(id:)` / `setSelected(_:)` 시그니처 불변**
+  - `init(id: Difficulty)` 그대로. `setSelected(_ selected: Bool)` 그대로. 내부 자식 `ringGlow: SKShapeNode` private 추가만. StartScene 호출부 0줄 변경.
+- [x] **StartScene의 `selectDifficulty(_:)` / `transitionToNext()`의 *게임플레이 동작* 불변 (저장 시점·다음 씬·난이도 전달)**
+  - `selectDifficulty`: `difficultyRepo.save(id)` 시점/대상 그대로.
+  - `transitionToNext`: `CharacterSelectScene.newCharacterSelectScene(difficulty: selectedDifficulty)` 호출 보존. `SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)` 보존. 슬라이드업 + fadeOut은 *prelude*로 *추가*된 시각 효과일 뿐 전환 대상/난이도 변경 없음.
+- [x] **강제 언래핑 `!` 사용 0건**
+  - `CIFilter(name: "CIGaussianBlur")` → `if let blurFilter = ...` 옵셔널 처리 (GlowingTitleNode).
+  - `CGGradient` → `guard let gradient = ...` 옵셔널 처리 (GradientBackgroundNode).
+  - `randomElement()` → `?? "♪"` nil-coalesce 처리 (MusicNoteEmitterNode).
+  - `[weak self]` 클로저에서 모두 `self?` 또는 `guard let self`.
+  - 작업한 5개 파일에 `!` (force unwrap) 0건 — grep 확인.
+- [x] **`Timer.scheduledTimer` 사용 0건 — 모두 SKAction**
+  - MusicNoteEmitterNode: `SKAction.repeatForever(sequence([run, wait]))` 패턴.
+  - StartScene transitionToNext: `SKAction.sequence([wait, run])` 패턴.
+  - 시작 버튼 pulse: `SKAction.repeatForever(sequence([down, up]))` 패턴.
+  - Timer 호출 0건.
+- [x] **매직 넘버 0건 — 모두 GameConfig 상수**
+  - 새로 추가한 모든 수치(zPosition, fontSize, duration, scale, padding, lineWidth, glowWidth, slide distance 등)는 GameConfig.swift 신규 MARK 섹션에 명명 상수로 정의.
+  - `0.0` / `1.0` (alpha 한계값)은 의미가 자명한 sentinel 이라 인라인 유지.
+  - `.zero` / `1.0` (단위 scale 복귀)도 동일.
+- [x] **클로저 `[weak self]` 캡처 적용**
+  - MusicNoteEmitterNode: `SKAction.run { [weak self] in self?.spawnOneNote() }`, `SKAction.run { [weak self] in ... activeCount = max(0, self.activeCount - 1) }` 2곳.
+  - StartScene.transitionToNext: `SKAction.run { [weak self, weak view] in ... }` — view까지 weak로 캡처.
+  - DifficultyCardNode.setSelected: SKAction 클로저 없음 (액션 빌더만 사용) — 캡처 대상 없음.
+- [x] **음표 동시 상한 가드 작동 (`activeCount < musicNoteEmitterMaxConcurrent`)**
+  - MusicNoteEmitterNode.spawnOneNote 진입부: `guard activeCount < GameConfig.musicNoteEmitterMaxConcurrent else { return }`.
+  - 라벨 생성 시 activeCount += 1, decrement 액션에서 -1 — 누수 없음.
+  - 상한값: 15 (GameConfig.musicNoteEmitterMaxConcurrent).
+- [x] **SKEffectNode `shouldRasterize = true` 적용**
+  - GlowingTitleNode: `effect.shouldRasterize = true` — 매 프레임 블러 재계산 0.
+  - `shouldEnableEffects = true` (필터 있을 때만), `zPosition = -1` (본 라벨 뒤).
+- [x] **빌드 에러 0건, 콘솔 경고 최소화**
+  - `xcodebuild -project GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17' build` → **`** BUILD SUCCEEDED **`**.
+  - 경고 1건(`appintentsmetadataprocessor: Metadata extraction skipped. No AppIntents.framework dependency found.`) — 본 sprint 변경과 무관, 기존 프로젝트 톤.
+- [ ] **시뮬레이터에서 60fps 유지 확인 (디버그 통계)**
+  - **미실행** — Generator 단계는 빌드까지만. 실제 60fps 측정은 사용자가 시뮬레이터에서 `view.showsFPS = true`로 확인할 것. SPEC §성능 가드 항목에 따른 정적 분석 통과:
+    - 음표 상한 15개 + repeatForever 단일 스폰 액션 = 음표 부담 ≤ 60fps 한도.
+    - 그라데이션 텍스처 didMove 1회 생성 → 매 프레임 갱신 0.
+    - SKEffectNode shouldRasterize = true → 블러 1회 cache.
+    - 모든 액션 withKey 부여 → 씬 전환 시 정리 가능.
+    - addChild는 setup/spawn 시점만 — `update()` 매 프레임 addChild 0.
 
-### 10-1a — StartScene
-- [x] `Nodes/StoryBoxNode.swift` 신규 — SKShapeNode 카드 패널 + SKLabelNode 본문(numberOfLines=0 + preferredMaxLayoutWidth)
-- [x] `Nodes/PrimaryButtonNode.swift` 신규 — 캡슐 SKShapeNode(cornerRadius=height/2) + 코럴 fill + brand stroke + ganhoPaper 텍스트, contains(_:) hit-test 지원
-- [x] `Nodes/BackButtonNode.swift` 신규 — 투명 fill + 흰색 7% stroke + ganhoUITextMuted 텍스트
-- [x] `Scenes/StartScene.swift` 신규 — 제목 + 부제 + BEST/PLAYS + 스토리 박스 + 난이도 3장 + 시작 버튼. TitleScene 패턴 답습
-- [x] `GameViewController.swift` 1줄 변경 — `TitleScene.newTitleScene()` → `StartScene.newStartScene()`
-- [x] `GameConfig.swift` 10-1a 상수 19개 추가 (start scene 7개 + storyBox 4개 + primaryButton 3개 + backButton 3개 + spacing 2개)
+---
 
-### 10-1b — CharacterSelectScene
-- [x] `Scenes/CharacterSelectScene.swift` 신규 — 헤더 + 5 카드 + 5 태그 라벨(카드 외부) + 뒤로/시작 2 버튼
-- [x] `CharacterID.swift`에 `tag: String` computed property 추가 (5 case 분기)
-- [x] StartScene "시작" → CharacterSelectScene(difficulty 주입)
-- [x] CharacterSelectScene "← 난이도 다시" → StartScene
-- [x] "이 친구로 시작" 분기: .kim → GameScene 직진 / 그 외 → SkillExplanationScene
-- [x] `GameConfig.swift` 10-1b 상수 9개 추가
+## 추가 작업: project.pbxproj 신규 파일 등록
 
-### 10-1c — SkillExplanationScene + 김간호 스킵 + TitleScene 삭제
-- [x] `Scenes/SkillExplanationScene.swift` 신규 — 헤더 + 큰 아바타(120×150, PixelSpriteRenderer 7.5× 확대) + 스킬명 + StoryBoxNode 재사용 + 조작 안내 + 뒤로/시작
-- [x] `PlayerSkill.swift`에 `fullDescription: String` computed property 추가 (5 case 분기)
-- [x] CharacterSelectScene .kim 분기 → GameScene 직진 (스킬 화면 스킵)
-- [x] SkillExplanationScene "← 캐릭터 다시" → CharacterSelectScene(difficulty 유지)
-- [x] "시작" → GameScene(characterID + difficulty 명시 주입)
-- [x] `TitleScene.swift` 완전 삭제 + .pbxproj에서 4 위치 모두 제거 (PBXBuildFile / PBXFileReference / PBXGroup / PBXSourcesBuildPhase)
-- [x] `ResultScene.swift`의 `TitleScene.newTitleScene()` → `StartScene.newStartScene()` 1줄 — 필수 연동 변경(빌드 보존)
-- [x] `GameConfig.swift` 10-1c 상수 13개 추가
+본 프로젝트는 PBXFileSystemSynchronizedRootGroup + 명시적 PBXBuildFile/PBXFileReference *하이브리드* 구성이다.
+- 동기화 그룹만으로는 새 .swift 파일이 빌드 입력에 누락된다 (실측 확인: 첫 빌드 시 신규 3파일 컴파일 시도 0).
+- 따라서 신규 3개 파일을 `GanhoMusic.xcodeproj/project.pbxproj`에 *명시적으로* 추가:
+  - PBXBuildFile section: 3개 항목 추가 (ID: A1C0F1B00000000000000053~55)
+  - PBXFileReference section: 3개 항목 추가 (ID: A1C0F1A00000000000000053~55)
+  - Nodes 그룹 children에 3개 항목 추가
+  - PBXSourcesBuildPhase(iOS 타겟) files에 3개 항목 추가
+- 사용자 주의: 본 변경은 사용자가 Xcode UI에서 다시 파일을 *추가*할 필요 없도록 *자동* 등록한다. Xcode를 재열고 작업하면 정상 인식.
 
-### 10-1d — 석조무사 경고 컷씬
-- [x] `GameConfig.stoneGuardWarningTitle` / `stoneGuardWarningBody` 2개 상수 추가
-- [x] `GameScene.showStoneGuardWarningCutscene()` 새 메서드 추가 — showProfessorWarningCutscene 정확 미러
-- [x] `showIntroCutscene` onDismiss 분기 수정 — `switch difficulty { case .easy/.normal → showStoneGuard / case .hard → showProfessor }`
-- [x] `didMove`의 `hasSeenIntro=true` 분기 수정 — 같은 switch 패턴으로 매 판 경고 환기
-
-### .pbxproj 변경
-- [x] PBXBuildFile 6개 추가 + TitleScene 1개 제거
-- [x] PBXFileReference 6개 추가 + TitleScene 1개 제거
-- [x] Nodes 그룹에 3개 추가
-- [x] Scenes 그룹에 3개 추가 + TitleScene 1개 제거
-- [x] PBXSourcesBuildPhase 6개 추가 + TitleScene 1개 제거
+---
 
 ## Swift 패턴 준수
-- 강제 언래핑 미사용: 준수 (모든 view 옵셔널은 `guard let view = self.view` 패턴)
-- guard let 옵셔널 처리: 준수 (StartScene/CharacterSelectScene/SkillExplanationScene 모든 transition 메서드)
-- MARK 섹션 구분: 준수 (Properties / Factory / Init / Lifecycle / Setup / Touch 표준 분할)
-- GameConfig 상수 사용: 준수 (좌표/폰트/spacing 매직 넘버 0건 — overlayPanel 4 라인의 panelHeight=480만 기존 TitleScene/ResultScene 패턴 그대로 답습)
-- weak self 캡처: 준수 (GameScene showStoneGuardWarningCutscene의 onDismiss 클로저에 `[weak self]` + guard let self)
-- switch default 미사용: 준수 (Difficulty 2 분기 / CharacterID 5 분기 모두 exhaustive)
+- 강제 언래핑 미사용: 준수
+- guard let / if let 옵셔널 처리: 준수
+- MARK 섹션 구분: 준수 (모든 신규 파일 + 수정 부분)
+- GameConfig 상수 사용: 준수 (매직 넘버 0건)
+- weak self 캡처: 준수 (해당하는 모든 클로저)
 
 ## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: 준수 (3 새 씬 모두 setup* 메서드 호출 분리)
-- dt 기반 이동: 해당 없음 (UI 씬, update 미사용)
-- SKAction 스폰 패턴: 해당 없음 (스폰 없음)
-- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (physics 미사용)
-- HUD 노드 분리: 해당 없음 (UI 씬, HUD 없음)
-- Timer 미사용: 준수 (SKTransition.fade와 SKAction만 사용)
-- CutsceneOverlayNode 재사용: 준수 (showStoneGuardWarningCutscene이 신규 노드 0건으로 present 호출)
-- isUserInteractionEnabled 패턴: 준수 (CharacterCardNode/DifficultyCardNode contains(_:) hit-test)
-
-## 회귀 차단 검증
-- GameScene 게임플레이 로직 (update/contact/skill/setup) 0줄 변경: 준수
-- ResultScene 내부 로직 0줄: 준수 (외부 시그널 1줄만 — TitleScene → StartScene)
-- CharacterCardNode / DifficultyCardNode 내부 0줄 변경: 준수 (재사용만, 태그 라벨은 *외부* SKLabelNode로 별도 추가)
-- CutsceneOverlayNode 0줄: 준수
-- PixelSpriteRenderer / PixelSprite / PixelPalette 0줄: 준수 (큰 아바타용 재사용만)
-- Repositories 0줄: 준수
-- isTransitioning 가드: 준수 (3 새 씬 모두 보유)
-- 옵셔널 view 가드: 준수 (모든 presentScene 직전 `guard let view = self.view`)
+- didMove(to:)에서 초기화: 준수 (StartScene.didMove에서 5채널 setup 호출)
+- dt 기반 이동: 해당 없음 (본 sprint는 SKAction 기반 — update 미사용)
+- SKAction 스폰 패턴: 준수 (MusicNoteEmitter.repeatForever 패턴)
+- 충돌 후 노드 즉시 삭제 없음: 해당 없음 (본 sprint physicsBody 0)
+- HUD 노드 분리: 해당 없음 (StartScene은 HUD 미사용)
+- SKEffectNode shouldRasterize=true: 준수 (GlowingTitleNode)
+- 모든 SKAction에 withKey 부여: 준수 (cardScale, ringFade, startButtonPulse, musicNoteSpawn)
 
 ## 빌드 상태
-- 예상 빌드 에러: 없음 (`xcodebuild` BUILD SUCCEEDED 확인)
-- 주의 필요 경고: 없음 (warning 0건, error 0건)
-- 빌드 대상: `iPhone 17 iOS Simulator, Debug, GanhoMusic iOS`
+- 빌드 결과: `** BUILD SUCCEEDED **` (iPhone 17 시뮬레이터, iOS 26.4.1)
+- 신규 파일 컴파일 확인: GradientBackgroundNode / MusicNoteEmitterNode / GlowingTitleNode 모두 정상 컴파일.
+- 수정 파일 컴파일 확인: StartScene / GameConfig / ColorTokens / DifficultyCardNode 정상.
+- 예상 에러: 없음.
+- 주의 필요 경고: AppIntents 메타데이터 경고 1건 — 본 sprint 무관(기존부터 존재).
 
 ## 범위 외 미구현 항목
-- 없음 (SPEC §"변경 범위" 100% 구현 + .pbxproj 정합 + ResultScene 1줄 필수 연동만 추가)
+- 60fps 실측: 시뮬레이터 실행 단계는 사용자 영역. 정적 분석상 성능 가드 모든 항목 통과.
+- 본 sprint 범위 외 변경 0건.
+
+---
+
+## 변경 파일 요약 (절대경로)
+1. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Scenes/StartScene.swift` — 비주얼 5채널 추가 (그라데이션 / 음표 / 글로우 제목 / pulse / exit slide), 게임플레이 불변
+2. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — Phase 10-2 MARK 섹션 신설 (~24 신규 상수)
+3. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift` — Accent MARK 섹션 신설 (3 신규 토큰)
+4. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Nodes/DifficultyCardNode.swift` — ringGlow 자식 + spring overshoot (시그니처 불변)
+5. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Nodes/GradientBackgroundNode.swift` — 신규 (SKSpriteNode 서브클래스, CGGradient → SKTexture 1회 생성)
+6. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Nodes/MusicNoteEmitterNode.swift` — 신규 (SKNode 서브클래스, repeatForever 스폰 + 상한 가드)
+7. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic Shared/Nodes/GlowingTitleNode.swift` — 신규 (SKNode 서브클래스, SKEffectNode + CIGaussianBlur 글로우 컨테이너)
+8. `/Users/hg/Desktop/ganho-music-ios/.claude/worktrees/practical-joliot-42cfcd/GanhoMusic/GanhoMusic.xcodeproj/project.pbxproj` — 신규 3개 .swift 파일 빌드 등록 (PBXBuildFile / PBXFileReference / Nodes 그룹 / Sources phase)
