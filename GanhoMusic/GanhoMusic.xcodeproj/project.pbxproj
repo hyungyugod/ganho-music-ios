@@ -72,6 +72,7 @@
 		A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000056 /* GlassPillNode.swift */; };
 		A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000057 /* AccentLineNode.swift */; };
 		A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000058 /* DarkContextChipNode.swift */; };
+		A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000059 /* PauseButtonNode.swift */; };
 		A1C0F1B00000000000000060 /* Jua-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000060 /* Jua-Regular.ttf */; };
 		A1C0F1B00000000000000061 /* GowunDodum-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000061 /* GowunDodum-Regular.ttf */; };
 		A1C0F1B00000000000000062 /* NotoSansKR-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000062 /* NotoSansKR-Bold.ttf */; };
@@ -143,6 +144,7 @@
 		A1C0F1A00000000000000056 /* GlassPillNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPillNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000057 /* AccentLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentLineNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000058 /* DarkContextChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkContextChipNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000059 /* PauseButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000060 /* Jua-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Jua-Regular.ttf"; path = "GanhoMusic Shared/Resources/Fonts/Jua-Regular.ttf"; sourceTree = "<group>"; };
 		A1C0F1A00000000000000061 /* GowunDodum-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GowunDodum-Regular.ttf"; path = "GanhoMusic Shared/Resources/Fonts/GowunDodum-Regular.ttf"; sourceTree = "<group>"; };
 		A1C0F1A00000000000000062 /* NotoSansKR-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "NotoSansKR-Bold.ttf"; path = "GanhoMusic Shared/Resources/Fonts/NotoSansKR-Bold.ttf"; sourceTree = "<group>"; };
@@ -313,6 +315,7 @@
 				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
 				A1C0F1A00000000000000057 /* AccentLineNode.swift */,
 				A1C0F1A00000000000000058 /* DarkContextChipNode.swift */,
+				A1C0F1A00000000000000059 /* PauseButtonNode.swift */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -628,6 +631,7 @@
 				A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */,
 				A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */,
 				A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */,
+				A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

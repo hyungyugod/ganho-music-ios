@@ -75,6 +75,7 @@ class GameScene: SKScene {
     let skillSystem = SkillSystem()       // Phase 9-5 — 캐릭터별 스킬 시스템
     let skillButton = SkillButtonNode()   // Phase 9-5 — 좌하단 1탭 발동 버튼
     let hudSkillSlot = HUDSkillSlotNode() // Phase 9-5 — 스킬 쿨다운 진행 시각화
+    let pauseButton = PauseButtonNode()   // Sprint 3 — 우상단 일시정지 시각 placeholder
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
     // Phase 7-4 — 캐릭터 × 난이도 매트릭스 / 최초 졸업 일시 저장소. HighScoreRepository와 *병행*.
@@ -152,6 +153,7 @@ class GameScene: SKScene {
         setupProfessor()     // Phase 9-7 신설 — ProfessorNode를 worldNode 자식으로 (hard만, 가드 내부)
         setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 좌하단에
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
+        setupPauseButton()   // Sprint 3 — PauseButtonNode를 cameraNode 우상단에 (시각 placeholder)
         skillSystem.configure(scene: self, skill: characterID.skill)  // Phase 9-5 — 활성 스킬 set
         physicsWorld.gravity = .zero   // Phase 2-2 — 탑다운 게임이라 중력 없음
         configureContactRouter()                       // Phase 2-11 — 콜백 4개 등록
@@ -318,6 +320,7 @@ class GameScene: SKScene {
         layoutHUD()
         layoutSkillButton()    // Phase 9-5 — 화면 회전/resize 시 좌하단 SkillButton 재배치
         layoutHUDSkillSlot()   // Phase 9-5 — 화면 회전/resize 시 SkillButton 위 HUDSkillSlot 재배치
+        layoutPauseButton()    // Sprint 3 — 화면 회전/resize 시 우상단 PauseButton 재배치
     }
 
     /// scene.size 변경 시(viewport 회전·resize)에 위치만 재계산. addChild 0건 — 멱등 보장.

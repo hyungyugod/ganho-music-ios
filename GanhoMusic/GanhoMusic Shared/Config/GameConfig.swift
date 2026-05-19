@@ -720,11 +720,12 @@ enum GameConfig {
     /// 체크보드 바닥 — 1152개(48×24) SKSpriteNode를 컨테이너 한 개에 묶어 worldNode에 부착.
     /// physicsBody 0 부착(시각 전용). setupWorld()에서 1회만 빌드 → update() 안 호출 금지.
 
-    /// 체크보드 floorA hex(밝은 차콜) — ganhoUIBgCard(#17151e α=0.82) 패밀리의 살짝 밝은 매트 차콜.
-    /// 카드 패널 톤과 자연 연속. 원본 game.css 코럴 톤 정체성을 게임 월드 바닥까지 확장.
-    static let checkerboardFloorAHex: String = "#1a1722"
-    /// 체크보드 floorB hex(어두운 차콜) — ganhoUIBgDark(#09080f)보다 살짝 밝지만 floorA보다 어두운 중간값.
-    static let checkerboardFloorBHex: String = "#13111a"
+    /// 체크보드 floorA hex(피치 밝은 칸) — Sprint 3 v2: 웜 피치 톤. 메뉴 그라데이션과 자연 연속.
+    /// (was #1a1722 다크 차콜 — Sprint 3에서 v2 디자인 시스템 통합)
+    static let checkerboardFloorAHex: String = "#FFEFE0"
+    /// 체크보드 floorB hex(피치 어두운 칸) — Sprint 3 v2: 살짝 더 짙은 피치 톤.
+    /// (was #13111a 다크 차콜 — Sprint 3에서 v2 디자인 시스템 통합)
+    static let checkerboardFloorBHex: String = "#FFDFC8"
     /// 체크보드 컨테이너 zPosition. 외곽 벽/기둥(0)·Player/Enemy/StoneGuard(5) 아래.
     /// 음수 zPosition도 SpriteKit 정상 동작 — 시각 깊이 분리.
     static let checkerboardZPosition: CGFloat = -100
@@ -1353,4 +1354,119 @@ enum GameConfig {
     static let skillExplanationControlHintKeySpacing: CGFloat = 10
     /// 컨트롤 힌트 컨테이너 y 오프셋(pt). frame.midY 기준.
     static let skillExplanationControlHintContainerOffsetY: CGFloat = -120
+
+    // MARK: - Sprint 3 · v2 Game Visual
+    // DESIGN_RENEWAL_REQUEST.md §4.4 + mockups/game-map-v2.html.
+    // 본 섹션은 *추가만* — 기존 hudValueFontSize / comboPopupFontSize / hudLabelFontSize 등
+    // Phase 8-5 / 6-10 / 6-12 상수는 *유지*. v2 상수가 별도 이름으로 공존.
+
+    // HUD 슬롯 칩 (Sprint 3)
+    /// HUD 슬롯 navy 알약 배경 알파.
+    static let hudSlotBgAlpha: CGFloat = 0.78
+    /// HUD 슬롯 알약 cornerRadius(pt).
+    static let hudSlotCornerRadius: CGFloat = 14
+    /// HUD 슬롯 폭(pt).
+    static let hudSlotWidth: CGFloat = 78
+    /// HUD 슬롯 높이(pt).
+    static let hudSlotHeight: CGFloat = 44
+    /// HUD 슬롯 v2 라벨 폰트 크기(pt). 기존 hudLabelFontSize(10)와 동일 수치이지만 분리.
+    static let hudSlotV2LabelFontSize: CGFloat = 10
+    /// HUD 슬롯 v2 값 폰트 크기(pt). 기존 hudValueFontSize(22)에서 18로 축소(v2 톤).
+    static let hudSlotV2ValueFontSize: CGFloat = 18
+    /// TIME 슬롯 12초(또는 tensionWindow) 이하 진입 시 코랄 경고 배경 알파.
+    static let hudSlotWarnBgAlpha: CGFloat = 0.85
+    /// TIME 슬롯 진행바 두께(pt).
+    static let hudTimeBarHeight: CGFloat = 3
+    /// TIME 슬롯 진행바와 값 사이 세로 간격(pt).
+    static let hudTimeBarTopGap: CGFloat = 3
+    /// TIME 슬롯 진행바 배경 알파(흰색 위).
+    static let hudTimeBarBgAlpha: CGFloat = 0.18
+
+    // D-Pad v2 (Sprint 3)
+    /// 중앙 데드존 SKShapeNode 한 변 길이(pt).
+    static let dpadCenterDeadzoneSize: CGFloat = 32
+    /// 중앙 데드존 navy 알파.
+    static let dpadCenterDeadzoneAlpha: CGFloat = 0.4
+    /// 중앙 데드존 cornerRadius(pt).
+    static let dpadCenterDeadzoneCornerRadius: CGFloat = 6
+    /// D-Pad 4 버튼 white 채움 알파.
+    static let dpadButtonFillAlpha: CGFloat = 0.75
+    /// D-Pad 4 버튼 navy 외곽선 알파.
+    static let dpadButtonStrokeAlpha: CGFloat = 0.25
+    /// D-Pad 4 버튼 cornerRadius(pt).
+    static let dpadButtonCornerRadius: CGFloat = 10
+    /// D-Pad 4 버튼 외곽선 두께(pt).
+    static let dpadButtonStrokeLineWidth: CGFloat = 2
+
+    // Skill Button v2 (Sprint 3)
+    /// 스킬 버튼 v2 반지름(pt). 기존 skillButtonRadius(32)에서 36으로 확대.
+    static let skillButtonV2Radius: CGFloat = 36
+    /// 스킬 버튼 v2 외곽선 두께(pt).
+    static let skillButtonV2StrokeWidth: CGFloat = 3
+    /// 스킬 버튼 우상단 "B" 키 칩 본체로부터의 offset(pt).
+    static let skillButtonV2KeyLabelOffset: CGFloat = 28
+    /// 스킬 버튼 아래 스킬명 칩 y 오프셋(pt). 본체 아래쪽.
+    static let skillButtonNameChipOffsetY: CGFloat = -52
+    /// 스킬 버튼 키 라벨 텍스트.
+    static let skillButtonKeyText: String = "B"
+
+    // Pause Button v2 (Sprint 3 — 시각 placeholder)
+    /// 일시정지 버튼 본체 한 변(pt).
+    static let pauseButtonSize: CGFloat = 32
+    /// 일시정지 버튼 cornerRadius(pt).
+    static let pauseButtonCornerRadius: CGFloat = 10
+    /// 일시정지 버튼 navy 배경 알파.
+    static let pauseButtonBgAlpha: CGFloat = 0.78
+    /// 일시정지 버튼 흰 || 두 줄 폭(pt).
+    static let pauseButtonBarWidth: CGFloat = 4
+    /// 일시정지 버튼 흰 || 두 줄 높이(pt).
+    static let pauseButtonBarHeight: CGFloat = 14
+    /// 일시정지 버튼 두 줄 사이 간격(pt).
+    static let pauseButtonBarGap: CGFloat = 2
+    /// 일시정지 버튼 우상단 우측 마진(pt). cameraNode 자식 좌표계 기준.
+    static let pauseButtonMarginX: CGFloat = 28
+    /// 일시정지 버튼 상단 마진(pt).
+    static let pauseButtonMarginY: CGFloat = 18
+
+    // Note v2 (Sprint 3)
+    /// 음표 글로우 반지름(pt). 본체(noteSize/2=8) 위 골드 글로우.
+    static let noteV2GlowRadius: CGFloat = 16
+    /// 음표 글로우 알파.
+    static let noteV2GlowAlpha: CGFloat = 0.5
+    /// 음표 흰 링 두께(pt).
+    static let noteV2RingLineWidth: CGFloat = 2
+    /// 음표 펄스 1주기 지속(초). scaleUp + scaleDown 합.
+    static let noteV2PulseDuration: TimeInterval = 1.4
+    /// 음표 펄스 최대 scale.
+    static let noteV2PulseScale: CGFloat = 1.08
+    /// 음표 펄스 SKAction 키 — 멱등 부착.
+    static let noteV2PulseActionKey: String = "noteV2Pulse"
+
+    // Projectile v2 (Sprint 3)
+    /// F 투사체 시각 자식 한 변(pt). PhysicsBody size(projectileSize=16)와 *분리*.
+    static let projectileV2VisualSize: CGFloat = 22
+    /// F 투사체 시각 자식 cornerRadius(pt).
+    static let projectileV2CornerRadius: CGFloat = 6
+    /// F 투사체 회전 각도(degree). 살짝 비스듬.
+    static let projectileV2RotationDegrees: CGFloat = -12
+    /// F 투사체 라벨 텍스트.
+    static let projectileV2LabelText: String = "F"
+    /// F 투사체 라벨 폰트 크기(pt).
+    static let projectileV2LabelFontSize: CGFloat = 14
+
+    // ComboPopup / ComboBreak v2 (Sprint 3)
+    /// ComboPopup v2 라벨 폰트 크기(pt). 기존 comboPopupFontSize(48)와 분리 — *새 상수 추가*만.
+    static let comboPopupV2FontSize: CGFloat = 32
+    /// ComboBreak v2 라벨 폰트 크기(pt). 기존 comboBreakFontSize(48)와 분리.
+    static let comboBreakV2FontSize: CGFloat = 28
+    /// ComboPopup/ComboBreak navy 외곽선 1pt 오프셋 두께(pt). 4방향 자식 4개로 시뮬레이션.
+    static let comboPopupV2OutlineWidth: CGFloat = 1
+    /// ComboPopup v2 회전 각도(degree).
+    static let comboPopupV2RotationDegrees: CGFloat = -8
+
+    // Outer Wall Border (Sprint 3)
+    /// 외곽 보더 SKShapeNode 외곽선 두께(pt).
+    static let outerWallBorderLineWidth: CGFloat = 3
+    /// 외곽 보더 SKShapeNode cornerRadius(pt).
+    static let outerWallBorderCornerRadius: CGFloat = 18
 }

@@ -25,15 +25,18 @@ final class HUDSkillSlotNode: SKNode {
 
     // MARK: - Init
     override init() {
-        labelNode = SKLabelNode(text: "—")
-        valueNode = SKLabelNode(text: "—")
+        // Sprint 3 — fontName = Jua-Regular(fontDisplay) v2 시스템.
+        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        labelNode.text = "—"
+        valueNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        valueNode.text = "—"
         ringNode = SKShapeNode(circleOfRadius: GameConfig.hudSkillSlotRingRadius)
         ringFillNode = SKShapeNode(circleOfRadius: GameConfig.hudSkillSlotRingRadius)
         super.init()
 
-        // 상단 라벨 — 10pt dim, 가운데 정렬. 링 위쪽으로 배치.
+        // 상단 라벨 — 10pt 골드(v2), 가운데 정렬. 링 위쪽으로 배치.
         labelNode.fontSize = GameConfig.hudLabelFontSize
-        labelNode.fontColor = .ganhoUITextDim
+        labelNode.fontColor = .ganhoMusicGold
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         labelNode.zPosition = 100
@@ -42,23 +45,24 @@ final class HUDSkillSlotNode: SKNode {
             y: GameConfig.hudSkillSlotRingRadius + 10
         )
 
-        // 진행 링 (배경) — 옅은 윤곽선.
+        // 진행 링 (배경) — 옅은 골드 윤곽선(v2).
         ringNode.lineWidth = GameConfig.hudSkillSlotRingLineWidth
-        ringNode.strokeColor = .ganhoUIBrand20
+        ringNode.strokeColor = UIColor.ganhoMusicGold.withAlphaComponent(0.3)
         ringNode.fillColor = .clear
         ringNode.position = .zero
         ringNode.zPosition = 100
 
         // 진행 링 (채움) — progress=1.0일 때 완전 표시. progress=0.0일 때 alpha 0.
+        // Sprint 3 — READY는 골드, 쿨다운은 코랄. update에서 분기 set.
         ringFillNode.lineWidth = GameConfig.hudSkillSlotRingLineWidth
-        ringFillNode.strokeColor = .ganhoUIBrandLight
-        ringFillNode.fillColor = .ganhoUIBrand20
+        ringFillNode.strokeColor = .ganhoMusicGold
+        ringFillNode.fillColor = UIColor.ganhoMusicGold.withAlphaComponent(0.15)
         ringFillNode.position = .zero
         ringFillNode.zPosition = 101
 
-        // 하단 값 — 작은 보조 텍스트(상태 표시).
+        // 하단 값 — 작은 보조 텍스트(상태 표시). v2: 흰색 톤.
         valueNode.fontSize = GameConfig.hudLabelFontSize
-        valueNode.fontColor = .ganhoUITextMuted
+        valueNode.fontColor = .white
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
         valueNode.zPosition = 100
@@ -88,12 +92,12 @@ final class HUDSkillSlotNode: SKNode {
             ringNode.alpha = 0
             ringFillNode.alpha = 0
             valueNode.text = "—"
-            valueNode.fontColor = .ganhoUITextDim
+            valueNode.fontColor = UIColor.white.withAlphaComponent(0.4)
         } else {
             ringNode.alpha = 1
             ringFillNode.alpha = 1
             valueNode.text = "READY"
-            valueNode.fontColor = .ganhoUITextMuted
+            valueNode.fontColor = .white
         }
     }
 
@@ -110,26 +114,26 @@ final class HUDSkillSlotNode: SKNode {
             // 1회 소진: ring 채움 0, value dim "USED".
             ringFillNode.alpha = 0
             valueNode.text = "USED"
-            valueNode.fontColor = .ganhoUITextDim
+            valueNode.fontColor = UIColor.white.withAlphaComponent(0.4)
             return
         }
 
-        // 사용 가능 상태(progress ≈ 1.0).
+        // 사용 가능 상태(progress ≈ 1.0). Sprint 3 — 골드 톤(v2).
         if progress >= 1.0 {
             ringFillNode.alpha = 1.0
-            ringFillNode.strokeColor = .ganhoUIBrandLight
-            ringFillNode.fillColor = .ganhoUIBrand20
+            ringFillNode.strokeColor = .ganhoMusicGold
+            ringFillNode.fillColor = UIColor.ganhoMusicGold.withAlphaComponent(0.15)
             valueNode.text = "READY"
-            valueNode.fontColor = .ganhoUIBrandLight
+            valueNode.fontColor = .ganhoMusicGold
             return
         }
 
         // 쿨다운 중(0 < progress < 1.0): 채움 비율 = progress.
-        // 단순화: 채움 노드의 alpha = progress (강한 시각 차이는 alpha + color로).
+        // Sprint 3 — 쿨다운은 코랄 stroke. fillColor=clear, alpha=progress.
         ringFillNode.alpha = progress
-        ringFillNode.strokeColor = .ganhoUIBrand40
+        ringFillNode.strokeColor = .ganhoCoralPrimary
         ringFillNode.fillColor = .clear
         valueNode.text = "..."
-        valueNode.fontColor = .ganhoUITextMuted
+        valueNode.fontColor = .white
     }
 }

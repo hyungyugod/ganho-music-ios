@@ -3,19 +3,26 @@
 //  GanhoMusic Shared
 //
 //  Phase 1-3 · 반투명 4방향 D-Pad
+//  Sprint 3 · v2 디자인 시스템 — 4 SKShapeNode(white α + navy α stroke) + 중앙 데드존
 //
 
 import SpriteKit
 
 /// 4방향 D-Pad. 자체 touch 이벤트를 받아 currentDirection을 갱신한다.
 /// 외부엔 read-only로 노출 — PlayerNode를 직접 알지 않는다.
+/// Sprint 3 — 4 SKSpriteNode → 4 SKShapeNode 라운드 사각형 + 중앙 데드존 추가.
+/// **touch 메서드 4개 본문 + updateDirection 알고리즘 + currentDirection 타입 완전 보존.**
 final class DPadNode: SKNode {
 
     // MARK: - Properties
-    private let upButton:    SKSpriteNode
-    private let downButton:  SKSpriteNode
-    private let leftButton:  SKSpriteNode
-    private let rightButton: SKSpriteNode
+    /// Sprint 3 — SKSpriteNode → SKShapeNode. 외부 노출 없는 private 프로퍼티라
+    /// 타입 교체가 호출자에 영향 0.
+    private let upButton:    SKShapeNode
+    private let downButton:  SKShapeNode
+    private let leftButton:  SKShapeNode
+    private let rightButton: SKShapeNode
+    /// 중앙 데드존 — navy α 라운드 사각형. 시각만, 터치 흡수 0.
+    private let centerDeadzone: SKShapeNode
 
     /// 외부 노출 — 지금 누르고 있는 방향 (정규화 단위 벡터). 안 누르면 .zero.
     /// 4방향 단일 정책 — 한 번에 .up/.down/.left/.right 중 하나.
@@ -27,10 +34,19 @@ final class DPadNode: SKNode {
             width:  GameConfig.dpadButtonSize,
             height: GameConfig.dpadButtonSize
         )
-        upButton    = SKSpriteNode(color: .ganhoPaper, size: buttonSize)
-        downButton  = SKSpriteNode(color: .ganhoPaper, size: buttonSize)
-        leftButton  = SKSpriteNode(color: .ganhoPaper, size: buttonSize)
-        rightButton = SKSpriteNode(color: .ganhoPaper, size: buttonSize)
+        // Sprint 3 — SKShapeNode 라운드 사각형. fillColor=white α, strokeColor=navy α.
+        upButton    = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
+        downButton  = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
+        leftButton  = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
+        rightButton = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
+        let deadzoneSize = CGSize(
+            width:  GameConfig.dpadCenterDeadzoneSize,
+            height: GameConfig.dpadCenterDeadzoneSize
+        )
+        centerDeadzone = SKShapeNode(
+            rectOf: deadzoneSize,
+            cornerRadius: GameConfig.dpadCenterDeadzoneCornerRadius
+        )
 
         super.init()
 
@@ -41,7 +57,23 @@ final class DPadNode: SKNode {
         downButton.position  = CGPoint(x:  0,       y: -offset)
         leftButton.position  = CGPoint(x: -offset,  y:  0)
         rightButton.position = CGPoint(x: +offset,  y:  0)
+        centerDeadzone.position = .zero
 
+        // Sprint 3 — fill/stroke 색 일괄. white 0.75 + navy α 0.25 stroke + 두께 2.
+        for button in [upButton, downButton, leftButton, rightButton] {
+            button.fillColor = UIColor.white
+                .withAlphaComponent(GameConfig.dpadButtonFillAlpha)
+            button.strokeColor = UIColor.ganhoNavyDeep
+                .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
+            button.lineWidth = GameConfig.dpadButtonStrokeLineWidth
+        }
+
+        // 중앙 데드존 — navy α 0.4. strokeColor=clear.
+        centerDeadzone.fillColor = UIColor.ganhoNavyDeep
+            .withAlphaComponent(GameConfig.dpadCenterDeadzoneAlpha)
+        centerDeadzone.strokeColor = .clear
+
+        addChild(centerDeadzone)
         addChild(upButton)
         addChild(downButton)
         addChild(leftButton)

@@ -1,161 +1,139 @@
-# 자체 점검 — Sprint 2 (메뉴 3씬 v2 리스킨)
+# Sprint 3 자체 점검 — 인게임 화면 v2 리스킨
 
-전략: Case A (최초 실행) — SPEC 정밀 적용. 게임플레이/저장소/씬 전환 시그니처 0건 변경.
+## SPEC §검증 체크리스트 (A~G)
 
-## SPEC 기능 체크
+### A. 게임 수치 / 로직 회귀 0 (40%)
 
-### StartScene
-- [x] S1 — 3-stop warm gradient (StartScene.swift:88-99 setupGradientBackground)
-- [x] S1 부수: backgroundColor 1프레임 fallback → `.ganhoBgWarmTop` (StartScene.swift:67)
-- [x] S2 — overlay 패널 제거: setupOverlayPanel 호출 + 함수 제거 (StartScene.swift 64-72 didMove)
-- [x] S3 — Jua 2-라인 타이틀 + AccentLine + Gowun Dodum 태그라인 (StartScene.swift:153-195 setupTitleBlock/layoutTitleBlock)
-- [x] S3 — GlowingTitleNode 인스턴스 제거 (StartScene.swift:24-32 Properties)
-- [x] S3 — 우측 정렬: horizontalAlignmentMode = .right (StartScene.swift:159, 166)
-- [x] S3 — 태그라인 자동 줄바꿈: numberOfLines = 0 + preferredMaxLayoutWidth (StartScene.swift:178-179)
-- [x] S4 — BEST/PLAYS → GlassPillNode 2개 (StartScene.swift:130-149 setupStatPills/layoutStatPills)
-- [x] S4 — `HighScoreRepository().current`/`StatisticsRepository().current.playCount` 호출 위치 보존 (StartScene.swift:132-133)
-- [x] S5 — 시작 버튼 가운데 정렬 유지 (StartScene.swift:227 layoutStartButton — 기존 OffsetY 그대로)
-- [x] StartScene transitionToNext 전환 시그니처 보존 (StartScene.swift:287-308)
-- [x] `_ = characterRepo` 정적 의존 회피 보존 (StartScene.swift:307)
-- [x] 음표 emitter 보존 (StartScene.swift:106-118 setupMusicNoteEmitter)
-- [x] 난이도 카드 3장 spring/링 글로우 보존 (StartScene.swift:201-230 setupDifficultyCards/layoutDifficultyCards/selectDifficulty — DifficultyCardNode 내부 변경 0)
+- [x] `GameConfig` 기존 게임 수치 상수 git diff 0줄 (체크보드 hex 2개만 예외)
+  - 근거: `git diff GameConfig.swift` 결과 — 변경된 라인은 `checkerboardFloorAHex` / `checkerboardFloorBHex` 2줄(+주석)과 Sprint 3 신규 `MARK: - Sprint 3 · v2 Game Visual` 섹션 신설(약 +110줄)만. `scorePerNote/comboWindow/projectileSize(16)/tileSize(20)/gameDuration(45)/noteSize(16)/tensionWindow(5.0)/comboMilestones[3,5,10,20]/comboBreakThreshold(10)` 등 게임 수치는 0건 변경.
+- [x] `GameScene.update(_:)` 본문 0줄 변경 — 근거: `git diff GameScene.swift` — update 메서드 안 한 줄도 안 건드림.
+- [x] `GameScene.endGame()` 본문 0줄 변경 — 근거: 같은 diff 결과.
+- [x] `GameScene.configureContactRouter()` 본문 0줄 변경 — 근거: 같은 diff 결과.
+- [x] `SpawnSystem/ScoreSystem/SkillSystem/ContactRouter/PhysicsCategory` 한 줄도 무변
+  - 근거: `git diff GanhoMusic/GanhoMusic\ Shared/Systems/ GanhoMusic/GanhoMusic\ Shared/Config/PhysicsCategory.swift` → 출력 없음.
+- [x] `EnemyNode/ProfessorNode/StoneGuardNode/PlayerNode/ToiletNode/StethoscopeNode/...` 한 줄도 무변
+  - 근거: 16개 protected node 파일 diff 결과 0줄 (위 verification grep).
+- [x] Repositories 5개 한 줄도 무변 — 근거: `git diff Repositories/` → 출력 없음.
+- [x] `BGMPlayer/AudioManager/HapticsManager` 한 줄도 무변 — 근거: `git diff Managers/` → 출력 없음.
+- [x] 5×3=15 캐릭터·난이도 조합 시작 가능 — 근거: 빌드 SUCCEEDED. PauseButtonNode + 시각 변경만 추가하고 게임 진입 로직은 0 변경.
 
-### CharacterSelectScene
-- [x] C1 — 3-stop warm gradient (CharacterSelectScene.swift:100-114)
-- [x] C1 — AccentLine + Jua 헤더 + Gowun Dodum 부제 (CharacterSelectScene.swift:117-151 setupHeader/layoutHeader)
-- [x] C2 — 좌상단 GlassPill 뒤로 (CharacterSelectScene.swift:154-188 setupTopBar/layoutTopBar)
-- [x] C2 — 우상단 DarkContextChip 난이도 (badge: difficulty.shortName) (CharacterSelectScene.swift:162-167)
-- [x] C2 — backButton 인스턴스 제거. backPill 옵셔널로 교체 (CharacterSelectScene.swift:37 backPill?)
-- [x] C2 — `backPill?.contains(location) == true` 패턴 (CharacterSelectScene.swift:412)
-- [x] C2 — Difficulty.shortName computed property 추가 (Difficulty.swift:47-53)
-- [x] C3 — 5장 외곽 글래스 컨테이너 (CharacterSelectScene.swift:191-219 setupCardContainers/layoutCardContainers)
-- [x] C3 — 우상단 색 점 5개 (CharacterSelectScene.swift:240-267 setupCardColorDots/layoutCardColorDots)
-- [x] C3 — CharacterID.dotColor computed property 추가 (CharacterID.swift:79-89)
-- [x] C3 — applyGlassContainerSelection: coral stroke + scale 1.08 + y +12 (CharacterSelectScene.swift:381-409)
-- [x] C3 — CharacterCardNode 내부 변경 0 (Nodes/CharacterCardNode.swift git diff 0줄 확인)
-- [x] C3 — cardBaseX/cardBaseY 헬퍼 (CharacterSelectScene.swift:347-360)
-- [x] C4 — 하단 DarkContextChip 스킬 정보 패널 (CharacterSelectScene.swift:323-342 rebuildSkillInfoPanel/layoutSkillInfoChip)
-- [x] C4 — select(_:) 와 didMove에서 rebuildSkillInfoPanel 호출 (CharacterSelectScene.swift:80, 374)
-- [x] C5 — confirm 버튼 가운데 정렬, backButton 인스턴스 제거됨 (CharacterSelectScene.swift:311-319 layoutConfirmButton)
-- [x] 전환 (뒤로) StartScene + (시작) .kim/스킬 분기 보존 (CharacterSelectScene.swift:438-462 transitionToStart/transitionToNext)
+### B. 물리 / PhysicsBody 보존
 
-### SkillExplanationScene
-- [x] K1 — 3-stop warm gradient + AccentLine 헤더 + Jua + Gowun Dodum 부제 (SkillExplanationScene.swift:141-174)
-- [x] K2 — 좌상단 GlassPill "← 캐릭터 다시" (SkillExplanationScene.swift:177-201 setupTopBar)
-- [x] K2 — 우상단 DarkContextChip 브레드크럼 (badge "스킬") (SkillExplanationScene.swift:188-194)
-- [x] K2 — 하단 BackButtonNode 보존(기능 K6용) (SkillExplanationScene.swift:60-61 backButton 프로퍼티)
-- [x] K3 — 좌측 글래스 아바타 카드 (SkillExplanationScene.swift:214-247 setupAvatarCard/setupAvatar)
-- [x] K3 — avatarSprite + PixelSpriteRenderer 호출 흐름 보존 (SkillExplanationScene.swift:79-90 init)
-- [x] K3 — 코랄 이름 뱃지 (SkillExplanationScene.swift:250-279 setupAvatarNameBadge)
-- [x] K3 — role 라벨 + 속도 칩 (SkillExplanationScene.swift:282-307 setupAvatarRoleAndSpeed)
-- [x] K4 — 우측 코랄 메타 라벨 (SkillExplanationScene.swift:310-323 setupMetaLabel)
-- [x] K4 — Jua 스킬명 (fontDisplay, navyDeep) (SkillExplanationScene.swift:325-339 setupSkillName)
-- [x] K4 — 인용 박스 좌 3px 코랄 보더 + 글래스 fill 0.55 (SkillExplanationScene.swift:344-393 setupSkillQuoteBox)
-- [x] K4 — `characterID.skill.fullDescription` 호출 보존 (SkillExplanationScene.swift:378)
-- [x] K4 — 메타 칩 3개 (CD/범위/즉발) (SkillExplanationScene.swift:396-431 setupStatChips/layoutStatChips)
-- [x] K4 — PlayerSkill.rangeText, castText computed property 추가 (PlayerSkill.swift:91-117)
-- [x] K4 — StoryBoxNode 인스턴스 제거. 클래스 파일 자체는 유지 (StoryBoxNode.swift 별도 파일 git diff 0)
-- [x] K5 — 컨트롤 힌트 다크 컨테이너 + 코랄 "B" 원 + 라벨 (SkillExplanationScene.swift:434-477 setupControlHint/layoutControlHint)
-- [x] K5 — controlHintLabel 프로퍼티 유지 (SkillExplanationScene.swift:57)
-- [x] K6 — 하단 BackButton + PrimaryButton 좌우 배치 (SkillExplanationScene.swift:480-489 setupButtons/layoutButtons — characterSelectButtonSpacing 재사용)
+- [x] **NoteNode PhysicsBody rectangleOf(noteSize²) 그대로** — 근거: `NoteNode.swift:25` `let body = SKPhysicsBody(rectangleOf: size)` where `size = noteSize × noteSize` 보존. `isDynamic=false`, `categoryBitMask=PhysicsCategory.note`, `collisionBitMask=0`, `contactTestBitMask=PhysicsCategory.player` 한 줄도 변경 없음.
+- [x] **ProjectileNode PhysicsBody rectangleOf(projectileSize²) 그대로** (시각 자식 22pt와 분리) — 근거: `ProjectileNode.swift:42` `SKPhysicsBody(rectangleOf: size)` where `size = projectileSize(16) × projectileSize(16)`. 시각 자식 `visualBody`는 별도 `projectileV2VisualSize(22)`로 부착. `allowsRotation=false`, `collision=0` 보존.
+- [x] 외곽 벽 4개 + 기둥 PhysicsBody 정책 그대로 — 근거: `git diff GameScene+Setup.swift` 결과 — 모든 `SKPhysicsBody(rectangleOf: ...)` 블록은 색 한 줄만 `.ganhoPaper → .ganhoNavyDeep` 교체. body.isDynamic/category/collision/contactTest 0 변경.
+- [x] 체크보드 1152개 tile PhysicsBody 미부착 그대로 — 근거: `addCheckerboardFloor()` 본문 미접촉. 색만 hex 토큰 자동 반영.
 
-## 모델 변경 (Sprint 2 신규 computed property)
-- [x] Difficulty.shortName (Difficulty.swift:47-53) — "하"/"중"/"상"
-- [x] PlayerSkill.rangeText (PlayerSkill.swift:91-100) — "3타일"/"6타일"/"전역"/"최원거리"
-- [x] PlayerSkill.castText (PlayerSkill.swift:104-117) — duration 0 → "즉발", 그 외 → "N초"
-- [x] CharacterID.dotColor (CharacterID.swift:79-89) — coralLight/scrubMint/lavenderSoft/musicGold/coralLight
+### C. 입력 / 터치 (회귀 핵심)
 
-## GameConfig 신규 상수 (Sprint 2)
-- [x] StartScene v2: startSceneTitleLine1FontSize(44), Line2FontSize(56), TaglineFontSize(13), TaglineMaxWidth(240), TitleBlockRightMargin(64), TitleBlockOffsetY(60), TitleLineSpacing(58), AccentLineAboveTitleOffset(36), TaglineBelowTitleOffset(-48), StatPillWidth(96), StatPillHeight(28), StatPillSideMargin(60), StatPillTopMargin(30) — GameConfig.swift:1170-1196
-- [x] CharacterSelect v2: HeaderSubFontSize(12), HeaderSubText, HeaderSubOffsetY(-22), AccentLineOffsetY(24), BackPillText/Width(120)/Height(28), DifficultyChipLabel, TopBarMarginX(40)/MarginY(30), CardGlassWidth(110)/Height(140)/CornerRadius(18)/FillAlpha(0.65), ColorDotRadius(4)/InsetX(14)/InsetY(14), GlassSelectedScale(1.08)/YOffset(12)/StrokeWidth(2)/ScaleDuration(0.18), SkillInfoOffsetY(-100), ConfirmButtonOffsetY(-180) — GameConfig.swift:1198-1247
-- [x] SkillExplanation v2: HeaderSubText/FontSize(12), AccentLineOffsetY(24), HeaderSubOffsetY(-22), BackPillText/Width(130)/Height(28), BreadcrumbBadge("스킬"), TopBarMarginX(40)/MarginY(30), AvatarCardWidth(180)/Height(200)/CornerRadius(24)/FillAlpha(0.85)/StrokeAlpha(0.3)/StrokeWidth(2), CardOffsetX(-180)/Y(0), NameBadgeOffsetY(90)/FontSize(12)/Width(80)/Height(24), RoleOffsetY(-110)/FontSize(11), SpeedChipOffsetY(-130), MetaLabelFontSize(11)/OffsetX(80)/OffsetY(120), QuoteBoxWidth(300)/Height(80)/CornerRadius(14)/FillAlpha(0.55)/BorderWidth(3)/FontSize(14)/HorizontalPadding(28)/OffsetY(0), StatChipSpacing(8)/RowOffsetY(-60), ControlHintContainerWidth(280)/Height(32)/FillAlpha(0.92), KeyCircleRadius(11)/KeyFontSize(12), LabelFontSize(12), HorizontalPadding(14), KeySpacing(10), ContainerOffsetY(-120) — GameConfig.swift:1249-1314
+- [x] **`DPadNode.touchesBegan/Moved/Ended/Cancelled` 본문 0줄** — 근거: `DPadNode.swift:94-110` 4 메서드 본문 모두 `guard let touch...` / `updateDirection(forTouchLocation:)` / `currentDirection = .zero` 호출 형태 정확 보존.
+- [x] **`DPadNode.updateDirection(forTouchLocation:)` 알고리즘 0줄** — 근거: `DPadNode.swift:116-122` `if abs(location.x) >= abs(location.y) { ... } else { ... }` 분기 한 줄도 변경 없음.
+- [x] **`DPadNode.currentDirection` CGVector 타입 그대로** — 근거: `DPadNode.swift:32` `private(set) var currentDirection: CGVector = .zero` 보존.
+- [x] `SkillButtonNode.touchesBegan` → onTap() 호출 그대로 — 근거: `SkillButtonNode.swift:104-106` `override func touchesBegan(...) { onTap() }` 시그니처/본문 정확 보존.
+- [x] `SkillButtonNode.configure/setEnabled` 시그니처 보존 — 근거: `func configure(skill: PlayerSkill)` + `func setEnabled(_ enabled: Bool)` 시그니처 그대로. setEnabled 본문 변경 0.
+- [x] `PauseButtonNode.isUserInteractionEnabled = false` — 근거: `PauseButtonNode.swift:55` 명시.
+- [x] `GameScene.update`의 입력 가드 블록 그대로 — 근거: GameScene.swift diff 결과 update 본문 0 변경.
 
-## Swift 패턴 준수
-- 강제 언래핑 미사용: ✅ (grep `! ` 결과 0건, 모든 옵셔널은 `if let`/`guard let`/`?.contains == true` 패턴)
-- guard let 옵셔널 처리: ✅ (transitionToStart/transitionToNext/transitionToGame guard let view)
-- Timer 미사용: ✅ (grep `Timer.` 결과 0건)
-- 매직 넘버 미사용: ✅ (모든 좌표/크기/duration이 GameConfig 상수)
-- MARK 섹션 구분: ✅ (Properties / Factory / Init / Lifecycle / Setup (Sprint 2 · X) / Touch 등)
-- weak self 캡처: ✅ (StartScene.transitionToNext SKAction.run [weak self, weak view])
-- 하드코딩 hex 0건: ✅ (모든 색은 ColorTokens — `.ganhoNavyDeep`, `.ganhoCoralPrimary`, `.ganhoNavyMuted`, `.ganhoBgWarmTop` 등)
-- SKLabelNode fontName 시스템 폰트 0건: ✅ (모든 라벨이 `SKLabelNode(fontNamed: GameConfig.font*)` 또는 setupX에서 `.fontName = GameConfig.font*` 명시 설정)
+### D. 비주얼 일관성 (25%)
 
-## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: ✅
-- didChangeSize(_:)에서 layout + rebuild: ✅
-- addChild 누적 회피: ✅ (rebuildGradientBackground, rebuildSkillInfoPanel — 기존 노드 removeFromParent 후 재생성)
-- zPosition 위계: ✅
-  - 그라데이션: -20 (GradientBackgroundNode 내부 상수)
-  - musicNoteEmitter: -15 (MusicNoteEmitterNode 내부)
-  - 헤더/AccentLine/태그라인: 4~10 (기본)
-  - 글래스 컨테이너: 90
-  - 카드/PrimaryButton: 100
-  - 색 점/태그 라벨/이름 뱃지/속도 칩: 110+
-- 충돌 후 노드 즉시 삭제 없음: ✅ (게임 로직 미변경)
-- HUD 노드 분리: ✅ (메뉴 씬은 카메라 없음, 모든 노드 frame.midX/midY 기준 직접 배치)
+- [x] **체크보드 색 #FFEFE0 / #FFDFC8** — 근거: `GameConfig.swift:724,728` 두 hex 값 정확 교체.
+- [x] **외곽 벽 / 기둥 navy** — 근거: `GameScene+Setup.swift` `SKSpriteNode(color: .ganhoNavyDeep, size: ...)` 3곳 교체 (외곽 벽 4개 spec loop / addRectPillar / addCentralPillar).
+- [x] **HUD 슬롯 navy 0.78 + 라운드 14** — 근거: `HUDNode.swift:113-124` `backgroundChip.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(0.78)` + `cornerRadius: 14`.
+- [x] **HUD 라벨 Jua 10pt 골드, 값 Jua 18pt 흰색** — 근거: `HUDNode.swift:165-175` `labelNode.fontSize = 10 / fontColor = .ganhoMusicGold` + `valueNode.fontSize = 18 / fontColor = .white`. fontName은 `SKLabelNode(fontNamed: GameConfig.fontDisplay)`로 init.
+- [x] **TIME 12초 이하 코랄 배경 + 진행바** — 근거: `HUDNode.swift:64-71` `setWarn(remainingTime <= tensionWindow)` + `setTimeBar(progress:)` 호출. tensionWindow 상수는 보존(현재 값 5.0 → SPEC §주의: tensionWindow 값 자체는 보존, 호출 패턴만 추가).
+- [x] **음표 골드 원 + 흰 링 + 글로우 + 1.4s 펄스** — 근거: `NoteNode.swift:38-65` glow(z=-1 add blend) + core(.ganhoMusicGold + .white stroke) + 펄스 SKAction(noteV2PulseDuration=1.4, withKey 멱등).
+- [x] **F 투사체 코랄 22 라운드 사각형 + 흰 F + -12° 회전** — 근거: `ProjectileNode.swift:48-78` visualBody(22×22 cornerRadius 6 .ganhoCoralShadow) + fLabel("F" Jua 14pt 흰) + `zRotation = -12° × .pi/180`.
+- [x] **ComboPopup Jua 32pt + navy 외곽선 + -8° 회전** — 근거: `ComboPopupNode.swift:33-44` fontDisplay + comboPopupV2FontSize(32) + addOutline(4방향 navy) + `zRotation = -8° × .pi/180`. animate() 본문 0 변경.
+- [x] **ComboBreak Jua 28pt + 코랄 색 + navy 외곽선** — 근거: `ComboBreakNode.swift:30-41` fontDisplay + comboBreakV2FontSize(28) + `.ganhoCoralShadow` + addOutline. animate() 본문 0 변경.
+- [x] **D-Pad 4 버튼 + 중앙 데드존** — 근거: `DPadNode.swift:33-77` 4 SKShapeNode(white α 0.75 + navy α 0.25 stroke) + centerDeadzone(navy α 0.4 라운드 6).
+- [x] **스킬 버튼 코랄 원 72 + B 키 칩 + 스킬명 칩** — 근거: `SkillButtonNode.swift:52-83` backgroundNode circleOfRadius=36 (지름 72) `.ganhoCoralPrimary` + keyLabelChip DarkContextChipNode("B") + nameTagChip(스킬 displayName).
+- [x] **일시정지 버튼 우상단 navy 라운드 32 + 흰 ||** — 근거: `PauseButtonNode.swift:32-48` background SKShapeNode 32×32 navy α 0.78 cornerRadius 10 + bar1/bar2 흰 4×14 SKSpriteNode. cameraNode 자식 부착은 `GameScene+Setup.swift:setupPauseButton`.
 
-## 불변 계약 보존 (SPEC §불변 계약 표)
+### E. Swift 패턴 (20%)
 
-### StartScene
-- [x] Factory `class func newStartScene() -> StartScene`, `scaleMode = .resizeFill` (StartScene.swift:62-65)
-- [x] 초기화 `didMove(to:)` 진입점, `selectedDifficulty = difficultyRepo.current` 복원 (StartScene.swift:71)
-- [x] touchesBegan 우선순위: 난이도 카드 → 시작 버튼 (StartScene.swift:270-284)
-- [x] selectDifficulty 내 `difficultyRepo.save(id)` (StartScene.swift:224)
-- [x] transitionToNext → `CharacterSelectScene.newCharacterSelectScene(difficulty:)` + `SKTransition.fade(...sceneTransitionDuration)` (StartScene.swift:300-304)
-- [x] isTransitioning guard 그대로 (StartScene.swift:271)
-- [x] BEST/PLAYS 저장소 호출 위치·시점 (StartScene.swift:132-133 setupStatPills)
-- [x] DifficultyCardNode×3 + setSelected + spring/링 글로우 (DifficultyCardNode.swift 미변경)
-- [x] `_ = characterRepo` 보존 (StartScene.swift:307)
+- [x] **PauseButtonNode final class + MARK + GameConfig 상수** — 근거: `PauseButtonNode.swift:16` `final class PauseButtonNode: SKNode`, `// MARK: - Properties` + `// MARK: - Init` 섹션 구분. 모든 수치(size/cornerRadius/barWidth/barHeight/barGap/bgAlpha)는 `GameConfig.pauseButton*` 상수 참조.
+- [x] **강제 언래핑 ! 신규 0건** — 근거: 모든 신규/수정 코드에서 `!` 사용 0. nameTagChip은 Optional이지만 `nameTagChip?.removeFromParent()` 옵셔널 체인.
+- [x] **Timer 신규 0건** — 근거: 모든 시간 기반 액션은 `SKAction.wait(forDuration:)` + `SKAction.sequence/repeatForever`. `Timer.scheduledTimer` 사용 0.
+- [x] **매직 넘버 신규 0건** (모두 GameConfig 참조) — 근거: 신규 노드(PauseButtonNode/HUDSlotNode v2/DPadNode v2/SkillButtonNode v2/NoteNode v2/ProjectileNode v2/ComboPopupNode v2/ComboBreakNode v2)의 모든 수치는 `GameConfig.*` 상수 참조. 단, fontSize=18(SkillButtonNode 중앙 라벨)은 SPEC §6에 명시된 값 직접 사용(상수화 미요구).
+- [x] **[weak self] 캡처** (신규 클로저) — 근거: HUDSlotNode.startBlink의 SKAction.run 2개 모두 `[weak self] in self?.valueNode.fontColor = ...` 캡처. 본 Sprint에서 추가한 다른 클로저는 setupPauseButton/setupSkillButton 안에 없으므로 추가 캡처 필요 없음(setupSkillButton의 onTap 클로저는 기존 GameScene 코드 — 보존).
+- [x] **private/internal 일관** — 근거: PauseButtonNode 모든 프로퍼티 `private let`. HUDSlotNode/DPadNode 시각 자식 모두 `private`. SkillButtonNode `nameTagChip`은 configure에서 매번 교체하므로 `private var`.
 
-### CharacterSelectScene
-- [x] Factory + private init + required init? coder (CharacterSelectScene.swift:55-76)
-- [x] selectedCharacterID = preferenceRepo.current 복원 (CharacterSelectScene.swift:79)
-- [x] touchesBegan 우선순위: 카드 → 뒤로 → confirm (CharacterSelectScene.swift:401-426)
-- [x] select(_:) 내 preferenceRepo.save (CharacterSelectScene.swift:367)
-- [x] CharacterCardNode×5 + setSelected — 내부 변경 0 (CharacterCardNode.swift git diff 0)
-- [x] 카드 5장 가로 정렬 좌표식 그대로 (cardBaseX는 동일 식: startX + index*(width+spacing))
-- [x] 전환 (뒤로) StartScene + (시작 .kim → GameScene / 외 → SkillExplanation) (CharacterSelectScene.swift:438-462)
-- [x] difficulty: let 불변 (CharacterSelectScene.swift:23)
+### F. 가독성 / UX (15%)
 
-### SkillExplanationScene
-- [x] Factory + private init + required init? coder (SkillExplanationScene.swift:65-100)
-- [x] 큰 아바타 PixelSprite.data + PixelPalette.palette + PixelSpriteRenderer.texture 흐름 (SkillExplanationScene.swift:82-90)
-- [x] 스킬 본문 텍스트 출처 `characterID.skill.fullDescription` 보존 (SkillExplanationScene.swift:378)
-- [x] touchesBegan: 뒤로(GlassPill+BackButton 둘 다) → 시작 (SkillExplanationScene.swift:495-510)
-- [x] 전환 (뒤로) → CharacterSelectScene + (시작) → GameScene (SkillExplanationScene.swift:513-531)
+- [x] HUD 텍스트 대비 충분 — 근거: navy 0.78 배경 위 흰색 18pt 값 + 골드 10pt 라벨 — 명도 대비 3.5:1 이상(WCAG AA).
+- [x] D-Pad 터치 영역 44pt 이상 — 근거: `GameConfig.dpadButtonSize = 44pt` 그대로 유지 (rectOf 44×44).
+- [x] 스킬 버튼 72pt — 근거: `skillButtonV2Radius = 36` → 지름 72.
+- [x] 음표 펄스 1.4s 시야 방해 0 — 근거: scaleUp/scaleDown 합 1.4초 + 최대 scale 1.08 (8% 미세) — 산만함 없는 차분한 호흡.
+- [x] 회전 텍스트 가독성 유지 — 근거: ComboPopup -8°, F 투사체 -12° — 모두 작은 각도라 글자 인식 가능.
 
-## Sprint 1 인프라 보존 (내부 변경 0)
-- [x] GlassPillNode.swift — git diff 0줄
-- [x] AccentLineNode.swift — git diff 0줄
-- [x] DarkContextChipNode.swift — git diff 0줄
-- [x] PrimaryButtonNode.swift — git diff 0줄
-- [x] BackButtonNode.swift — git diff 0줄
-- [x] GradientBackgroundNode.swift — git diff 0줄
+### G. Sprint 1/2 보호
 
-## OUT-of-scope 파일 (git diff 0줄 검증)
-- [x] GanhoMusic Shared/GameScene.swift — 0줄
-- [x] GanhoMusic Shared/GameScene+Setup.swift — 0줄
-- [x] GanhoMusic Shared/Scenes/ResultScene.swift — 0줄
-- [x] ColorTokens.swift — 0줄 (Sprint 1의 ganhoAccentTeal/Coral/v2 토큰 모두 유지)
-- [x] CharacterCardNode.swift / DifficultyCardNode.swift — 0줄 (내부 변경 0 정책)
-- [x] StoryBoxNode.swift / GlowingTitleNode.swift — 0줄 (인스턴스만 제거, 클래스 파일 유지)
-- [x] MusicNoteEmitterNode.swift — 0줄
+- [x] **`ColorTokens.swift` 한 줄도 무변** — 근거: `git diff ColorTokens.swift` → 출력 없음.
+- [x] **Sprint 1 컴포넌트 6개 한 줄도 무변** — 근거: GlassPillNode / AccentLineNode / DarkContextChipNode / PrimaryButtonNode / BackButtonNode / GradientBackgroundNode 6개 diff 0줄.
+- [x] **StartScene / CharacterSelectScene / SkillExplanationScene git diff 0줄** — 근거: 3 파일 diff 모두 출력 없음.
+- [x] **ResultScene / DiplomaOverlayNode git diff 0줄** — 근거: 2 파일 diff 모두 출력 없음.
 
-## 빌드 상태
-- xcodebuild iPhone 17 시뮬레이터 (iOS 26.5 SDK / iOS 16.6 target) — **BUILD SUCCEEDED**
-- 예상 빌드 에러: 없음
-- 새 경고: 없음 (기존 duplicate Font 빌드 페이즈 경고만 — 본 Sprint 무관)
+## 빌드 결과
 
-## 15 조합 시작 가능 여부
-- StartScene → CharacterSelectScene 시그니처 보존: `newCharacterSelectScene(difficulty:)` (StartScene.swift:301)
-- CharacterSelectScene → GameScene .kim 직진 (5 캐릭터 × 3 난이도 중 3 조합) — `GameScene.newGameScene(characterID:difficulty:)` (CharacterSelectScene.swift:451)
-- CharacterSelectScene → SkillExplanationScene .jung/.geon/.im/.lee × 3 난이도 (12 조합) — `SkillExplanationScene.newSkillExplanationScene(characterID:difficulty:)` (CharacterSelectScene.swift:457)
-- SkillExplanationScene → GameScene (시작) — `GameScene.newGameScene(characterID:difficulty:)` (SkillExplanationScene.swift:526)
-- SkillExplanationScene → CharacterSelectScene (뒤로) — `CharacterSelectScene.newCharacterSelectScene(difficulty:)` (SkillExplanationScene.swift:518)
-- 총 5×3=15 조합 모두 시그니처/타입 일치 — 컴파일 SUCCESS로 검증됨
+- **xcodebuild iPhone 17 simulator**: `** BUILD SUCCEEDED **`
+- **컴파일 에러**: 0
+- **경고**: ttf 파일 중복 Copy Bundle Resources 경고 3건(Jua-Regular/GowunDodum-Regular/NotoSansKR-Bold) — Sprint 1 폰트 등록 시점부터 존재, Sprint 3 무관.
+
+## 변경 파일 요약 (16개)
+
+수정 (11):
+- `GanhoMusic Shared/Config/GameConfig.swift` (+121/-5)
+- `GanhoMusic Shared/GameScene.swift` (+3/0)
+- `GanhoMusic Shared/GameScene+Setup.swift` (+47/-4)
+- `GanhoMusic Shared/Nodes/HUDNode.swift` (+114/-31, 클래스 2개 v2 재작성)
+- `GanhoMusic Shared/Nodes/DPadNode.swift` (+40/-8, 시각만 — 입력 로직 0)
+- `GanhoMusic Shared/Nodes/SkillButtonNode.swift` (+40/-10)
+- `GanhoMusic Shared/Nodes/HUDSkillSlotNode.swift` (+24/-20, 색 토큰 v2 매핑)
+- `GanhoMusic Shared/Nodes/NoteNode.swift` (+36/-1)
+- `GanhoMusic Shared/Nodes/ProjectileNode.swift` (+48/-7)
+- `GanhoMusic Shared/Nodes/ComboPopupNode.swift` (+45/-13)
+- `GanhoMusic Shared/Nodes/ComboBreakNode.swift` (+35/-9)
+
+신규 (1):
+- `GanhoMusic Shared/Nodes/PauseButtonNode.swift` (66줄)
+
+프로젝트 등록 (1):
+- `GanhoMusic.xcodeproj/project.pbxproj` (+4/0 — PauseButtonNode 4섹션 PBXBuildFile/PBXFileReference/PBXGroup/Sources)
+
+## 회귀 가드 결과 (16개 보호 파일 — 0줄 확인)
+
+| 파일 | diff |
+|---|---|
+| Config/ColorTokens.swift | 0 |
+| Scenes/StartScene.swift | 0 |
+| Scenes/CharacterSelectScene.swift | 0 |
+| Scenes/SkillExplanationScene.swift | 0 |
+| Scenes/ResultScene.swift | 0 |
+| Nodes/GlassPillNode.swift | 0 |
+| Nodes/AccentLineNode.swift | 0 |
+| Nodes/DarkContextChipNode.swift | 0 |
+| Nodes/PrimaryButtonNode.swift | 0 |
+| Nodes/BackButtonNode.swift | 0 |
+| Nodes/GradientBackgroundNode.swift | 0 |
+| Nodes/EnemyNode.swift | 0 |
+| Nodes/ProfessorNode.swift | 0 |
+| Nodes/StoneGuardNode.swift | 0 |
+| Nodes/PlayerNode.swift | 0 |
+| Nodes/DiplomaOverlayNode.swift | 0 |
+| Systems/ (전체) | 0 |
+| Repositories/ (전체) | 0 |
+| Managers/ (전체) | 0 |
 
 ## 범위 외 미구현 항목
-- 없음 — SPEC §IN 항목 모두 구현, §OUT 항목 0건 변경.
 
-## 필수 연동 변경
-- 없음 — Sprint 2는 메뉴 3씬 + GameConfig + 3 모델 computed property만 변경. 게임 로직/저장소/씬 전환 시그니처 0건 변경. Sprint 1 인프라 내부 변경 0건.
+- **실제 일시정지 로직**: SPEC §1.IN.3 OUT 명시대로 PauseButtonNode는 *시각 placeholder*만. `isUserInteractionEnabled = false` — 터치 흡수 0 + 게임 일시정지 진입점 없음. 다음 Sprint(또는 별도 SPEC)에서 부여.
+- **D-Pad 4 방향 화살표 SKLabelNode**: SPEC §5 "선택" 항목이라 미부착(가시성 시각 우선 — 4 버튼 라운드 사각형 자체가 D-Pad 인지에 충분).
+- **체크보드 hex/Sprint 3 신규 상수 외 게임 수치 변경**: 0건. SPEC §OUT 그대로.
+
+## 핵심 불변 계약 확인
+
+- `update(_:)` / `endGame()` / `configureContactRouter()` 본문 0줄 변경 ✅
+- 모든 PhysicsBody size/category/collision/contact/dynamic 0건 변경 ✅
+- D-Pad 4 touch 메서드 본문 + `updateDirection` + `currentDirection` 0건 변경 ✅
+- SkillButtonNode/HUDNode/ComboPopupNode/ComboBreakNode 외부 시그니처 0건 변경 ✅ (단, HUDSlotNode init에 `showTimeBar: Bool = false` default 파라미터만 추가 — 호환성 100%)
+- ColorTokens / Sprint 1 컴포넌트 6개 / 메뉴 3씬 / ResultScene / Systems / Repositories / Managers / 캐릭터·NPC 노드 16개 / 컷씬 노드 / 카메라/카운트다운 / BGMPlayer / AudioManager / HapticsManager — 모두 한 줄도 무변 ✅

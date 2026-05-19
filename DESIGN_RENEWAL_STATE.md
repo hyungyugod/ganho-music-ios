@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 2 합격)
-**현재 진행 중인 Sprint**: Sprint 3 — 대기 중 (다음 트리거 시 시작)
+**최종 갱신**: 2026-05-19 (Sprint 3 합격)
+**현재 진행 중인 Sprint**: Sprint 5 — 대기 중 (Sprint 4는 PNG 자산 대기, 건너뛰기 가능)
 
 ---
 
@@ -36,9 +36,9 @@ Sprint 2 진행해줘
 |---|---|---|---|---|
 | **1** | 디자인 토큰 + 노드 컴포넌트 (인프라) | ✅ 합격 | 9.83/10 | 1/3 |
 | **2** | 메뉴 3씬 (Start/Character/Skill) | ✅ 합격 | 9.50/10 | 1/3 |
-| **3** | 인게임 (GameScene + HUD + 컨트롤) | ⏳ 대기 | - | 0/3 |
+| **3** | 인게임 (GameScene + HUD + 컨트롤) | ✅ 합격 | 9.22/10 | 1/3 |
 | **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
-| **5** | ResultScene 3분기 | ⏸️ 미시작 | - | 0/3 |
+| **5** | ResultScene 3분기 | ⏳ 대기 | - | 0/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -75,10 +75,12 @@ Sprint 2 진행해줘
 - 비고: StartScene/CharacterSelectScene/SkillExplanationScene을 3-stop warm gradient + Jua/Gowun Dodum 폰트 + Sprint 1 인프라(GlassPill 4 / AccentLine 3 / DarkContextChip 7 / Primary 3 / Back 1 / Gradient.threeStop 3) 호출로 재구성. 4개 신규 computed property(Difficulty.shortName / PlayerSkill.rangeText/castText / CharacterID.dotColor) 추가 — 순수 시각 라벨용. GameScene/GameScene+Setup/ResultScene + Sprint 1 컴포넌트 6개 + 기타 보호 파일 15개 git diff 0줄. 빌드 SUCCEEDED.
 
 ### Sprint 3 — 인게임
-- 시작: -
-- 완료: -
-- 점수: -
-- 비고: -
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.22/10** (게임로직 9.8 · Swift패턴 8.5 · 비주얼 9.0 · UX 9.0)
+- QA 반복: 1회 (한 번에 통과) + 미니 패치 1건 (P2 #5: ProjectileNode hitbox visual-only 회전)
+- 비고: GameScene+Setup(배경/체크보드/벽/기둥), HUDNode(navy 칩+골드 라벨+TIME 경고+진행바), DPadNode(시각만 SKShape 교체, 입력 100% byte-identical), SkillButtonNode(코랄 원 72+B 칩+스킬명 칩), HUDSkillSlotNode(fontDisplay+v2 색), NoteNode(골드 원+글로우+1.4s 펄스), ProjectileNode(코랄 22+F+visual-only -12° 회전, hitbox 축정렬 보존), ComboPopup/ComboBreak(Jua+navy 외곽선+회전), PauseButtonNode 신규(시각 placeholder). 19개 보호 파일 git diff 0줄. 게임 수치/물리/입력/AI/저장/사운드 0건 변경. 빌드 SUCCEEDED.
+- 잔존 P2: SkillButtonNode 매직 넘버 18 / 인라인 알파 6곳 / 스킬명 칩 CD 텍스트 누락 / SPEC 명시 상수 2개 누락. Sprint 5 진행에 영향 0.
 
 ### Sprint 4 — PNG 캐릭터 통합
 - 시작: -

@@ -14,7 +14,10 @@ import SpriteKit
 // MARK: - Setup
 extension GameScene {
     func setupBackground() {
-        backgroundColor = .ganhoBgDeep
+        // Sprint 3 — v2 디자인 시스템(웜 피치) 인게임 통합.
+        // GradientBackgroundNode 미사용 — 인게임은 카메라 follow가 있어 worldNode 자식 그라데이션이
+        // 어색하게 따라 움직임. 단색 backgroundColor가 안정 (SPEC §4.4 / §2.1).
+        backgroundColor = .ganhoBgWarmTop
     }
 
     func setupWorld() {
@@ -194,7 +197,8 @@ extension GameScene {
         let widthTiles  = CGFloat(cEnd - cStart + 1)
         let heightTiles = CGFloat(rEnd - rStart + 1)
         let pillarSize = CGSize(width: widthTiles * t, height: heightTiles * t)
-        let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
+        // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/breakable name/위치 0건 변경.
+        let pillar = SKSpriteNode(color: .ganhoNavyDeep, size: pillarSize)
         pillar.position = CGPoint(
             x: (CGFloat(cStart) + widthTiles  / 2) * t,
             y: (CGFloat(rStart) + heightTiles / 2) * t
@@ -250,7 +254,8 @@ extension GameScene {
         ]
 
         for spec in walls {
-            let wall = SKSpriteNode(color: .ganhoPaper, size: spec.size)
+            // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/size/position 0건 변경.
+            let wall = SKSpriteNode(color: .ganhoNavyDeep, size: spec.size)
             wall.position = spec.position
 
             // Phase 2-2 — PhysicsBody 부착 (static, 박스가 부딪힘)
@@ -265,6 +270,23 @@ extension GameScene {
 
             worldNode.addChild(wall)
         }
+
+        // Sprint 3 — 외곽 라운드 보더 SKShapeNode 1개 (시각만, physicsBody 미부착).
+        // zPosition -50 — 체크보드(-100) 위, 외곽 벽(0) 아래에 자연스럽게 깔린다.
+        let borderRect = CGRect(
+            x: 0, y: 0,
+            width: GameConfig.mapWidth,
+            height: GameConfig.mapHeight
+        )
+        let border = SKShapeNode(
+            rect: borderRect,
+            cornerRadius: GameConfig.outerWallBorderCornerRadius
+        )
+        border.strokeColor = .ganhoNavyDeep
+        border.lineWidth = GameConfig.outerWallBorderLineWidth
+        border.fillColor = .clear
+        border.zPosition = -50
+        worldNode.addChild(border)
     }
 
     func addCentralPillar() {
@@ -273,7 +295,8 @@ extension GameScene {
             width:  GameConfig.tileSize * 2,    // 40pt
             height: GameConfig.tileSize * 4     // 80pt
         )
-        let pillar = SKSpriteNode(color: .ganhoPaper, size: pillarSize)
+        // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/위치 0건 변경.
+        let pillar = SKSpriteNode(color: .ganhoNavyDeep, size: pillarSize)
         pillar.position = CGPoint(
             x: GameConfig.mapWidth  / 2,        // 맵 가로 정중앙
             y: GameConfig.mapHeight / 2         // 맵 세로 정중앙
@@ -414,6 +437,26 @@ extension GameScene {
         hudSkillSlot.position = CGPoint(
             x: -(halfW - GameConfig.skillButtonMarginX),
             y: -(halfH - GameConfig.skillButtonMarginY) + GameConfig.hudSkillSlotOffsetY
+        )
+    }
+
+    // MARK: - Pause Button (Sprint 3 · 시각 placeholder)
+    /// 우상단 PauseButtonNode를 cameraNode 자식으로 1회 부착.
+    /// Sprint 3는 *시각 placeholder*만 — 실제 일시정지 로직 미구현(SPEC §1.IN.3 OUT 명시).
+    /// PauseButtonNode.isUserInteractionEnabled = false → 터치 흡수 0 / D-Pad/스킬 버튼과 영향 0.
+    func setupPauseButton() {
+        cameraNode.addChild(pauseButton)
+        layoutPauseButton()
+    }
+
+    /// scene.size 변경 시 PauseButtonNode 위치 재계산. addChild 0건 — 멱등.
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 우상단 = (+x, +y).
+    func layoutPauseButton() {
+        let halfW = size.width  / 2
+        let halfH = size.height / 2
+        pauseButton.position = CGPoint(
+            x: +(halfW - GameConfig.pauseButtonMarginX),
+            y: +(halfH - GameConfig.pauseButtonMarginY)
         )
     }
 }
