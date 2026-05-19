@@ -77,19 +77,23 @@ final class SkillExplanationScene: SKScene {
     }
 
     // MARK: - Init
-    /// 두 인자 모두 `let` 이므로 super.init 전에 저장. 아바타 텍스처도 init 시점에 빌드.
-    /// 픽셀 텍스처는 PixelSpriteRenderer.texture가 .nearest 필터를 자동 설정 → 확대 시에도 픽셀 perfect.
+    /// Sprint 4 (walk 미적용 버전) — PNG 우선·픽셀 fallback 패턴. PlayerNode.loadTexture와 동형.
     private init(size: CGSize, characterID: CharacterID, difficulty: Difficulty) {
         self.characterID = characterID
         self.difficulty = difficulty
-        // 아바타 텍스처 — down 방향 idle 프레임 (정면). PlayerNode.update와 무관한 *정지* 표현.
-        let frame = PixelSprite.data(
-            for: characterID,
-            direction: .down,
-            frame: .idle
-        )
-        let palette = PixelPalette.palette(for: characterID)
-        let texture = PixelSpriteRenderer.texture(from: frame, palette: palette)
+        // Sprint 4 — v6 PNG 자산(Assets.xcassets/Characters/) 우선 사용, 미보유 캐릭터는 픽셀 fallback.
+        let texture: SKTexture = {
+            let pngName = "\(characterID.rawValue)_down_idle_1"
+            if UIImage(named: pngName) != nil {
+                let tex = SKTexture(imageNamed: pngName)
+                tex.filteringMode = .linear  // 부드러운 스케일링
+                return tex
+            }
+            // Fallback — 픽셀 렌더링 (.nearest 자동 설정 → 7.5배 확대 시에도 픽셀 perfect)
+            let frame = PixelSprite.data(for: characterID, direction: .down, frame: .idle)
+            let palette = PixelPalette.palette(for: characterID)
+            return PixelSpriteRenderer.texture(from: frame, palette: palette)
+        }()
         self.avatarSprite = SKSpriteNode(texture: texture)
         self.avatarSprite.size = CGSize(
             width: GameConfig.skillExplanationAvatarWidth,

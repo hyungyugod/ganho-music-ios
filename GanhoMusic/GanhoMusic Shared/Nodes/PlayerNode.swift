@@ -72,9 +72,9 @@ final class PlayerNode: SKSpriteNode {
             height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
         )
         // 초기 텍스처는 .kim의 down/idle. apply(_ characterID:)로 캐릭터 확정 시 갱신.
-        let initialTexture = PixelSpriteRenderer.texture(
-            from: PixelSprite.data(for: .kim, direction: .down, frame: .idle),
-            palette: PixelPalette.palette(for: .kim)
+        // Sprint 4 (PNG migration partial) — Self.loadTexture가 PNG 우선·픽셀 fallback 처리.
+        let initialTexture = Self.loadTexture(
+            for: .kim, direction: .down, frame: .idle
         )
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "player"
@@ -222,12 +222,42 @@ final class PlayerNode: SKSpriteNode {
     /// 현재 캐릭터/방향/프레임 조합으로 텍스처를 재생성하고 SKSpriteNode.texture에 set.
     /// SKTexture 이전 값은 ARC로 자동 해제 — 메모리 누수 0.
     /// 호출 빈도: 캐릭터 적용 1회 + 방향 변경 시 + 프레임 변경 시 (0.18초 주기 ↔ idle 진입).
+    /// Sprint 4 (PNG migration partial) — Self.loadTexture가 PNG 우선·픽셀 fallback 처리.
     private func refreshTexture() {
-        texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.data(for: currentCharacterID,
-                                   direction: pixelDirection,
-                                   frame: pixelFrame),
-            palette: PixelPalette.palette(for: currentCharacterID)
+        texture = Self.loadTexture(
+            for: currentCharacterID,
+            direction: pixelDirection,
+            frame: pixelFrame
+        )
+    }
+
+    // MARK: - Texture Loading (Sprint 4 — walk 미적용 버전)
+    /// 5명 캐릭터(kim/jung/geon/im/lee) PNG 자산이 있으면 PNG 텍스처 반환,
+    /// 없으면 PixelSpriteRenderer로 fallback (EnemyNode·ProfessorNode 등 비대상).
+    ///
+    /// **walk 미적용 정책**: direction·frame 파라미터를 모두 무시하고 항상 `{char}_down_idle_1.png`
+    /// 사용. 캐릭터는 이동 방향과 무관하게 카메라를 바라봄 (브롤스타즈·쿠키런 패턴).
+    /// 풀세트 PNG 도착 시 frame/direction 분기 활성화 예정.
+    ///
+    /// 현재 자산 상태 (2026-05-19):
+    /// - kim/jung/geon/im/lee × down × idle → PNG 보유 ✓
+    /// - 풀세트 (4방향 × idle+walk = 16프레임 × 5명) 미보유
+    private static func loadTexture(
+        for char: CharacterID,
+        direction: PixelDirection,
+        frame: PixelFrame
+    ) -> SKTexture {
+        // PNG 우선 — 5명 캐릭터 down_idle만 보유, 모든 방향·프레임 요청을 이 PNG로 매핑.
+        let pngName = "\(char.rawValue)_down_idle_1"
+        if UIImage(named: pngName) != nil {
+            let tex = SKTexture(imageNamed: pngName)
+            tex.filteringMode = .linear  // 부드러운 스케일링 (픽셀의 .nearest와 대비)
+            return tex
+        }
+        // Fallback — PNG 자산 미보유 캐릭터(현재 시점 없음). 향후 신규 캐릭터 추가 시 graceful 대응.
+        return PixelSpriteRenderer.texture(
+            from: PixelSprite.data(for: char, direction: direction, frame: frame),
+            palette: PixelPalette.palette(for: char)
         )
     }
 }

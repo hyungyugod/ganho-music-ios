@@ -151,3 +151,85 @@ evaluation_criteria.md를 읽어라.
 - **SPEC.md 검증**: Generator 전 파일 존재 확인. 없으면 직접 작성
 - **QA_REPORT.md 검증**: Evaluator 후 파일 존재 확인
 - Generator ≠ Evaluator — 반드시 다른 서브에이전트로 호출
+
+---
+
+## 디자인 리뉴얼 모드 (v2 디자인 시스템 적용)
+
+사용자가 다음 트리거 중 하나를 말하면 **디자인 리뉴얼 모드** 진입:
+- "디자인 리뉴얼 진행해줘"
+- "리뉴얼 진행해줘"
+- "다음 Sprint 진행해줘"
+- "Sprint N 진행해줘" (특정 Sprint 지정)
+
+이 모드는 위의 기본 하네스 파이프라인을 그대로 활용하되, **상태 추적 + 자동 Sprint 식별**이 추가됩니다.
+
+### 자동 실행 절차
+
+**0. 상태 확인 (필수 첫 단계)**
+
+`DESIGN_RENEWAL_STATE.md` 파일을 읽어 다음을 파악:
+- 현재 진행 중인 Sprint 번호
+- 완료된 Sprint 목록
+- 마지막 Evaluator 점수 / 시도 횟수
+
+상태 파일이 없으면 **Sprint 1부터 시작** (DESIGN_RENEWAL_REQUEST.md §12 진행 순서 따름).
+
+**1. 다음 Sprint 결정**
+
+- 현재 Sprint가 "✅ 합격" → 다음 Sprint로 진행
+- 현재 Sprint가 "❌ 불합격" → 같은 Sprint 재실행 (시도 횟수 +1)
+- 3회 시도 초과 → 사용자에게 보고 후 중단
+- 사용자가 "Sprint N" 명시 → 해당 Sprint 강제 실행
+
+Sprint 4 (PNG)는 `mockups/svg-exports/` 폴더가 비어있으면 스킵 (자산 대기 상태).
+
+**2. 하네스 호출 (기본 하네스 §단계 0~4 그대로)**
+
+단계 0: `rm -f SPEC.md SELF_CHECK.md QA_REPORT.md`
+
+단계 1: Planner 호출 — 프롬프트는 `DESIGN_RENEWAL_REQUEST.md §10` 의 Sprint 1 예시를 기반으로 다음을 추가:
+```
+디자인 시스템·화면 사양은 DESIGN_RENEWAL_REQUEST.md를 읽어라.
+시각 레퍼런스는 mockups/[화면].html 파일을 브라우저에서 시각 확인할 것.
+캐릭터 SVG 시안은 mockups/svg-exports/*.svg를 참고하라.
+
+현재 Sprint: N
+범위: DESIGN_RENEWAL_REQUEST.md §9 Sprint N 항목 그대로 따를 것.
+변경 금지: DESIGN_RENEWAL_REQUEST.md §6 항목 절대 건드리지 말 것.
+합격 기준: DESIGN_RENEWAL_REQUEST.md §11 적용.
+```
+
+단계 2~3: Generator → Evaluator (기본 하네스 동일)
+
+단계 4: 판정 (기본 하네스 동일)
+
+**3. 상태 갱신**
+
+각 Sprint 완료 후 `DESIGN_RENEWAL_STATE.md`를 다음과 같이 갱신:
+- 해당 Sprint 행의 상태 → "✅ 합격" (또는 "❌ 불합격")
+- 점수·시도 횟수·완료 일자 기록
+- 다음 Sprint 행의 상태 → "⏳ 대기"
+- 진행 로그 섹션에 한 줄 요약 추가
+
+**4. 사용자 보고 형식**
+
+```
+## Sprint N 완료 (디자인 리뉴얼)
+
+- 변경 내용: [한 줄 요약]
+- 수정 파일: [N개]
+- QA 반복: X회
+- 최종 점수: [상세]
+- 다음 Sprint: N+1 ([Sprint 이름]) — 또는 "🎉 모든 Sprint 완료"
+```
+
+### 참고 문서 (디자인 리뉴얼 모드 전용)
+
+| 파일 | 역할 |
+|---|---|
+| `DESIGN_RENEWAL_REQUEST.md` | 디자인 시스템·화면별 사양·합격 기준 (단일 진실 원천) |
+| `DESIGN_RENEWAL_STATE.md` | Sprint 진행 상태 (하네스가 자동 갱신) |
+| `mockups/*.html` | 6개 시각 레퍼런스 (브라우저에서 확인) |
+| `mockups/svg-exports/*.svg` | 5명 캐릭터 시안 (Sprint 4용) |
+| `FIGMA_IMPORT_GUIDE.md` | PNG 자산 제작 가이드 (사용자용) |
