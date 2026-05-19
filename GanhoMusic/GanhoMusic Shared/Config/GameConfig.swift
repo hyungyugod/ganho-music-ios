@@ -1469,4 +1469,125 @@ enum GameConfig {
     static let outerWallBorderLineWidth: CGFloat = 3
     /// 외곽 보더 SKShapeNode cornerRadius(pt).
     static let outerWallBorderCornerRadius: CGFloat = 18
+
+    // MARK: - Sprint 5 · ResultScene v2 Layout
+    // DESIGN_RENEWAL_REQUEST.md §4.5 + mockups/result-screen-v2.html.
+    // Sprint 5는 *추가만* — Phase 8-4 resultPanel* 상수는 *유지*. v2 상수가 별도 이름으로 공존.
+
+    /// 명조 폰트 — 졸업장 한·영 제목 + 본문 (GowunBatang-Regular).
+    /// ttf 미존재 시 SKLabelNode가 시스템 폰트로 자동 fallback — 컴파일/런타임 모두 안전.
+    static let fontSerif: String = "GowunBatang-Regular"
+
+    // ResultScene v2 카드 패널
+    /// 결과 카드 v2 cornerRadius(pt). mockup border-radius: 22.
+    static let resultCardCornerRadiusV2: CGFloat = 22
+
+    // ResultScene v2 라벨 오프셋
+    /// AccentLine y 오프셋. frame.midY 기준.
+    static let resultAccentLineOffsetYV2: CGFloat = 130
+    /// 헤더 DarkContextChip y 오프셋.
+    static let resultHeaderChipOffsetYV2: CGFloat = 100
+    /// 타이틀("실습 종료" / "✨ NEW BEST! ✨") y 오프셋.
+    static let resultTitleOffsetYV2: CGFloat = 70
+    /// 타이틀 폰트 크기(pt). mockup .title-game-over = 30.
+    static let resultTitleFontSizeV2: CGFloat = 30
+    /// 부제 라벨 y 오프셋.
+    static let resultSubtitleOffsetYV2: CGFloat = 44
+    /// 부제 폰트 크기(pt). mockup .title-row .sub = 12.
+    static let resultSubtitleFontSizeV2: CGFloat = 12
+    /// 점수 라벨 y 오프셋.
+    static let resultScoreOffsetYV2: CGFloat = -2
+    /// 점수 숫자 폰트 크기(pt). mockup .score-num = 64.
+    static let resultScoreNumFontSizeV2: CGFloat = 64
+    /// 점수 부제("SCORE" / "NEW SCORE") y 오프셋.
+    static let resultScoreSubOffsetYV2: CGFloat = -32
+    /// BEST 칩 y 오프셋.
+    static let resultBestOffsetYV2: CGFloat = -60
+    /// BEST 칩 폰트 크기(pt). mockup .best-row = 13.
+    static let resultBestFontSizeV2: CGFloat = 13
+    /// divider y 오프셋.
+    static let resultDividerOffsetYV2: CGFloat = -90
+    /// divider 폭 비율(카드 폭 대비). mockup width: 60%.
+    static let resultDividerWidthRatioV2: CGFloat = 0.6
+    /// stat 값(PLAYS/TOTAL 숫자) 폰트 크기(pt). mockup .stat-num = 14.
+    static let resultStatValueFontSizeV2: CGFloat = 14
+    /// stat 타이틀("PLAYS"/"TOTAL") 폰트 크기(pt). mockup .stats-row = 11.
+    static let resultStatTitleFontSizeV2: CGFloat = 11
+    /// stat 값 y 오프셋.
+    static let resultStatValueOffsetYV2: CGFloat = -110
+    /// stat 타이틀 y 오프셋.
+    static let resultStatTitleOffsetYV2: CGFloat = -124
+    /// stat 두 그룹(PLAYS/TOTAL) 가로 간격(중앙 기준 ± offset, pt).
+    static let resultStatGroupSpacingXV2: CGFloat = 50
+    /// 버튼(공유 + 다시시작) y 오프셋.
+    static let resultButtonOffsetYV2: CGFloat = -180
+    /// 공유 GlassPill 폭(pt).
+    static let resultShareButtonWidthV2: CGFloat = 100
+    /// 공유 GlassPill 높이(pt).
+    static let resultShareButtonHeightV2: CGFloat = 36
+    /// 공유 GlassPill 중앙 기준 x 오프셋.
+    static let resultShareButtonXOffsetV2: CGFloat = -70
+    /// 다시시작 PrimaryButton 중앙 기준 x 오프셋.
+    static let resultRestartButtonXOffsetV2: CGFloat = 80
+
+    // ResultScene v2 sparkle 5발 좌표
+    /// 신기록 시 카드 주변에 emit되는 SparkleEffectNode 5개의 (frame.midX, frame.midY) 기준 오프셋.
+    /// mockup VARIANT B의 sparkle s1~s5 위치를 카드 중심 기준으로 환산.
+    static let resultSparklePositionsV2: [CGPoint] = [
+        CGPoint(x: -150, y:  60),
+        CGPoint(x:  130, y:  40),
+        CGPoint(x: -110, y: -40),
+        CGPoint(x:  140, y: -60),
+        CGPoint(x: -180, y:   0)
+    ]
+
+    // Diploma v2 (우드컷)
+    /// 종이 카드 폭(pt). mockup .diploma width: 520.
+    static let diplomaPaperWidthV2: CGFloat = 520
+    /// 종이 카드 높이(pt).
+    static let diplomaPaperHeightV2: CGFloat = 320
+    /// 종이 카드 cornerRadius(pt).
+    static let diplomaPaperCornerRadiusV2: CGFloat = 8
+    /// 종이 카드 더블 보더 두께(pt). mockup border: 4px double.
+    static let diplomaPaperBorderLineWidthV2: CGFloat = 4
+    /// 종이 카드 회전 각도(degree). mockup transform: rotate(-2deg).
+    static let diplomaPaperRotationDegreesV2: CGFloat = -2
+    /// 우드컷 도트 격자 간격(pt). 12pt 간격 = 약 1100개 도트 누적.
+    static let diplomaDotStepV2: CGFloat = 12
+    /// 우드컷 도트 반지름(pt).
+    static let diplomaDotRadiusV2: CGFloat = 1.0
+    /// 우드컷 도트 색 alpha. mockup repeating-linear-gradient 톤 모사.
+    static let diplomaDotAlphaV2: CGFloat = 0.4
+    /// 우드컷 도트 색 hex. mockup #FFEDC6 (종이 농염).
+    static let diplomaDotHexV2: String = "#FFEDC6"
+    /// 코너 데코 ㄱ자 한 변 길이(pt). mockup ::before/::after width: 30.
+    static let diplomaCornerDecoSizeV2: CGFloat = 30
+    /// 코너 데코 종이 가장자리로부터 안쪽 inset(pt). mockup top/left: 6.
+    static let diplomaCornerDecoInsetV2: CGFloat = 6
+    /// 코너 데코 strokeColor 두께(pt). mockup border: 3px double.
+    static let diplomaCornerDecoLineWidthV2: CGFloat = 3
+    /// 도장 원 반지름(pt). mockup .diploma-stamp width/height 56 → r=28.
+    static let diplomaStampRadiusV2: CGFloat = 28
+    /// 도장 strokeColor 두께(pt). mockup border: 2px.
+    static let diplomaStampLineWidthV2: CGFloat = 2
+    /// 도장 회전 각도(degree). mockup transform: rotate(-12deg).
+    static let diplomaStampRotationDegreesV2: CGFloat = -12
+    /// 도장 라벨 텍스트.
+    static let diplomaStampLabelText: String = "김간호\n음악대학"
+    /// 도장 라벨 폰트 크기(pt). mockup font-size: 9.
+    static let diplomaStampLabelFontSizeV2: CGFloat = 9
+    /// 도장 fill 반투명 alpha. mockup background: rgba(255,232,232,0.4).
+    static let diplomaStampFillAlphaV2: CGFloat = 0.4
+    /// 도장 종이 카드 우하단 x 오프셋(pt). 종이 중심 기준 + 거리.
+    static let diplomaStampOffsetXV2: CGFloat = 180
+    /// 도장 종이 카드 우하단 y 오프셋(pt). 종이 중심 기준 - 거리.
+    static let diplomaStampOffsetYV2: CGFloat = -100
+    /// 종이 카드 zPosition(노드 좌표계 내부). background(0) 위 + 도트 패턴(0.7) 아래.
+    static let diplomaPaperZPositionV2: CGFloat = 0.5
+    /// 도트 패턴 zPosition. paperCard(0.5) 위 + 라벨(1) 아래.
+    static let diplomaDotsZPositionV2: CGFloat = 0.7
+    /// 코너 데코 zPosition. 도트 패턴(0.7) 위 + 라벨(1) 아래.
+    static let diplomaCornerDecoZPositionV2: CGFloat = 0.8
+    /// 도장 zPosition. 라벨(1) 위.
+    static let diplomaStampZPositionV2: CGFloat = 1.2
 }

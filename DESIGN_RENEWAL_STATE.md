@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 3 합격)
-**현재 진행 중인 Sprint**: Sprint 5 — 대기 중 (Sprint 4는 PNG 자산 대기, 건너뛰기 가능)
+**최종 갱신**: 2026-05-19 (Sprint 5 합격 — 코드 작업 완료, Sprint 4 PNG 자산 대기 중)
+**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -38,7 +38,7 @@ Sprint 2 진행해줘
 | **2** | 메뉴 3씬 (Start/Character/Skill) | ✅ 합격 | 9.50/10 | 1/3 |
 | **3** | 인게임 (GameScene + HUD + 컨트롤) | ✅ 합격 | 9.22/10 | 1/3 |
 | **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
-| **5** | ResultScene 3분기 | ⏳ 대기 | - | 0/3 |
+| **5** | ResultScene 3분기 | ✅ 합격 | 9.70/10 | 1/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -89,10 +89,12 @@ Sprint 2 진행해줘
 - 비고: PNG 자산 도착 후 시작
 
 ### Sprint 5 — ResultScene 3분기
-- 시작: -
-- 완료: -
-- 점수: -
-- 비고: -
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.70/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼 9.5 · UX 9.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
+- **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
 
 ---
 

@@ -1,583 +1,431 @@
-# Sprint 3 — 인게임 화면(GameScene + HUD + 컨트롤 + 게임 오브젝트) 디자인 리뉴얼
+# Sprint 5 — ResultScene 3분기 v2 리스킨 + DiplomaOverlayNode 우드컷
 
 ## 개요
-
-`mockups/game-map-v2.html` 시각 매칭. 인게임 화면의 체크보드 바닥/외곽 벽/장식 기둥, HUD 4슬롯, D-Pad(우하단), 스킬 버튼(좌하단), 음표, F 투사체, 콤보 팝업, 일시정지 버튼을 v2 디자인 시스템(웜 피치·코랄·골드·navy)으로 재스타일링한다. 게임 로직/물리/저장/AI/스폰/충돌은 단 한 줄도 건드리지 않는다. 본 Sprint는 회귀 위험이 가장 큰 단계이므로 OUT 섹션을 광범위하게 명시한다.
+ResultScene과 DiplomaOverlayNode를 `mockups/result-screen-v2.html` 시각에 맞춰 리스킨한다. 점수·저장·햅틱·사운드·전환 로직은 한 줄도 건드리지 않으며, **세 분기(A 일반 / B 신기록 / C 졸업장)** 의 시각 차이만 토큰·폰트·파편·우드컷 패턴으로 표현한다.
 
 ## 변경 유형
-
-**비주얼 (인게임 시각 갱신, 게임 로직 회귀 0)**
-
-DESIGN_RENEWAL_REQUEST.md §11 채점표 기준: 게임 로직 회귀(40%) · Swift 패턴(20%) · 비주얼 일관성(25%) · 가독성·UX(15%).
+**비주얼** — ResultScene 시각 갱신 + DiplomaOverlayNode 종이 패턴/명조 폰트 갱신. 게임 로직 / 저장소 5개 / 햅틱·사운드 발화 조건 0 변경.
 
 ## 게임 경험 의도
+플레이어가 결과 화면에서 *세 가지 감정*을 명확히 구분되게 한다 — (A) 일반: "괜찮았어, 한 번 더 해볼까?"의 따뜻한 위로, (B) 신기록: "내가 해냈다!"의 황금 폭발과 별 파편의 환호, (C) 졸업장: "긴 실습을 마쳤다"의 종이 증서가 주는 의례적 무게감. 게임 종료가 "벌"이 아니라 "보상"으로 느껴지도록 부정 단어("GAME OVER")를 따뜻한 카피("실습 종료")로 교체한다.
 
-이전엔 다크 배경 + 픽셀 톤이 인게임에서도 차갑게 떨어졌다. 이번 Sprint는 메뉴 화면(Sprint 2)의 따뜻한 웜 피치-라벤더 톤이 인게임에서도 그대로 이어져 *한 게임의 한 톤*을 완성한다. 음표는 골드 글로우로 시선을 자석처럼 끌고, HUD 4슬롯은 navy 칩 위 골드 라벨로 가독성을 살리며 TIME 12초 이하부터 코랄로 전환되어 *시간이 줄어든다*를 즉각 인지시킨다. D-Pad는 우하단(엄지)·스킬 버튼은 좌하단(검지)로 두 손 자연 위치를 확립한다.
+## Sprint 범위 계약
 
-## Sprint 3 범위 계약
+### IN — 이번 Sprint에서 변경
+- `Scenes/ResultScene.swift` — 시각 레이아웃·색·폰트·신규 자식 노드(부제, 글래스 stat, 공유/다시시작 버튼, sparkle 5발). `setupOverlayPanel()` 색 토큰 갈아 끼움. `setupLabels()` 가지치기 + 신규 라벨/노드 부착. `revealNewBest()`에 sparkle 5발 호출 추가.
+- `Nodes/DiplomaOverlayNode.swift` — `configureBackground()`에 우드컷 패턴 SKShape 자식 + double-border 자식 추가. 라벨 fontName을 명조(`fontSerif`)로 교체. 라벨 색·도장 자식 추가.
+- `Config/GameConfig.swift` — Sprint 5 신규 상수만 **추가**. 폰트 이름 상수 `fontSerif` 1개 추가(파일 없어도 시스템 fallback로 안전). 기존 상수 변경 0.
+- `Config/ColorTokens.swift` — Diploma 전용 토큰 4개 추가 (`ganhoDiplomaPaper`, `ganhoDiplomaBorder`, `ganhoDiplomaTextDeep`, `ganhoDiplomaTextMuted`). 기존 토큰 변경 0.
 
-### IN (Sprint 3에서 하는 것 — 시각 변경만)
+### OUT — 절대 변경 금지
+- **`ResultScene.init` 9개 인자 시그니처** (`size`, `score`, `bestScore`, `isNewBest`, `stats`, `characterName`, `difficulty`, `isNewGraduation`, `graduatedAt`) — 순서·이름·타입 한 글자도 변경 금지. `newResultScene` 정적 팩토리 시그니처도 동일.
+- `HighScoreRepository` / `StatisticsRepository` / `PerDifficultyScoreRepository` / `GraduationRepository` / `CharacterPreferenceRepository` 저장 키·로직.
+- `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 발화 *조건*과 *타이밍*.
+- DiplomaOverlayNode 본문 텍스트("다사다난한 실습을 마치고 {NAME}는 드디어 졸업하였다." 및 본문 2). `SelfDismissingNode` 자가 소멸 패턴. private init + `present(...)` 정적 팩토리.
+- 2단계 탭 정책: 졸업장 1탭 → 졸업장 닫힘 → ResultScene 노출 → ResultScene 1탭 → StartScene fade.
+- `touchesBegan`의 `diplomaOverlay` 가드, `transitionToStart` 경로(`StartScene.newStartScene()` + `SKTransition.fade`).
+- GameScene.swift의 `ResultScene.newResultScene(...)` 호출부.
+- Sprint 1~3 결과물: ColorTokens v2 16토큰, GameConfig 폰트 3, GlassPillNode / AccentLineNode / DarkContextChipNode / PrimaryButtonNode / BackButtonNode / GradientBackgroundNode.threeStop / PauseButtonNode / SparkleEffectNode 내부 0건.
 
-1. **`GameConfig.swift`**: 체크보드 hex 2개 교체 + Sprint 3 시각 신규 상수 약 30개 추가.
-2. **`GameScene+Setup.swift`**:
-   - `setupBackground()`: `.ganhoBgDeep` → 단색 `.ganhoBgWarmTop` (카메라 follow와 그라데이션 노드 충돌 회피).
-   - `addCheckerboardFloor()` 내부: floor hex 토큰을 ColorTokens의 `ganhoFloorPeachA/B` 직접 참조 또는 GameConfig 교체된 hex 그대로.
-   - `addOuterWalls()`: `.ganhoPaper` → `.ganhoNavyDeep` 색 교체 + 외곽 라운드 보더 SKShapeNode 1개 추가 (physicsBody 0).
-   - `addRectPillar()` / `addCentralPillar()`: 색 `.ganhoNavyDeep`로 교체. PhysicsBody/policy 0건 변경.
-3. **`GameScene.swift`**:
-   - 신규 `pauseButton: PauseButtonNode` 프로퍼티.
-   - `setupPauseButton()` + `layoutPauseButton()` 신설. cameraNode 자식 우상단.
-   - **OUT 명시**: 실제 일시정지 로직 미구현. 시각 placeholder만.
-   - `didMove(to:)`에 `setupPauseButton()` 한 줄 추가, `didChangeSize(_:)`에 `layoutPauseButton()` 한 줄 추가.
-4. **`HUDNode.swift`** + `HUDSlotNode`:
-   - 슬롯 navy 0.78 알약 배경 (rectOf cornerRadius 14).
-   - 라벨 Jua 10pt 골드.
-   - 값 Jua 18pt 흰색.
-   - TIME 슬롯 12초 이하: 배경 색 `ganhoCoralShadow.alpha(0.85)`로 swap.
-   - TIME 슬롯 하단 진행바 (xScale 갱신).
-   - 외부 인터페이스 시그니처 **절대 변경 금지**.
-   - HUDSlotNode init에 `showTimeBar: Bool = false` default 파라미터 추가 (호환성 100%).
-5. **`DPadNode.swift`**:
-   - 4방향 버튼 SKSpriteNode → SKShapeNode 교체 (white 0.75 fill + navy α 0.25 stroke + cornerRadius).
-   - 중앙 데드존 SKShapeNode 추가 (navy α 0.4 cornerRadius 6).
-   - **touch 이벤트와 `updateDirection(forTouchLocation:)` 알고리즘은 한 줄도 변경 금지**.
-6. **`SkillButtonNode.swift`**:
-   - 본체 SKShapeNode(circleOfRadius: 36) — 코랄 fill + white α 0.8 stroke.
-   - 라벨 Jua 18pt 흰색.
-   - 우상단 `DarkContextChipNode(label: "B")` 자식.
-   - 본체 아래 `DarkContextChipNode(label: skill 이름 + CD 텍스트)` 자식.
-   - `onTap`/`isEnabled`/`configure(skill:)`/`setEnabled(_:)` 시그니처 **절대 변경 금지**.
-7. **`HUDSkillSlotNode.swift`**:
-   - 폰트 fontName 명시 (`fontDisplay`).
-   - 진행 링 색을 ColorTokens v2(`ganhoCoralPrimary`/`ganhoMusicGold`)로 매핑.
-   - `configure/update(progress:)` 시그니처/분기 보존.
-8. **`NoteNode.swift`**:
-   - 시각 자식 3개 추가: 글로우(z=-1) + 본체 골드 원 + 흰 링 (lineWidth=2).
-   - 본체 `SKSpriteNode.color = .clear`.
-   - 펄스 SKAction `repeatForever` 부착 (withKey 멱등).
-   - **PhysicsBody size/category/contact/dynamic 절대 보존**.
-9. **`ProjectileNode.swift`**:
-   - 시각 자식 2개 추가: 코랄 22×22 라운드 사각형 + 흰 "F" Jua 14pt 라벨.
-   - `zRotation = -12°` 회전.
-   - **PhysicsBody size = projectileSize 절대 보존** (시각 자식 22pt와 분리).
-   - `applyEnchanted/clearEnchanted` 동작: 자식 SKShape.fillColor 교체로 시각만 옮김. 시그니처/타이밍 0건 변경.
-10. **`ComboPopupNode.swift`**:
-    - fontName = `fontDisplay`, fontSize = 32 (신규 상수, 기존 48 상수는 보존).
-    - color 4단계 분기 v2 토큰 매핑.
-    - navy 외곽선 4방향 1pt 오프셋 자식 4개.
-    - `zRotation = -8°`.
-    - `animate()` SKAction 본문 0건 변경.
-11. **`ComboBreakNode.swift`**:
-    - fontName = `fontDisplay`, fontSize = 28 (신규 상수).
-    - color → `ganhoCoralShadow`.
-    - 동일 navy 외곽선 시뮬레이션.
-    - `animate()` 본문 0건 변경.
-12. **`PauseButtonNode.swift`** (신규):
-    - final class : SKNode.
-    - SKShapeNode 32×32 navy α 0.78 + 흰 || 두 줄.
-    - `isUserInteractionEnabled = false` (Sprint 3 시각만).
-
-### OUT (Sprint 3에서 절대 하지 않는 것)
-
-#### 게임 수치 (DESIGN_RENEWAL_REQUEST.md §6.1 — 한 줄도 무변)
-- `scorePerNote`, `scorePerNoteCombo`
-- `comboWindow`, `comboBonusThreshold`, `comboMilestones`, `comboBreakThreshold`
-- `projectileSpeed`, `projectileSize` (16 그대로 — PhysicsBody size)
-- F 투사체 발사 주기 difficulty별
-- `tileSize`(20), `mapColumns/Rows` (48/24), `mapWidth/Height`
-- `gameDuration`(45), 카운트다운
-- `noteSize`(16), `tensionWindow`(12), `tensionRate*`
-
-#### 게임 로직 (§6.2)
-- `ContactRouter` 충돌 분기, `PhysicsCategory` bitmask
-- `PlayerSkill` 4종 효과/쿨다운/duration/oncePerGame
-- `Difficulty` 분기 (easy/normal/hard)
-- `EnemyNode/ProfessorNode/StoneGuardNode` AI/이동/patrol
-- 저장소 5개 (HighScore/Statistics/PerDifficultyScore/Graduation/CharacterPreference) 저장 키/구조
-- `SpawnSystem` 내부, `ScoreSystem` 내부, `SkillSystem` 내부
-- 씬 전환 로직
-- 컷씬 본문/onDismiss 흐름
-
-#### 좌표·물리·카메라
-- 48×24 타일, tileSize=20pt, 원점 좌하단
-- `worldNode`/`cameraNode` 구조와 카메라 follow
-- 모든 PhysicsBody size/category/contact/collision/isDynamic/friction/restitution/linearDamping
-- `setupCamera()` 위치
-
-#### 사운드·햅틱
-- `BGMPlayer` 호출, `AudioManager.play`, `HapticsManager.*` 모든 호출 지점
-
-#### Sprint 1/2 보호 자산
-- `ColorTokens` 16개 토큰 hex
-- `GameConfig` 폰트 3개 + Sprint 1/2 상수 약 70개 (참조만)
-- Sprint 1 컴포넌트 6개 내부
-- StartScene / CharacterSelectScene / SkillExplanationScene git diff 0줄
-- ResultScene / DiplomaOverlayNode git diff 0줄
-
-#### 입력 시스템
-- `DPadNode.touchesBegan/Moved/Ended/Cancelled`, `updateDirection`, `currentDirection`
-- `SkillButtonNode.touchesBegan(_:with:)` 본문, `onTap` 발화 시점
-- `GameScene.update`의 입력 가드 블록 (`if !skillSystem.isDashing && !player.isFrozen`)
+### 판단 기준
+"이 변경이 없으면 SPEC 시각이 안 나오는가?" YES면 허용, NO면 금지.
 
 ---
 
-## 불변 계약 표 (Evaluator 회귀 검증용)
+## 불변 계약 표
 
-### 게임 수치 보존
-| 항목 | 검증 |
-|---|---|
-| scorePerNote / scorePerNoteCombo / comboWindow / comboMilestones / comboBreakThreshold / projectileSpeed / projectileSize / tileSize / mapColumns / mapRows / gameDuration / noteSize / tensionWindow | grep 후 미변경 |
-| checkerboardFloorAHex/BHex | 두 줄만 v2로 hex 교체 (#FFEFE0 / #FFDFC8) |
+| 항목 | 출처 / 위치 | 보존 요구 |
+|---|---|---|
+| ResultScene init 시그니처 | `ResultScene.swift` factory + init | 9개 인자 순서·이름·타입 한 글자도 동일 |
+| ResultScene 호출부 | `GameScene.swift` endGame() | 한 줄도 변경 금지 |
+| HighScoreRepository / StatisticsRepository / PerDifficultyScoreRepository / GraduationRepository | GameScene.endGame() 내부 | ResultScene 진입 *전*에 record가 완료된다는 전제. ResultScene은 *결과 데이터만* 받음 |
+| heavy 햅틱 발화 | `revealNewBest()` 첫 줄 `haptics.heavy()` | `isNewBest=true` → `scheduleNewBestReveal()` → `wait 0.3s` → `revealNewBest()` 시퀀스 보존 |
+| NewMail 사운드 발화 | `revealNewBest()` 두 번째 줄 `audio.play(.comboMilestoneStrong)` | 동일 시퀀스 |
+| DiplomaOverlayNode 본문 텍스트 | `DiplomaOverlayNode.swift` body1/body2 | 글자 그대로. {NAME} 치환 로직 보존 |
+| SelfDismissingNode 패턴 | `DiplomaOverlayNode.swift` `dismiss()` | `isUserInteractionEnabled=false` + `onDismiss=nil` + `fadeOut → removeFromParent → notify` 시퀀스 |
+| 2단계 탭 정책 | ResultScene touchesBegan + `presentDiploma`의 `onDismiss: {}` | `children.contains(where: { $0.name == "diplomaOverlay" })` 가드 유지 |
+| 1탭 → StartScene fade | ResultScene transitionToStart | `StartScene.newStartScene()` + `SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)` |
 
-### 물리/로직 보존
-| 노드 | 검증 |
-|---|---|
-| NoteNode | PhysicsBody rectangleOf(noteSize²), isDynamic=false, category=note, collision=0, contactTest=player, name="note", `applyLifetime` 보존 |
-| ProjectileNode | PhysicsBody rectangleOf(projectileSize²)=16, isDynamic=true, allowsRotation=false, category=projectile, collision=0, contactTest=player\|wall, name="projectile", `applyEnchanted/clearEnchanted/isEnchanted` 보존 |
-| Walls/Pillars | PhysicsBody size/policy 보존 |
-| DPadNode | 4 touch 메서드 본문/`updateDirection` 알고리즘/`currentDirection` 타입 정확 보존 |
-| HUDNode | `update(score:remainingTime:combo:)`/`setCharacterName`/`startTensionBlink`/`stopTensionBlink` 시그니처 보존 |
-| SkillButtonNode | `configure(skill:)`/`setEnabled(_:)`/`onTap`/`isUserInteractionEnabled` 보존 |
-| HUDSkillSlotNode | `configure(skill:)`/`update(progress:)` 4상태 분기 보존 |
-| ComboPopupNode/ComboBreakNode | `animate()` SKAction 본문 보존 |
+---
 
-### 호출자 보존 (GameScene 본체)
-| 위치 | 보존 |
-|---|---|
-| `update(_:)` | 0줄 변경 |
-| `endGame()` | 0줄 변경 |
-| `configureContactRouter()` | 0줄 변경 |
-| `setupWorld/setupMap/setupPlayer/setupEnemy/setupStoneGuard/setupProfessor/setupCamera/setupDPad/setupHUD/setupSkillButton/setupHUDSkillSlot` | 호출 흐름 0건 변경 |
-| `setupBackground` | 색 한 줄 교체만 허용 |
-| `addNormalMap/addHardMap/addCentralPillar` | 좌표 0건 변경 |
-| `didMove(to:)` | setupPauseButton 한 줄 추가만 허용 |
-| `didChangeSize(_:)` | layoutPauseButton 한 줄 추가만 허용 |
+## 3 분기별 시각 명세
+
+### 분기 A: 일반 결과 (기본)
+- **트리거**: `isNewBest=false && isNewGraduation=false`
+- **배경**: 3-stop warm 그라데이션 — `GradientBackgroundNode.threeStop(...)`. zPosition 매우 낮음 (기존 검정 반투명 사각형 *교체*).
+- **카드**: 기존 `setupOverlayPanel()` SKShapeNode 활용. `fillColor`를 `UIColor.white.withAlphaComponent(0.88)` (신규 토큰 `ganhoResultCardFillV2`). cornerRadius 22.
+- **AccentLine**: 카드 상단 내부 `AccentLineNode()`, y 오프셋 +130.
+- **헤더 칩**: `DarkContextChipNode(label: "\(difficulty.shortName) 난이도 · \(characterName)", badge: nil)` 한 줄 통합.
+- **타이틀**: "실습 종료" — Jua 30pt, navyDeep.
+- **부제(신규)**: "수고했어요! 한 번 더 해볼까요?" — Gowun Dodum 12pt, navyMuted.
+- **점수**: "♪ \(finalScore)" — Jua 64pt, **ganhoCoralPrimary**.
+- **점수 라벨(신규)**: "SCORE" — Gowun Dodum 11pt, navyMuted.
+- **BEST 칩**: "🏆 BEST \(bestScore)" — 골드 톤 알약.
+- **divider(신규)**: 가로 60% navyDeep α=0.18 라인.
+- **통계 stats**: PLAYS·TOTAL 두 그룹. 숫자 Jua 14, 라벨 Gowun Dodum 11.
+- **버튼 2개**: `GlassPillNode("📤 공유")` + `PrimaryButtonNode("다시 시작")`.
+- **sparkle**: 없음.
+
+### 분기 B: 신기록 (isNewBest=true)
+A와 동일하되:
+- **타이틀**: "✨ NEW BEST! ✨" — 골드 톤 (titleLabel.text 분기로 교체 + fontColor=ganhoMusicGold). 기존 `newBestLabel`은 화면 정 가운데 큰 라벨로 유지(y 분리).
+- **부제**: "최고 기록을 갱신했어요!" — Gowun Dodum 12pt navyMuted.
+- **점수 색**: `scoreLabel.fontColor = .ganhoMusicGold`.
+- **점수 부제**: "NEW SCORE".
+- **BEST 칩**: 기존 `startBestLabelGoldBlink()` 패턴 그대로 (shimmer 알파 펄스).
+- **별 파편**: `revealNewBest()` 내부에서 `SparkleEffectNode()` 5개를 카드 주변 5개 좌표에 부착 + `emit()` 호출.
+- **shareButton 텍스트**: "📤 자랑하기".
+- **햅틱·사운드**: `revealNewBest()` 기존 `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 그대로.
+
+### 분기 C: 졸업장 (isNewGraduation=true && graduatedAt != nil)
+A 분기 카드 위에 `DiplomaOverlayNode`가 덮음 (기존 `presentDiploma` 호출 유지).
+- **DiplomaOverlayNode 시각**:
+  - **배경**: 기존 `background: SKSpriteNode(color: .ganhoYellowF α=0.92)` 유지.
+  - **종이 카드**: SKShapeNode 520×320 cornerRadius 8, fillColor `ganhoDiplomaPaper`(#FFF9EA), strokeColor `ganhoDiplomaBorder`(#C76F00), lineWidth 4, zRotation -2°.
+  - **우드컷 도트 패턴**: **단일 SKShapeNode + CGMutablePath** (도트 1100개를 path에 누적 — 노드 1개로 통합 = 성능 안전).
+  - **double-border**: ㄱ자 코너 데코 2개(좌상·우하), strokeColor `ganhoDiplomaBorder` lineWidth 3.
+  - **명조 폰트**: 라벨 7개 모두 `fontName = GameConfig.fontSerif` ("GowunBatang-Regular"). ttf 미존재 시 시스템 fallback (안전).
+  - **라벨 색**: titleEn/issuer/date/tap = `ganhoDiplomaTextMuted`(#8B5A0E), titleKo/body1/body2 = `ganhoDiplomaTextDeep`(#5A3A0E).
+  - **도장**: SKShapeNode 원 r=28 우하단 + "김간호\n음악대학" 라벨(Jua 9pt, coralShadow). -12° 회전.
+  - **TAP 안내**: 기존 `tapLabel` 보존.
+- **탭 동작**: 기존 `dismiss()` → `onDismiss = {}` → ResultScene 노출 → 1탭 → StartScene. **2단계 탭 정책 보존**.
 
 ---
 
 ## 파일별 변경 명세
 
-### 1. `Config/GameConfig.swift`
+### 1) `Scenes/ResultScene.swift`
 
-#### 1.1 체크보드 hex 교체
+#### MARK: - Properties (신규 추가)
 ```swift
-static let checkerboardFloorAHex: String = "#FFEFE0"  // (was #1a1722)
-static let checkerboardFloorBHex: String = "#FFDFC8"  // (was #13111a)
+private let subtitleLabel = SKLabelNode(text: "")
+private let scoreSubLabel = SKLabelNode(text: "SCORE")
+private let bestChipBg = SKShapeNode()
+private let divider = SKShapeNode()
+private let playsValueLabel = SKLabelNode(text: "")
+private let playsTitleLabel = SKLabelNode(text: "PLAYS")
+private let totalValueLabel = SKLabelNode(text: "")
+private let totalTitleLabel = SKLabelNode(text: "TOTAL")
+private let shareButton: GlassPillNode  // init에서 정식 생성 (text/size 분기)
+private let restartButton = PrimaryButtonNode(text: "다시 시작")
+private var headerChip: DarkContextChipNode?
+private var gradientBg: GradientBackgroundNode?
+private let accentLine = AccentLineNode()
 ```
 
-#### 1.2 Sprint 3 신규 상수
+#### MARK: - Lifecycle
+`didMove(to:)`:
+1. `setupBackgroundGradient()` (신규) — 기존 `backgroundColor` 라인 제거 또는 `.clear`. `GradientBackgroundNode.threeStop(...)`를 zPosition=-20에 부착.
+2. `setupOverlayPanel()` — 보존하되 색 토큰 갈아 끼움.
+3. `setupLabels()` — 가지치기.
+
+#### MARK: - setupOverlayPanel (수정)
+- `bg`(전체 반투명 검정) alpha=0 (그라데이션이 배경 담당).
+- `panel.fillColor = UIColor.white.withAlphaComponent(0.88)`.
+- `panel.strokeColor = .clear`.
+- cornerRadius `resultCardCornerRadiusV2 = 22`.
+
+#### MARK: - setupLabels (확장)
+순서:
+1. 기존 6개 라벨 fontName/fontSize/fontColor를 v2 토큰으로 교체 (분기별).
+2. characterLabel·difficultyLabel·statsLabel alpha=0 (headerChip + stat 그룹이 대체).
+3. headerChip 부착 (`DarkContextChipNode`).
+4. AccentLine 부착.
+5. subtitleLabel 부착 (분기별 텍스트).
+6. scoreSubLabel 부착 ("SCORE" / "NEW SCORE").
+7. divider 부착.
+8. setupStats() — PLAYS/TOTAL 4 라벨.
+9. setupButtons() — shareButton/restartButton.
+10. layoutLabels().
+11. **기존 분기 2개**(isNewBest → configureNewBestLabel + scheduleNewBestReveal / isNewGraduation → presentDiploma) **한 글자도 변경 금지**.
+
+#### MARK: - setupStats (신규)
+4 라벨 init + addChild.
+
+#### MARK: - setupButtons (신규)
+shareButton(분기별 텍스트 "📤 공유" / "📤 자랑하기") + restartButton addChild.
+
+#### MARK: - layoutLabels (확장)
+신규 자식 위치를 frame.midY 기준 offset 배치:
+| 자식 | y 오프셋 |
+|---|---|
+| accentLine | +130 |
+| headerChip | +100 |
+| titleLabel | +70 |
+| subtitleLabel | +44 |
+| scoreLabel | -2 |
+| scoreSubLabel | -32 |
+| bestLabel | -60 |
+| divider | -90 |
+| stats values | -110 (midX ± 50) |
+| stats titles | -124 (midX ± 50) |
+| shareButton | -180 (midX-70) |
+| restartButton | -180 (midX+80) |
+
+#### MARK: - revealNewBest (수정)
 ```swift
-// MARK: - Sprint 3 · v2 Game Visual
-
-// HUD 슬롯 칩
-static let hudSlotBgAlpha: CGFloat = 0.78
-static let hudSlotCornerRadius: CGFloat = 14
-static let hudSlotWidth: CGFloat = 78
-static let hudSlotHeight: CGFloat = 44
-static let hudSlotV2LabelFontSize: CGFloat = 10
-static let hudSlotV2ValueFontSize: CGFloat = 18
-static let hudSlotV2LabelColor: UIColor = .ganhoMusicGold
-static let hudSlotV2ValueColor: UIColor = .white
-static let hudSlotWarnBgAlpha: CGFloat = 0.85
-static let hudTimeBarHeight: CGFloat = 3
-static let hudTimeBarTopGap: CGFloat = 3
-static let hudTimeBarBgAlpha: CGFloat = 0.18
-
-// D-Pad v2
-static let dpadCenterDeadzoneSize: CGFloat = 32
-static let dpadCenterDeadzoneAlpha: CGFloat = 0.4
-static let dpadCenterDeadzoneCornerRadius: CGFloat = 6
-static let dpadButtonFillAlpha: CGFloat = 0.75
-static let dpadButtonStrokeAlpha: CGFloat = 0.25
-static let dpadButtonCornerRadius: CGFloat = 10
-static let dpadButtonStrokeLineWidth: CGFloat = 2
-
-// Skill Button v2
-static let skillButtonV2Radius: CGFloat = 36
-static let skillButtonV2StrokeWidth: CGFloat = 3
-static let skillButtonV2KeyLabelOffset: CGFloat = 28
-static let skillButtonNameChipOffsetY: CGFloat = -52
-static let skillButtonKeyText: String = "B"
-
-// Pause Button v2
-static let pauseButtonSize: CGFloat = 32
-static let pauseButtonCornerRadius: CGFloat = 10
-static let pauseButtonBgAlpha: CGFloat = 0.78
-static let pauseButtonBarWidth: CGFloat = 4
-static let pauseButtonBarHeight: CGFloat = 14
-static let pauseButtonBarGap: CGFloat = 2
-static let pauseButtonMarginX: CGFloat = 28
-static let pauseButtonMarginY: CGFloat = 18
-
-// Note v2
-static let noteV2GlowRadius: CGFloat = 16
-static let noteV2GlowAlpha: CGFloat = 0.5
-static let noteV2RingLineWidth: CGFloat = 2
-static let noteV2PulseDuration: TimeInterval = 1.4
-static let noteV2PulseScale: CGFloat = 1.08
-static let noteV2PulseActionKey: String = "noteV2Pulse"
-
-// Projectile v2
-static let projectileV2VisualSize: CGFloat = 22
-static let projectileV2CornerRadius: CGFloat = 6
-static let projectileV2RotationDegrees: CGFloat = -12
-static let projectileV2LabelText: String = "F"
-static let projectileV2LabelFontSize: CGFloat = 14
-
-// ComboPopup v2 / ComboBreak v2
-static let comboPopupV2FontSize: CGFloat = 32
-static let comboBreakV2FontSize: CGFloat = 28
-static let comboPopupV2OutlineWidth: CGFloat = 1
-static let comboPopupV2RotationDegrees: CGFloat = -8
-
-// Outer wall border
-static let outerWallBorderLineWidth: CGFloat = 3
-static let outerWallBorderCornerRadius: CGFloat = 18
-```
-
-> **금지**: 기존 `hudValueFontSize`, `hudLabelFontSize`, `comboPopupFontSize` 등 *기존 상수의 값* 변경. 새 v2 상수 추가만. (체크보드 hex 2개만 예외 — DESIGN_RENEWAL_REQUEST §4.4 명시)
-
-### 2. `GameScene+Setup.swift`
-
-#### 2.1 `setupBackground()`
-```swift
-backgroundColor = .ganhoBgWarmTop
-```
-> 인게임은 카메라 follow가 있어서 GradientBackgroundNode를 worldNode 자식으로 두면 카메라 따라 움직임이 어색. 단색 backgroundColor가 안정.
-
-#### 2.2 `addCheckerboardFloor()` — 색만 교체
-- 1152개 노드 생성 루프 / zPosition / physicsBody 미부착 정책 **0건 변경**.
-- floor 색은 ColorTokens의 `ganhoFloorPeachA/B` 또는 GameConfig 교체된 hex 그대로 참조.
-
-#### 2.3 `addOuterWalls()`
-- 4개 `SKSpriteNode.color = .ganhoNavyDeep` 교체.
-- PhysicsBody, size, position 0건 변경.
-- 함수 끝에 외곽 라운드 보더 SKShapeNode 1개 부착(physicsBody 0, zPosition -50):
-  ```swift
-  let borderRect = CGRect(x: 0, y: 0, width: GameConfig.mapWidth, height: GameConfig.mapHeight)
-  let border = SKShapeNode(rect: borderRect, cornerRadius: GameConfig.outerWallBorderCornerRadius)
-  border.strokeColor = .ganhoNavyDeep
-  border.lineWidth = GameConfig.outerWallBorderLineWidth
-  border.fillColor = .clear
-  border.zPosition = -50
-  worldNode.addChild(border)
-  ```
-
-#### 2.4 `addRectPillar()` / `addCentralPillar()`
-- `SKSpriteNode.color = .ganhoNavyDeep`로 교체.
-- PhysicsBody/breakable name 0건 변경.
-
-#### 2.5 `setupPauseButton()` / `layoutPauseButton()` 신설
-```swift
-func setupPauseButton() {
-    cameraNode.addChild(pauseButton)
-    layoutPauseButton()
+private func revealNewBest() {
+    haptics.heavy()                    // 보존 — 발화 조건/타이밍 동일
+    audio.play(.comboMilestoneStrong)  // 보존
+    // ... 기존 fadeIn / scale pulse / startBestLabelGoldBlink 보존
+    emitSparkleBurst()                 // 신규 — 마지막 라인 추가
 }
 
-func layoutPauseButton() {
-    let halfW = size.width / 2
-    let halfH = size.height / 2
-    pauseButton.position = CGPoint(
-        x: +(halfW - GameConfig.pauseButtonMarginX),
-        y: +(halfH - GameConfig.pauseButtonMarginY)
-    )
-}
-```
-
-### 3. `GameScene.swift`
-
-#### 3.1 신규 프로퍼티 1개
-```swift
-let pauseButton = PauseButtonNode()
-```
-
-#### 3.2 `didMove(to:)` 끝에 한 줄 추가
-```swift
-setupPauseButton()
-```
-
-#### 3.3 `didChangeSize(_:)` 한 줄 추가
-```swift
-layoutPauseButton()
-```
-
-> `update(_:)`, `endGame()`, `configureContactRouter()`, 컷씬 메서드, `triggerComboBreak`, `playComboMilestoneFeedback` 등 **한 줄도 안 건드린다**.
-
-### 4. `Nodes/HUDNode.swift` (+ `HUDSlotNode`)
-
-#### 4.1 HUDSlotNode init 시그니처 변경
-```swift
-init(label: String, initialValue: String, showTimeBar: Bool = false)
-```
-호환성 100%. 기존 호출(HUDNode init 4개) 중 timeSlot만 `showTimeBar: true` 변경.
-
-#### 4.2 HUDSlotNode 자식 추가
-- `backgroundChip: SKShapeNode` — navy 0.78 알약 (zPosition 99)
-- 라벨/값 fontName = `GameConfig.fontDisplay`, fontColor 매핑
-- 라벨 fontSize = `hudSlotV2LabelFontSize` (10)
-- 값 fontSize = `hudSlotV2ValueFontSize` (18)
-- showTimeBar=true 시 timeBarBg + timeBarFill SKSpriteNode 2개 자식 추가
-
-#### 4.3 신규 메서드 2개
-```swift
-func setWarn(_ on: Bool) {
-    backgroundChip.fillColor = on
-        ? UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.hudSlotWarnBgAlpha)
-        : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.hudSlotBgAlpha)
-}
-
-func setTimeBar(progress: CGFloat) {
-    timeBarFill?.xScale = max(0, min(1, progress))
-}
-```
-
-#### 4.4 HUDNode.update — 끝에 블록 추가
-```swift
-let warn = remainingTime <= GameConfig.tensionWindow
-timeSlot.setWarn(warn)
-let progress = CGFloat(remainingTime / GameConfig.gameDuration)
-timeSlot.setTimeBar(progress: progress)
-```
-
-콤보 hot 색 매핑 / tensionBlink 색을 v2 토큰(`ganhoMusicGold` ↔ `white`)로 교체. 시그니처 0 변경.
-
-### 5. `Nodes/DPadNode.swift`
-
-- 4 SKSpriteNode → 4 SKShapeNode 교체 (rectOf cornerRadius).
-- fillColor white α 0.75, strokeColor navy α 0.25, lineWidth 2.
-- 중앙 데드존 SKShapeNode 1개 추가 (z=0, navy α 0.4).
-- 각 버튼 내 작은 화살표 SKLabelNode 자식(선택, fontDisplay 14pt navy).
-- `name` ("dpadUp/Down/Left/Right") 유지.
-- position offset 산출 그대로.
-- `alpha`, `isUserInteractionEnabled` 그대로.
-- **touch 메서드 4개 본문 + `updateDirection(forTouchLocation:)` 0건 변경**.
-
-### 6. `Nodes/SkillButtonNode.swift`
-
-- 본체 `backgroundNode: SKShapeNode(circleOfRadius: skillButtonV2Radius)`.
-- fillColor `.ganhoCoralPrimary`, strokeColor white α 0.8, lineWidth 3.
-- 중앙 `labelNode`: fontName = fontDisplay, fontColor white, fontSize 18. 텍스트는 짧게 (skill displayName 첫 글자 또는 "🎵").
-- 신규 자식 `keyLabelChip: DarkContextChipNode(label: "B")` 우상단 (skillButtonV2KeyLabelOffset).
-- 신규 자식 `nameTagChip: DarkContextChipNode(label: skill.displayName + " · CD …초")` 본체 아래 (skillButtonNameChipOffsetY).
-- `configure(skill:)` 호출 시 keyLabelChip/nameTagChip 업데이트.
-- `setEnabled(_:)`/`onTap`/`isUserInteractionEnabled`/`touchesBegan` 시그니처 정확 보존.
-
-### 7. `Nodes/HUDSkillSlotNode.swift`
-
-- labelNode/valueNode 둘 다 fontName = fontDisplay 명시.
-- ringFillNode 분기 색을 v2 토큰으로:
-  - READY: `ganhoMusicGold` stroke + α 0.15 fill
-  - 쿨다운 중: `ganhoCoralPrimary` stroke + clear fill
-  - USED: alpha 0
-- `configure/update(progress:)` 시그니처/4상태 분기 본문 그대로.
-
-### 8. `Nodes/NoteNode.swift`
-
-```swift
-// init() 끝에 자식 3개 추가 (physicsBody 부착 이후)
-
-let glow = SKShapeNode(circleOfRadius: GameConfig.noteV2GlowRadius)
-glow.fillColor = UIColor.ganhoMusicGold.withAlphaComponent(GameConfig.noteV2GlowAlpha)
-glow.strokeColor = .clear
-glow.zPosition = -1
-glow.blendMode = .add
-addChild(glow)
-
-let core = SKShapeNode(circleOfRadius: GameConfig.noteSize / 2)
-core.fillColor = .ganhoMusicGold
-core.strokeColor = .white
-core.lineWidth = GameConfig.noteV2RingLineWidth
-core.zPosition = 0
-addChild(core)
-
-let scaleUp = SKAction.scale(to: GameConfig.noteV2PulseScale,
-                              duration: GameConfig.noteV2PulseDuration / 2)
-let scaleDown = SKAction.scale(to: 1.0,
-                                duration: GameConfig.noteV2PulseDuration / 2)
-let pulse = SKAction.sequence([scaleUp, scaleDown])
-run(.repeatForever(pulse), withKey: GameConfig.noteV2PulseActionKey)
-```
-
-- 본체 `SKSpriteNode.color = .clear`로 변경 (시각 위임).
-- **PhysicsBody size = noteSize²**, isDynamic=false, category=note, name="note" 정확 보존.
-- `applyLifetime(_:)` 시그니처/본문 정확 보존.
-
-### 9. `Nodes/ProjectileNode.swift`
-
-```swift
-// init() 끝에 자식 2개 + zRotation 추가
-
-let body = SKShapeNode(
-    rectOf: CGSize(width: GameConfig.projectileV2VisualSize,
-                   height: GameConfig.projectileV2VisualSize),
-    cornerRadius: GameConfig.projectileV2CornerRadius
-)
-body.fillColor = .ganhoCoralShadow
-body.strokeColor = .clear
-body.zPosition = 0
-addChild(body)
-
-let fLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-fLabel.text = GameConfig.projectileV2LabelText
-fLabel.fontSize = GameConfig.projectileV2LabelFontSize
-fLabel.fontColor = .white
-fLabel.verticalAlignmentMode = .center
-fLabel.horizontalAlignmentMode = .center
-fLabel.zPosition = 1
-addChild(fLabel)
-
-zRotation = GameConfig.projectileV2RotationDegrees * .pi / 180
-```
-
-- 본체 `SKSpriteNode.color = .clear`.
-- **PhysicsBody size = projectileSize²** (16) 정확 보존. 시각 자식 22pt와 분리.
-- `applyEnchanted()`/`clearEnchanted()` 동작: `body.fillColor` 교체로 시각 옮김. 시그니처/타이밍 0건 변경.
-
-### 10. `Nodes/ComboPopupNode.swift`
-
-- `label.fontName = GameConfig.fontDisplay`, `label.fontSize = comboPopupV2FontSize` (32).
-- color(for:) 매핑 v2 토큰:
-  - case 3: `.ganhoMusicGold`
-  - case 5: `.ganhoCoralPrimary`
-  - case 10: `.ganhoMusicGold`
-  - case 20: `.ganhoCoralShadow`
-  - default: `.ganhoMusicGold`
-- 외곽선 navy 4방향 1pt 자식 4개 (zPosition -1).
-- `zRotation = comboPopupV2RotationDegrees * .pi / 180`.
-- `animate()` SKAction 본문 0건 변경.
-
-### 11. `Nodes/ComboBreakNode.swift`
-
-- `label.fontName = GameConfig.fontDisplay`, `label.fontSize = comboBreakV2FontSize` (28).
-- `label.fontColor = .ganhoCoralShadow` (기존 색 → v2 토큰).
-- 외곽선 navy 4방향 시뮬레이션.
-- `animate()` 본문 0건 변경.
-
-### 12. `Nodes/PauseButtonNode.swift` (신규)
-
-```swift
-import SpriteKit
-
-final class PauseButtonNode: SKNode {
-
-    // MARK: - Properties
-    private let background: SKShapeNode
-    private let bar1: SKSpriteNode
-    private let bar2: SKSpriteNode
-
-    // MARK: - Init
-    override init() {
-        let size = CGSize(width: GameConfig.pauseButtonSize, height: GameConfig.pauseButtonSize)
-        background = SKShapeNode(rectOf: size, cornerRadius: GameConfig.pauseButtonCornerRadius)
-        let barSize = CGSize(width: GameConfig.pauseButtonBarWidth, height: GameConfig.pauseButtonBarHeight)
-        bar1 = SKSpriteNode(color: .white, size: barSize)
-        bar2 = SKSpriteNode(color: .white, size: barSize)
-        super.init()
-        name = "pauseButton"
-        zPosition = 200
-
-        background.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.pauseButtonBgAlpha)
-        background.strokeColor = .clear
-        addChild(background)
-
-        let barOffset = (GameConfig.pauseButtonBarWidth + GameConfig.pauseButtonBarGap) / 2
-        bar1.position = CGPoint(x: -barOffset, y: 0)
-        bar2.position = CGPoint(x: +barOffset, y: 0)
-        addChild(bar1)
-        addChild(bar2)
-
-        isUserInteractionEnabled = false  // Sprint 3: 시각 placeholder만
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+private func emitSparkleBurst() {
+    for offset in GameConfig.resultSparklePositionsV2 {
+        let sparkle = SparkleEffectNode()
+        sparkle.position = CGPoint(x: frame.midX + offset.x, y: frame.midY + offset.y)
+        sparkle.zPosition = GameConfig.newBestZPosition + 1
+        addChild(sparkle)
+        sparkle.emit()
     }
 }
 ```
+
+#### MARK: - configureLabelV2 (신규 헬퍼)
+```swift
+private func configureLabelV2(_ label: SKLabelNode,
+                               text: String,
+                               fontName: String,
+                               fontSize: CGFloat,
+                               fontColor: UIColor) {
+    label.text = text
+    label.fontName = fontName
+    label.fontSize = fontSize
+    label.fontColor = fontColor
+    label.horizontalAlignmentMode = .center
+    label.verticalAlignmentMode = .center
+}
+```
+
+#### MARK: - touchesBegan (보존)
+한 줄도 변경 없음. shareButton/restartButton 시각만 — 탭은 기존 1탭 → StartScene 경로 그대로.
+
+### 2) `Nodes/DiplomaOverlayNode.swift`
+
+#### MARK: - Properties (신규)
+```swift
+private let paperCard: SKShapeNode
+private let topLeftBorder: SKShapeNode
+private let bottomRightBorder: SKShapeNode
+private let stamp: SKShapeNode
+private let stampLabel: SKLabelNode
+private let dotsPattern: SKShapeNode   // 단일 노드, CGMutablePath
+```
+
+#### MARK: - Init (수정 — 시각만 추가)
+- 기존 background SKSpriteNode + 라벨 7개 그대로.
+- `configureBackground()`에서 paperCard / dotsPattern / 코너 데코 / 도장 부착.
+- 라벨 7개 fontName을 `GameConfig.fontSerif`로 교체.
+- 라벨 색을 명조 톤으로 분기 (titleEn/issuer/date/tap = TextMuted, titleKo/body1/body2 = TextDeep).
+- **본문 텍스트 한 글자도 변경 금지**. `{NAME}` 치환 로직 그대로.
+
+#### MARK: - configureBackground (확장)
+```swift
+private func configureBackground() {
+    background.position = .zero
+    background.zPosition = 0
+
+    paperCard.path = CGPath(roundedRect: CGRect(
+        x: -GameConfig.diplomaPaperWidthV2/2,
+        y: -GameConfig.diplomaPaperHeightV2/2,
+        width: GameConfig.diplomaPaperWidthV2,
+        height: GameConfig.diplomaPaperHeightV2
+    ), cornerWidth: 8, cornerHeight: 8, transform: nil)
+    paperCard.fillColor = .ganhoDiplomaPaper
+    paperCard.strokeColor = .ganhoDiplomaBorder
+    paperCard.lineWidth = 4
+    paperCard.zRotation = -CGFloat.pi / 90  // -2°
+    paperCard.zPosition = 0.5
+    addChild(paperCard)
+
+    buildDotsPattern()
+    configureCornerDeco()
+    configureStamp()
+}
+
+private func buildDotsPattern() {
+    // 단일 SKShapeNode + CGMutablePath addEllipse N회 누적
+    let cardW = GameConfig.diplomaPaperWidthV2
+    let cardH = GameConfig.diplomaPaperHeightV2
+    let step = GameConfig.diplomaDotStepV2
+    let radius = GameConfig.diplomaDotRadiusV2
+
+    let path = CGMutablePath()
+    var x = -cardW/2 + step
+    while x < cardW/2 {
+        var y = -cardH/2 + step
+        while y < cardH/2 {
+            path.addEllipse(in: CGRect(x: x - radius, y: y - radius,
+                                        width: radius * 2, height: radius * 2))
+            y += step
+        }
+        x += step
+    }
+    dotsPattern.path = path
+    dotsPattern.fillColor = UIColor(hex: "#FFEDC6").withAlphaComponent(0.4)
+    dotsPattern.strokeColor = .clear
+    dotsPattern.zPosition = 0.7
+    dotsPattern.zRotation = -CGFloat.pi / 90
+    addChild(dotsPattern)
+}
+```
+
+#### MARK: - configureCornerDeco (신규)
+ㄱ자 path 2개(좌상·우하), strokeColor `ganhoDiplomaBorder` lineWidth 3, zRotation -2°.
+
+#### MARK: - configureStamp (신규)
+원 r=28 + 라벨 "김간호\n음악대학" Jua 9pt coralShadow. -12° 회전. 우하단.
+
+#### MARK: - dismiss / touchesBegan / present (보존)
+한 글자도 변경 없음.
+
+### 3) `Config/GameConfig.swift`
+
+#### MARK: - Sprint 5 · ResultScene v2 Layout (신규)
+```swift
+// 폰트
+static let fontSerif: String = "GowunBatang-Regular"
+
+// ResultScene v2
+static let resultCardCornerRadiusV2: CGFloat = 22
+static let resultAccentLineOffsetYV2: CGFloat = 130
+static let resultHeaderChipOffsetYV2: CGFloat = 100
+static let resultTitleOffsetYV2: CGFloat = 70
+static let resultTitleFontSizeV2: CGFloat = 30
+static let resultSubtitleOffsetYV2: CGFloat = 44
+static let resultSubtitleFontSizeV2: CGFloat = 12
+static let resultScoreOffsetYV2: CGFloat = -2
+static let resultScoreNumFontSizeV2: CGFloat = 64
+static let resultScoreSubOffsetYV2: CGFloat = -32
+static let resultBestOffsetYV2: CGFloat = -60
+static let resultBestFontSizeV2: CGFloat = 13
+static let resultDividerOffsetYV2: CGFloat = -90
+static let resultDividerWidthRatioV2: CGFloat = 0.6
+static let resultStatValueFontSizeV2: CGFloat = 14
+static let resultStatTitleFontSizeV2: CGFloat = 11
+static let resultStatValueOffsetYV2: CGFloat = -110
+static let resultStatTitleOffsetYV2: CGFloat = -124
+static let resultStatGroupSpacingXV2: CGFloat = 50
+static let resultButtonOffsetYV2: CGFloat = -180
+static let resultShareButtonWidthV2: CGFloat = 100
+static let resultShareButtonHeightV2: CGFloat = 36
+static let resultShareButtonXOffsetV2: CGFloat = -70
+static let resultRestartButtonXOffsetV2: CGFloat = 80
+
+// Sparkle 5발 좌표
+static let resultSparklePositionsV2: [CGPoint] = [
+    CGPoint(x: -150, y:  60),
+    CGPoint(x:  130, y:  40),
+    CGPoint(x: -110, y: -40),
+    CGPoint(x:  140, y: -60),
+    CGPoint(x: -180, y:   0)
+]
+
+// Diploma v2
+static let diplomaPaperWidthV2: CGFloat = 520
+static let diplomaPaperHeightV2: CGFloat = 320
+static let diplomaDotStepV2: CGFloat = 12
+static let diplomaDotRadiusV2: CGFloat = 1.0
+static let diplomaCornerDecoSizeV2: CGFloat = 30
+static let diplomaCornerDecoInsetV2: CGFloat = 6
+```
+
+### 4) `Config/ColorTokens.swift`
+
+#### MARK: - v2 Diploma Tokens (Sprint 5, 신규)
+```swift
+static let ganhoDiplomaPaper      = UIColor(hex: "#FFF9EA")
+static let ganhoDiplomaBorder     = UIColor(hex: "#C76F00")
+static let ganhoDiplomaTextDeep   = UIColor(hex: "#5A3A0E")
+static let ganhoDiplomaTextMuted  = UIColor(hex: "#8B5A0E")
+```
+
+**기존 토큰 한 줄도 변경 0**.
 
 ---
 
 ## 검증 체크리스트 (Evaluator용)
 
-### A. 게임 수치 / 로직 회귀 0 (40%)
-- [ ] `GameConfig` 기존 게임 수치 상수 git diff 0줄 (체크보드 hex 2개만 예외)
-- [ ] `GameScene.update(_:)` 본문 0줄 변경
-- [ ] `GameScene.endGame()` 본문 0줄 변경
-- [ ] `GameScene.configureContactRouter()` 본문 0줄 변경
-- [ ] `SpawnSystem/ScoreSystem/SkillSystem/ContactRouter/PhysicsCategory` 한 줄도 무변
-- [ ] `EnemyNode/ProfessorNode/StoneGuardNode/PlayerNode/ToiletNode/StethoscopeNode/ToastLabelNode/ScorePopupNode/SparkleEffectNode/HitFlashNode/AirplaneNode/AirforceOverlayNode/BombFlashNode/CountdownNode/CutsceneOverlayNode/MusicNoteEmitterNode/PixelSpriteRenderer/CharacterCardNode/DifficultyCardNode/StoryBoxNode/GlowingTitleNode/DiplomaOverlayNode` 한 줄도 무변
-- [ ] Repositories 5개 한 줄도 무변
-- [ ] `BGMPlayer/AudioManager/HapticsManager` 한 줄도 무변
-- [ ] 5×3=15 캐릭터·난이도 조합 시작 가능
+### P0 — 즉시 불합격
+- [ ] `ResultScene.init` 9개 인자 시그니처 한 글자라도 변경
+- [ ] `ResultScene.newResultScene(...)` 정적 팩토리 시그니처 변경
+- [ ] `GameScene.swift` ResultScene 호출부 한 줄이라도 변경
+- [ ] `DiplomaOverlayNode` private init / present 정적 팩토리 시그니처 변경
+- [ ] `dismiss()` 메서드의 nil 토글 / removeFromParent / fadeOut SKAction 시퀀스 변경
+- [ ] `touchesBegan`의 `diplomaOverlay` name 가드 변경
+- [ ] `transitionToStart` 경로 변경
+- [ ] `haptics.heavy()` / `audio.play(.comboMilestoneStrong)` 호출 *조건* 변경
+- [ ] DiplomaOverlayNode 본문 텍스트 한 글자라도 변경
+- [ ] Repositories 5개 호출 위치/순서 변경
 
-### B. 물리 / PhysicsBody 보존
-- [ ] NoteNode PhysicsBody rectangleOf(noteSize²) 그대로
-- [ ] ProjectileNode PhysicsBody rectangleOf(projectileSize²) 그대로 (시각 자식 22pt와 분리)
-- [ ] 외곽 벽 4개 + 기둥 PhysicsBody 정책 그대로
-- [ ] 체크보드 1152개 tile PhysicsBody 미부착 그대로
+### P1 — Swift 패턴 (20%)
+- [ ] 강제 언래핑 `!` 0건
+- [ ] Timer 사용 0건
+- [ ] 매직 넘버 0건 (모든 수치 GameConfig 상수)
+- [ ] hex 하드코딩 0건 (ColorTokens 사용 — Sprint 5 신규 토큰 4개만 추가)
+- [ ] `// MARK:` 섹션 구분
+- [ ] private / final / let 일관성
 
-### C. 입력 / 터치 (회귀 핵심)
-- [ ] `DPadNode.touchesBegan/Moved/Ended/Cancelled` 본문 0줄
-- [ ] `DPadNode.updateDirection(forTouchLocation:)` 알고리즘 0줄
-- [ ] `DPadNode.currentDirection` CGVector 타입 그대로
-- [ ] `SkillButtonNode.touchesBegan` → onTap() 호출 그대로
-- [ ] `SkillButtonNode.configure/setEnabled` 시그니처 보존
-- [ ] `PauseButtonNode.isUserInteractionEnabled = false`
-- [ ] `GameScene.update`의 입력 가드 블록 그대로
+### P2 — 분기별 시각 (25%)
+- [ ] 분기 A: 타이틀 "실습 종료" navyDeep / 점수 코랄 / 부제 "수고했어요! 한 번 더 해볼까요?" / sparkle 0개 / shareButton "📤 공유"
+- [ ] 분기 B: 타이틀 "✨ NEW BEST! ✨" 골드 / 점수 골드 / 부제 "최고 기록을 갱신했어요!" / sparkle 5개 동시 / shareButton "📤 자랑하기" / heavy 햅틱 / NewMail 사운드
+- [ ] 분기 C: A 카드 위에 DiplomaOverlayNode 오버레이 / 우드컷 종이 + 도트 패턴 + 코너 데코 + 도장 / 본문 텍스트 보존
+- [ ] 2단계 탭 정책 유지
 
-### D. 비주얼 일관성 (25%)
-- [ ] 체크보드 색 #FFEFE0 / #FFDFC8
-- [ ] 외곽 벽 / 기둥 navy
-- [ ] HUD 슬롯 navy 0.78 + 라운드 14
-- [ ] HUD 라벨 Jua 10pt 골드, 값 Jua 18pt 흰색
-- [ ] TIME 12초 이하 코랄 배경 + 진행바
-- [ ] 음표 골드 원 + 흰 링 + 글로우 + 1.4s 펄스
-- [ ] F 투사체 코랄 22 라운드 사각형 + 흰 F + -12° 회전
-- [ ] ComboPopup Jua 32pt + navy 외곽선 + -8° 회전
-- [ ] ComboBreak Jua 28pt + 코랄 색 + navy 외곽선
-- [ ] D-Pad 4 버튼 + 중앙 데드존
-- [ ] 스킬 버튼 코랄 원 72 + B 키 칩 + 스킬명 칩
-- [ ] 일시정지 버튼 우상단 navy 라운드 32 + 흰 ||
+### P3 — 빌드 & 호환 (15%)
+- [ ] `xcodebuild` SUCCEEDED
+- [ ] `fontSerif` ttf 부재 시에도 크래시 0 (시스템 fallback)
+- [ ] 5×3=15 캐릭터·난이도 조합 + 신기록 + 졸업장 분기 진입 가능
 
-### E. Swift 패턴 (20%)
-- [ ] PauseButtonNode final class + MARK + GameConfig 상수
-- [ ] 강제 언래핑 ! 신규 0건
-- [ ] Timer 신규 0건
-- [ ] 매직 넘버 신규 0건 (모두 GameConfig 참조)
-- [ ] [weak self] 캡처 (신규 클로저)
-- [ ] private/internal 일관
-
-### F. 가독성 / UX (15%)
-- [ ] HUD 텍스트 대비 충분
-- [ ] D-Pad 터치 영역 44pt 이상
-- [ ] 스킬 버튼 72pt
-- [ ] 음표 펄스 1.4s 시야 방해 0
-- [ ] 회전 텍스트 가독성 유지
-
-### G. Sprint 1/2 보호
-- [ ] `ColorTokens.swift` 한 줄도 무변
-- [ ] Sprint 1 컴포넌트 6개 한 줄도 무변
+### P4 — Sprint 1~3 보호 (40%, 회귀 0)
+- [ ] GameScene / GameScene+Setup git diff 0줄
 - [ ] StartScene / CharacterSelectScene / SkillExplanationScene git diff 0줄
-- [ ] ResultScene / DiplomaOverlayNode git diff 0줄
+- [ ] Sprint 1 컴포넌트 6개 + PauseButtonNode 0줄
+- [ ] SparkleEffectNode 한 줄도 무변
+- [ ] Repositories 5개 / Managers 3개 / Systems / Models 0줄
+- [ ] EnemyNode/ProfessorNode/StoneGuardNode/PlayerNode 등 인게임 노드 0줄
 
 ---
 
 ## 주의사항
 
-1. **D-Pad 위치 / 스킬 버튼 위치**: 본 SPEC + DESIGN_RENEWAL_REQUEST.md §4.4 — D-Pad **우하단**, 스킬 버튼 **좌하단**. 현재 코드도 일치. 시각만 v2 적용.
+1. **`scheduleNewBestReveal` 시퀀스 보존**: `wait 0.3s → revealNewBest()` 흐름 한 줄도 변경 금지. sparkle 5발은 *`revealNewBest()` 내부 마지막 라인 추가*로만 부착.
 
-2. **시각 자식과 PhysicsBody 분리**: NoteNode/ProjectileNode의 시각은 자식 SKShape/SKLabel로 위임하되 PhysicsBody는 본체에 그대로 (size 변경 = §6.1 회귀).
+2. **`SparkleEffectNode` 재활용**: 이미 음표 수집 시 사용 중. ResultScene 부착 좌표/zPosition만 다르고 내부 0건 변경. `emit()` 마지막에 `removeFromParent()` 자가 소멸.
 
-3. **ProjectileNode -12° 회전과 충돌**: zRotation은 PhysicsBody도 따라 회전하지만 `allowsRotation=false` + `collision=0` + 사각형이라 contact normal 영향 없음.
+3. **도트 패턴 단일 노드 통합**: 12pt 격자 약 1100개 도트를 *단일 SKShapeNode + CGMutablePath addEllipse 누적*으로 통합. 노드 수 1개 = SpriteKit 렌더 부담 최소.
 
-4. **ComboPopupNode 32pt**: 기존 `comboPopupFontSize=48` 상수는 그대로 두고 새 상수 `comboPopupV2FontSize=32` 추가 → 기존 git diff 0.
+4. **`fontSerif` graceful fallback**: SKLabelNode(fontNamed:)는 fontName 미존재 시 시스템 폰트 fallback. 크래시 0. 사용자 후속으로 GowunBatang-Regular.ttf를 Resources/Fonts + Info.plist UIAppFonts에 추가 가능.
 
-5. **HUDSlotNode init 시그니처**: `showTimeBar: Bool = false` default 파라미터 추가 = Swift 호환성 100%.
+5. **`titleLabel` vs `newBestLabel` 시각 분리**: 분기 B에서 `titleLabel`을 카드 헤더로(+70 y), `newBestLabel`을 화면 정 가운데(+0 y)로 명확 분리. 두 라벨 다 살림.
 
-6. **DPadNode 프로퍼티 타입 변경(SKSpriteNode → SKShapeNode)**: 4개 모두 `private`. 외부 노출 `currentDirection`만 → 영향 없음.
+6. **`statsLabel` / `characterLabel` / `difficultyLabel` deprecated**: alpha=0 비활성, addChild 보존(노드 트리 구조 유지).
 
-7. **`applyEnchanted/clearEnchanted` 변경**: `body.fillColor` 교체로 옮김 — 자식 SKShape의 fillColor 교체 (시각만, 시그니처 0 변경).
+7. **`presentDiploma` 카드 위 덮음**: 졸업장 zPosition 300으로 카드(-5)보다 위. 분기 C에서 카드 라벨 분기 불필요 — 어차피 안 보임.
 
 ---
 
-**SPEC 작성 완료** — Generator는 이 SPEC + mockup HTML + 기존 코드만으로 구현 가능.
+## OPEN_QUESTION
+
+### Q1. 우드컷 패턴 구현 방식
+**선택**: (A) ✅ **단일 SKShapeNode + CGMutablePath 도트 1100개 누적** (디폴트). 시뮬레이터 안전, 학습 난이도 낮음, 노드 수 1.
+
+대안 (B) SKShader, (C) PNG 텍스처는 자산/학습 난이도 이슈로 보류. 사용자가 시각 만족 안 되면 후속 작업 가능.
+
+### Q2. GowunBatang-Regular.ttf 임포트
+**Sprint 5 코드 측 대응**: `GameConfig.fontSerif = "GowunBatang-Regular"` 상수만 추가. SKLabelNode fallback 안전.
+
+**사용자 후속 작업**:
+1. https://fonts.google.com/specimen/Gowun+Batang ttf 다운로드
+2. `Resources/Fonts/GowunBatang-Regular.ttf` 추가
+3. Xcode add to target + Info.plist UIAppFonts 배열에 추가
+
+Sprint 5 평가 시 ttf 부재여도 합격 가능.
+
+### Q3. 분기 B `titleLabel` vs `newBestLabel`
+**선택**: (A) ✅ **두 라벨 다 살림** — y 분리. `titleLabel` 카드 헤더(+70 골드), `newBestLabel` 화면 정 가운데(+0 큰 황금). 기존 `revealNewBest` 시퀀스 보존.
+
+---
+
+**SPEC 작성 완료**. Generator는 이 SPEC을 그대로 구현하면 분기 3개 시각이 mockup과 일치하면서 9개 init 인자/햅틱/사운드/저장/본문 텍스트/2단계 탭 한 글자도 회귀 없이 통과한다.

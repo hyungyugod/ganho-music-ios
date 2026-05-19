@@ -3,6 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Phase 7-4 · 졸업장 오버레이 (자가 소멸 노드 11호) — 15 챌린지 완주 후 ResultScene에서 자동 표시
+//  Sprint 5 · 우드컷 종이 카드 + 도트 패턴 + 더블 보더 + 코너 데코 + 도장 + 명조 폰트
 //
 
 import SpriteKit
@@ -24,11 +25,14 @@ import SpriteKit
 /// **parent = ResultScene 자체** (cameraNode 없음). anchor = `(frame.midX, frame.midY)` 화면 중앙.
 /// ResultScene은 cameraNode가 없으므로 GameScene용 CutsceneOverlayNode(cameraNode 자식)와 부착 방식 다름.
 ///
-/// **dismiss 후 ResultScene 그대로** — onDismiss 빈 클로저. 졸업장 닫힘 → 결과 화면 노출 → 탭 → TitleScene
-/// 의 *두 단계 탭* 정책 (졸업장 닫기 1탭 + TitleScene 복귀 1탭).
+/// **dismiss 후 ResultScene 그대로** — onDismiss 빈 클로저. 졸업장 닫힘 → 결과 화면 노출 → 탭 → StartScene
+/// 의 *두 단계 탭* 정책 (졸업장 닫기 1탭 + StartScene 복귀 1탭).
 ///
 /// Spring 비유: `@PostMapping` 컨트롤러의 응답 페이지 — 비즈니스 로직 완료 직후 *증서를 발급*하고
 /// 사용자의 confirmation 1회로 dispose.
+///
+/// Sprint 5 — 우드컷 종이 카드(520×320 회전 -2°) + 도트 패턴(1100개 단일 path) + ㄱ자 코너 데코 +
+/// 우하단 도장 + 명조 폰트(GowunBatang-Regular). 본문 텍스트·dismiss 시퀀스·present 시그니처는 *0건 변경*.
 final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
 
     // MARK: - Properties
@@ -52,11 +56,24 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     /// [weak self] 캡처는 *외부 책임* — 본 노드 내부는 nil 토글로만 안전 확보.
     private var onDismiss: (() -> Void)?
 
+    // Sprint 5 — 우드컷 종이 카드 자식 노드들
+    /// 종이 카드 본체 SKShapeNode(520×320, cornerRadius=8, fill=ganhoDiplomaPaper, stroke=ganhoDiplomaBorder, lineWidth=4, -2° 회전).
+    private let paperCard: SKShapeNode
+    /// 우드컷 도트 패턴(단일 SKShapeNode + CGMutablePath addEllipse 1100개 누적 — 노드 1개 통합으로 성능 안전).
+    private let dotsPattern: SKShapeNode
+    /// 좌상단 ㄱ자 코너 데코.
+    private let topLeftBorder: SKShapeNode
+    /// 우하단 ㄱ자 코너 데코.
+    private let bottomRightBorder: SKShapeNode
+    /// 우하단 도장 원(반지름 28, stroke=coralShadow, -12° 회전).
+    private let stamp: SKShapeNode
+    /// 도장 라벨 "김간호\n음악대학" (Jua 9pt, coralShadow).
+    private let stampLabel: SKLabelNode
+
     // MARK: - Init (private — present factory에서만 호출)
-    /// 캐릭터 이름 + 졸업 일시 + sceneSize를 받아 8-자식 노드 구성 (background + 7 labels).
+    /// 캐릭터 이름 + 졸업 일시 + sceneSize를 받아 자식 노드 구성 (background + paperCard + 우드컷 + 라벨 7개 + 도장).
     /// `private init` — 외부 호출자가 *반드시* `present` 정적 팩토리를 거치도록 강제 (CutsceneOverlayNode 10호 답습).
-    /// 색상 설계: 배경 = `.ganhoYellowF` 0.92 alpha (황금 종이), 글자 = `.black` (검정 잉크) — *증서* 톤.
-    /// ColorTokens 신규 토큰 0건 — 기존 토큰 재사용.
+    /// 본문 텍스트는 *Phase 7-4 시점 그대로* — Sprint 5는 시각만 추가, 본문 문자열 0건 변경.
     private init(characterName: String, graduatedAt: Date, sceneSize: CGSize) {
         self.background = SKSpriteNode(
             color: UIColor.ganhoYellowF.withAlphaComponent(GameConfig.diplomaBackgroundAlpha),
@@ -76,6 +93,15 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         displayFormatter.dateFormat = "yyyy-MM-dd"
         self.dateLabel = SKLabelNode(text: displayFormatter.string(from: graduatedAt))
         self.tapLabel = SKLabelNode(text: "TAP TO CONTINUE")
+
+        // Sprint 5 — 우드컷 자식들 init.
+        self.paperCard = SKShapeNode()
+        self.dotsPattern = SKShapeNode()
+        self.topLeftBorder = SKShapeNode()
+        self.bottomRightBorder = SKShapeNode()
+        self.stamp = SKShapeNode(circleOfRadius: GameConfig.diplomaStampRadiusV2)
+        self.stampLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+
         super.init()
         name = "diplomaOverlay"
         zPosition = GameConfig.diplomaZPosition
@@ -83,9 +109,15 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         isUserInteractionEnabled = true
         configureBackground()
         configureLabels(sceneSize: sceneSize)
-        // 글자색 일괄 적용 — 황금 배경 위 검정 글자 = 증서 톤. ColorTokens 신규 0건.
-        for label in [titleEnLabel, titleKoLabel, body1Label, body2Label, issuerLabel, dateLabel, tapLabel] {
-            label.fontColor = .black
+        // Sprint 5 — 글자색을 명조 톤 분기. titleEn/issuer/date/tap = TextMuted, titleKo/body1/body2 = TextDeep.
+        // 모든 라벨 fontName은 명조(GowunBatang-Regular)로 교체 — ttf 부재 시 시스템 fallback.
+        for label in [titleEnLabel, issuerLabel, dateLabel, tapLabel] {
+            label.fontColor = .ganhoDiplomaTextMuted
+            label.fontName = GameConfig.fontSerif
+        }
+        for label in [titleKoLabel, body1Label, body2Label] {
+            label.fontColor = .ganhoDiplomaTextDeep
+            label.fontName = GameConfig.fontSerif
         }
         addChild(background)
         addChild(titleEnLabel)
@@ -158,9 +190,140 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     // MARK: - Configure (private)
     /// 배경 — sceneSize 전체 덮음. anchorPoint 기본 (0.5, 0.5) → position .zero (노드 좌표계 중앙) 이면
     /// 노드 전체가 부모 anchor를 중심으로 화면 전 영역 덮음. CutsceneOverlayNode 답습.
+    /// Sprint 5 — 황금 배경 위에 우드컷 종이 카드 + 도트 패턴 + 코너 데코 + 도장을 부착.
     private func configureBackground() {
         background.position = .zero
         background.zPosition = 0   // 본 노드 좌표계 내부 z — 라벨이 배경 위에 보이도록 0.
+
+        // Sprint 5 우드컷 시각 빌드 — 순서는 z 누적 흐름.
+        buildPaperCard()
+        buildDotsPattern()
+        buildCornerDeco()
+        buildStamp()
+    }
+
+    /// Sprint 5 — 종이 카드 본체. ganhoDiplomaPaper 채움 + ganhoDiplomaBorder stroke(lineWidth=4) + -2° 회전.
+    /// CGPath roundedRect로 cornerRadius=8 라운드.
+    private func buildPaperCard() {
+        let halfW = GameConfig.diplomaPaperWidthV2 / 2
+        let halfH = GameConfig.diplomaPaperHeightV2 / 2
+        paperCard.path = CGPath(
+            roundedRect: CGRect(
+                x: -halfW,
+                y: -halfH,
+                width: GameConfig.diplomaPaperWidthV2,
+                height: GameConfig.diplomaPaperHeightV2
+            ),
+            cornerWidth: GameConfig.diplomaPaperCornerRadiusV2,
+            cornerHeight: GameConfig.diplomaPaperCornerRadiusV2,
+            transform: nil
+        )
+        paperCard.fillColor = .ganhoDiplomaPaper
+        paperCard.strokeColor = .ganhoDiplomaBorder
+        paperCard.lineWidth = GameConfig.diplomaPaperBorderLineWidthV2
+        // mockup transform: rotate(-2deg) — degree → radian.
+        paperCard.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
+        paperCard.zPosition = GameConfig.diplomaPaperZPositionV2
+        addChild(paperCard)
+    }
+
+    /// Sprint 5 — 우드컷 도트 패턴. 단일 SKShapeNode + CGMutablePath addEllipse 누적(노드 1개 통합).
+    /// 12pt 격자 × 520×320 → 약 1100개 도트가 한 path에 누적되어 SpriteKit 드로우콜 1회로 처리.
+    /// 종이 카드와 동일 -2° 회전으로 통째로 함께 기울어짐.
+    private func buildDotsPattern() {
+        let cardW = GameConfig.diplomaPaperWidthV2
+        let cardH = GameConfig.diplomaPaperHeightV2
+        let step = GameConfig.diplomaDotStepV2
+        let radius = GameConfig.diplomaDotRadiusV2
+
+        let path = CGMutablePath()
+        var x = -cardW / 2 + step
+        while x < cardW / 2 {
+            var y = -cardH / 2 + step
+            while y < cardH / 2 {
+                path.addEllipse(in: CGRect(
+                    x: x - radius,
+                    y: y - radius,
+                    width: radius * 2,
+                    height: radius * 2
+                ))
+                y += step
+            }
+            x += step
+        }
+        dotsPattern.path = path
+        dotsPattern.fillColor = UIColor(hex: GameConfig.diplomaDotHexV2)
+            .withAlphaComponent(GameConfig.diplomaDotAlphaV2)
+        dotsPattern.strokeColor = .clear
+        dotsPattern.lineWidth = 0
+        dotsPattern.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
+        dotsPattern.zPosition = GameConfig.diplomaDotsZPositionV2
+        addChild(dotsPattern)
+    }
+
+    /// Sprint 5 — 좌상단·우하단 ㄱ자 코너 데코. 두 SKShapeNode 부착(각자 CGMutablePath addLines 2변).
+    /// strokeColor=ganhoDiplomaBorder, lineWidth=3. 종이와 같은 -2° 회전.
+    private func buildCornerDeco() {
+        let cornerSize = GameConfig.diplomaCornerDecoSizeV2
+        let inset = GameConfig.diplomaCornerDecoInsetV2
+        let halfW = GameConfig.diplomaPaperWidthV2 / 2
+        let halfH = GameConfig.diplomaPaperHeightV2 / 2
+
+        // 좌상단: ㄱ자 (왼쪽 변 ↓ + 위쪽 변 →) — paperCard 좌상단 모서리 안쪽 inset만큼 들어감.
+        let tlPath = CGMutablePath()
+        let tlOriginX = -halfW + inset
+        let tlOriginY = halfH - inset
+        tlPath.move(to: CGPoint(x: tlOriginX, y: tlOriginY - cornerSize))
+        tlPath.addLine(to: CGPoint(x: tlOriginX, y: tlOriginY))
+        tlPath.addLine(to: CGPoint(x: tlOriginX + cornerSize, y: tlOriginY))
+        topLeftBorder.path = tlPath
+        topLeftBorder.strokeColor = .ganhoDiplomaBorder
+        topLeftBorder.fillColor = .clear
+        topLeftBorder.lineWidth = GameConfig.diplomaCornerDecoLineWidthV2
+        topLeftBorder.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
+        topLeftBorder.zPosition = GameConfig.diplomaCornerDecoZPositionV2
+        addChild(topLeftBorder)
+
+        // 우하단: ㄴ자 (오른쪽 변 ↑ + 아래쪽 변 ←).
+        let brPath = CGMutablePath()
+        let brOriginX = halfW - inset
+        let brOriginY = -halfH + inset
+        brPath.move(to: CGPoint(x: brOriginX, y: brOriginY + cornerSize))
+        brPath.addLine(to: CGPoint(x: brOriginX, y: brOriginY))
+        brPath.addLine(to: CGPoint(x: brOriginX - cornerSize, y: brOriginY))
+        bottomRightBorder.path = brPath
+        bottomRightBorder.strokeColor = .ganhoDiplomaBorder
+        bottomRightBorder.fillColor = .clear
+        bottomRightBorder.lineWidth = GameConfig.diplomaCornerDecoLineWidthV2
+        bottomRightBorder.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
+        bottomRightBorder.zPosition = GameConfig.diplomaCornerDecoZPositionV2
+        addChild(bottomRightBorder)
+    }
+
+    /// Sprint 5 — 우하단 도장(원 r=28 + 라벨 "김간호\n음악대학"). -12° 회전.
+    /// strokeColor=coralShadow, fillColor=반투명 pink. 도장과 라벨이 같은 회전·위치로 묶임.
+    private func buildStamp() {
+        stamp.strokeColor = .ganhoCoralShadow
+        stamp.fillColor = UIColor.ganhoCoralLight
+            .withAlphaComponent(GameConfig.diplomaStampFillAlphaV2)
+        stamp.lineWidth = GameConfig.diplomaStampLineWidthV2
+        stamp.position = CGPoint(
+            x: GameConfig.diplomaStampOffsetXV2,
+            y: GameConfig.diplomaStampOffsetYV2
+        )
+        stamp.zRotation = GameConfig.diplomaStampRotationDegreesV2 * .pi / 180
+        stamp.zPosition = GameConfig.diplomaStampZPositionV2
+        addChild(stamp)
+
+        stampLabel.text = GameConfig.diplomaStampLabelText
+        stampLabel.fontSize = GameConfig.diplomaStampLabelFontSizeV2
+        stampLabel.fontColor = .ganhoCoralShadow
+        stampLabel.numberOfLines = 0
+        stampLabel.horizontalAlignmentMode = .center
+        stampLabel.verticalAlignmentMode = .center
+        stampLabel.position = .zero
+        stampLabel.zPosition = 1
+        stamp.addChild(stampLabel)
     }
 
     /// 7개 라벨의 위치/폰트/정렬을 설정.

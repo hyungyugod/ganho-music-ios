@@ -258,6 +258,20 @@ extension UIColor {
     // 체크보드 (Game floor) — Sprint 3에서 GameScene이 끌어다 씀
     static let ganhoFloorPeachA  = UIColor(hex: "#FFEFE0")  // 체크보드 밝은 칸
     static let ganhoFloorPeachB  = UIColor(hex: "#FFDFC8")  // 체크보드 어두운 칸
+
+    // MARK: - v2 Diploma Tokens (Sprint 5)
+    // DESIGN_RENEWAL_REQUEST.md §4.5 + mockups/result-screen-v2.html VARIANT C.
+    // 졸업장 우드컷 톤(따뜻한 종이 + 황갈색 더블 보더 + 깊은 갈색 텍스트).
+    // Sprint 5는 *추가만* — 기존 토큰 hex 0 변경.
+
+    /// 졸업장 종이 fillColor. mockup .diploma background-color (#FFF9EA).
+    static let ganhoDiplomaPaper     = UIColor(hex: "#FFF9EA")
+    /// 졸업장 더블 보더 + 코너 데코 strokeColor. mockup border (#C76F00).
+    static let ganhoDiplomaBorder    = UIColor(hex: "#C76F00")
+    /// 졸업장 본문 깊은 글자색(titleKo/body1/body2). mockup color (#5A3A0E).
+    static let ganhoDiplomaTextDeep  = UIColor(hex: "#5A3A0E")
+    /// 졸업장 부속 흐린 글자색(titleEn/issuer/date/tap). mockup color (#8B5A0E).
+    static let ganhoDiplomaTextMuted = UIColor(hex: "#8B5A0E")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

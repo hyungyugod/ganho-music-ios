@@ -9,14 +9,15 @@
 //  Phase 6-15 · 신기록 시 "NEW BEST!" 황금 라벨 + heavy 햅틱 + NewMail 사운드 + bestLabel 황금 깜빡임
 //  Phase 7-1 · 난이도 라벨 1줄 추가 (init 7번째 인자 difficulty)
 //  Phase 8-4 · 원본 #overlayEnd 종료 패널 시각 동일화 — 반투명 배경 + 380 카드 패널 + 라벨 색·크기 토큰 갈아 끼움
+//  Sprint 5 · 3분기 v2 리스킨 — 따뜻한 그라데이션 + 80% 화이트 카드 + 분기별 시각(일반/신기록/졸업장) + 신기록 sparkle 5발
 //
 
 import SpriteKit
 
 /// 게임 종료 후 결과를 보여주는 독립 씬.
 /// `finalScore`/`bestScore`/`isNewBest`는 init 주입으로 박혀(`let`) 변조 불가.
-/// 신기록이면 "★ NEW BEST! ★", 아니면 "BEST 🏆 N"으로 분기 표시.
-/// 표시 후 탭 1회 → TitleScene fade.
+/// 신기록이면 "✨ NEW BEST! ✨", 아니면 "실습 종료"으로 분기 표시 (Sprint 5 v2).
+/// 표시 후 탭 1회 → StartScene fade.
 /// TitleScene과 동일한 라벨/팩토리/터치 패턴을 답습.
 final class ResultScene: SKScene {
 
@@ -40,19 +41,48 @@ final class ResultScene: SKScene {
     private let isNewGraduation: Bool
     /// Phase 7-4 — 졸업 일시(Optional). 졸업 안 한 캐릭터는 nil. presentDiploma의 `if let` 가드와 짝.
     private let graduatedAt: Date?
-    /// TitleScene 복귀 중복 진입 가드.
+    /// StartScene 복귀 중복 진입 가드.
     private var isTransitioning = false
+
+    // 기존 라벨 6개(Phase 3-3 ~ Phase 7-1) — Sprint 5에서도 *생성*하되 일부는 alpha=0으로 비활성화.
     private let titleLabel  = SKLabelNode(text: "GAME OVER")
-    private let scoreLabel  = SKLabelNode(text: "🎵 0")
+    private let scoreLabel  = SKLabelNode(text: "♪ 0")
     private let bestLabel   = SKLabelNode(text: "BEST 🏆 0")
     private let statsLabel  = SKLabelNode(text: "PLAYS 0  /  TOTAL 0")
-    /// Phase 5-7 — title(+80) 위쪽에 표시되는 캐릭터 라벨. 텍스트는 setupLabels에서 합성.
+    /// Phase 5-7 — title(+80) 위쪽에 표시되는 캐릭터 라벨. Sprint 5에서 alpha=0(headerChip이 대체).
     private let characterLabel = SKLabelNode(text: "")
-    /// Phase 7-1 — characterLabel(+115) 위쪽에 표시되는 난이도 라벨. 텍스트는 setupLabels에서 합성.
+    /// Phase 7-1 — characterLabel(+115) 위쪽에 표시되는 난이도 라벨. Sprint 5에서 alpha=0(headerChip이 대체).
     private let difficultyLabel = SKLabelNode(text: "")
     private let promptLabel = SKLabelNode(text: "TAP TO RETURN")
     /// Phase 6-15 — 신기록 시 화면 정중앙에 등장하는 황금 라벨. isNewBest일 때만 addChild.
     private let newBestLabel = SKLabelNode(text: "NEW BEST!")
+
+    // Sprint 5 신규 자식 노드
+    /// 부제 라벨. 분기 A: "수고했어요! 한 번 더 해볼까요?" / 분기 B: "최고 기록을 갱신했어요!"
+    private let subtitleLabel = SKLabelNode(text: "")
+    /// 점수 부제. 분기 A: "SCORE" / 분기 B: "NEW SCORE"
+    private let scoreSubLabel = SKLabelNode(text: "SCORE")
+    /// divider 라인 (가로 카드 폭 60% navy 알파 0.18).
+    private let divider = SKShapeNode()
+    /// PLAYS 숫자.
+    private let playsValueLabel = SKLabelNode(text: "")
+    /// "PLAYS" 라벨.
+    private let playsTitleLabel = SKLabelNode(text: "PLAYS")
+    /// TOTAL 숫자.
+    private let totalValueLabel = SKLabelNode(text: "")
+    /// "TOTAL" 라벨.
+    private let totalTitleLabel = SKLabelNode(text: "TOTAL")
+    /// 공유 GlassPill. 분기별 텍스트 분기.
+    private var shareButton: GlassPillNode?
+    /// 다시 시작 PrimaryButton.
+    private let restartButton = PrimaryButtonNode(text: "다시 시작")
+    /// 헤더 DarkContextChip — "중 난이도 · 건간호" 한 줄 통합.
+    private var headerChip: DarkContextChipNode?
+    /// AccentLine 카드 상단 액센트.
+    private let accentLine = AccentLineNode()
+    /// 따뜻한 3-stop 그라데이션 배경 (배경 검정 사각형 *교체*).
+    private var gradientBg: GradientBackgroundNode?
+
     /// Phase 6-15 — 신기록 진입 시 heavy 햅틱 발화 (도달의 무게감).
     private let haptics = HapticsManager()
     /// Phase 6-15 — 신기록 진입 시 NewMail 사운드 발화 (긍정·묵직).
@@ -124,8 +154,10 @@ final class ResultScene: SKScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgDeep
-        setupOverlayPanel()                             // Phase 8-4 — 원본 #overlayEnd 배경 + 380 카드 패널 (라벨 *뒤*에 배치)
+        // Sprint 5 — 그라데이션 배경이 담당. 기존 backgroundColor는 fallback으로 clear.
+        backgroundColor = .clear
+        setupBackgroundGradient()                       // Sprint 5 — 3-stop 따뜻한 그라데이션
+        setupOverlayPanel()                             // Phase 8-4 — 카드 패널 (Sprint 5에서 v2 토큰으로 갈아 끼움)
         setupLabels()
     }
 
@@ -136,30 +168,46 @@ final class ResultScene: SKScene {
     }
 
     // MARK: - Setup
+
+    /// Sprint 5 — 3-stop 따뜻한 그라데이션 배경. 기존 검정 반투명 사각형(zPosition=-10) *교체*.
+    /// `GradientBackgroundNode.threeStop` 정적 팩토리 호출 — Sprint 1 인프라 재사용, 신규 노드 0건.
+    private func setupBackgroundGradient() {
+        let gradient = GradientBackgroundNode.threeStop(
+            size: size,
+            topColor: .ganhoBgWarmTop,
+            midColor: .ganhoBgWarmMid,
+            bottomColor: .ganhoBgWarmBottom
+        )
+        gradient.position = CGPoint(x: frame.midX, y: frame.midY)
+        gradient.zPosition = -20    // setupOverlayPanel의 bg(zPosition=-10) 아래
+        gradient.name = "resultGradientBg"
+        gradientBg = gradient
+        addChild(gradient)
+    }
+
     /// Phase 8-4 — 원본 웹게임 `#overlayEnd .game-overlay__panel--end` 톤 재현.
-    /// TitleScene.setupOverlayPanel 패턴 완전 답습 — 신규 파일 0건, 동형 구조.
-    /// 1) 화면 전체 반투명 검정 사각형(zPosition -10) — 게임 영역 차단 톤.
-    /// 2) 가운데 카드 패널 SKShapeNode(zPosition -5) — 원본 max-width 380px 재현.
-    /// 라벨 layout은 *미접촉* — Phase 7-1(+155) ~ Phase 3-3(-80) 모두 패널(560 height) 안에 자연 배치.
+    /// Sprint 5 — bg(어두운 반투명) alpha=0 (그라데이션이 배경 담당) + panel 색 토큰 v2로 교체.
+    /// 라벨 layout은 *미접촉* — Phase 7-1(+155) ~ Phase 3-3(-80) 모두 패널 안에 자연 배치.
     private func setupOverlayPanel() {
-        // 1) 화면 전체 반투명 검정 배경 — 원본 .game-overlay 배경
+        // 1) 화면 전체 반투명 검정 배경 — Sprint 5에서 alpha=0 (그라데이션이 대신 배경 담당).
         let bg = SKSpriteNode(color: .ganhoUIOverlayBg, size: size)
         bg.position = CGPoint(x: frame.midX, y: frame.midY)
         bg.zPosition = -10
+        bg.alpha = 0
         bg.name = "overlayBackground"
         addChild(bg)
 
-        // 2) 가운데 카드 패널 — 원본 #overlayEnd .game-overlay__panel--end (max-width 380px)
+        // 2) 가운데 카드 패널 — Sprint 5 v2 토큰. 화이트 0.88 + cornerRadius 22 + stroke clear.
         let panel = SKShapeNode(
             rectOf: CGSize(
                 width: GameConfig.resultPanelMaxWidth,
                 height: GameConfig.resultPanelHeight
             ),
-            cornerRadius: GameConfig.uiRadius
+            cornerRadius: GameConfig.resultCardCornerRadiusV2
         )
-        panel.fillColor = .ganhoUIBgCard
-        panel.strokeColor = .ganhoUIBorder
-        panel.lineWidth = GameConfig.uiPanelLineWidth
+        panel.fillColor = UIColor.white.withAlphaComponent(0.88)
+        panel.strokeColor = .clear
+        panel.lineWidth = 0
         panel.position = CGPoint(x: frame.midX, y: frame.midY)
         panel.zPosition = -5
         panel.name = "overlayPanel"
@@ -167,59 +215,79 @@ final class ResultScene: SKScene {
     }
 
     private func setupLabels() {
+        // Phase 3-3 ~ Phase 8-4 — 기존 6개 라벨 *부착 자체*는 유지(노드 트리 구조 보존).
+        // Sprint 5: 일부 라벨은 alpha=0 비활성, 일부는 v2 토큰으로 시각 교체.
         configureLabel(titleLabel,      fontSize: GameConfig.resultTitleFontSize)
         configureLabel(scoreLabel,      fontSize: GameConfig.resultScoreFontSize)
         configureLabel(bestLabel,       fontSize: GameConfig.resultBestFontSize)
         configureLabel(statsLabel,      fontSize: GameConfig.resultStatsFontSize)
         configureLabel(characterLabel,  fontSize: GameConfig.resultCharacterFontSize)
-        configureLabel(difficultyLabel, fontSize: GameConfig.resultDifficultyFontSize)   // Phase 7-1
+        configureLabel(difficultyLabel, fontSize: GameConfig.resultDifficultyFontSize)
         configureLabel(promptLabel,     fontSize: GameConfig.resultPromptFontSize)
-        // Phase 8-4 — 원본 #overlayEnd 시각 토큰 갈아 끼움. configureLabel 후 *오버라이드*로 라벨 위치/구조는 미접촉.
-        // 점수 숫자: 40pt 코럴 강조 (.score-num) — 단, NEW BEST 시퀀스가 황금색으로 덮어쓰므로 isNewBest=true 시
-        //          revealNewBest → startBestLabelGoldBlink가 *bestLabel*만 황금 처리. scoreLabel은 brand-light 유지.
-        scoreLabel.fontSize = GameConfig.resultScoreNumFontSize
-        scoreLabel.fontColor = .ganhoUIBrandLight
-        // 베스트 기록: 12pt brand (.game-overlay__record) — NEW BEST 시퀀스가 황금색으로 *덮어씀* (보존).
-        bestLabel.fontSize = GameConfig.resultRecordFontSize
-        bestLabel.fontColor = .ganhoUIBrand
-        // 통계: 14pt text-muted (.game-overlay__score 톤) — 보조 정보 회색.
-        statsLabel.fontColor = .ganhoUITextMuted
-        statsLabel.fontSize = GameConfig.resultScoreLabelFontSize
-        // 캐릭터 이름: 14pt text-muted (보조 정보 회색).
-        characterLabel.fontColor = .ganhoUITextMuted
-        characterLabel.fontSize = GameConfig.resultScoreLabelFontSize
-        // 난이도: text-muted (.white → 보조 정보 회색). fontSize는 기존 값(18) 유지.
-        difficultyLabel.fontColor = .ganhoUITextMuted
-        scoreLabel.text = "🎵 \(finalScore)"
-        // Phase 3-4 — 신기록이면 강조 문구, 아니면 기존 최고치 표시.
-        bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "BEST 🏆 \(bestScore)"
-        // Phase 3-5 — 누적 통계 표시. record 후 주입되므로 이번 판이 이미 반영된 값.
+
+        // Sprint 5 — characterLabel·difficultyLabel·statsLabel·promptLabel은 *headerChip + stat group + 카드 톤*이 대체.
+        // alpha=0으로 자식 트리 구조는 유지(addChild 후속 보존), 시각만 차단.
+        characterLabel.alpha = 0
+        difficultyLabel.alpha = 0
+        statsLabel.alpha = 0
+        promptLabel.alpha = 0
+
+        // 분기별 시각 토큰 — titleLabel / scoreLabel / bestLabel은 분기 결과 *덮어쓰기* 한 줄로 정리.
+        configureTitleLabelV2()
+        configureScoreLabelV2()
+        configureBestLabelV2()
+        configureScoreSubLabelV2()
+        configureSubtitleLabelV2()
+        configureDivider()
+
+        // 데이터 합성.
+        scoreLabel.text = "♪ \(finalScore)"
+        bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "🏆 BEST \(bestScore)"
         statsLabel.text = "PLAYS \(stats.playCount)  /  TOTAL \(stats.totalScore)"
-        // Phase 5-7 — 사용한 캐릭터 이름. 빈 문자열이어도 "🎮 "만 — 크래시 없음(graceful).
         characterLabel.text = "🎮 \(characterName)"
-        // Phase 7-1 — 사용한 난이도. Difficulty.displayName이 단일 진실 원천("하"/"중"/"상").
         difficultyLabel.text = "난이도: \(difficulty.displayName)"
+
+        // 자식 부착 — *Phase 8-4 시점 6 라벨 부착 순서 유지*. 신규 자식은 그 뒤에 추가.
         addChild(titleLabel)
         addChild(scoreLabel)
         addChild(bestLabel)
         addChild(statsLabel)
         addChild(characterLabel)
-        addChild(difficultyLabel)   // Phase 7-1
+        addChild(difficultyLabel)
         addChild(promptLabel)
+
+        // Sprint 5 신규 자식 부착 — headerChip + AccentLine + 부제 + 스코어 부제 + divider + stat 4라벨 + 버튼 2개.
+        accentLine.zPosition = 5
+        addChild(accentLine)
+
+        let chip = DarkContextChipNode(
+            label: "\(difficulty.shortName) 난이도 · \(characterName)",
+            badge: nil
+        )
+        chip.zPosition = 6
+        headerChip = chip
+        addChild(chip)
+
+        addChild(subtitleLabel)
+        addChild(scoreSubLabel)
+        addChild(divider)
+        setupStats()
+        setupButtons()
+
         layoutLabels()
-        // Phase 6-15 — 신기록일 때만 NewBest 시퀀스 시작. false면 0건 발화로 자연 차단.
+
+        // Phase 6-15 — 신기록일 때만 NewBest 시퀀스 시작. 기존 호출 위치/순서 그대로.
         if isNewBest {
             configureNewBestLabel()
             scheduleNewBestReveal()
         }
-        // Phase 7-4 — 최초 졸업 시 졸업장 자동 표시. 두 가드(`isNewGraduation` true AND `graduatedAt` non-nil)
-        // 모두 통과해야 발화 — default 인자만 사용한 기존 호출부는 자연 차단(회귀 0).
+        // Phase 7-4 — 최초 졸업 시 졸업장 자동 표시. 기존 가드/호출 시퀀스 그대로.
         if isNewGraduation, let graduatedAt = graduatedAt {
             presentDiploma(at: graduatedAt)
         }
     }
 
-    /// 6개 라벨 공통 스타일. TitleScene과 동일 패턴.
+    /// 6개 라벨 공통 스타일(기존). 부착 자체는 유지하고 v2 토큰은 별도 configureLabelV2에서 덮어쓴다.
     private func configureLabel(_ label: SKLabelNode, fontSize: CGFloat) {
         label.fontSize = fontSize
         label.fontColor = .ganhoPaper
@@ -228,19 +296,184 @@ final class ResultScene: SKScene {
         label.alpha = GameConfig.hudAlpha
     }
 
+    /// Sprint 5 — v2 라벨 공통 스타일 헬퍼. fontName/fontSize/fontColor/alignment 동시 적용.
+    private func configureLabelV2(
+        _ label: SKLabelNode,
+        text: String,
+        fontName: String,
+        fontSize: CGFloat,
+        fontColor: UIColor
+    ) {
+        label.text = text
+        label.fontName = fontName
+        label.fontSize = fontSize
+        label.fontColor = fontColor
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.alpha = 1
+    }
+
+    /// Sprint 5 — titleLabel v2 토큰. 분기 A(navyDeep "실습 종료") / B(gold "✨ NEW BEST! ✨").
+    /// 분기 B에서는 *fontColor만* 골드로 — 기존 fontColor 분기와 동거.
+    private func configureTitleLabelV2() {
+        let titleText: String
+        let titleColor: UIColor
+        if isNewBest {
+            titleText = "✨ NEW BEST! ✨"
+            titleColor = .ganhoMusicGold
+        } else {
+            titleText = "실습 종료"
+            titleColor = .ganhoNavyDeep
+        }
+        configureLabelV2(
+            titleLabel,
+            text: titleText,
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultTitleFontSizeV2,
+            fontColor: titleColor
+        )
+    }
+
+    /// Sprint 5 — scoreLabel v2 토큰. 분기 A(coralPrimary) / B(gold).
+    private func configureScoreLabelV2() {
+        let color: UIColor = isNewBest ? .ganhoMusicGold : .ganhoCoralPrimary
+        configureLabelV2(
+            scoreLabel,
+            text: "♪ \(finalScore)",
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultScoreNumFontSizeV2,
+            fontColor: color
+        )
+    }
+
+    /// Sprint 5 — bestLabel v2 토큰. 폰트 13 골드 톤. revealNewBest에서 깜빡임 시작(분기 B 시).
+    private func configureBestLabelV2() {
+        configureLabelV2(
+            bestLabel,
+            text: isNewBest ? "★ NEW BEST! ★" : "🏆 BEST \(bestScore)",
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultBestFontSizeV2,
+            fontColor: .ganhoMusicGold
+        )
+    }
+
+    /// Sprint 5 — scoreSubLabel v2 토큰. 분기 A("SCORE") / B("NEW SCORE") navyMuted.
+    private func configureScoreSubLabelV2() {
+        configureLabelV2(
+            scoreSubLabel,
+            text: isNewBest ? "NEW SCORE" : "SCORE",
+            fontName: GameConfig.fontBody,
+            fontSize: GameConfig.resultStatTitleFontSizeV2,
+            fontColor: .ganhoNavyMuted
+        )
+    }
+
+    /// Sprint 5 — subtitleLabel v2 토큰. 분기 A("수고했어요! 한 번 더 해볼까요?") / B("최고 기록을 갱신했어요!").
+    private func configureSubtitleLabelV2() {
+        let subtitle = isNewBest
+            ? "최고 기록을 갱신했어요!"
+            : "수고했어요! 한 번 더 해볼까요?"
+        configureLabelV2(
+            subtitleLabel,
+            text: subtitle,
+            fontName: GameConfig.fontBody,
+            fontSize: GameConfig.resultSubtitleFontSizeV2,
+            fontColor: .ganhoNavyMuted
+        )
+    }
+
+    /// divider — 가로 선 SKShapeNode. 카드 폭 60% navyDeep α=0.18.
+    private func configureDivider() {
+        let dividerWidth = GameConfig.resultPanelMaxWidth * GameConfig.resultDividerWidthRatioV2
+        let dividerHeight: CGFloat = 1
+        divider.path = CGPath(
+            rect: CGRect(
+                x: -dividerWidth / 2,
+                y: -dividerHeight / 2,
+                width: dividerWidth,
+                height: dividerHeight
+            ),
+            transform: nil
+        )
+        divider.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(0.18)
+        divider.strokeColor = .clear
+        divider.lineWidth = 0
+        divider.name = "resultDivider"
+        divider.zPosition = 4
+    }
+
+    /// Sprint 5 — stat 4라벨(PLAYS 숫자/제목 · TOTAL 숫자/제목) 부착.
+    private func setupStats() {
+        configureLabelV2(
+            playsValueLabel,
+            text: "\(stats.playCount)",
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultStatValueFontSizeV2,
+            fontColor: .ganhoNavyDeep
+        )
+        configureLabelV2(
+            playsTitleLabel,
+            text: "PLAYS",
+            fontName: GameConfig.fontBody,
+            fontSize: GameConfig.resultStatTitleFontSizeV2,
+            fontColor: .ganhoNavyMuted
+        )
+        configureLabelV2(
+            totalValueLabel,
+            text: "\(stats.totalScore)",
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultStatValueFontSizeV2,
+            fontColor: .ganhoNavyDeep
+        )
+        configureLabelV2(
+            totalTitleLabel,
+            text: "TOTAL",
+            fontName: GameConfig.fontBody,
+            fontSize: GameConfig.resultStatTitleFontSizeV2,
+            fontColor: .ganhoNavyMuted
+        )
+        addChild(playsValueLabel)
+        addChild(playsTitleLabel)
+        addChild(totalValueLabel)
+        addChild(totalTitleLabel)
+    }
+
+    /// Sprint 5 — 공유 GlassPill + 다시시작 PrimaryButton 부착.
+    /// shareButton 텍스트는 분기 A("📤 공유") / B("📤 자랑하기")로 분기.
+    private func setupButtons() {
+        let shareText = isNewBest ? "📤 자랑하기" : "📤 공유"
+        let share = GlassPillNode(
+            text: shareText,
+            size: CGSize(
+                width: GameConfig.resultShareButtonWidthV2,
+                height: GameConfig.resultShareButtonHeightV2
+            )
+        )
+        share.zPosition = 10
+        share.name = "shareButton"
+        shareButton = share
+        addChild(share)
+
+        restartButton.zPosition = 10
+        restartButton.name = "restartButton"
+        addChild(restartButton)
+    }
+
     /// scene.size 기준 위치 재계산. didMove와 didChangeSize에서 공용.
+    /// Sprint 5 — 신규 v2 자식 위치 추가. 기존 라벨은 alpha=0이지만 layout은 유지(보호 가드).
     private func layoutLabels() {
+        // 기존 라벨 위치(레거시) — alpha=0이어도 노드 트리 보존.
         titleLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultTitleOffsetY
+            y: frame.midY + GameConfig.resultTitleOffsetYV2
         )
         scoreLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultScoreOffsetY
+            y: frame.midY + GameConfig.resultScoreOffsetYV2
         )
         bestLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultBestOffsetY
+            y: frame.midY + GameConfig.resultBestOffsetYV2
         )
         statsLabel.position = CGPoint(
             x: frame.midX,
@@ -250,7 +483,6 @@ final class ResultScene: SKScene {
             x: frame.midX,
             y: frame.midY + GameConfig.resultCharacterOffsetY
         )
-        // Phase 7-1 — characterLabel(+115) 위쪽(+155)에 표시.
         difficultyLabel.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.resultDifficultyOffsetY
@@ -259,19 +491,68 @@ final class ResultScene: SKScene {
             x: frame.midX,
             y: frame.midY + GameConfig.resultPromptOffsetY
         )
-        // Phase 6-15 — newBestLabel은 isNewBest일 때만 addChild되지만, 위치 set은 부착 여부 무관하게 안전(SKNode 기본 동작).
+        // Phase 6-15 — newBestLabel은 isNewBest일 때만 addChild되지만, 위치 set은 부착 여부 무관하게 안전.
         newBestLabel.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.newBestOffsetY
         )
+
+        // Sprint 5 신규 자식 — y offset 표(SPEC §파일별 변경 명세 / ResultScene layoutLabels).
+        accentLine.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultAccentLineOffsetYV2
+        )
+        headerChip?.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultHeaderChipOffsetYV2
+        )
+        subtitleLabel.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultSubtitleOffsetYV2
+        )
+        scoreSubLabel.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultScoreSubOffsetYV2
+        )
+        divider.position = CGPoint(
+            x: frame.midX,
+            y: frame.midY + GameConfig.resultDividerOffsetYV2
+        )
+        playsValueLabel.position = CGPoint(
+            x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
+            y: frame.midY + GameConfig.resultStatValueOffsetYV2
+        )
+        playsTitleLabel.position = CGPoint(
+            x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
+            y: frame.midY + GameConfig.resultStatTitleOffsetYV2
+        )
+        totalValueLabel.position = CGPoint(
+            x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
+            y: frame.midY + GameConfig.resultStatValueOffsetYV2
+        )
+        totalTitleLabel.position = CGPoint(
+            x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
+            y: frame.midY + GameConfig.resultStatTitleOffsetYV2
+        )
+        shareButton?.position = CGPoint(
+            x: frame.midX + GameConfig.resultShareButtonXOffsetV2,
+            y: frame.midY + GameConfig.resultButtonOffsetYV2
+        )
+        restartButton.position = CGPoint(
+            x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
+            y: frame.midY + GameConfig.resultButtonOffsetYV2
+        )
+
+        // gradient 배경 위치 — frame.midY 기준 정중앙. size 변화 시에도 안전.
+        gradientBg?.position = CGPoint(x: frame.midX, y: frame.midY)
     }
 
     // MARK: - Touch
-    /// 화면 어디든 탭 1회 → TitleScene 전환. 중복 탭은 isTransitioning으로 차단.
+    /// 화면 어디든 탭 1회 → StartScene 전환. 중복 탭은 isTransitioning으로 차단.
     /// view 옵셔널은 강제 언래핑 금지 — guard let으로 안전 추출.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
-        // Phase 7-5 — 졸업장 표시 중이면 TitleScene 전환 차단. 졸업장 자체가 isUserInteractionEnabled=true로
+        // Phase 7-5 — 졸업장 표시 중이면 StartScene 전환 차단. 졸업장 자체가 isUserInteractionEnabled=true로
         // 자기 터치를 흡수하므로 이 경로 도달 가능성은 낮지만 edge case 안전망.
         if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
         guard let view = self.view else { return }
@@ -332,6 +613,8 @@ final class ResultScene: SKScene {
         newBestLabel.run(SKAction.group([fadeIn, pulse]))
         // 4) bestLabel 황금 전환 + 깜빡임 시작
         startBestLabelGoldBlink()
+        // 5) Sprint 5 — sparkle 5발 부착 (마지막 라인 추가). 기존 시퀀스 보존.
+        emitSparkleBurst()
     }
 
     /// bestLabel을 황금으로 전환 + alpha 깜빡임 무한 반복.
@@ -351,10 +634,26 @@ final class ResultScene: SKScene {
         bestLabel.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
     }
 
+    /// Sprint 5 — 신기록 시 카드 주변 5개 좌표에 SparkleEffectNode 부착 + emit().
+    /// 기존 SparkleEffectNode(자가 소멸 4호) 그대로 재활용 — 내부 0건 변경. addChild 좌표/zPosition만 다름.
+    /// 5개 자식은 각자 0.5초 후 자가 소멸 → ResultScene은 후속 정리 0건.
+    private func emitSparkleBurst() {
+        for offset in GameConfig.resultSparklePositionsV2 {
+            let sparkle = SparkleEffectNode()
+            sparkle.position = CGPoint(
+                x: frame.midX + offset.x,
+                y: frame.midY + offset.y
+            )
+            sparkle.zPosition = GameConfig.newBestZPosition + 1
+            addChild(sparkle)
+            sparkle.emit()
+        }
+    }
+
     // MARK: - Diploma (Phase 7-4)
     /// 최초 졸업 시점에만 호출 (setupLabels 끝 가드 통과). DiplomaOverlayNode 정적 팩토리로 부착.
     /// parent = self (ResultScene), anchor = `(frame.midX, frame.midY)` — cameraNode 없는 ResultScene에 맞춤.
-    /// onDismiss = 빈 클로저 — 졸업장 닫기 후 ResultScene 그대로 노출(*두 단계 탭* 정책: 졸업장 1탭 + TitleScene 1탭).
+    /// onDismiss = 빈 클로저 — 졸업장 닫기 후 ResultScene 그대로 노출(*두 단계 탭* 정책: 졸업장 1탭 + StartScene 1탭).
     /// DiplomaOverlayNode가 자가 소멸하므로 ResultScene은 후속 정리 0건.
     private func presentDiploma(at graduatedAt: Date) {
         // Phase 7-5 — anchor를 sceneSize 기준으로 변경. ResultScene은 .resizeFill + size 1024x768 고정.
