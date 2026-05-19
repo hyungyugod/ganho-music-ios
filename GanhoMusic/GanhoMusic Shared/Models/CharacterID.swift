@@ -73,4 +73,18 @@ enum CharacterID: String, CaseIterable {
         case .lee:  return "단발 댕댕"
         }
     }
+
+    /// Sprint 2 — 캐릭터 선택 카드 우상단의 작은 색 점(반지름 4) 컬러.
+    /// v2 토큰 패밀리(coralLight/scrubMint/lavenderSoft/musicGold) 재사용 — 신규 토큰 0.
+    /// `.kim`/`.lee`는 같은 코랄 패밀리지만 카드 위치(좌측/우측 끝)로 시각 분리.
+    /// 게임 로직 분기 0 — 순수 시각 라벨용 computed property.
+    var dotColor: UIColor {
+        switch self {
+        case .kim:  return .ganhoCoralLight
+        case .jung: return .ganhoScrubMint
+        case .geon: return .ganhoLavenderSoft
+        case .im:   return .ganhoMusicGold
+        case .lee:  return .ganhoCoralLight
+        }
+    }
 }

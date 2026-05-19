@@ -5,6 +5,8 @@
 //  Phase 10-1a · 시작 시퀀스 1단계 — 제목 + BEST/PLAYS + 스토리 박스 + 난이도 3장 + 시작 버튼
 //  Phase 10-2 · 모던 리스킨 (병동의 새벽 톤) — 그라데이션 배경 + 음표 파티클 + 제목 글로우 +
 //               카드 spring/링 글로우 + 시작 버튼 pulse + 전환 잔향. *게임플레이 변경 0건*.
+//  Sprint 2 · 메뉴 v2 리스킨 — 3-stop warm gradient + GlassPill BEST/PLAYS + Jua 2-라인 타이틀
+//               + AccentLine + Gowun Dodum 태그라인. overlay 패널 제거. 음표 emitter는 보존.
 //
 //  TitleScene의 구조를 답습하되 *난이도 선택*에만 집중. 캐릭터 카드는 다음 단계(CharacterSelectScene)로 이전.
 //  "어디든 탭" 패턴을 제거 — 시작 버튼 명시 탭만 진행.
@@ -13,26 +15,24 @@
 
 import SpriteKit
 
-/// 앱 첫 진입 씬. 제목 + BEST/PLAYS + 부제 + 스토리 박스 + 난이도 3장 + 시작 버튼.
+/// 앱 첫 진입 씬. v2 리스킨: 그라데이션 + AccentLine + 2-라인 Jua 타이틀 + 태그라인 +
+/// 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill + 난이도 3장 + 시작 버튼.
 /// 카메라/월드 개념 없음 — 라벨은 frame.midX/midY 기준 직접 배치.
-/// Phase 10-2 — 비주얼 5채널(그라데이션 / 음표 / 글로우 제목 / 카드 spring / 버튼 pulse) 추가.
 final class StartScene: SKScene {
 
     // MARK: - Properties
     /// 씬 전환이 시작됐는지 여부. true가 되면 추가 탭은 무시 — 더블 enter 방지.
     private var isTransitioning = false
-    /// Phase 10-2 — 기존 titleLabel을 GlowingTitleNode로 *래핑*. 라벨 자체는 유지(글로우 컨테이너 내부).
-    /// 위치 계산은 GlowingTitleNode 인스턴스에 대해 — layoutLabels 좌표식 *불변*.
-    private let titleNode = GlowingTitleNode(
-        text: "김간호는 음악박사",
-        fontSize: GameConfig.titleFontSize,
-        glowColor: .ganhoAccentTeal
-    )
-    private let subtitleLabel = SKLabelNode(text: "어느 한적한 병동의 오후")
-    private let bestLabel     = SKLabelNode(text: "BEST 🏆 0")
-    private let playsLabel    = SKLabelNode(text: "PLAYS 0")
-    /// 스토리 박스 — 게임 톤 안내. lazy 초기화 — GameConfig 텍스트 의존.
-    private lazy var storyBox: StoryBoxNode = StoryBoxNode(body: GameConfig.startSceneStoryText)
+    /// Sprint 2 — Jua 2-라인 타이틀. line1 "김간호는"(navyDeep 44pt), line2 "음악박사 ♪"(coral 56pt).
+    private let titleLine1 = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let titleLine2 = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    /// Sprint 2 — 타이틀 위 AccentLine(32×3 코랄).
+    private let accentLine = AccentLineNode()
+    /// Sprint 2 — Gowun Dodum 태그라인(2줄 자동 줄바꿈).
+    private let taglineLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    /// Sprint 2 — BEST/PLAYS는 GlassPillNode 2개. 옵셔널 — didMove 전엔 nil.
+    private var bestPill: GlassPillNode?
+    private var playsPill: GlassPillNode?
     /// 시작 버튼 — 명시 탭만 다음 단계로 진행.
     private let startButton = PrimaryButtonNode(text: "시작")
     /// 현재 선택된 난이도. 기본 .easy. 다음 씬으로 전달.
@@ -60,14 +60,14 @@ final class StartScene: SKScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgDeep        // 1프레임 fallback 톤. 그라데이션이 위에 덮음.
-        setupGradientBackground()             // Phase 10-2 — zPos -20 (가장 뒤)
-        setupOverlayPanel()                   // 반투명 검정 배경 + 카드 패널 (라벨/카드 *뒤*에 배치)
-        setupMusicNoteEmitter()               // Phase 10-2 — zPos -15 (overlay 위, 패널 뒤)
-        setupLabels()
+        // Sprint 2 — 1프레임 fallback도 warm top으로 (다크 플래시 회피).
+        backgroundColor = .ganhoBgWarmTop
+        setupGradientBackground()             // Sprint 2 — 3-stop warm gradient. zPos -20.
+        setupMusicNoteEmitter()               // Phase 10-2 — 보존. zPos -15.
+        setupStatPills()                      // Sprint 2 — BEST/PLAYS GlassPill 2개.
+        setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
         selectedDifficulty = difficultyRepo.current
         setupDifficultyCards()
-        setupStoryBox()
         setupStartButton()
         attachStartButtonPulse()              // Phase 10-2 — 시작 버튼 호흡 pulse
     }
@@ -77,27 +77,28 @@ final class StartScene: SKScene {
         // Phase 10-2 — 그라데이션/음표 emitter는 sceneSize 의존 → 사이즈 변경 시 재생성.
         rebuildGradientBackground()
         rebuildMusicNoteEmitter()
-        layoutLabels()
+        layoutStatPills()
+        layoutTitleBlock()
         layoutDifficultyCards()
-        layoutStoryBox()
         layoutStartButton()
     }
 
-    // MARK: - Setup (Phase 10-2 비주얼)
-    /// Phase 10-2 — 세로 그라데이션 배경. tealDeep(상단) → teal(하단). zPos -20.
+    // MARK: - Setup (Sprint 2 · Background)
+    /// Sprint 2 — 3-stop warm gradient(피치 → 코랄 → 라벤더). zPos -20.
     /// didChangeSize에서 재생성하기 위해 인스턴스 참조 보관.
     private func setupGradientBackground() {
-        let node = GradientBackgroundNode(
+        let node = GradientBackgroundNode.threeStop(
             size: size,
-            topColor: .ganhoAccentTealDeep,
-            bottomColor: .ganhoAccentTeal
+            topColor: .ganhoBgWarmTop,
+            midColor: .ganhoBgWarmMid,
+            bottomColor: .ganhoBgWarmBottom
         )
         node.position = CGPoint(x: frame.midX, y: frame.midY)
         gradientBackground = node
         addChild(node)
     }
 
-    /// Phase 10-2 — 사이즈 변경 시 그라데이션 재생성. 기존 노드는 removeFromParent.
+    /// 사이즈 변경 시 그라데이션 재생성. 기존 노드는 removeFromParent.
     private func rebuildGradientBackground() {
         gradientBackground?.removeFromParent()
         gradientBackground = nil
@@ -122,76 +123,89 @@ final class StartScene: SKScene {
         setupMusicNoteEmitter()
     }
 
-    // MARK: - Setup
-    /// 원본 .game-overlay 톤 — 반투명 검정 배경 + 가운데 카드 패널. TitleScene과 동형.
-    private func setupOverlayPanel() {
-        let bg = SKSpriteNode(color: .ganhoUIOverlayBg, size: size)
-        bg.position = CGPoint(x: frame.midX, y: frame.midY)
-        bg.zPosition = -10
-        bg.name = "overlayBackground"
-        addChild(bg)
-
-        let panelWidth = GameConfig.uiPanelCharacterMaxWidth
-        let panelHeight: CGFloat = 480
-        let panel = SKShapeNode(
-            rectOf: CGSize(width: panelWidth, height: panelHeight),
-            cornerRadius: GameConfig.uiRadius
-        )
-        panel.fillColor = .ganhoUIBgCard
-        panel.strokeColor = .ganhoUIBorder
-        panel.lineWidth = GameConfig.uiPanelLineWidth
-        panel.position = CGPoint(x: frame.midX, y: frame.midY)
-        panel.zPosition = -5
-        panel.name = "overlayPanel"
-        addChild(panel)
-    }
-
-    private func setupLabels() {
-        configureLabel(subtitleLabel, fontSize: GameConfig.startSceneSubtitleFontSize)
-        configureLabel(bestLabel,     fontSize: GameConfig.titleBestFontSize)
-        configureLabel(playsLabel,    fontSize: GameConfig.titlePlaysFontSize)
-        subtitleLabel.fontColor = .ganhoUITextMuted   // 부제는 *조용한* 보조 톤
-        // Phase 10-2 — BEST/PLAYS는 살구색 액센트. 부제는 muted 유지.
-        bestLabel.fontColor = .ganhoAccentCoral
-        playsLabel.fontColor = .ganhoAccentCoral
+    // MARK: - Setup (Sprint 2 · Stats)
+    /// Sprint 2 — 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill.
+    /// 저장소 호출 위치 *그대로* — setup 시점 1회.
+    private func setupStatPills() {
         let best = HighScoreRepository().current
-        bestLabel.text = "BEST 🏆 \(best)"
         let plays = StatisticsRepository().current.playCount
-        playsLabel.text = "PLAYS \(plays)"
-        // Phase 10-2 — titleLabel 단독 addChild → GlowingTitleNode로 래핑한 노드 addChild.
-        addChild(titleNode)
-        addChild(subtitleLabel)
-        addChild(bestLabel)
-        addChild(playsLabel)
-        layoutLabels()
+        let pillSize = CGSize(
+            width: GameConfig.startSceneStatPillWidth,
+            height: GameConfig.startSceneStatPillHeight
+        )
+        let bestNode = GlassPillNode(text: "BEST 🏆 \(best)", size: pillSize)
+        let playsNode = GlassPillNode(text: "PLAYS \(plays)", size: pillSize)
+        bestPill = bestNode
+        playsPill = playsNode
+        addChild(bestNode)
+        addChild(playsNode)
+        layoutStatPills()
     }
 
-    /// 라벨 공통 스타일. TitleScene 패턴 동일.
-    private func configureLabel(_ label: SKLabelNode, fontSize: CGFloat) {
-        label.fontSize = fontSize
-        label.fontColor = .ganhoPaper
-        label.horizontalAlignmentMode = .center
-        label.verticalAlignmentMode = .center
+    private func layoutStatPills() {
+        guard let best = bestPill, let plays = playsPill else { return }
+        let y = frame.maxY - GameConfig.startSceneStatPillTopMargin
+        best.position = CGPoint(
+            x: frame.minX + GameConfig.startSceneStatPillSideMargin,
+            y: y
+        )
+        plays.position = CGPoint(
+            x: frame.maxX - GameConfig.startSceneStatPillSideMargin,
+            y: y
+        )
     }
 
-    private func layoutLabels() {
-        // Phase 10-2 — 좌표 계산식은 *불변*. 적용 대상만 titleLabel → titleNode로 교체.
-        titleNode.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.titleLabelOffsetY
+    // MARK: - Setup (Sprint 2 · Title Block)
+    /// Sprint 2 — AccentLine + Jua 2-라인 타이틀 + Gowun Dodum 태그라인.
+    /// 우측 정렬 — 타이틀 블록이 우측, 좌측은 캐릭터 placeholder 영역(비워둠).
+    private func setupTitleBlock() {
+        // 라인 1 — "김간호는" navyDeep.
+        titleLine1.text = "김간호는"
+        titleLine1.fontSize = GameConfig.startSceneTitleLine1FontSize
+        titleLine1.fontColor = .ganhoNavyDeep
+        titleLine1.horizontalAlignmentMode = .right
+        titleLine1.verticalAlignmentMode = .center
+
+        // 라인 2 — "음악박사 ♪" coral.
+        titleLine2.text = "음악박사 ♪"
+        titleLine2.fontSize = GameConfig.startSceneTitleLine2FontSize
+        titleLine2.fontColor = .ganhoCoralPrimary
+        titleLine2.horizontalAlignmentMode = .right
+        titleLine2.verticalAlignmentMode = .center
+
+        // 태그라인 — Gowun Dodum body.
+        taglineLabel.text = "수간호사 몰래, 떠오른 멜로디를\n45초 안에 모아 보세요"
+        taglineLabel.fontSize = GameConfig.startSceneTaglineFontSize
+        taglineLabel.fontColor = .ganhoNavyMuted
+        taglineLabel.horizontalAlignmentMode = .right
+        taglineLabel.verticalAlignmentMode = .center
+        taglineLabel.numberOfLines = 0
+        taglineLabel.preferredMaxLayoutWidth = GameConfig.startSceneTaglineMaxWidth
+
+        addChild(accentLine)
+        addChild(titleLine1)
+        addChild(titleLine2)
+        addChild(taglineLabel)
+        layoutTitleBlock()
+    }
+
+    private func layoutTitleBlock() {
+        let anchorX = frame.maxX - GameConfig.startSceneTitleBlockRightMargin
+        let centerY = frame.midY + GameConfig.startSceneTitleBlockOffsetY
+        // 타이틀 1행은 위, 타이틀 2행은 아래 — 줄간 lineSpacing.
+        let line1Y = centerY + GameConfig.startSceneTitleLineSpacing / 2
+        let line2Y = centerY - GameConfig.startSceneTitleLineSpacing / 2
+        titleLine1.position = CGPoint(x: anchorX, y: line1Y)
+        titleLine2.position = CGPoint(x: anchorX, y: line2Y)
+        // AccentLine은 타이틀1 위로 +offset, 우측 정렬에 맞춰 우측 끝을 anchorX에 맞춤.
+        accentLine.position = CGPoint(
+            x: anchorX - GameConfig.accentLineWidth / 2,
+            y: line1Y + GameConfig.startSceneAccentLineAboveTitleOffset
         )
-        subtitleLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.startSceneSubtitleOffsetY
-        )
-        // BEST/PLAYS는 상단 — 패널 위쪽 영역에 가로 2개.
-        bestLabel.position = CGPoint(
-            x: frame.midX - GameConfig.startSceneBestPlaysSpacing,
-            y: frame.midY + GameConfig.startSceneBestPlaysTopMargin
-        )
-        playsLabel.position = CGPoint(
-            x: frame.midX + GameConfig.startSceneBestPlaysSpacing,
-            y: frame.midY + GameConfig.startSceneBestPlaysTopMargin
+        // 태그라인은 타이틀2 아래.
+        taglineLabel.position = CGPoint(
+            x: anchorX,
+            y: line2Y + GameConfig.startSceneTaglineBelowTitleOffset
         )
     }
 
@@ -231,20 +245,6 @@ final class StartScene: SKScene {
         for card in difficultyCards {
             card.setSelected(card.id == id)
         }
-    }
-
-    // MARK: - Story Box
-    /// 스토리 박스 — 게임 소개 톤. addChild + layout 분리(다른 노드와 동일 패턴).
-    private func setupStoryBox() {
-        addChild(storyBox)
-        layoutStoryBox()
-    }
-
-    private func layoutStoryBox() {
-        storyBox.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.startSceneStoryBoxOffsetY
-        )
     }
 
     // MARK: - Start Button
@@ -304,7 +304,7 @@ final class StartScene: SKScene {
 
     /// 시작 버튼 탭 시 다음 단계로 전환.
     /// Phase 10-2 — *게임플레이 동작 불변* — selectedDifficulty 전달, presentScene 대상,
-    /// sceneTransitionDuration 모두 그대로. 카드/스토리/버튼 슬라이드업 + fade-out *prelude*만 추가.
+    /// sceneTransitionDuration 모두 그대로. 카드/타이틀/버튼 슬라이드업 + fade-out *prelude*만 추가.
     private func transitionToNext() {
         guard let view = self.view else { return }
         isTransitioning = true
@@ -314,7 +314,7 @@ final class StartScene: SKScene {
         // Phase 10-2 — 음표 emitter 정지(추가 스폰 중단). 떠 있는 음표는 자가 정리.
         musicNoteEmitter?.stopEmitting()
 
-        // Phase 10-2 — 카드/스토리/시작 버튼 *살짝 위로* 슬라이드 + fadeOut.
+        // Phase 10-2 — 카드/타이틀/시작 버튼 *살짝 위로* 슬라이드 + fadeOut.
         let slideUp = SKAction.moveBy(
             x: 0,
             y: GameConfig.startSceneExitSlideDistance,
@@ -327,8 +327,10 @@ final class StartScene: SKScene {
         // 같은 액션 인스턴스를 여러 노드에 run하면 SpriteKit이 내부적으로 복사 — 안전.
         let exit = SKAction.group([slideUp, fadeOut])
         for card in difficultyCards { card.run(exit) }
-        storyBox.run(exit)
         startButton.run(exit)
+        titleLine1.run(exit)
+        titleLine2.run(exit)
+        taglineLabel.run(exit)
 
         // Phase 10-2 — 슬라이드 완료 후 presentScene. *씬 전환 대상/난이도 전달 불변*.
         let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)

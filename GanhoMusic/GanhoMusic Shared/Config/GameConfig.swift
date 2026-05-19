@@ -1164,4 +1164,193 @@ enum GameConfig {
     static let primaryButtonArrowCircleAlpha: CGFloat = 0.25
     /// PrimaryButtonNode v2 우측 화살표 라벨 폰트 크기(pt).
     static let primaryButtonArrowLabelFontSize: CGFloat = 14
+
+    // MARK: - Sprint 2 · StartScene v2 Layout
+    // DESIGN_RENEWAL_REQUEST.md §4.1 + mockups/main-screen-v2.html.
+    // 본 섹션은 *추가만* — 기존 startScene* 상수(Phase 10-1a/10-2)는 미사용 상태가 되어도 *유지*.
+
+    /// StartScene 타이틀 1행("김간호는") 폰트 크기(pt). §4.1 = 44pt navyDeep.
+    static let startSceneTitleLine1FontSize: CGFloat = 44
+    /// StartScene 타이틀 2행("음악박사 ♪") 폰트 크기(pt). §4.1 = 56pt coralPrimary.
+    static let startSceneTitleLine2FontSize: CGFloat = 56
+    /// StartScene 태그라인 폰트 크기(pt). Gowun Dodum body 톤.
+    static let startSceneTaglineFontSize: CGFloat = 13
+    /// StartScene 태그라인 자동 줄바꿈 폭(pt). preferredMaxLayoutWidth.
+    static let startSceneTaglineMaxWidth: CGFloat = 240
+    /// StartScene 타이틀 블록 우측 마진(pt). frame.maxX - margin이 우측 정렬 기준.
+    static let startSceneTitleBlockRightMargin: CGFloat = 64
+    /// StartScene 타이틀 블록 y 오프셋(pt). frame.midY + offset.
+    static let startSceneTitleBlockOffsetY: CGFloat = 60
+    /// StartScene 2행 사이 줄간 y 간격(pt). titleLine1 → titleLine2.
+    static let startSceneTitleLineSpacing: CGFloat = 58
+    /// StartScene AccentLine 타이틀 블록 위 y 오프셋(pt). 타이틀1 위 +24.
+    static let startSceneAccentLineAboveTitleOffset: CGFloat = 36
+    /// StartScene 태그라인 타이틀2 아래 y 오프셋(pt).
+    static let startSceneTaglineBelowTitleOffset: CGFloat = -48
+
+    /// StartScene BEST/PLAYS 알약 폭(pt). §4.1 = 96.
+    static let startSceneStatPillWidth: CGFloat = 96
+    /// StartScene BEST/PLAYS 알약 높이(pt).
+    static let startSceneStatPillHeight: CGFloat = 28
+    /// StartScene 알약 좌우 마진(pt). frame.minX/maxX 기준 안쪽 거리.
+    static let startSceneStatPillSideMargin: CGFloat = 60
+    /// StartScene 알약 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
+    static let startSceneStatPillTopMargin: CGFloat = 30
+
+    // MARK: - Sprint 2 · CharacterSelectScene v2 Layout
+    // DESIGN_RENEWAL_REQUEST.md §4.2 + mockups/character-select-v2.html.
+
+    /// 헤더 부제(Gowun Dodum) 폰트 크기(pt). §4.2 = 12pt navyMuted.
+    static let characterSelectHeaderSubFontSize: CGFloat = 12
+    /// 헤더 부제 텍스트.
+    static let characterSelectHeaderSubText: String = "친구마다 다른 스킬과 이동속도를 가져요"
+    /// 헤더 부제 y 오프셋(pt). headerLabel 아래 -22.
+    static let characterSelectHeaderSubOffsetY: CGFloat = -22
+    /// 헤더 AccentLine y 오프셋(pt). headerLabel 위 +24.
+    static let characterSelectAccentLineOffsetY: CGFloat = 24
+
+    /// 뒤로 GlassPill 텍스트.
+    static let characterSelectBackPillText: String = "← 난이도 다시"
+    /// 뒤로 GlassPill 폭(pt).
+    static let characterSelectBackPillWidth: CGFloat = 120
+    /// 뒤로 GlassPill 높이(pt).
+    static let characterSelectBackPillHeight: CGFloat = 28
+    /// 난이도 칩 본 라벨 텍스트.
+    static let characterSelectDifficultyChipLabel: String = "현재 난이도"
+    /// Top bar 좌우 마진(pt). frame.minX/maxX 기준.
+    static let characterSelectTopBarMarginX: CGFloat = 40
+    /// Top bar 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
+    static let characterSelectTopBarMarginY: CGFloat = 30
+
+    /// 카드 외곽 글래스 컨테이너 폭(pt). §4.2 = 110.
+    static let characterCardGlassWidth: CGFloat = 110
+    /// 카드 외곽 글래스 컨테이너 높이(pt).
+    static let characterCardGlassHeight: CGFloat = 140
+    /// 카드 외곽 글래스 cornerRadius(pt).
+    static let characterCardGlassCornerRadius: CGFloat = 18
+    /// 카드 외곽 글래스 fill 알파(흰색).
+    static let characterCardGlassFillAlpha: CGFloat = 0.65
+    /// 카드 우상단 색 점 반지름(pt). §4.2 = 4 (지름 8).
+    static let characterCardColorDotRadius: CGFloat = 4
+    /// 카드 색 점 카드 외곽으로부터 우측 inset(pt).
+    static let characterCardColorDotInsetX: CGFloat = 14
+    /// 카드 색 점 카드 외곽으로부터 상단 inset(pt).
+    static let characterCardColorDotInsetY: CGFloat = 14
+    /// 카드 외곽 글래스 선택 시 scale.
+    static let characterCardGlassSelectedScale: CGFloat = 1.08
+    /// 카드 외곽 글래스 선택 시 y 오프셋(pt). 살짝 위로 떠오름.
+    static let characterCardGlassSelectedYOffset: CGFloat = 12
+    /// 카드 외곽 글래스 선택 시 stroke 두께(pt).
+    static let characterCardGlassSelectedStrokeWidth: CGFloat = 2
+    /// 카드 외곽 글래스 scale 액션 duration(초).
+    static let characterCardGlassScaleDuration: TimeInterval = 0.18
+
+    /// 하단 스킬 정보 칩 y 오프셋(pt). frame.midY 기준.
+    static let characterSelectSkillInfoOffsetY: CGFloat = -100
+    /// confirm 버튼 y 오프셋(pt). frame.midY 기준.
+    static let characterSelectConfirmButtonOffsetY: CGFloat = -180
+
+    // MARK: - Sprint 2 · SkillExplanationScene v2 Layout
+    // DESIGN_RENEWAL_REQUEST.md §4.3 + mockups/skill-explanation-v2.html.
+
+    /// 헤더 부제 텍스트.
+    static let skillExplanationHeaderSubText: String = "한 번만 익히면 충분해요. 바로 시작할 수 있어요"
+    /// 헤더 부제 폰트 크기(pt).
+    static let skillExplanationHeaderSubFontSize: CGFloat = 12
+    /// 헤더 AccentLine y 오프셋(pt). headerLabel 위 +24.
+    static let skillExplanationAccentLineOffsetY: CGFloat = 24
+    /// 헤더 부제 y 오프셋(pt). headerLabel 아래 -22.
+    static let skillExplanationHeaderSubOffsetY: CGFloat = -22
+
+    /// Top bar 뒤로 GlassPill 텍스트.
+    static let skillExplanationBackPillText: String = "← 캐릭터 다시"
+    /// Top bar 뒤로 GlassPill 폭(pt).
+    static let skillExplanationBackPillWidth: CGFloat = 130
+    /// Top bar 뒤로 GlassPill 높이(pt).
+    static let skillExplanationBackPillHeight: CGFloat = 28
+    /// Top bar 브레드크럼 칩 뱃지 텍스트("스킬").
+    static let skillExplanationBreadcrumbBadge: String = "스킬"
+    /// Top bar 좌우 마진(pt).
+    static let skillExplanationTopBarMarginX: CGFloat = 40
+    /// Top bar 상단 마진(pt).
+    static let skillExplanationTopBarMarginY: CGFloat = 30
+
+    /// 좌측 아바타 글래스 카드 폭(pt). §4.3 = 180.
+    static let skillExplanationAvatarCardWidth: CGFloat = 180
+    /// 좌측 아바타 글래스 카드 높이(pt).
+    static let skillExplanationAvatarCardHeight: CGFloat = 200
+    /// 좌측 아바타 글래스 카드 cornerRadius(pt).
+    static let skillExplanationAvatarCardCornerRadius: CGFloat = 24
+    /// 아바타 카드 fill 알파.
+    static let skillExplanationAvatarCardFillAlpha: CGFloat = 0.85
+    /// 아바타 카드 stroke 알파(코랄).
+    static let skillExplanationAvatarCardStrokeAlpha: CGFloat = 0.3
+    /// 아바타 카드 stroke 두께(pt).
+    static let skillExplanationAvatarCardStrokeWidth: CGFloat = 2
+    /// 아바타 카드 x 오프셋(pt). frame.midX 기준 좌측.
+    static let skillExplanationAvatarCardOffsetX: CGFloat = -180
+    /// 아바타 카드 y 오프셋(pt). frame.midY 기준.
+    static let skillExplanationAvatarCardOffsetY: CGFloat = 0
+    /// 아바타 이름 뱃지(코랄 알약) y 오프셋(pt). 카드 안 상단.
+    static let skillExplanationAvatarNameBadgeOffsetY: CGFloat = 90
+    /// 아바타 이름 뱃지 폰트 크기(pt).
+    static let skillExplanationAvatarNameBadgeFontSize: CGFloat = 12
+    /// 아바타 이름 뱃지 폭(pt).
+    static let skillExplanationAvatarNameBadgeWidth: CGFloat = 80
+    /// 아바타 이름 뱃지 높이(pt).
+    static let skillExplanationAvatarNameBadgeHeight: CGFloat = 24
+    /// 아바타 role 라벨 y 오프셋(pt). 카드 아래.
+    static let skillExplanationAvatarRoleOffsetY: CGFloat = -110
+    /// 아바타 role 라벨 폰트 크기(pt).
+    static let skillExplanationAvatarRoleFontSize: CGFloat = 11
+    /// 아바타 속도 칩 y 오프셋(pt). role 아래.
+    static let skillExplanationAvatarSpeedChipOffsetY: CGFloat = -130
+
+    /// 우측 메타 라벨(코랄, Gowun Dodum) 폰트 크기(pt).
+    static let skillExplanationMetaLabelFontSize: CGFloat = 11
+    /// 우측 메타 라벨 x 오프셋(pt). frame.midX 기준 우측.
+    static let skillExplanationMetaLabelOffsetX: CGFloat = 80
+    /// 우측 메타 라벨 y 오프셋(pt). skillNameLabel 위.
+    static let skillExplanationMetaLabelOffsetY: CGFloat = 120
+
+    /// 인용 박스 폭(pt). §4.3.
+    static let skillExplanationQuoteBoxWidth: CGFloat = 300
+    /// 인용 박스 높이(pt).
+    static let skillExplanationQuoteBoxHeight: CGFloat = 80
+    /// 인용 박스 cornerRadius(pt).
+    static let skillExplanationQuoteBoxCornerRadius: CGFloat = 14
+    /// 인용 박스 fill 알파(흰색).
+    static let skillExplanationQuoteBoxFillAlpha: CGFloat = 0.55
+    /// 인용 박스 좌측 코랄 보더 두께(pt).
+    static let skillExplanationQuoteBoxBorderWidth: CGFloat = 3
+    /// 인용 박스 본문 폰트 크기(pt).
+    static let skillExplanationQuoteBoxFontSize: CGFloat = 14
+    /// 인용 박스 본문 좌우 패딩(pt). preferredMaxLayoutWidth = boxWidth - padding*2.
+    static let skillExplanationQuoteBoxHorizontalPadding: CGFloat = 28
+    /// 인용 박스 y 오프셋(pt). frame.midY 기준.
+    static let skillExplanationQuoteBoxOffsetY: CGFloat = 0
+
+    /// 우측 메타 칩 가로 간격(pt). 3개 사이.
+    static let skillExplanationStatChipSpacing: CGFloat = 8
+    /// 우측 메타 칩 행 y 오프셋(pt). frame.midY 기준.
+    static let skillExplanationStatChipRowOffsetY: CGFloat = -60
+
+    /// 컨트롤 힌트 컨테이너 폭(pt).
+    static let skillExplanationControlHintContainerWidth: CGFloat = 280
+    /// 컨트롤 힌트 컨테이너 높이(pt).
+    static let skillExplanationControlHintContainerHeight: CGFloat = 32
+    /// 컨트롤 힌트 컨테이너 fill 알파(navy).
+    static let skillExplanationControlHintContainerFillAlpha: CGFloat = 0.92
+    /// 컨트롤 힌트 "B" 키 원 반지름(pt).
+    static let skillExplanationControlHintKeyCircleRadius: CGFloat = 11
+    /// 컨트롤 힌트 "B" 라벨 폰트 크기(pt).
+    static let skillExplanationControlHintKeyFontSize: CGFloat = 12
+    /// 컨트롤 힌트 본 라벨 폰트 크기(pt).
+    static let skillExplanationControlHintLabelFontSize: CGFloat = 12
+    /// 컨트롤 힌트 컨테이너 내부 좌우 패딩(pt).
+    static let skillExplanationControlHintHorizontalPadding: CGFloat = 14
+    /// 컨트롤 힌트 "B" 원 ~ 라벨 간격(pt).
+    static let skillExplanationControlHintKeySpacing: CGFloat = 10
+    /// 컨트롤 힌트 컨테이너 y 오프셋(pt). frame.midY 기준.
+    static let skillExplanationControlHintContainerOffsetY: CGFloat = -120
 }

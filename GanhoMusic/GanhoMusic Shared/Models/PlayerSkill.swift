@@ -84,4 +84,32 @@ extension PlayerSkill {
         case .taiwanTrip:     return "가장 먼 빈 타일로 순간이동. 착지 후 0.5초 무적. 쿨다운 22초."
         }
     }
+
+    /// Sprint 2 — 스킬 *범위* 라벨. 메타 칩 3개 중 하나. 순수 시각 표현용.
+    /// 게임 로직 분기 0 — switch는 단순 문자열 lookup.
+    var rangeText: String {
+        switch self {
+        case .none:           return "—"
+        case .dashClimb:      return "3타일"
+        case .bookClubRally:  return "6타일"
+        case .charmStudent:   return "전역"
+        case .taiwanTrip:     return "최원거리"
+        }
+    }
+
+    /// Sprint 2 — 스킬 *발동 타입* 라벨. duration=0은 "즉발", 그 외는 "N초".
+    /// `.charmStudent`는 게임당 1회 + duration이 있는 매혹 시간 → "지속 \(duration)초" 톤이 어울리지만
+    /// SPEC §K4는 duration 0이 아니면 "\(duration)초" 표기를 요청 → 그대로 따른다.
+    var castText: String {
+        switch self {
+        case .none:
+            return "—"
+        case .dashClimb, .bookClubRally, .charmStudent, .taiwanTrip:
+            if duration <= 0 {
+                return "즉발"
+            }
+            let seconds = Int(duration.rounded())
+            return "\(seconds)초"
+        }
+    }
 }

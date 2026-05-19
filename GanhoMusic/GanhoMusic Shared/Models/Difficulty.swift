@@ -40,4 +40,15 @@ enum Difficulty: String, CaseIterable {
         case .hard:   return .ganhoBloodAccent
         }
     }
+
+    /// Sprint 2 — 짧은 1자 라벨. DarkContextChipNode 뱃지에 표시. displayName과 동일하지만
+    /// 의미 단위 분리 — *카드 라벨*과 *뱃지*의 호출 의도를 코드 레벨에서 구분.
+    /// 게임 로직 분기 0 — 순수 시각 라벨용 computed property.
+    var shortName: String {
+        switch self {
+        case .easy:   return "하"
+        case .normal: return "중"
+        case .hard:   return "상"
+        }
+    }
 }

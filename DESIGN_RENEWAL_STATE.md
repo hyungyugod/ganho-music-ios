@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 1 합격)
-**현재 진행 중인 Sprint**: Sprint 2 — 대기 중 (다음 트리거 시 시작)
+**최종 갱신**: 2026-05-19 (Sprint 2 합격)
+**현재 진행 중인 Sprint**: Sprint 3 — 대기 중 (다음 트리거 시 시작)
 
 ---
 
@@ -35,8 +35,8 @@ Sprint 2 진행해줘
 | Sprint | 범위 | 상태 | 점수 | 시도 |
 |---|---|---|---|---|
 | **1** | 디자인 토큰 + 노드 컴포넌트 (인프라) | ✅ 합격 | 9.83/10 | 1/3 |
-| **2** | 메뉴 3씬 (Start/Character/Skill) | ⏳ 대기 | - | 0/3 |
-| **3** | 인게임 (GameScene + HUD + 컨트롤) | ⏸️ 미시작 | - | 0/3 |
+| **2** | 메뉴 3씬 (Start/Character/Skill) | ✅ 합격 | 9.50/10 | 1/3 |
+| **3** | 인게임 (GameScene + HUD + 컨트롤) | ⏳ 대기 | - | 0/3 |
 | **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
 | **5** | ResultScene 3분기 | ⏸️ 미시작 | - | 0/3 |
 
@@ -68,10 +68,11 @@ Sprint 2 진행해줘
 - **사용자 후속 작업 (OPEN_QUESTION Q1)**: 폰트 ttf 3개(Jua/GowunDodum/NotoSansKR) 다운로드 → `Resources/Fonts/` 추가 → `Info.plist` `UIAppFonts` 배열 추가 → Sprint 2 시작 전 시뮬레이터에서 폰트 적용 시각 확인.
 
 ### Sprint 2 — 메뉴 3씬
-- 시작: -
-- 완료: -
-- 점수: -
-- 비고: -
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.50/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼 9.0 · UX 9.0)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: StartScene/CharacterSelectScene/SkillExplanationScene을 3-stop warm gradient + Jua/Gowun Dodum 폰트 + Sprint 1 인프라(GlassPill 4 / AccentLine 3 / DarkContextChip 7 / Primary 3 / Back 1 / Gradient.threeStop 3) 호출로 재구성. 4개 신규 computed property(Difficulty.shortName / PlayerSkill.rangeText/castText / CharacterID.dotColor) 추가 — 순수 시각 라벨용. GameScene/GameScene+Setup/ResultScene + Sprint 1 컴포넌트 6개 + 기타 보호 파일 15개 git diff 0줄. 빌드 SUCCEEDED.
 
 ### Sprint 3 — 인게임
 - 시작: -
