@@ -228,6 +228,36 @@ extension UIColor {
     /// 음표 파티클 본체 + 선택 카드 링 글로우 + BEST/PLAYS 액센트.
     /// 밝고 따뜻한 살구색 — ganhoUIBrand(#c4847a)보다 *밝은* 떠오르는 멜로디 톤.
     static let ganhoAccentCoral = UIColor(hex: "#FFB59A")
+
+    // MARK: - v2 Design System (Warm Pastel · Sprint 1)
+    // DESIGN_RENEWAL_REQUEST.md §3.1 — 따뜻한 피치-라벤더 그라데이션 + 코랄 액센트 + 카툰 톤.
+    // Sprint 1은 *추가만* — 기존 토큰(ganhoBgDeep, ganhoAccentTeal, ganhoUIBrand 등) hex 0 변경.
+
+    // 배경 그라데이션 (3-stop)
+    static let ganhoBgWarmTop    = UIColor(hex: "#FFE5D0")  // 피치 (상단)
+    static let ganhoBgWarmMid    = UIColor(hex: "#FFC8B5")  // 코랄 (중간)
+    static let ganhoBgWarmBottom = UIColor(hex: "#DCC9E8")  // 라벤더 (하단)
+    static let ganhoBgAccent1    = UIColor(hex: "#FFD9B8")  // BG 액센트 (radial)
+    static let ganhoBgAccent2    = UIColor(hex: "#E5C8E8")  // BG 액센트 (radial)
+
+    // Primary 액션 (코랄 패밀리)
+    static let ganhoCoralPrimary = UIColor(hex: "#FF6B5B")  // 메인 CTA 색
+    static let ganhoCoralLight   = UIColor(hex: "#FF8E80")  // 호버/포커스
+    static let ganhoCoralShadow  = UIColor(hex: "#C44A3D")  // 입체 그림자 베이스
+
+    // 텍스트 & 위계
+    static let ganhoNavyDeep     = UIColor(hex: "#2D2A4A")  // 메인 텍스트
+    static let ganhoNavyMuted    = UIColor(hex: "#5A5670")  // 보조 텍스트
+    static let ganhoMusicGold    = UIColor(hex: "#FFB347")  // 음표·HUD 라벨
+
+    // 그래픽 디테일
+    static let ganhoLavenderSoft = UIColor(hex: "#B89DD9")  // 라벤더 액센트
+    static let ganhoScrubMint    = UIColor(hex: "#9BE0CC")  // 정간호 / 일부 카드
+    static let ganhoSkinTone     = UIColor(hex: "#FFE2C6")  // 캐릭터 피부 톤
+
+    // 체크보드 (Game floor) — Sprint 3에서 GameScene이 끌어다 씀
+    static let ganhoFloorPeachA  = UIColor(hex: "#FFEFE0")  // 체크보드 밝은 칸
+    static let ganhoFloorPeachB  = UIColor(hex: "#FFDFC8")  // 체크보드 어두운 칸
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

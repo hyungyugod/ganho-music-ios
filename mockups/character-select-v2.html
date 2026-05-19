@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 캐릭터 선택 화면 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone frame === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px;
+    padding: 14px;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9;
+    max-width: 920px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 90px;
+    background: #0a0a0a;
+    border-radius: 4px;
+    z-index: 10;
+  }
+
+  /* === Top bar === */
+  .top-bar {
+    position: absolute;
+    top: 22px;
+    left: 48px;
+    right: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 14px 6px 12px;
+    border-radius: 999px;
+    font-family: 'Jua', sans-serif;
+    font-size: 13px;
+    color: #2D2A4A;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(45, 42, 74, 0.08);
+    transition: transform 0.1s;
+  }
+  .back-btn:hover { transform: translateX(-2px); }
+
+  .diff-pill {
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(45, 42, 74, 0.25);
+  }
+  .diff-pill .badge {
+    background: #FF6B5B;
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: 'Jua', sans-serif;
+  }
+
+  /* === Header === */
+  .header {
+    position: absolute;
+    top: 16%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 4;
+  }
+  .accent-line {
+    width: 32px;
+    height: 3px;
+    background: #FF6B5B;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+  .header-title {
+    font-family: 'Jua', sans-serif;
+    font-size: 28px;
+    color: #2D2A4A;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header-sub {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px;
+    color: #5A5670;
+    margin-top: 6px;
+  }
+
+  /* === Character cards row === */
+  .cards-row {
+    position: absolute;
+    top: 42%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 14px;
+    padding: 0 6%;
+    z-index: 3;
+  }
+  .char-card {
+    flex: 1;
+    max-width: 130px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 12px 10px 14px;
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+    position: relative;
+  }
+  .char-card:hover {
+    transform: translateY(-3px);
+  }
+  .char-card .avatar {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 8px;
+    display: block;
+  }
+  .char-card .name {
+    font-family: 'Jua', sans-serif;
+    font-size: 16px;
+    color: #2D2A4A;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+  .char-card .tag {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 10px;
+    color: #5A5670;
+    line-height: 1.3;
+  }
+  .char-card .color-dot {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Selected card */
+  .char-card.selected {
+    transform: translateY(-12px) scale(1.08);
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #FF6B5B;
+    box-shadow:
+      0 12px 32px rgba(255, 107, 91, 0.35),
+      0 4px 12px rgba(45, 42, 74, 0.15);
+  }
+  .char-card.selected::after {
+    content: "선택됨";
+    position: absolute;
+    top: -10px; left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 10px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(255, 107, 91, 0.4);
+    white-space: nowrap;
+  }
+
+  /* === Skill info panel (under selected) === */
+  .skill-panel {
+    position: absolute;
+    bottom: 16%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 8px 18px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    z-index: 4;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 20px rgba(45, 42, 74, 0.3);
+  }
+  .skill-panel .skill-label {
+    font-family: 'Jua', sans-serif;
+    color: #FFB347;
+    font-size: 11px;
+  }
+  .skill-panel .skill-name {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #fff;
+  }
+  .skill-panel .speed {
+    color: #9BE0CC;
+    font-size: 11px;
+    font-weight: 700;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* === Confirm button === */
+  .confirm-btn {
+    position: absolute;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 18px;
+    padding: 12px 36px 14px;
+    border: none;
+    border-radius: 999px;
+    box-shadow:
+      0 6px 0 #C44A3D,
+      0 12px 24px rgba(255, 107, 91, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    z-index: 5;
+    letter-spacing: 0.5px;
+  }
+  .confirm-btn:active {
+    transform: translateX(-50%) translateY(5px);
+    box-shadow: 0 1px 0 #C44A3D, 0 4px 12px rgba(255, 107, 91, 0.4);
+  }
+  .confirm-btn .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* === Floating music notes === */
+  .note-deco {
+    position: absolute;
+    font-family: 'Jua', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 1;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .n1 { top: 14%; left: 12%; font-size: 22px; color: #FFB347; --r:-10deg; animation-delay:0s; }
+  .n2 { top: 24%; right: 14%; font-size: 18px; color: #B89DD9; --r:14deg; animation-delay:1s; }
+  .n3 { bottom: 25%; left: 10%; font-size: 16px; color: #FF6B5B; --r:-18deg; animation-delay:2s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+
+  /* === Annotations === */
+  .annot-title {
+    font-family: 'Jua', sans-serif;
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #FF8E80;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+  .annotation p {
+    font-size: 13px;
+    color: #b5b5bd;
+    line-height: 1.6;
+  }
+
+  /* Reused tokens table */
+  .reuse-table {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 36px;
+  }
+  .reuse-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .reuse-table th {
+    text-align: left;
+    color: #FF8E80;
+    font-family: 'Jua', sans-serif;
+    font-weight: normal;
+    padding: 8px 10px;
+    border-bottom: 1px solid #2e2e3a;
+  }
+  .reuse-table td {
+    color: #b5b5bd;
+    padding: 8px 10px;
+    border-bottom: 1px solid #25252e;
+  }
+  .reuse-table tr:last-child td { border-bottom: none; }
+  .reuse-table td:first-child { color: #e8e8e8; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 캐릭터 선택 화면 v2</h1>
+  <p class="sub">v1(메인) 디자인 시스템 그대로 적용 · CharacterSelectScene 대응 · iPhone Landscape</p>
+
+  <!-- ==================== PHONE MOCKUP ==================== -->
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- Music notes deco -->
+      <div class="note-deco n1" style="--r:-10deg">♪</div>
+      <div class="note-deco n2" style="--r:14deg">♫</div>
+      <div class="note-deco n3" style="--r:-18deg">♬</div>
+
+      <!-- Top bar: back + difficulty pill -->
+      <div class="top-bar">
+        <button class="back-btn">← 난이도 다시</button>
+        <div class="diff-pill">현재 난이도 <span class="badge">중</span></div>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="accent-line"></div>
+        <div class="header-title">함께할 친구를 골라요</div>
+        <div class="header-sub">친구마다 다른 스킬과 이동속도를 가져요</div>
+      </div>
+
+      <!-- 5 Character cards -->
+      <div class="cards-row">
+
+        <!-- 1. 김간호 (번머리 실습생) -->
+        <div class="char-card">
+          <span class="color-dot" style="background:#FF8E80;"></span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- 번머리 (curly bangs) -->
+            <path d="M -28 -12 Q -32 -28 -18 -32 Q -10 -34 0 -32 Q 10 -34 18 -32 Q 32 -28 28 -12 Q 20 -22 10 -20 Q 0 -22 -10 -20 Q -20 -22 -28 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Curl details -->
+            <circle cx="-22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+            <circle cx="22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+            <!-- Nurse cap -->
+            <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+            <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+            <!-- Headphones -->
+            <path d="M -34 -2 Q -34 -38 0 -38 Q 34 -38 34 -2" stroke="#FF6B5B" stroke-width="5" fill="none"/>
+            <ellipse cx="-34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <ellipse cx="34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Eyes -->
+            <path d="M -14 -2 Q -10 -6 -6 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M 6 -2 Q 10 -6 14 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- Mouth -->
+            <path d="M -5 12 Q 0 16 5 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- Blush -->
+            <ellipse cx="-18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+            <ellipse cx="18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+          </svg>
+          <div class="name">김간호</div>
+          <div class="tag">번머리 실습생</div>
+        </div>
+
+        <!-- 2. 정간호 (곡괭이 근육) -->
+        <div class="char-card">
+          <span class="color-dot" style="background:#9BE0CC;"></span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Short spiky hair -->
+            <path d="M -28 -18 L -22 -30 L -14 -22 L -6 -32 L 0 -22 L 6 -32 L 14 -22 L 22 -30 L 28 -18 Q 20 -22 0 -22 Q -20 -22 -28 -18 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Headband (sporty) -->
+            <rect x="-30" y="-12" width="60" height="8" rx="2" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <circle cx="0" cy="-8" r="2" fill="#FFB347"/>
+            <!-- Nurse cap (smaller, tilted) -->
+            <path d="M -13 -22 Q -13 -36 0 -38 Q 13 -36 13 -22 L 10 -19 L -10 -19 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2" transform="rotate(-8)"/>
+            <!-- Eyes (determined) -->
+            <path d="M -16 -2 L -8 -2" stroke="#2D2A4A" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 8 -2 L 16 -2" stroke="#2D2A4A" stroke-width="3" stroke-linecap="round"/>
+            <!-- Eyebrows (strong) -->
+            <path d="M -18 -10 L -8 -8" stroke="#2D2A4A" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 8 -8 L 18 -10" stroke="#2D2A4A" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Confident smile -->
+            <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- Cheek -->
+            <ellipse cx="-20" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.5"/>
+            <ellipse cx="20" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.5"/>
+            <!-- 곡괭이 mini icon -->
+            <g transform="translate(28, 28) rotate(40)">
+              <rect x="-1.5" y="-12" width="3" height="18" fill="#8B5A2B" stroke="#2D2A4A" stroke-width="1.2"/>
+              <path d="M -8 -12 L 8 -10 L 6 -8 L -6 -10 Z" fill="#888" stroke="#2D2A4A" stroke-width="1.2"/>
+            </g>
+          </svg>
+          <div class="name">정간호</div>
+          <div class="tag">곡괭이 근육</div>
+        </div>
+
+        <!-- 3. 건간호 (안경과 책) - SELECTED -->
+        <div class="char-card selected">
+          <span class="color-dot" style="background:#B89DD9;"></span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Neat hair (parted) -->
+            <path d="M -28 -14 Q -32 -32 -14 -34 L -2 -30 L 2 -30 L 14 -34 Q 32 -32 28 -14 Q 18 -24 2 -24 L -2 -24 Q -18 -24 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Nurse cap -->
+            <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+            <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+            <!-- Glasses -->
+            <circle cx="-12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <circle cx="12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <line x1="-3" y1="-1" x2="3" y2="-1" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Eyes behind glasses -->
+            <circle cx="-12" cy="-1" r="2" fill="#2D2A4A"/>
+            <circle cx="12" cy="-1" r="2" fill="#2D2A4A"/>
+            <!-- Mouth -->
+            <path d="M -4 14 Q 0 17 4 14" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- Blush -->
+            <ellipse cx="-22" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.55"/>
+            <ellipse cx="22" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.55"/>
+            <!-- Book mini icon -->
+            <g transform="translate(-28, 30)">
+              <rect x="-6" y="-4" width="12" height="8" rx="1" fill="#B89DD9" stroke="#2D2A4A" stroke-width="1.5"/>
+              <line x1="0" y1="-4" x2="0" y2="4" stroke="#2D2A4A" stroke-width="1"/>
+            </g>
+          </svg>
+          <div class="name">건간호</div>
+          <div class="tag">안경과 책</div>
+        </div>
+
+        <!-- 4. 임간호 (긴머리 냥) -->
+        <div class="char-card">
+          <span class="color-dot" style="background:#FFB347;"></span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- Long hair (background) -->
+            <path d="M -30 -10 Q -38 30 -28 50 L -20 30 Q -28 0 -22 -22 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M 30 -10 Q 38 30 28 50 L 20 30 Q 28 0 22 -22 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Bangs -->
+            <path d="M -28 -14 Q -32 -32 0 -34 Q 32 -32 28 -14 Q 18 -22 0 -22 Q -18 -22 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- Cat ears poking through -->
+            <path d="M -22 -32 L -16 -22 L -10 -30 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M 22 -32 L 16 -22 L 10 -30 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M -19 -28 L -16 -24 L -13 -28 Z" fill="#FFB6B0"/>
+            <path d="M 19 -28 L 16 -24 L 13 -28 Z" fill="#FFB6B0"/>
+            <!-- Eyes (cat-like) -->
+            <path d="M -16 -3 Q -10 -8 -6 -1 Q -10 -2 -16 -3 Z" fill="#2D2A4A"/>
+            <path d="M 16 -3 Q 10 -8 6 -1 Q 10 -2 16 -3 Z" fill="#2D2A4A"/>
+            <!-- Whiskers -->
+            <line x1="-30" y1="6" x2="-22" y2="6" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="-30" y1="10" x2="-22" y2="9" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="22" y1="6" x2="30" y2="6" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="22" y1="9" x2="30" y2="10" stroke="#2D2A4A" stroke-width="1.5"/>
+            <!-- 냥 mouth -->
+            <path d="M -4 10 Q 0 14 4 10 Q 8 14 4 10" stroke="#2D2A4A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <!-- Pink nose -->
+            <ellipse cx="0" cy="6" rx="2" ry="1.5" fill="#FF8E80"/>
+          </svg>
+          <div class="name">임간호</div>
+          <div class="tag">긴머리 냥</div>
+        </div>
+
+        <!-- 5. 이간호 (단발 댕댕) -->
+        <div class="char-card">
+          <span class="color-dot" style="background:#FFB6B0;"></span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Bob cut -->
+            <path d="M -30 -8 Q -32 -32 0 -34 Q 32 -32 30 -8 L 28 12 Q 22 6 22 -10 Q 0 -22 -22 -10 Q -22 6 -28 12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Dog ears (floppy) -->
+            <ellipse cx="-26" cy="-4" rx="6" ry="14" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" transform="rotate(-20 -26 -4)"/>
+            <ellipse cx="26" cy="-4" rx="6" ry="14" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" transform="rotate(20 26 -4)"/>
+            <ellipse cx="-26" cy="0" rx="3" ry="8" fill="#FFB6B0" transform="rotate(-20 -26 0)"/>
+            <ellipse cx="26" cy="0" rx="3" ry="8" fill="#FFB6B0" transform="rotate(20 26 0)"/>
+            <!-- Round excited eyes -->
+            <circle cx="-12" cy="-1" r="4" fill="#2D2A4A"/>
+            <circle cx="12" cy="-1" r="4" fill="#2D2A4A"/>
+            <circle cx="-11" cy="-2" r="1.5" fill="#fff"/>
+            <circle cx="13" cy="-2" r="1.5" fill="#fff"/>
+            <!-- Tongue out smile -->
+            <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="0" cy="16" rx="3" ry="2" fill="#FF8E80"/>
+            <!-- Blush -->
+            <ellipse cx="-20" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+            <ellipse cx="20" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+          </svg>
+          <div class="name">이간호</div>
+          <div class="tag">단발 댕댕</div>
+        </div>
+
+      </div>
+
+      <!-- Skill info panel (for selected character: 건간호) -->
+      <div class="skill-panel">
+        <span class="skill-label">스킬</span>
+        <span class="skill-name">독서회 결집</span>
+        <span class="speed">⚡ 속도 ×1.00</span>
+      </div>
+
+      <!-- Confirm button -->
+      <button class="confirm-btn">
+        이 친구로 시작 <span class="arrow">▶</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ==================== ANNOTATIONS ==================== -->
+  <div class="annot-title">v1과 일관성 유지 포인트</div>
+  <div class="reuse-table">
+    <table>
+      <thead>
+        <tr><th>요소</th><th>v1 (메인) → v2 (캐릭터 선택) 재사용</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>BG 그라데이션</td><td>피치(#FFE5D0) → 라벤더(#DCC9E8) 동일</td></tr>
+        <tr><td>액센트 컬러</td><td>코랄 #FF6B5B 동일 — Primary CTA + accent line</td></tr>
+        <tr><td>타이포 시스템</td><td>Jua(타이틀/UI) + Gowun Dodum(본문) + Noto Sans KR(수치)</td></tr>
+        <tr><td>버튼 패턴</td><td>둥근 알약 + 0/6px 입체 그림자 + 흰색 화살표 chip</td></tr>
+        <tr><td>글래스 필</td><td>rgba(255,255,255,0.55) + backdrop-blur 12px</td></tr>
+        <tr><td>액센트 라인</td><td>코랄 32×3px 라인 — "여기가 시작점" 신호 (헤더 위)</td></tr>
+        <tr><td>플로팅 음표</td><td>3개, 의도된 호 배치, float 애니메이션 동일</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="annot-title">이 화면만의 디자인 결정</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🎴 카드 = 글래스 + 색 점</h3>
+      <p>5장 모두 반투명 화이트 카드로 톤 통일. 각 캐릭터 정체성은 우상단 색 점(8px)으로만 표현 — 카드 자체 색을 다르게 하면 시각 노이즈가 됨.</p>
+    </div>
+    <div class="annotation">
+      <h3>✨ 선택 카드 = 떠오르기</h3>
+      <p>translateY(-12px) + scale(1.08) + 코랄 보더 + "선택됨" 뱃지. 5장 중 어느 게 골라졌는지 시선이 바로 잡힘.</p>
+    </div>
+    <div class="annotation">
+      <h3>👤 아바타 차별화</h3>
+      <p>모두 같은 베이스(둥근 얼굴 + 간호사 모자)에서 머리/액세서리만 변주. 시각 일관성 + 빠른 식별. 김간호=번머리, 정간호=헤어밴드+곡괭이, 건간호=안경+책, 임간호=고양이귀+긴머리, 이간호=강아지귀+단발.</p>
+    </div>
+    <div class="annotation">
+      <h3>🏷️ 난이도 칩 (좌상단 컨텍스트)</h3>
+      <p>"현재 난이도 [중]" — 사용자가 어디서 왔는지 잊지 않게. 다크 네이비 배경 + 코랄 뱃지로 톤 분리.</p>
+    </div>
+    <div class="annotation">
+      <h3>📋 스킬 정보 패널</h3>
+      <p>선택된 캐릭터 정보를 화면 하단 가운데에 표시. "스킬 이름" + "속도 배율" 2가지 핵심만. 다크 네이비로 BG와 분리해 가독성 확보.</p>
+    </div>
+    <div class="annotation">
+      <h3>↩️ Back 버튼 = 글래스 필</h3>
+      <p>화살표 + 한 줄 텍스트. 메인 화면의 통계 칩과 동일한 글래스 필 패턴 재사용 — 학습 부담 없음.</p>
+    </div>
+  </div>
+
+  <div class="annot-title">SpriteKit 구현 시 매핑</div>
+  <div class="reuse-table">
+    <table>
+      <thead>
+        <tr><th>HTML 요소</th><th>SpriteKit 매핑</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>BG 그라데이션</td><td>GradientBackgroundNode 기존 클래스 재활용 (색 토큰만 교체)</td></tr>
+        <tr><td>글래스 칩 (back/diff)</td><td>SKShapeNode(cornerRadius) + alpha 0.55 + SKEffectNode + CIGaussianBlur</td></tr>
+        <tr><td>카드 5장</td><td>CharacterCardNode 내부는 그대로, 외부 컨테이너(SKShapeNode) 추가</td></tr>
+        <tr><td>선택 상태</td><td>SKAction.scale(to:1.08) + SKAction.moveBy(y:12) + 코랄 stroke</td></tr>
+        <tr><td>Confirm 버튼</td><td>PrimaryButtonNode 기존 활용 — 그림자 SKSpriteNode 한 겹 추가</td></tr>
+        <tr><td>플로팅 음표</td><td>NoteNode 재활용, SKAction.repeatForever(moveBy + reverse)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

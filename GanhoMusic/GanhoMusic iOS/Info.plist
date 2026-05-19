@@ -37,5 +37,11 @@
 	<true/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Jua-Regular.ttf</string>
+		<string>GowunDodum-Regular.ttf</string>
+		<string>NotoSansKR-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

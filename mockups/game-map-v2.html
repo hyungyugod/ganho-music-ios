@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 게임 맵 화면 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px; padding: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9; max-width: 920px; margin: 0 auto 40px; position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative;
+    background: linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 60%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute; top: 50%; left: 18px; transform: translateY(-50%);
+    width: 8px; height: 90px; background: #0a0a0a; border-radius: 4px; z-index: 100;
+  }
+
+  /* === Top HUD === */
+  .hud {
+    position: absolute; top: 16px; left: 48px; right: 24px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; z-index: 20;
+  }
+  .hud-slot {
+    background: rgba(45, 42, 74, 0.78);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 6px 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(45, 42, 74, 0.18);
+  }
+  .hud-slot .label {
+    font-family: 'Jua', sans-serif; font-size: 10px;
+    color: #FFB347; letter-spacing: 1px;
+  }
+  .hud-slot .value {
+    font-family: 'Jua', sans-serif; font-size: 18px;
+    color: #FFFFFF; line-height: 1.1;
+  }
+  .hud-slot.hot .value { color: #FFB347; }
+  .hud-slot.warn { background: rgba(196, 74, 61, 0.85); }
+  .hud-slot.warn .label { color: #FFE5D0; }
+
+  /* Time progress bar inside time slot */
+  .time-bar {
+    height: 3px; background: rgba(255,255,255,0.18); border-radius: 999px;
+    margin-top: 3px; overflow: hidden;
+  }
+  .time-bar .fill {
+    width: 70%; height: 100%; background: #FFB347; border-radius: 999px;
+  }
+  .hud-slot.warn .time-bar .fill { background: #FFE5D0; }
+
+  /* === Map area === */
+  .map {
+    position: absolute;
+    top: 70px; left: 50px; right: 25px; bottom: 24px;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 0 0 3px rgba(45, 42, 74, 0.85),
+      inset 0 4px 12px rgba(45, 42, 74, 0.15);
+    background:
+      repeating-conic-gradient(
+        from 0deg at 0% 0%,
+        #FFEFE0 0% 25%, #FFDFC8 0% 50%
+      );
+    background-size: 26px 26px;
+  }
+  .map::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 50%, transparent 0%, rgba(255, 200, 181, 0.15) 100%);
+    pointer-events: none;
+  }
+
+  /* Walls (decorative pillars - normal map: 2 pillars + center divider) */
+  .wall {
+    position: absolute;
+    background: #2D2A4A;
+    border-radius: 4px;
+    box-shadow:
+      inset 0 -3px 0 rgba(255,255,255,0.08),
+      inset 0 2px 0 rgba(255,255,255,0.15),
+      0 2px 6px rgba(45, 42, 74, 0.3);
+  }
+  /* Center vertical divider (upper) */
+  .wall-divider-top { left: 48%; top: 8%; width: 4%; height: 32%; }
+  /* Center vertical divider (lower) */
+  .wall-divider-bot { left: 48%; bottom: 8%; width: 4%; height: 32%; }
+  /* Left decorative 2x2 pillar */
+  .wall-left { left: 22%; top: 35%; width: 7%; height: 25%; }
+  /* Right decorative 2x2 pillar */
+  .wall-right { right: 22%; top: 35%; width: 7%; height: 25%; }
+
+  /* Music notes on floor (collectibles) */
+  .note-tile {
+    position: absolute;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Jua', sans-serif; font-size: 18px; font-weight: bold;
+    background: rgba(255, 179, 71, 0.92);
+    color: #2D2A4A;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 2px #FFFFFF,
+      0 0 16px 4px rgba(255, 179, 71, 0.5);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .note-tile.collected { opacity: 0; transform: scale(1.4); }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  /* F projectiles (flying letter F) */
+  .f-proj {
+    position: absolute; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    background: #C44A3D; color: #FFE5D0;
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(196, 74, 61, 0.6);
+    transform: rotate(-12deg);
+  }
+  .f-proj::before {
+    content: ""; position: absolute; left: -10px; top: 50%;
+    width: 14px; height: 2px; background: rgba(196, 74, 61, 0.5);
+    border-radius: 999px; transform: translateY(-50%);
+  }
+
+  /* Player (건간호) - 3/4 view mini character */
+  .player {
+    position: absolute;
+    left: 12%; top: 48%;
+    width: 38px; height: 50px;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    filter: drop-shadow(0 4px 4px rgba(45, 42, 74, 0.35));
+  }
+  .player::after {
+    content: ""; position: absolute;
+    bottom: -6px; left: 50%; transform: translateX(-50%);
+    width: 28px; height: 5px; background: rgba(45, 42, 74, 0.25);
+    border-radius: 50%; filter: blur(2px);
+  }
+
+  /* Enemy (수간호사) */
+  .enemy {
+    position: absolute;
+    right: 14%; top: 50%;
+    width: 52px; height: 62px;
+    transform: translate(50%, -50%);
+    z-index: 5;
+    animation: enemyBob 2s ease-in-out infinite;
+    filter: drop-shadow(0 5px 6px rgba(45, 42, 74, 0.4));
+  }
+  .enemy::after {
+    content: ""; position: absolute;
+    bottom: -8px; left: 50%; transform: translateX(-50%);
+    width: 38px; height: 6px; background: rgba(196, 74, 61, 0.3);
+    border-radius: 50%; filter: blur(2px);
+  }
+  @keyframes enemyBob {
+    0%, 100% { transform: translate(50%, -50%); }
+    50% { transform: translate(50%, calc(-50% - 4px)); }
+  }
+
+  /* Enemy alert indicator */
+  .alert-bubble {
+    position: absolute;
+    top: -16px; left: 50%; transform: translateX(-50%);
+    background: #C44A3D; color: #fff;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    box-shadow: 0 0 0 3px #fff, 0 4px 8px rgba(196, 74, 61, 0.5);
+    animation: alertFlash 0.8s ease-in-out infinite;
+  }
+  @keyframes alertFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Combo popup floating */
+  .combo-popup {
+    position: absolute;
+    top: 38%; left: 30%;
+    font-family: 'Jua', sans-serif;
+    font-size: 32px;
+    color: #FFB347;
+    -webkit-text-stroke: 2px #2D2A4A;
+    text-stroke: 2px #2D2A4A;
+    transform: rotate(-8deg);
+    z-index: 10;
+    text-shadow: 0 4px 0 rgba(45, 42, 74, 0.25);
+  }
+  .combo-popup small {
+    font-size: 14px; color: #FF6B5B;
+    display: block; -webkit-text-stroke: 1px #2D2A4A;
+  }
+
+  /* === Bottom controls === */
+  /* D-Pad (bottom-right) */
+  .dpad {
+    position: absolute;
+    bottom: 18px; right: 36px;
+    width: 110px; height: 110px;
+    z-index: 30;
+  }
+  .dpad-btn {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(45, 42, 74, 0.25);
+    display: flex; align-items: center; justify-content: center;
+    color: #2D2A4A; font-family: 'Jua', sans-serif; font-size: 14px;
+    box-shadow: 0 2px 6px rgba(45, 42, 74, 0.15);
+  }
+  .dpad-btn.up    { top: 0; left: 38px; width: 34px; height: 36px; border-radius: 10px 10px 4px 4px; }
+  .dpad-btn.down  { bottom: 0; left: 38px; width: 34px; height: 36px; border-radius: 4px 4px 10px 10px; }
+  .dpad-btn.left  { top: 38px; left: 0; width: 36px; height: 34px; border-radius: 10px 4px 4px 10px; }
+  .dpad-btn.right { top: 38px; right: 0; width: 36px; height: 34px; border-radius: 4px 10px 10px 4px; }
+  .dpad-center {
+    position: absolute; top: 38px; left: 38px;
+    width: 34px; height: 34px;
+    background: rgba(45, 42, 74, 0.4);
+    border-radius: 6px;
+  }
+
+  /* Skill button (bottom-left) — GameConfig.skillExplanationControlHintText
+     이 "좌하단 스킬 버튼을 1번 탭하면 발동"과 정확히 일치하는 위치. */
+  .skill-btn {
+    position: absolute;
+    bottom: 24px; left: 60px;
+    z-index: 30;
+  }
+  .skill-circle {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #FF8E80, #FF6B5B);
+    color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 6px 0 #C44A3D,
+      0 12px 24px rgba(255, 107, 91, 0.45),
+      inset 0 4px 8px rgba(255,255,255,0.3);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    position: relative;
+  }
+  .skill-circle .key-label {
+    position: absolute; top: -6px; right: -6px;
+    background: #2D2A4A; color: #FFB347;
+    width: 22px; height: 22px; border-radius: 50%;
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .skill-circle .icon { font-size: 26px; }
+  .skill-name-tag {
+    text-align: center;
+    background: rgba(45, 42, 74, 0.85);
+    color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 10px;
+    padding: 2px 10px; border-radius: 999px;
+    margin-top: 6px;
+    backdrop-filter: blur(6px);
+  }
+
+  /* Pause button top-left */
+  .pause-btn {
+    position: absolute; top: 18px; right: 28px;
+    z-index: 50;
+    width: 32px; height: 32px;
+    background: rgba(45, 42, 74, 0.78);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'Jua', sans-serif;
+    cursor: pointer;
+  }
+  .pause-btn::before, .pause-btn::after {
+    content: ""; width: 4px; height: 14px; background: #fff;
+    border-radius: 2px; margin: 0 2px;
+  }
+
+  /* Annotations */
+  .annot-title { font-family: 'Jua', sans-serif; color: #fff; font-size: 18px; margin: 8px 0 14px; }
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .annotation p { font-size: 13px; color: #b5b5bd; line-height: 1.6; }
+
+  .reuse-table {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 36px;
+  }
+  .reuse-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .reuse-table th {
+    text-align: left; color: #FF8E80;
+    font-family: 'Jua', sans-serif; font-weight: normal;
+    padding: 8px 10px; border-bottom: 1px solid #2e2e3a;
+  }
+  .reuse-table td {
+    color: #b5b5bd; padding: 8px 10px; border-bottom: 1px solid #25252e;
+  }
+  .reuse-table tr:last-child td { border-bottom: none; }
+  .reuse-table td:first-child { color: #e8e8e8; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 게임 맵 화면 v2</h1>
+  <p class="sub">SkillExplanation → GameScene · normal 난이도 · 48×24 타일 맵 · iPhone Landscape</p>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- HUD top -->
+      <div class="hud">
+        <div class="hud-slot warn">
+          <div class="label">TIME</div>
+          <div class="value">00:12</div>
+          <div class="time-bar"><div class="fill" style="width: 27%;"></div></div>
+        </div>
+        <div class="hud-slot">
+          <div class="label">SCORE</div>
+          <div class="value">18</div>
+        </div>
+        <div class="hud-slot hot">
+          <div class="label">COMBO</div>
+          <div class="value">×5</div>
+        </div>
+        <div class="hud-slot">
+          <div class="label">PLAYER</div>
+          <div class="value" style="font-size:14px; padding-top:3px;">건간호</div>
+        </div>
+      </div>
+
+      <!-- Pause -->
+      <div class="pause-btn" title="Pause"></div>
+
+      <!-- Map -->
+      <div class="map">
+        <!-- Walls -->
+        <div class="wall wall-divider-top"></div>
+        <div class="wall wall-divider-bot"></div>
+        <div class="wall wall-left"></div>
+        <div class="wall wall-right"></div>
+
+        <!-- Music notes (collectibles on floor) -->
+        <div class="note-tile" style="left: 30%; top: 22%;">♪</div>
+        <div class="note-tile" style="left: 36%; top: 70%;">♪</div>
+        <div class="note-tile" style="left: 62%; top: 28%;">♪</div>
+        <div class="note-tile" style="left: 70%; top: 78%;">♪</div>
+        <div class="note-tile" style="left: 82%; top: 24%;">♪</div>
+
+        <!-- Combo popup -->
+        <div class="combo-popup">×5<small>COMBO!</small></div>
+
+        <!-- F projectiles -->
+        <div class="f-proj" style="left: 55%; top: 45%;">F</div>
+        <div class="f-proj" style="left: 65%; top: 60%; transform: rotate(8deg);">F</div>
+
+        <!-- Player (건간호 mini) -->
+        <svg class="player" viewBox="-25 -32 50 64" xmlns="http://www.w3.org/2000/svg">
+          <!-- Body / scrubs -->
+          <ellipse cx="0" cy="14" rx="14" ry="12" fill="#B89DD9" stroke="#2D2A4A" stroke-width="2"/>
+          <!-- Head -->
+          <ellipse cx="0" cy="-6" rx="13" ry="14" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2"/>
+          <!-- Hair -->
+          <path d="M -12 -10 Q -14 -22 0 -22 Q 14 -22 12 -10 Q 6 -16 0 -16 Q -6 -16 -12 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <!-- Nurse cap -->
+          <path d="M -7 -18 Q -7 -26 0 -27 Q 7 -26 7 -18 L 5 -16 L -5 -16 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="1.5"/>
+          <rect x="-1" y="-23" width="2" height="5" fill="#FF6B5B"/>
+          <rect x="-2.5" y="-21.5" width="5" height="2" fill="#FF6B5B"/>
+          <!-- Glasses -->
+          <circle cx="-5" cy="-6" r="4" fill="rgba(220,230,255,0.5)" stroke="#2D2A4A" stroke-width="1.5"/>
+          <circle cx="5" cy="-6" r="4" fill="rgba(220,230,255,0.5)" stroke="#2D2A4A" stroke-width="1.5"/>
+          <line x1="-1" y1="-6" x2="1" y2="-6" stroke="#2D2A4A" stroke-width="1.2"/>
+          <circle cx="-5" cy="-6" r="1.2" fill="#2D2A4A"/>
+          <circle cx="5" cy="-6" r="1.2" fill="#2D2A4A"/>
+          <!-- Smile -->
+          <path d="M -2 2 Q 0 4 2 2" stroke="#2D2A4A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+
+        <!-- Enemy (수간호사) -->
+        <svg class="enemy" viewBox="-28 -38 56 76" xmlns="http://www.w3.org/2000/svg">
+          <!-- Alert bubble -->
+          <g transform="translate(0, -30)">
+            <circle cx="0" cy="0" r="9" fill="#C44A3D" stroke="#fff" stroke-width="2.5"/>
+            <text x="0" y="4" text-anchor="middle" font-family="Jua, sans-serif" font-size="12" font-weight="bold" fill="#FFE5D0">!</text>
+          </g>
+          <!-- Body / scrubs (darker / authoritative) -->
+          <ellipse cx="0" cy="14" rx="17" ry="14" fill="#5A5670" stroke="#2D2A4A" stroke-width="2.2"/>
+          <!-- White coat collar -->
+          <path d="M -10 6 L 0 14 L 10 6 L 8 16 L -8 16 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <!-- Head -->
+          <ellipse cx="0" cy="-8" rx="15" ry="16" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.2"/>
+          <!-- Gray bun hair -->
+          <ellipse cx="0" cy="-22" rx="11" ry="8" fill="#8A8A95" stroke="#2D2A4A" stroke-width="2"/>
+          <path d="M -14 -12 Q -16 -22 -10 -24 L -4 -22 Q 0 -22 4 -22 L 10 -24 Q 16 -22 14 -12 Q 8 -18 0 -18 Q -8 -18 -14 -12 Z"
+                fill="#8A8A95" stroke="#2D2A4A" stroke-width="2"/>
+          <!-- Glasses (rectangular, strict) -->
+          <rect x="-12" y="-10" width="9" height="6" rx="1" fill="rgba(220,230,255,0.5)" stroke="#2D2A4A" stroke-width="1.8"/>
+          <rect x="3" y="-10" width="9" height="6" rx="1" fill="rgba(220,230,255,0.5)" stroke="#2D2A4A" stroke-width="1.8"/>
+          <line x1="-3" y1="-7" x2="3" y2="-7" stroke="#2D2A4A" stroke-width="1.5"/>
+          <!-- Angry eyebrows -->
+          <path d="M -12 -14 L -4 -12" stroke="#2D2A4A" stroke-width="2" stroke-linecap="round"/>
+          <path d="M 4 -12 L 12 -14" stroke="#2D2A4A" stroke-width="2" stroke-linecap="round"/>
+          <!-- Eyes (small dots, glaring) -->
+          <circle cx="-7" cy="-7" r="1.4" fill="#2D2A4A"/>
+          <circle cx="7" cy="-7" r="1.4" fill="#2D2A4A"/>
+          <!-- Frown -->
+          <path d="M -4 4 Q 0 1 4 4" stroke="#2D2A4A" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- Nurse cap (sharp angled) -->
+          <path d="M -10 -28 L 10 -28 L 8 -34 L -8 -34 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <rect x="-1.5" y="-33" width="3" height="6" fill="#C44A3D"/>
+          <rect x="-3" y="-31.5" width="6" height="3" fill="#C44A3D"/>
+        </svg>
+      </div>
+
+      <!-- D-Pad (bottom-left) -->
+      <div class="dpad">
+        <div class="dpad-btn up">▲</div>
+        <div class="dpad-btn down">▼</div>
+        <div class="dpad-btn left">◀</div>
+        <div class="dpad-btn right">▶</div>
+        <div class="dpad-center"></div>
+      </div>
+
+      <!-- Skill button (bottom-right) -->
+      <div class="skill-btn">
+        <div class="skill-circle">
+          <span class="icon">📖</span>
+          <div class="key-label">B</div>
+        </div>
+        <div class="skill-name-tag">북클럽 · CD 20s</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============= Annotations ============= -->
+  <div class="annot-title">인게임 화면의 핵심 결정 8가지</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🟫 체크보드 = 웜 톤으로 교체</h3>
+      <p>기존 다크(#1a1722/#13111a) → 웜 피치(#FFEFE0/#FFDFC8). v1~v3 그라데이션과 한 결. 가독성 잃지 않으면서 톤 통일.</p>
+    </div>
+    <div class="annotation">
+      <h3>📊 HUD = 4슬롯 + 진행바</h3>
+      <p>TIME/SCORE/COMBO/PLAYER 4슬롯 유지. 시간 12초 이하면 슬롯 자체가 코랄 경고색으로 전환 + 얇은 진행바. "시간이 줄어든다"를 시각으로 즉각 인지.</p>
+    </div>
+    <div class="annotation">
+      <h3>🎵 음표 = 강조된 수집물</h3>
+      <p>화이트 링 + 골드 글로우. 체크보드 바닥에서 시선이 자석처럼 끌리도록. 콤보 5 도달 시 ×5 팝업이 코랄+골드로 떠오름.</p>
+    </div>
+    <div class="annotation">
+      <h3>🔴 적(수간호사) = 권위 톤</h3>
+      <p>플레이어보다 1.3배 크고, 흰 가운 + 회색 머리 + 사각 안경 + 찌푸린 눈썹. 머리 위 ! 버블이 깜빡거리며 위협 표현.</p>
+    </div>
+    <div class="annotation">
+      <h3>🔤 F 투사체 = 빨간 알약 + 트레일</h3>
+      <p>"Fail" 학점이라는 컨셉. 코랄-레드 라운드 사각형에 "F" 텍스트 + 살짝 회전 + 후행 트레일 라인. 학생 트라우마 코미디.</p>
+    </div>
+    <div class="annotation">
+      <h3>🎮 D-Pad = 우하단 글래스 필</h3>
+      <p>반투명 화이트 + 네이비 보더 4방향. 우하단 고정 (사용자 오른손 엄지). 중앙 데드존을 작은 다크 사각형으로 시각 표시.</p>
+    </div>
+    <div class="annotation">
+      <h3>🔘 스킬 버튼 = 좌하단 코랄 원형</h3>
+      <p>좌하단 큰 원형 버튼 (GameConfig.skillExplanationControlHintText "좌하단 스킬 버튼"과 일치). 아이콘 + 우상단 B 키 라벨 + 아래 스킬명 칩. v1 시작 버튼과 동일 코랄 + 입체 그림자.</p>
+    </div>
+    <div class="annotation">
+      <h3>⏸️ Pause = 미니 우상단</h3>
+      <p>다크 네이비 라운드 사각형 + 흰색 || 두 줄. 32px 크기로 작게 — 게임플레이 시선 방해 최소화.</p>
+    </div>
+  </div>
+
+  <!-- Map elements -->
+  <div class="annot-title">맵 디자인 (normal 난이도 기준)</div>
+  <div class="reuse-table">
+    <table>
+      <thead>
+        <tr><th>요소</th><th>v2 매핑</th><th>SpriteKit 기존 자산</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>체크보드 바닥</td><td>#FFEFE0 / #FFDFC8 26px 사각형 반복</td><td>checkerboardFloor 컨테이너 + Hex 토큰 2개 교체</td></tr>
+        <tr><td>외곽 벽</td><td>네이비 #2D2A4A 라운드 보더 3px</td><td>addOuterWalls() — 색만 ganhoBgDeep → ganhoUIBorder</td></tr>
+        <tr><td>중앙 분리벽</td><td>네이비 풀필 + 인쇄 효과 그림자</td><td>addVerticalWall (breakable: true) 그대로</td></tr>
+        <tr><td>장식 기둥 2×2</td><td>좌·우 네이비 사각형</td><td>addRectPillar 그대로 (좌방/우방 대칭)</td></tr>
+        <tr><td>플레이어 (건간호)</td><td>3/4뷰 일러스트 (캐릭터 선택 화면과 동일 스타일)</td><td>PixelSpriteRenderer → SVG/PDF 벡터로 교체 권장</td></tr>
+        <tr><td>적 (수간호사)</td><td>회색 머리 + 흰 가운 + 빨간 십자 모자</td><td>EnemyNode/ProfessorNode 텍스처 교체</td></tr>
+        <tr><td>음표 수집물</td><td>골드 원 + 화이트 링 + 글로우</td><td>NoteNode + SKAction 펄스</td></tr>
+        <tr><td>F 투사체</td><td>코랄 라운드 사각형 + "F" + 트레일</td><td>ProjectileNode + SKLabelNode("F")</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- HUD logic -->
+  <div class="annot-title">HUD 상태 변화 (시간 임박 시)</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>00:45 ~ 00:16 (평상시)</h3>
+      <p>다크 네이비 슬롯 + 골드 라벨. 진행바 골드. "여유 있음" 톤.</p>
+    </div>
+    <div class="annotation">
+      <h3>00:15 ~ 00:00 (긴급)</h3>
+      <p>TIME 슬롯만 코랄로 전환(#C44A3D). 라벨/진행바 모두 크림색. 화면 가장자리도 약하게 펄스(미구현, 추천).</p>
+    </div>
+    <div class="annotation">
+      <h3>콤보 ≥ 3 (핫)</h3>
+      <p>COMBO 슬롯 값만 골드(#FFB347)로. 콤보 ×5, ×10 마일스톤 도달 시 화면 중앙 팝업(현재 보이는 상태).</p>
+    </div>
+    <div class="annotation">
+      <h3>피격 (BREAK)</h3>
+      <p>"BREAK" 라벨이 화면 가운데서 떨어지며 사라짐. COMBO 슬롯 값 → 0 + 코랄 플래시 1회.</p>
+    </div>
+  </div>
+
+  <!-- Difficulty maps -->
+  <div class="annot-title">난이도별 맵 변형 (같은 톤 유지)</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>EASY · 중앙 기둥 1개</h3>
+      <p>가운데 단일 사각 기둥. 적 1마리. 시야 트인 학습용 맵.</p>
+    </div>
+    <div class="annotation">
+      <h3>NORMAL · 분리벽 + 장식 2개 (현재 표시)</h3>
+      <p>중앙 세로벽(2칸 문) + 좌·우 2×2 장식 기둥. 정간호 돌진으로 분리벽 1칸 파괴 가능.</p>
+    </div>
+    <div class="annotation">
+      <h3>HARD · 4 코너 방 + 중앙 댄스플로어</h3>
+      <p>네 모서리 작은 방 + 중앙 4개 기둥. 시야 차단 多. StoneGuard 이스터에그 진입 가능.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

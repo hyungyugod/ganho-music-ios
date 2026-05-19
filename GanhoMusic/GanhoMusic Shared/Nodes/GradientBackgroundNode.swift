@@ -70,4 +70,64 @@ final class GradientBackgroundNode: SKSpriteNode {
         }
         return SKTexture(image: image)
     }
+
+    // MARK: - Init (3-stop, Sprint 1)
+
+    /// 3색 세로 그라데이션 인스턴스 생성. top(0.0) → mid(0.5) → bottom(1.0).
+    /// Sprint 2 메뉴 씬(StartScene 외)에서 ganhoBgWarmTop/Mid/Bottom 호출 예정.
+    /// Sprint 1에서는 호출자 0 — 인프라만 준비.
+    ///
+    /// 구현 노트: SKSpriteNode designated init 체이닝 제약을 피하기 위해
+    /// 기존 2-stop init을 한 번 호출한 뒤 texture를 교체하는 패턴.
+    /// `texture`는 var 프로퍼티라 인스턴스 생성 후 변경 가능.
+    static func threeStop(
+        size: CGSize,
+        topColor: UIColor,
+        midColor: UIColor,
+        bottomColor: UIColor
+    ) -> GradientBackgroundNode {
+        let node = GradientBackgroundNode(
+            size: size,
+            topColor: topColor,
+            bottomColor: bottomColor
+        )
+        node.texture = makeGradientTexture3Stop(
+            size: size,
+            top: topColor,
+            mid: midColor,
+            bottom: bottomColor
+        )
+        return node
+    }
+
+    /// 3-stop CGGradient를 UIGraphicsImageRenderer로 그려 SKTexture 반환.
+    /// 실패 시 top 단색 fallback — 강제 언래핑 0건.
+    private static func makeGradientTexture3Stop(
+        size: CGSize,
+        top: UIColor,
+        mid: UIColor,
+        bottom: UIColor
+    ) -> SKTexture {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            let cgCtx = ctx.cgContext
+            let colors = [top.cgColor, mid.cgColor, bottom.cgColor] as CFArray
+            guard let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: colors,
+                locations: [0.0, 0.5, 1.0]
+            ) else {
+                cgCtx.setFillColor(top.cgColor)
+                cgCtx.fill(CGRect(origin: .zero, size: size))
+                return
+            }
+            cgCtx.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: size.height),
+                options: []
+            )
+        }
+        return SKTexture(image: image)
+    }
 }

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 메인 화면 리디자인 v2 (A+C 하이브리드)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone frame === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px;
+    padding: 14px;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9;
+    max-width: 920px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+
+  /* Dynamic island (landscape mode = left side) */
+  .island {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 90px;
+    background: #0a0a0a;
+    border-radius: 4px;
+    z-index: 10;
+  }
+
+  /* === Stats === */
+  .stats {
+    position: absolute;
+    top: 22px;
+    left: 50px;
+    right: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+  }
+  .stat-pill {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2D2A4A;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(45, 42, 74, 0.08);
+  }
+  .stat-pill .icon { font-size: 14px; }
+
+  /* === Title block === */
+  .title-block {
+    position: absolute;
+    top: 50%;
+    right: 7%;
+    transform: translateY(-58%);
+    text-align: right;
+    z-index: 4;
+  }
+  .accent-line {
+    width: 32px;
+    height: 3px;
+    background: #FF6B5B;
+    border-radius: 2px;
+    margin-left: auto;
+    margin-bottom: 10px;
+  }
+  .title-l1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 44px;
+    line-height: 1.05;
+    color: #2D2A4A;
+    letter-spacing: -1.5px;
+  }
+  .title-l2 {
+    font-family: 'Jua', sans-serif;
+    font-size: 56px;
+    line-height: 1;
+    color: #FF6B5B;
+    letter-spacing: -2px;
+    margin-top: 2px;
+    text-shadow: 0 2px 0 rgba(196, 74, 61, 0.15);
+  }
+  .title-l2 .note {
+    font-size: 36px;
+    color: #FFB347;
+    margin-left: 4px;
+  }
+  .tagline {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 13px;
+    color: #5A5670;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  /* === Character === */
+  .character {
+    position: absolute;
+    bottom: -10px;
+    left: 6%;
+    width: 240px;
+    z-index: 3;
+  }
+
+  /* === Music notes === */
+  .note-deco {
+    position: absolute;
+    font-family: 'Jua', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 2;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .n1 { top: 22%; left: 30%; font-size: 26px; color: #FFB347; --r: -12deg; animation-delay: 0s; }
+  .n2 { top: 38%; left: 22%; font-size: 20px; color: #FF6B5B; --r: 18deg; animation-delay: 0.8s; }
+  .n3 { top: 18%; left: 42%; font-size: 18px; color: #B89DD9; --r: -8deg; animation-delay: 1.6s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+  }
+
+  /* === Start button === */
+  .start-btn {
+    position: absolute;
+    bottom: 11%;
+    right: 9%;
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    padding: 14px 44px 16px;
+    border: none;
+    border-radius: 999px;
+    box-shadow:
+      0 6px 0 #C44A3D,
+      0 12px 28px rgba(255, 107, 91, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    z-index: 5;
+    letter-spacing: 1px;
+  }
+  .start-btn:hover { transform: translateY(-1px); }
+  .start-btn:active {
+    transform: translateY(5px);
+    box-shadow:
+      0 1px 0 #C44A3D,
+      0 4px 12px rgba(255, 107, 91, 0.4);
+  }
+  .start-btn .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  /* === Annotations === */
+  .annot-title {
+    font-family: 'Jua', sans-serif;
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #FF8E80;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+  .annotation p {
+    font-size: 13px;
+    color: #b5b5bd;
+    line-height: 1.6;
+  }
+
+  /* Color palette */
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+  .swatch {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .swatch-chip {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .swatch-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e8e8e8;
+    margin-bottom: 2px;
+  }
+  .swatch-hex {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #888;
+  }
+
+  /* Fonts */
+  .font-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .font-card {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .font-card .preview {
+    font-size: 28px;
+    color: #FFE5D0;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .font-card .role {
+    font-size: 11px;
+    color: #FF8E80;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .font-card .name {
+    font-size: 13px;
+    color: #b5b5bd;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 메인 화면 리디자인 v2</h1>
+  <p class="sub">A+C 하이브리드 · 캐주얼 카툰 × 한국 미니멀 무드 · iPhone Landscape (19.5:9)</p>
+
+  <!-- ==================== PHONE MOCKUP ==================== -->
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-pill"><span class="icon">🏆</span> BEST 6</div>
+        <div class="stat-pill"><span class="icon">▶</span> PLAYS 8</div>
+      </div>
+
+      <!-- Music notes deco -->
+      <div class="note-deco n1" style="--r:-12deg">♪</div>
+      <div class="note-deco n2" style="--r:18deg">♫</div>
+      <div class="note-deco n3" style="--r:-8deg">♬</div>
+
+      <!-- Character: 김간호 (nurse with cap + headphones, "shh" gesture) -->
+      <svg class="character" viewBox="-150 -160 300 360" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shoulders / scrub top -->
+        <path d="M -130 200 Q -110 100 -55 92 L 55 92 Q 110 100 130 200 Z"
+              fill="#9BE0CC" stroke="#2D2A4A" stroke-width="4" stroke-linejoin="round"/>
+        <!-- Collar V -->
+        <path d="M -20 96 L 0 135 L 20 96 Z"
+              fill="#FFFFFF" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+        <!-- Cute button -->
+        <circle cx="0" cy="160" r="5" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+
+        <!-- Neck -->
+        <rect x="-18" y="55" width="36" height="42" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="3"/>
+
+        <!-- Head -->
+        <ellipse cx="0" cy="0" rx="65" ry="70" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="4"/>
+
+        <!-- Side hair (left + right) -->
+        <path d="M -68 -10 Q -72 35 -60 60 L -50 35 Q -58 5 -52 -25 Z"
+              fill="#3A2418" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 68 -10 Q 72 35 60 60 L 50 35 Q 58 5 52 -25 Z"
+              fill="#3A2418" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+
+        <!-- Hair bangs -->
+        <path d="M -60 -25 Q -50 -55 -20 -55 Q 0 -62 22 -55 Q 50 -55 60 -28
+                 Q 40 -42 15 -38 Q -10 -42 -38 -38 Q -55 -38 -60 -25 Z"
+              fill="#3A2418" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+
+        <!-- Nurse cap -->
+        <g transform="translate(-3, -55)">
+          <path d="M -30 5 Q -30 -25 0 -28 Q 30 -25 30 5 L 26 8 L -26 8 Z"
+                fill="#FFFFFF" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+          <!-- Red cross -->
+          <g transform="translate(0, -10)">
+            <rect x="-3.5" y="-9" width="7" height="18" fill="#FF6B5B" rx="1"/>
+            <rect x="-9" y="-3.5" width="18" height="7" fill="#FF6B5B" rx="1"/>
+          </g>
+        </g>
+
+        <!-- Headphone band -->
+        <path d="M -72 -8 Q -72 -75 0 -75 Q 72 -75 72 -8"
+              stroke="#FF6B5B" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path d="M -72 -8 Q -72 -75 0 -75 Q 72 -75 72 -8"
+              stroke="#2D2A4A" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.3"/>
+
+        <!-- Headphone cups -->
+        <ellipse cx="-70" cy="3" rx="16" ry="22" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="4"/>
+        <ellipse cx="70" cy="3" rx="16" ry="22" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="4"/>
+        <ellipse cx="-68" cy="3" rx="9" ry="14" fill="#C44A3D"/>
+        <ellipse cx="68" cy="3" rx="9" ry="14" fill="#C44A3D"/>
+
+        <!-- Eyebrows -->
+        <path d="M -30 -22 Q -22 -26 -14 -22" stroke="#2D2A4A" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <path d="M 14 -22 Q 22 -26 30 -22" stroke="#2D2A4A" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+        <!-- Eyes (closed happy smile) -->
+        <path d="M -28 -5 Q -22 -12 -14 -5" stroke="#2D2A4A" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M 14 -5 Q 22 -12 28 -5" stroke="#2D2A4A" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+        <!-- Blush -->
+        <ellipse cx="-38" cy="18" rx="11" ry="7" fill="#FFB6B0" opacity="0.55"/>
+        <ellipse cx="38" cy="18" rx="11" ry="7" fill="#FFB6B0" opacity="0.55"/>
+
+        <!-- "Shh" mouth (small O) -->
+        <ellipse cx="0" cy="25" rx="6" ry="7" fill="#FF8E80" stroke="#2D2A4A" stroke-width="2.5"/>
+
+        <!-- Arm + finger to lips (shh gesture) -->
+        <path d="M 60 130 Q 50 90 30 60 Q 18 40 8 25"
+              stroke="#FFE2C6" stroke-width="20" fill="none" stroke-linecap="round"/>
+        <path d="M 60 130 Q 50 90 30 60 Q 18 40 8 25"
+              stroke="#2D2A4A" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.85"/>
+        <!-- Finger tip -->
+        <ellipse cx="6" cy="22" rx="8" ry="7" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      </svg>
+
+      <!-- Title -->
+      <div class="title-block">
+        <div class="accent-line"></div>
+        <div class="title-l1">김간호는</div>
+        <div class="title-l2">음악박사<span class="note">♪</span></div>
+        <div class="tagline">수간호사 몰래, 떠오른 멜로디를<br>45초 안에 모아 보세요</div>
+      </div>
+
+      <!-- Start button -->
+      <button class="start-btn">
+        시작 <span class="arrow">▶</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== ANNOTATIONS ==================== -->
+  <div class="annot-title">디자인 결정 요약</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🎨 BG · 노을 그라데이션</h3>
+      <p>웜 피치 → 소프트 라벤더. 단조롭던 청록을 버리고 "시간대"의 정서를 줌. C안의 미감.</p>
+    </div>
+    <div class="annotation">
+      <h3>👩‍⚕️ 캐릭터 · "쉿" 제스처</h3>
+      <p>한 컷에 "수간호사 몰래"가 전달됨. 카피 100자보다 강한 정체성 표현. A안의 캐릭터성.</p>
+    </div>
+    <div class="annotation">
+      <h3>🔤 타이포 · Jua 폰트</h3>
+      <p>둥글고 친근. "음악박사"만 코랄로 강조해 시선 흐름 설계. 시스템 폰트 → 게임 타이틀.</p>
+    </div>
+    <div class="annotation">
+      <h3>📐 위계 · 우측 정렬 + Accent Line</h3>
+      <p>캐릭터(좌) vs 타이틀(우) 비대칭 구도. 상단 코랄 라인으로 "여기가 시작"이라는 신호.</p>
+    </div>
+    <div class="annotation">
+      <h3>🔘 버튼 · 코랄 + 입체 그림자</h3>
+      <p>채도 높은 코랄 + 누르는 듯한 0/6px 그림자. 즉각 "탭 가능"이 인지됨. 살구 핑크 애매함 해결.</p>
+    </div>
+    <div class="annotation">
+      <h3>🎵 데코 · 의도된 배치</h3>
+      <p>음표 3개만, 캐릭터 머리 위로 호 그리듯. 산만한 글리프 → 리듬 있는 구성.</p>
+    </div>
+    <div class="annotation">
+      <h3>📊 통계 · 글래스 필 (반투명)</h3>
+      <p>backdrop-filter로 배경 톤 유지하며 가독성 확보. 작게, 구석에. 메인 시선을 안 뺏음.</p>
+    </div>
+    <div class="annotation">
+      <h3>📱 Dynamic Island 회피</h3>
+      <p>iPhone landscape에서 노치는 좌측. 핵심 UI는 노치 영향권 밖에 배치 (좌측 50px 여백).</p>
+    </div>
+  </div>
+
+  <!-- ==================== COLOR PALETTE ==================== -->
+  <div class="annot-title">색 팔레트</div>
+  <div class="palette">
+    <div class="swatch">
+      <div class="swatch-chip" style="background: linear-gradient(165deg, #FFE5D0, #FFC8B5, #DCC9E8);"></div>
+      <div class="swatch-name">BG Gradient</div>
+      <div class="swatch-hex">#FFE5D0 → #DCC9E8</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background: #FF6B5B;"></div>
+      <div class="swatch-name">Primary Coral</div>
+      <div class="swatch-hex">#FF6B5B</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background: #2D2A4A;"></div>
+      <div class="swatch-name">Deep Navy</div>
+      <div class="swatch-hex">#2D2A4A</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background: #FFB347;"></div>
+      <div class="swatch-name">Music Gold</div>
+      <div class="swatch-hex">#FFB347</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background: #9BE0CC;"></div>
+      <div class="swatch-name">Scrub Mint</div>
+      <div class="swatch-hex">#9BE0CC</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background: #FFE2C6;"></div>
+      <div class="swatch-name">Skin Tone</div>
+      <div class="swatch-hex">#FFE2C6</div>
+    </div>
+  </div>
+
+  <!-- ==================== FONTS ==================== -->
+  <div class="annot-title">폰트 시스템</div>
+  <div class="font-list">
+    <div class="font-card" style="background:#2D2A4A;">
+      <div class="preview" style="font-family:'Jua',sans-serif; font-size:36px;">김간호는 음악박사</div>
+      <div class="role">Display · Title</div>
+      <div class="name">Jua (배민 도현체 대안 · 무료 · Google Fonts)</div>
+    </div>
+    <div class="font-card" style="background:#2D2A4A;">
+      <div class="preview" style="font-family:'Gowun Dodum',sans-serif; font-size:18px; line-height:1.5;">수간호사 몰래, 떠오른 멜로디를<br>45초 안에 모아 보세요</div>
+      <div class="role">Body · Tagline</div>
+      <div class="name">Gowun Dodum (둥근 모던 본문)</div>
+    </div>
+    <div class="font-card" style="background:#2D2A4A;">
+      <div class="preview" style="font-family:'Noto Sans KR',sans-serif; font-weight:700; font-size:16px;">BEST 6 · PLAYS 8</div>
+      <div class="role">UI · Numbers</div>
+      <div class="name">Noto Sans KR (HUD · 수치 표시)</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

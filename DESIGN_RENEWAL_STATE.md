@@ -1,0 +1,157 @@
+# 디자인 리뉴얼 진행 상태
+
+> 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
+> 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
+
+**최종 갱신**: 2026-05-19 (Sprint 1 합격)
+**현재 진행 중인 Sprint**: Sprint 2 — 대기 중 (다음 트리거 시 시작)
+
+---
+
+## 🚀 빠른 시작
+
+Claude Code 세션에서 아래 한 마디만 입력하면 다음 Sprint가 자동 진행됨:
+
+```
+디자인 리뉴얼 진행해줘
+```
+
+특정 Sprint를 명시하고 싶으면:
+
+```
+Sprint 2 진행해줘
+```
+
+자동으로:
+1. 이 파일을 읽어 현재 진행 상태 파악
+2. 다음 Sprint의 Planner 프롬프트 실행
+3. Generator → Evaluator 사이클 (최대 3회)
+4. 합격하면 이 파일 갱신
+
+---
+
+## Sprint 진행 현황
+
+| Sprint | 범위 | 상태 | 점수 | 시도 |
+|---|---|---|---|---|
+| **1** | 디자인 토큰 + 노드 컴포넌트 (인프라) | ✅ 합격 | 9.83/10 | 1/3 |
+| **2** | 메뉴 3씬 (Start/Character/Skill) | ⏳ 대기 | - | 0/3 |
+| **3** | 인게임 (GameScene + HUD + 컨트롤) | ⏸️ 미시작 | - | 0/3 |
+| **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
+| **5** | ResultScene 3분기 | ⏸️ 미시작 | - | 0/3 |
+
+### 상태 범례
+- ✅ **합격** — Evaluator 합격 기준 충족, 완료
+- ⏳ **대기** — 다음 트리거 시 시작 가능
+- 🔄 **진행 중** — 현재 하네스 사이클 돌고 있음
+- ❌ **불합격** — 재시도 필요 (시도 횟수 +1)
+- ⏸️ **미시작** — 선행 Sprint 미완료 또는 자산 대기
+
+### Sprint 4 자산 대기 해제 조건
+- `mockups/svg-exports/` 폴더에 5개 SVG 존재 ✅
+- `GanhoMusic/Assets.xcassets/Characters/` 폴더에 PNG 자산 존재 ❌ (사용자가 Figma에서 제작 필요)
+
+사용자가 PNG 자산을 `Assets.xcassets/Characters/`에 추가하면 Sprint 4 상태가 "⏳ 대기"로 변경됨.
+
+---
+
+## 진행 로그
+
+(각 Sprint 완료/시도 시 자동 추가)
+
+### Sprint 1 — 디자인 토큰 + 노드 컴포넌트
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.83/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼인프라 10.0 · UX 9.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: ColorTokens v2 16토큰 + GameConfig 폰트3·컴포넌트19상수 + 신규 노드 3종(GlassPill/AccentLine/DarkContextChip) + PrimaryButton/BackButton 내부 리스타일 + GradientBackgroundNode threeStop factory. 기존 5개 씬 git diff 0줄, 신규 노드 호출자 0건. 빌드 SUCCEEDED.
+- **사용자 후속 작업 (OPEN_QUESTION Q1)**: 폰트 ttf 3개(Jua/GowunDodum/NotoSansKR) 다운로드 → `Resources/Fonts/` 추가 → `Info.plist` `UIAppFonts` 배열 추가 → Sprint 2 시작 전 시뮬레이터에서 폰트 적용 시각 확인.
+
+### Sprint 2 — 메뉴 3씬
+- 시작: -
+- 완료: -
+- 점수: -
+- 비고: -
+
+### Sprint 3 — 인게임
+- 시작: -
+- 완료: -
+- 점수: -
+- 비고: -
+
+### Sprint 4 — PNG 캐릭터 통합
+- 시작: -
+- 완료: -
+- 점수: -
+- 비고: PNG 자산 도착 후 시작
+
+### Sprint 5 — ResultScene 3분기
+- 시작: -
+- 완료: -
+- 점수: -
+- 비고: -
+
+---
+
+## Sprint별 요점 (DESIGN_RENEWAL_REQUEST.md §9에서 발췌)
+
+### Sprint 1 (시각 변화 0)
+- `ColorTokens.swift` 토큰 15개 추가
+- Jua / Gowun Dodum / Noto Sans KR ttf 추가 + Info.plist + GameConfig 폰트 상수
+- 신규 노드: `GlassPillNode`, `AccentLineNode`, `DarkContextChipNode`
+- `PrimaryButtonNode`, `BackButtonNode` 리스타일링
+- `GradientBackgroundNode` 3-stop 그라데이션 옵션 추가
+
+### Sprint 2 (메뉴 화면 시각 변경)
+- `mockups/main-screen-v2.html` 매칭 → StartScene
+- `mockups/character-select-v2.html` 매칭 → CharacterSelectScene
+- `mockups/skill-explanation-v2.html` 매칭 → SkillExplanationScene
+- 캐릭터 자리는 placeholder (Sprint 4 대기)
+
+### Sprint 3 (인게임 시각 변경)
+- `mockups/game-map-v2.html` 매칭
+- 체크보드 hex 토큰 교체 (#FFEFE0 / #FFDFC8)
+- HUD 4슬롯 + TIME 12초 이하 경고 색
+- D-Pad **우하단** / 스킬 버튼 **좌하단** 위치
+- 음표·F 투사체·콤보팝업 v2 스타일
+
+### Sprint 4 (PNG 통합) — 자산 대기 중
+- `PixelSpriteRenderer` → `SKTextureAtlas` 마이그레이션
+- 5명 × 16프레임 PNG 임포트
+- 폴폴폴 `SKAction` 패턴 (scaleY 호흡)
+
+### Sprint 5 (결과 화면)
+- `mockups/result-screen-v2.html` 매칭 → ResultScene
+- 3분기 (일반·신기록·졸업장) 분기별 시각
+- DiplomaOverlayNode 우드컷 패턴 + 명조 폰트
+
+---
+
+## 합격 기준 요약 (DESIGN_RENEWAL_REQUEST.md §11)
+
+각 Sprint마다 Evaluator가 다음 4개 카테고리로 채점:
+
+| 카테고리 | 가중치 | 통과선 |
+|---|---|---|
+| 게임 로직 회귀 0 | 40% | 9.0 이상 (절대 회귀 0) |
+| Swift 패턴 (rules 준수) | 20% | 7.0 이상 |
+| 비주얼 일관성 (mockup 매칭) | 25% | 7.0 이상 |
+| 가독성 & UX | 15% | 7.0 이상 |
+
+가중 평균 **7.5 이상**이면 ✅ 합격.
+
+---
+
+## 트러블슈팅
+
+**Q. "디자인 리뉴얼 진행해줘"라고 했는데 반응이 없어요**
+→ Claude Code 세션이 `CLAUDE.md`를 읽었는지 확인. 새 세션 시작 시 자동으로 읽혀야 함. 안 됐다면 "CLAUDE.md를 다시 읽어줘"라고 요청.
+
+**Q. Sprint 1만 계속 돌고 다음으로 안 넘어가요**
+→ Evaluator 점수가 7.5 미만이라 합격 처리가 안 됨. 점수 상세를 보고 어디서 막혔는지 확인. 3회 시도 초과 시 사용자 개입 필요.
+
+**Q. Sprint 순서를 바꾸고 싶어요**
+→ 이 파일의 진행 현황 표를 수동 편집해서 원하는 Sprint를 "⏳ 대기"로 변경. Sprint 5가 Sprint 4보다 먼저 가능함.
+
+**Q. 처음부터 다시 시작하고 싶어요**
+→ 이 파일 삭제 → "디자인 리뉴얼 진행해줘" 입력 → Sprint 1부터 자동 재시작.

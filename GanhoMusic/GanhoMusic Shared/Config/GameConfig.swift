@@ -1105,4 +1105,63 @@ enum GameConfig {
     static let startSceneExitSlideDistance: CGFloat = 30
     /// 슬라이드업 + fadeOut 지속시간 (초). presentScene 전 prelude.
     static let startSceneExitSlideDuration: TimeInterval = 0.2
+
+    // MARK: - Typography (Sprint 1 · v2 Design System)
+    // DESIGN_RENEWAL_REQUEST.md §3.2 폰트 시스템.
+    // ttf 파일 실제 임포트는 사용자 후속 작업(Xcode add to target + Info.plist UIAppFonts).
+    // 본 상수는 *이름만* 정의 — SKLabelNode(fontNamed:)는 ttf 미존재 시 시스템 폰트로 자동 fallback,
+    // 컴파일 및 런타임 모두 깨지지 않음.
+
+    /// Display 폰트 — 타이틀·UI 강조 (Jua-Regular). 모든 타이틀, 버튼 텍스트, HUD 값.
+    static let fontDisplay: String = "Jua-Regular"
+    /// Body 폰트 — 본문·설명 (GowunDodum-Regular). 태그라인, 스킬 설명, 카드 부제.
+    static let fontBody: String = "GowunDodum-Regular"
+    /// Numeric 폰트 — 수치 표시 (NotoSansKR-Bold). 점수·시간 등 정렬 필요한 숫자.
+    static let fontNumeric: String = "NotoSansKR-Bold"
+
+    // MARK: - v2 Components (Sprint 1)
+
+    /// GlassPillNode 배경 화이트 α. DESIGN_RENEWAL_REQUEST.md §3.3.B = 0.55.
+    static let glassPillFillAlpha: CGFloat = 0.55
+    /// GlassPillNode stroke α — 살짝의 외곽선.
+    static let glassPillStrokeAlpha: CGFloat = 0.25
+    /// GlassPillNode 가우시안 블러 반경. §3.3.B = radius 12.
+    static let glassPillBlurRadius: CGFloat = 12
+    /// GlassPillNode 라벨 폰트 크기.
+    static let glassPillFontSize: CGFloat = 14
+
+    /// AccentLineNode 가로 길이(pt). §3.3.C = 32.
+    static let accentLineWidth: CGFloat = 32
+    /// AccentLineNode 두께(pt). §3.3.C = 3.
+    static let accentLineHeight: CGFloat = 3
+
+    /// DarkContextChipNode 배경 navy α. §3.3.D = 0.92.
+    static let darkContextChipBgAlpha: CGFloat = 0.92
+    /// DarkContextChipNode 라벨 폰트 크기.
+    static let darkContextChipLabelFontSize: CGFloat = 13
+    /// DarkContextChipNode 뱃지 폰트 크기. 더 작음.
+    static let darkContextChipBadgeFontSize: CGFloat = 11
+    /// DarkContextChipNode 가로 패딩(pt) — 라벨 양옆 여백.
+    static let darkContextChipHorizontalPadding: CGFloat = 14
+    /// DarkContextChipNode 세로 높이(pt).
+    static let darkContextChipHeight: CGFloat = 28
+    /// DarkContextChipNode 라벨-뱃지 간 가로 간격(pt).
+    static let darkContextChipBadgeSpacing: CGFloat = 8
+    /// DarkContextChipNode 뱃지 내부 가로 패딩(pt) — 뱃지 라벨 양옆 여백.
+    static let darkContextChipBadgeHorizontalPadding: CGFloat = 12
+    /// DarkContextChipNode 뱃지 세로 inset(pt) — 칩 높이 - inset = 뱃지 높이.
+    static let darkContextChipBadgeVerticalInset: CGFloat = 8
+
+    /// PrimaryButtonNode v2 그림자 y 오프셋(pt) — 음수면 아래쪽. §3.3.A = 6 → -6.
+    static let primaryButtonShadowOffsetY: CGFloat = -6
+    /// PrimaryButtonNode v2 그림자 blur(pt).
+    static let primaryButtonShadowBlurRadius: CGFloat = 12
+    /// PrimaryButtonNode v2 우측 화살표 원 반경(pt).
+    static let primaryButtonArrowRadius: CGFloat = 12
+    /// PrimaryButtonNode v2 우측 화살표 우측 마진(pt) — 배경 우측 끝에서 안쪽 거리.
+    static let primaryButtonArrowInsetX: CGFloat = 22
+    /// PrimaryButtonNode v2 우측 화살표 원 화이트 α — 살짝 반투명한 동그라미.
+    static let primaryButtonArrowCircleAlpha: CGFloat = 0.25
+    /// PrimaryButtonNode v2 우측 화살표 라벨 폰트 크기(pt).
+    static let primaryButtonArrowLabelFontSize: CGFloat = 14
 }

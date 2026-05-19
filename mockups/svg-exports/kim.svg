@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  김간호 (Kim) — 곱슬 번머리 + 코랄 헤드폰
+  Character: protagonist nurse, cheerful music-lover
+  Hair: curly perm halo
+  Accent color: coral (#FF6B5B headphones)
+  Scrubs color (for body in Figma): mint (#9BE0CC)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -130 240 240" width="288" height="288">
+  <!-- Head -->
+  <ellipse cx="0" cy="0" rx="64" ry="68" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="5"/>
+  <!-- Curly perm halo hair (번머리) -->
+  <path d="M -56 -24 Q -64 -56 -36 -64 Q -20 -68 0 -64 Q 20 -68 36 -64 Q 64 -56 56 -24
+           Q 40 -44 20 -40 Q 0 -44 -20 -40 Q -40 -44 -56 -24 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4"/>
+  <!-- Curl details -->
+  <circle cx="-44" cy="-44" r="6" fill="#3A2418" stroke="#2D2A4A" stroke-width="3"/>
+  <circle cx="44" cy="-44" r="6" fill="#3A2418" stroke="#2D2A4A" stroke-width="3"/>
+  <circle cx="-32" cy="-56" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="2.5"/>
+  <circle cx="32" cy="-56" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="2.5"/>
+  <!-- Nurse cap -->
+  <path d="M -30 -56 Q -30 -84 0 -88 Q 30 -84 30 -56 L 24 -50 L -24 -50 Z"
+        fill="#FFFFFF" stroke="#2D2A4A" stroke-width="4"/>
+  <rect x="-4" y="-76" width="8" height="18" fill="#FF6B5B"/>
+  <rect x="-9" y="-71" width="18" height="8" fill="#FF6B5B"/>
+  <!-- Coral headphones band -->
+  <path d="M -68 -4 Q -68 -76 0 -76 Q 68 -76 68 -4"
+        stroke="#FF6B5B" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Headphone cups -->
+  <ellipse cx="-68" cy="4" rx="14" ry="20" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="4"/>
+  <ellipse cx="68" cy="4" rx="14" ry="20" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="4"/>
+  <ellipse cx="-64" cy="4" rx="7" ry="13" fill="#C44A3D"/>
+  <ellipse cx="64" cy="4" rx="7" ry="13" fill="#C44A3D"/>
+  <!-- Closed-eye happy smile -->
+  <path d="M -28 -4 Q -20 -12 -12 -4" stroke="#2D2A4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 12 -4 Q 20 -12 28 -4" stroke="#2D2A4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Smile -->
+  <path d="M -10 24 Q 0 32 10 24" stroke="#2D2A4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Blush -->
+  <ellipse cx="-36" cy="16" rx="10" ry="6" fill="#FFB6B0" opacity="0.6"/>
+  <ellipse cx="36" cy="16" rx="10" ry="6" fill="#FFB6B0" opacity="0.6"/>
+</svg>

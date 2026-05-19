@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 캐릭터 시안 (사진 기반)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  .section-title {
+    font-family: 'Jua', sans-serif; color: #fff; font-size: 20px;
+    margin: 32px 0 16px;
+    border-left: 3px solid #FF6B5B; padding-left: 12px;
+  }
+
+  /* === Big preview card === */
+  .preview-bg {
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+    border-radius: 24px;
+    padding: 36px 24px;
+    margin-bottom: 24px;
+  }
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  @media (max-width: 800px) {
+    .char-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .char-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 14px 12px 16px;
+    text-align: center;
+    position: relative;
+  }
+  .char-card .color-dot {
+    position: absolute; top: 10px; right: 10px;
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .char-card.new::before {
+    content: "NEW";
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: #FF6B5B; color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 9px;
+    padding: 2px 8px; border-radius: 999px;
+    letter-spacing: 1px;
+  }
+  .char-card.keep::before {
+    content: "기존";
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: rgba(45, 42, 74, 0.7); color: #fff;
+    font-family: 'Jua', sans-serif; font-size: 9px;
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .char-card .avatar {
+    width: 110px; height: 110px;
+    margin: 4px auto 10px;
+    display: block;
+  }
+  .char-card .name {
+    font-family: 'Jua', sans-serif; font-size: 18px;
+    color: #2D2A4A; letter-spacing: -0.5px; margin-bottom: 2px;
+  }
+  .char-card .tag {
+    font-family: 'Gowun Dodum', sans-serif; font-size: 11px;
+    color: #5A5670; line-height: 1.3;
+  }
+
+  /* Feature notes */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .feature-card {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .feature-card h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .feature-card h3 .badge {
+    background: rgba(255, 142, 128, 0.15);
+    color: #FF8E80; font-size: 10px;
+    padding: 2px 8px; border-radius: 999px;
+    font-weight: 700;
+  }
+  .feature-card ul {
+    list-style: none; padding-left: 0;
+    font-size: 12px; color: #b5b5bd; line-height: 1.7;
+  }
+  .feature-card li {
+    padding-left: 14px; position: relative; margin-bottom: 4px;
+  }
+  .feature-card li::before {
+    content: "·"; position: absolute; left: 4px;
+    color: #FF8E80; font-weight: bold;
+  }
+  .feature-card .question {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px dashed #2e2e3a;
+    color: #FFB347; font-size: 12px;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+
+  /* Questions box */
+  .questions-box {
+    background: rgba(255, 179, 71, 0.08);
+    border: 1px solid rgba(255, 179, 71, 0.25);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+  }
+  .questions-box h2 {
+    font-family: 'Jua', sans-serif; font-size: 16px;
+    color: #FFB347; margin-bottom: 12px;
+  }
+  .questions-box ol {
+    padding-left: 20px; font-size: 13px;
+    color: #d8d8d8; line-height: 1.8;
+  }
+  .questions-box li { margin-bottom: 6px; }
+  .questions-box strong { color: #FFE5D0; font-weight: 500; }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 캐릭터 시안 (사진 기반 캐리커처)</h1>
+  <p class="sub">김간호(기존 유지) + 건/이/임/정간호 4명 사진 기반 카툰화 · v2 스타일 일관 적용</p>
+
+  <!-- ============= Preview ============= -->
+  <div class="preview-bg">
+    <div class="char-grid">
+
+      <!-- 1. 김간호 (기존 유지) -->
+      <div class="char-card keep">
+        <span class="color-dot" style="background:#FF8E80;"></span>
+        <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+          <path d="M -28 -12 Q -32 -28 -18 -32 Q -10 -34 0 -32 Q 10 -34 18 -32 Q 32 -28 28 -12 Q 20 -22 10 -20 Q 0 -22 -10 -20 Q -20 -22 -28 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+          <circle cx="-22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <circle cx="22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+          <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+          <path d="M -34 -2 Q -34 -38 0 -38 Q 34 -38 34 -2" stroke="#FF6B5B" stroke-width="5" fill="none"/>
+          <ellipse cx="-34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+          <ellipse cx="34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+          <path d="M -14 -2 Q -10 -6 -6 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M 6 -2 Q 10 -6 14 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M -5 12 Q 0 16 5 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="-18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+          <ellipse cx="18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+        </svg>
+        <div class="name">김간호</div>
+        <div class="tag">번머리 실습생</div>
+      </div>
+
+      <!-- 2. 건간호 (v6 - 완전 새 디자인, 쿠키런 톤) -->
+      <div class="char-card new">
+        <span class="color-dot" style="background:#B89DD9;"></span>
+        <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- Big chibi head -->
+          <ellipse cx="0" cy="2" rx="34" ry="36" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+          <!-- Smooth dark hair (단순 실루엣, 부드러운 앞머리) -->
+          <path d="M -32 -10 Q -38 -38 -16 -38 Q 0 -42 16 -38 Q 38 -38 32 -10
+                   Q 24 -24 0 -22 Q -24 -24 -32 -10 Z"
+                fill="#1F1410" stroke="#2D2A4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <!-- Tiny hair tuft (귀여운 머리 한 가닥) -->
+          <path d="M -3 -38 Q 0 -44 3 -38 Q 1 -41 -1 -41 Q -3 -41 -3 -38 Z"
+                fill="#1F1410" stroke="#2D2A4A" stroke-width="1.5"/>
+          <!-- Nurse cap -->
+          <path d="M -14 -30 Q -14 -42 0 -44 Q 14 -42 14 -30 L 11 -27 L -11 -27 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <rect x="-2" y="-40" width="4" height="9" fill="#FF6B5B"/>
+          <rect x="-4.5" y="-37.5" width="9" height="4" fill="#FF6B5B"/>
+          <!-- BIG round cute eyes (쿠키런 정석) -->
+          <ellipse cx="-11" cy="-1" rx="4.5" ry="6" fill="#2D2A4A"/>
+          <ellipse cx="11" cy="-1" rx="4.5" ry="6" fill="#2D2A4A"/>
+          <!-- Single white highlight per eye -->
+          <circle cx="-12" cy="-3" r="1.8" fill="#FFFFFF"/>
+          <circle cx="10" cy="-3" r="1.8" fill="#FFFFFF"/>
+          <!-- Small simple smile -->
+          <path d="M -4 14 Q 0 17 4 14" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Blush -->
+          <ellipse cx="-22" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.65"/>
+          <ellipse cx="22" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.65"/>
+          <!-- Book accessory -->
+          <g transform="translate(-32, 33) rotate(-15)">
+            <rect x="-7" y="-5" width="14" height="10" rx="1" fill="#B89DD9" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="0" y1="-5" x2="0" y2="5" stroke="#2D2A4A" stroke-width="1"/>
+          </g>
+        </svg>
+        <div class="name">건간호</div>
+        <div class="tag">책벌레</div>
+      </div>
+
+      <!-- 3. 이간호 (v3 - 곱슬 단발 + 앞머리, 강아지귀 ❌) -->
+      <div class="char-card new">
+        <span class="color-dot" style="background:#FFB6B0;"></span>
+        <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- Side curls (jaw-length curly bob — outer silhouette) -->
+          <path d="M -32 -8 Q -38 8 -36 22 Q -34 34 -28 38 Q -22 28 -26 18 Q -32 8 -30 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M 32 -8 Q 38 8 36 22 Q 34 34 28 38 Q 22 28 26 18 Q 32 8 30 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+          <!-- Curl details on sides -->
+          <circle cx="-30" cy="20" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <circle cx="30" cy="20" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <circle cx="-26" cy="32" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <circle cx="26" cy="32" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+          <!-- Head -->
+          <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+          <!-- Forward fringe/bangs (photo: bangs covering forehead) -->
+          <path d="M -28 -14 Q -32 -32 -16 -34 L -8 -28 L -2 -32 L 2 -32 L 8 -28 L 16 -34 Q 32 -32 28 -14
+                   Q 18 -22 8 -20 Q 0 -22 -8 -20 Q -18 -22 -28 -14 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+          <!-- Small fringe curls (texture hint) -->
+          <circle cx="-18" cy="-22" r="2.5" fill="#1F1410" opacity="0.4"/>
+          <circle cx="18" cy="-22" r="2.5" fill="#1F1410" opacity="0.4"/>
+          <!-- Nurse cap -->
+          <path d="M -15 -30 Q -15 -44 0 -46 Q 15 -44 15 -30 L 12 -26 L -12 -26 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <rect x="-2" y="-40" width="4" height="9" fill="#FF6B5B"/>
+          <rect x="-4.5" y="-37.5" width="9" height="4" fill="#FF6B5B"/>
+          <!-- Soft warm closed-eye smile (photo signature) -->
+          <path d="M -16 -2 Q -10 -8 -6 -1" stroke="#2D2A4A" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M 6 -1 Q 10 -8 16 -2" stroke="#2D2A4A" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <!-- Warm gentle smile -->
+          <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Strong blush (warm/festive vibe — red sweater energy) -->
+          <ellipse cx="-22" cy="10" rx="7" ry="4" fill="#FFB6B0" opacity="0.75"/>
+          <ellipse cx="22" cy="10" rx="7" ry="4" fill="#FFB6B0" opacity="0.75"/>
+        </svg>
+        <div class="name">이간호</div>
+        <div class="tag">곱슬 단발</div>
+      </div>
+
+      <!-- 4. 임간호 (v6 - 완전 새 디자인, 쿠키런 톤) -->
+      <div class="char-card new">
+        <span class="color-dot" style="background:#FFB347;"></span>
+        <svg class="avatar" viewBox="-50 -55 100 130" xmlns="http://www.w3.org/2000/svg">
+          <!-- Long flowing hair (단순한 실루엣) -->
+          <path d="M -34 -8 Q -44 28 -36 58 Q -30 70 -22 70 L -20 50 Q -30 25 -28 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M 34 -8 Q 44 28 36 58 Q 30 70 22 70 L 20 50 Q 30 25 28 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <!-- Big chibi head -->
+          <ellipse cx="0" cy="2" rx="34" ry="36" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+          <!-- Middle-parted soft bangs -->
+          <path d="M -32 -10 Q -36 -38 -14 -40 L -2 -32 L 0 -36 L 2 -32 L 14 -40 Q 36 -38 32 -10
+                   Q 22 -22 2 -22 L -2 -22 Q -22 -22 -32 -10 Z"
+                fill="#3A2418" stroke="#2D2A4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <!-- Nurse cap -->
+          <path d="M -14 -32 Q -14 -42 0 -44 Q 14 -42 14 -32 L 11 -29 L -11 -29 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+          <rect x="-2" y="-40" width="4" height="9" fill="#FF6B5B"/>
+          <rect x="-4.5" y="-37.5" width="9" height="4" fill="#FF6B5B"/>
+          <!-- Cat ears (작고 단순한 삼각형) -->
+          <path d="M -20 -34 L -14 -22 L -8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M 20 -34 L 14 -22 L 8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M -16 -30 L -14 -26 L -12 -30 Z" fill="#FFB6B0"/>
+          <path d="M 16 -30 L 14 -26 L 12 -30 Z" fill="#FFB6B0"/>
+          <!-- BIG round cute eyes (쿠키런 정석, 건간호와 동일 톤) -->
+          <ellipse cx="-11" cy="-1" rx="5" ry="6.5" fill="#2D2A4A"/>
+          <ellipse cx="11" cy="-1" rx="5" ry="6.5" fill="#2D2A4A"/>
+          <!-- Single white highlight per eye -->
+          <circle cx="-12" cy="-3" r="2" fill="#FFFFFF"/>
+          <circle cx="10" cy="-3" r="2" fill="#FFFFFF"/>
+          <!-- Small simple smile -->
+          <path d="M -3 13 Q 0 16 3 13" stroke="#2D2A4A" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+          <!-- Pink cat nose (작게) -->
+          <ellipse cx="0" cy="7" rx="1.5" ry="1.2" fill="#FF8E80" opacity="0.9"/>
+          <!-- Blush -->
+          <ellipse cx="-22" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.65"/>
+          <ellipse cx="22" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.65"/>
+        </svg>
+        <div class="name">임간호</div>
+        <div class="tag">긴머리 냥</div>
+      </div>
+
+      <!-- 5. 정간호 (NEW - 사진 기반) -->
+      <div class="char-card new">
+        <span class="color-dot" style="background:#9BE0CC;"></span>
+        <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+          <!-- Short cropped hair (mostly hidden by cap) -->
+          <path d="M -28 -10 Q -30 -22 -16 -24 L 16 -24 Q 30 -22 28 -10 Q 18 -16 0 -16 Q -18 -16 -28 -10 Z"
+                fill="#1F1410" stroke="#2D2A4A" stroke-width="2"/>
+          <!-- Running cap (photo: pink cap "GO PINK PACE") -->
+          <g>
+            <!-- Cap body -->
+            <path d="M -22 -22 Q -22 -36 0 -38 Q 22 -36 22 -22 L 18 -18 L -18 -18 Z"
+                  fill="#FF8E80" stroke="#2D2A4A" stroke-width="2.5"/>
+            <!-- Cap brim -->
+            <path d="M -30 -16 Q -20 -22 0 -22 Q 20 -22 30 -16 L 26 -12 L -26 -12 Z"
+                  fill="#C44A3D" stroke="#2D2A4A" stroke-width="2"/>
+            <!-- "G" logo on cap -->
+            <circle cx="0" cy="-28" r="4" fill="#fff" stroke="#2D2A4A" stroke-width="1.5"/>
+            <text x="0" y="-25" text-anchor="middle" font-family="Jua" font-size="6" font-weight="bold" fill="#C44A3D">G</text>
+          </g>
+          <!-- Round black glasses (photo signature) -->
+          <circle cx="-12" cy="-2" r="9" fill="rgba(220,230,255,0.3)" stroke="#2D2A4A" stroke-width="2.8"/>
+          <circle cx="12" cy="-2" r="9" fill="rgba(220,230,255,0.3)" stroke="#2D2A4A" stroke-width="2.8"/>
+          <line x1="-3" y1="-2" x2="3" y2="-2" stroke="#2D2A4A" stroke-width="2.2"/>
+          <!-- Determined eyes (focused) -->
+          <circle cx="-12" cy="-1" r="2" fill="#2D2A4A"/>
+          <circle cx="12" cy="-1" r="2" fill="#2D2A4A"/>
+          <!-- Glasses shine -->
+          <ellipse cx="-15" cy="-5" rx="2.5" ry="1.5" fill="#fff" opacity="0.6"/>
+          <ellipse cx="9" cy="-5" rx="2.5" ry="1.5" fill="#fff" opacity="0.6"/>
+          <!-- Strong eyebrows (determined runner) -->
+          <path d="M -18 -10 L -8 -12" stroke="#2D2A4A" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M 8 -12 L 18 -10" stroke="#2D2A4A" stroke-width="2.2" stroke-linecap="round"/>
+          <!-- Slight breathing-out mouth (runner) -->
+          <path d="M -4 11 Q 0 16 4 11" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="0" cy="14" rx="3.5" ry="2" fill="#2D2A4A" opacity="0.4"/>
+          <!-- Sweat drop (athletic vibe) -->
+          <path d="M 28 -10 Q 30 -6 32 -10 Q 30 -4 28 -10 Z" fill="#9BCDF0" stroke="#2D2A4A" stroke-width="1.5"/>
+          <!-- Tan/blush -->
+          <ellipse cx="-22" cy="8" rx="5" ry="2.5" fill="#E87B6A" opacity="0.45"/>
+          <ellipse cx="22" cy="8" rx="5" ry="2.5" fill="#E87B6A" opacity="0.45"/>
+          <!-- Mint scrubs (athletic) + pickaxe shoulder -->
+          <g transform="translate(28, 30) rotate(40)">
+            <rect x="-1.5" y="-14" width="3" height="20" fill="#8B5A2B" stroke="#2D2A4A" stroke-width="1.3"/>
+            <path d="M -9 -14 L 9 -12 L 7 -10 L -7 -12 Z" fill="#888" stroke="#2D2A4A" stroke-width="1.3"/>
+          </g>
+        </svg>
+        <div class="name">정간호</div>
+        <div class="tag">곡괭이 근육 (+ 안경)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============= Feature notes ============= -->
+  <div class="section-title">사진에서 캐치한 특징</div>
+  <div class="features">
+
+    <div class="feature-card">
+      <h3>건간호 <span class="badge">v6 — 완전 새 디자인 (쿠키런 톤)</span></h3>
+      <ul>
+        <li>⭐ <strong style="color:#FFE5D0">큰 둥근 검은 눈 + 단일 화이트 하이라이트</strong> (정석 chibi 공식)</li>
+        <li>⭐ 둥글둥글한 표준 머리 비율 (rx 34, ry 36)</li>
+        <li>부드러운 한 덩어리 앞머리 (jagged ❌, smooth ⭕)</li>
+        <li>머리 위 작은 한 가닥 (귀여운 포인트)</li>
+        <li>안경·혀·눈썹 디테일 다 제거 — 단순 화이트 하이라이트 + 작은 미소</li>
+        <li>책 소품 + 라벤더 스크럽 (정체성 유지)</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>이간호 <span class="badge">v3 — 곱슬 단발</span></h3>
+      <ul>
+        <li>곱슬 단발 (턱선 길이) + 앞머리 + 옆머리 컬 디테일</li>
+        <li>강아지 귀 ❌ 제거 (사용자 결정)</li>
+        <li>둥근 미소 + 따뜻한 표정 (사진 얼굴 분위기)</li>
+        <li>붉은 블러시 강조 (빨간 스웨터 톤 매핑)</li>
+        <li>닫힌 눈 happy smile (사진의 따뜻함 강조)</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>임간호 <span class="badge">v6 — 완전 새 디자인 (쿠키런 톤)</span></h3>
+      <ul>
+        <li>⭐ <strong style="color:#FFE5D0">건간호와 동일한 큰 둥근 눈 + 단일 화이트 하이라이트</strong> (시리즈 통일감)</li>
+        <li>⭐ 회전·복잡한 디테일 다 제거</li>
+        <li>풀어내린 부드러운 긴머리 + 중앙 가르마 앞머리</li>
+        <li>작고 단순한 삼각형 고양이 귀 (정체성)</li>
+        <li>작은 핑크 코 + 작은 미소</li>
+        <li>수염·속눈썹·sparkle 다 ❌ — 무난한 톤 정석</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>정간호 <span class="badge">마라톤 사진 기반</span></h3>
+      <ul>
+        <li>둥근 검정 안경 (사진 시그니처) ⭐ 새 특징</li>
+        <li>러닝캡 (사진 핑크 GO PINK PACE 모자)</li>
+        <li>운동선수 같은 다부진 인상</li>
+        <li>집중·결연한 눈썹 (마라톤 사진의 표정)</li>
+        <li>땀방울 디테일 (운동 정체성)</li>
+        <li>곡괭이 + 민트 스크럽 (태그 유지)</li>
+      </ul>
+      <div class="question">기존 정간호 디자인엔 안경이 없었는데, 사진에 안경 있어서 추가했어. 안 쓰는 게 좋으면 빼줄게.</div>
+    </div>
+
+  </div>
+
+  <!-- ============= Decisions confirmed ============= -->
+  <div class="questions-box" style="background:rgba(155,224,204,0.08);border-color:rgba(155,224,204,0.25);">
+    <h2 style="color:#9BE0CC;">✅ v6 확정 — 무난 귀엽 정석</h2>
+    <ol>
+      <li><strong>김간호</strong> → 번머리 + 헤드폰 (기존 유지)</li>
+      <li><strong>정간호</strong> → 안경 ⭕ + 핑크 러닝캡 + 곡괭이</li>
+      <li><strong>건간호</strong> v6 → <strong style="color:#FFE5D0">완전 새 디자인</strong> · 큰 둥근 눈 + 단순 화이트 하이라이트 + 책</li>
+      <li><strong>임간호</strong> v6 → <strong style="color:#FFE5D0">완전 새 디자인</strong> · 건간호와 동일 눈 톤 + 고양이 귀 + 긴머리</li>
+      <li><strong>이간호</strong> → 곱슬 단발 + 앞머리 (강아지귀 ❌)</li>
+    </ol>
+    <p style="margin-top:10px;font-size:12px;color:#9BE0CC;font-family:'Gowun Dodum',sans-serif;">
+      📌 건간호 · 임간호는 <strong>큰 둥근 검은 눈 + 단일 화이트 하이라이트</strong> 정석 공식 적용.
+      복잡한 디테일(회전·속눈썹·수염·혀) 다 제거. 머리·소품으로만 차별화.
+    </p>
+  </div>
+
+  <div class="section-title">다음 단계</div>
+  <div class="feature-card">
+    <ul>
+      <li>✅ 시안 v3 확정 완료 (이 HTML 파일)</li>
+      <li>⏭️ 5명 SVG 개별 파일로 추출: <code style="background:#2D2A4A;padding:1px 5px;border-radius:3px;color:#FFE5D0;">mockups/svg-exports/</code></li>
+      <li>⏭️ Figma 임포트 + PNG export 가이드: <code style="background:#2D2A4A;padding:1px 5px;border-radius:3px;color:#FFE5D0;">FIGMA_IMPORT_GUIDE.md</code></li>
+      <li>⏭️ Figma에서 16프레임 × 5명 PNG 제작 (또는 정면 1프레임만 만들고 SKAction로 폴폴폴 처리)</li>
+      <li>⚠️ 본인 동의 확인 권장 (워크넷 신중함 22위 보완 모드)</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

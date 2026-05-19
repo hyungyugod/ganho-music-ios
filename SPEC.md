@@ -1,457 +1,627 @@
-# SPEC.md — Phase 10-2 · StartScene 모던 리스킨 (병동의 새벽 톤)
+# Sprint 1 — 디자인 리뉴얼 인프라 (시각 변화 0)
 
 ## 개요
-앱 첫 진입 StartScene이 현재 회색 박스 + 시스템 폰트의 *완성도 낮은* 인상이라 게임의 첫 톤이 약하다. **게임플레이를 일절 건드리지 않고**, 배경 그라데이션 + 떠다니는 음표 파티클 + 제목 글로우 + 카드 spring/링 글로우 인터랙션 + 버튼 pulse + 전환 잔향 5채널 비주얼 리스킨을 가한다. 무드는 **'병동의 새벽 — 청록(teal) + 살구(coral/apricot)'** — 어두운 야간 병동 위에 작곡의 살구빛이 떠오르는 톤.
+DESIGN_RENEWAL_REQUEST.md §9 Sprint 1을 구현한다. 새 디자인 시스템(따뜻한 피치-라벤더 그라데이션 + 코랄 액센트 + 카툰 톤)이 Sprint 2~3에서 끌어다 쓸 **인프라**만 추가한다. 토큰/폰트/재사용 노드 3종 + 버튼 2종 리스타일링 + 그라데이션 3-stop 옵션 추가까지. **기존 5개 씬(StartScene, CharacterSelectScene, SkillExplanationScene, GameScene, ResultScene)의 시각 출력은 한 픽셀도 바뀌지 않는다.**
 
 ## 변경 유형
-**비주얼** — 게임플레이 변경 0건. 난이도 선택 흐름·repo save·씬 전환 대상·hit test 우선순위·라벨 위치(레이아웃) 모두 동일. 시각 레이어만 신설/덮어쓰기.
+**비주얼 인프라** (시각 변화 0)
+— Evaluator는 v2 디자인 시스템 매칭이 아니라 **인프라 완전성 + 기존 화면 0 회귀**를 본다.
 
 ## 게임 경험 의도
-플레이어가 앱을 켜자마자 "이거 정성 들인 게임이구나"를 1초 안에 인지하게 한다. 어두운 새벽 병동(딥블루→틸 그라데이션) 위로 살구색 음표 ♪가 천천히 떠오르고, 제목이 부드럽게 빛난다. 난이도를 탭하면 *spring 반동 + 살구 링 글로우*로 "아 눌렀다"는 즉각 쾌감을 받고, 시작 버튼은 *심호흡하듯* pulse 한다. 씬을 떠날 때는 카드들이 살짝 위로 슬라이드하며 다음 씬과 연결감을 만든다.
+이 Sprint 결과를 사용자가 직접 보지는 않는다 — 다음 Sprint 2가 메뉴 씬을 리스킨할 때 끌어다 쓸 *부품 창고*를 짓는 단계다. 부품이 잘 깎여 있으면 Sprint 2 작업이 "위치 잡고 색만 바꾸면 끝" 수준으로 떨어진다. Spring 비유로는 도메인 모델/Repository를 먼저 정착시킨 뒤 Controller를 갈아끼우는 절차와 동일하다.
 
-## Sprint 범위 계약 — Phase 10-2
+## Sprint 1 범위 계약
 
-- **허용**:
-  - StartScene 내부 비주얼 노드 추가 (그라데이션 배경, 음표 파티클, 제목 글로우)
-  - DifficultyCardNode `setSelected(_:)` 시 spring scale + 링 글로우 추가 (호출 시그니처 불변)
-  - GameConfig 신규 상수 *추가*만 (Phase 10-2 MARK 섹션 신설)
-  - ColorTokens teal/coral accent 토큰 *추가*만
-  - 씬 전환 시 카드 슬라이드업 + fade 길이 미세 조정 (sceneTransitionDuration 불변, 자체 신규 상수 사용)
-  - SKAction.repeatForever pulse (시작 버튼)
+### IN (이번 Sprint에 한다)
+1. `ColorTokens.swift`에 v2 디자인 토큰 **16개 추가** (DESIGN_RENEWAL_REQUEST.md §3.1 원문 그대로, 기존 토큰 hex 0 변경)
+2. `GameConfig.swift`에 폰트 이름 상수 **3개 추가** (`fontDisplay` / `fontBody` / `fontNumeric`) + 컴포넌트 수치 상수 다수 추가
+3. 신규 노드 3개 생성:
+   - `Nodes/GlassPillNode.swift`
+   - `Nodes/AccentLineNode.swift`
+   - `Nodes/DarkContextChipNode.swift`
+4. `Nodes/PrimaryButtonNode.swift` 내부 시각 리스타일링 (init 시그니처 보존)
+5. `Nodes/BackButtonNode.swift` 내부 시각 리스타일링 (init 시그니처 보존)
+6. `Nodes/GradientBackgroundNode.swift`에 3-stop 그라데이션 옵션 **추가** (기존 2-stop init 보존)
 
-- **금지**:
-  - CharacterSelectScene·SkillExplanationScene·GameScene·ResultScene 비주얼 변경
-  - 난이도 선택 결과/저장 시점/씬 전환 대상 변경
-  - 기존 GameConfig 상수 *값 변경* (신규 추가만 허용)
-  - 기존 ColorTokens 변경 (신규 추가만 허용)
-  - StoryBoxNode·PrimaryButtonNode 내부 구조 변경 (StartScene이 *외부에서* pulse만 부착)
-  - SPEC에 없는 사운드/햅틱/BGM 추가
-  - 새 게임 메커닉·점수 보너스·이스터에그
-  - 강제 언래핑(`!`), Timer, 매직 넘버, 매 프레임 addChild
+### OUT (이번 Sprint에는 절대 안 한다)
+- 기존 화면(`StartScene`, `CharacterSelectScene`, `SkillExplanationScene`, `GameScene`, `GameScene+Setup`, `ResultScene`) **호출부 어떤 변경도 금지**
+- Phase 10-2 StartScene 리스킨 결과물(그라데이션 색 토큰, MusicNoteEmitter, 카드 spring) 어떤 변경도 금지
+- 폰트 ttf 파일 실제 추가 (UIAppFonts plist 편집 + Xcode add-to-target은 **사용자 후속 작업**)
+- 기존 ColorTokens hex 값 변경 (`ganhoBgDeep`, `ganhoAccentTeal`, `ganhoUIBrand` 등 전부 그대로)
+- 게임 수치 / 게임 로직 / 저장소 / 씬 전환
+- 새 노드 3종을 어디서 호출하는 코드 추가 (Sprint 2~3에서 호출자가 들어옴)
 
-- **판단 기준**: "이 변경이 없으면 SPEC의 비주얼 리스킨이 제대로 동작하지 않는가?" → YES만 허용.
+### 판단 기준 (애매할 때)
+- "이 변경이 없으면 SPEC 기능(16 토큰 + 폰트 3개 + 컴포넌트 상수 + 신규 노드 3개 + 버튼 2개 리스타일링 + 3-stop 옵션)이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+- 특히 **버튼 2개 리스타일링은 호출부 회귀가 발생할 수 있다**. 호출부가 보던 init 시그니처/탭 컨벤션이 그대로 유지되는지가 핵심 가드.
 
-## 불변 계약 (게임플레이 0건 변경)
+---
 
-| 항목 | 변경 여부 |
-|---|---|
-| `selectDifficulty(_:)` 호출 시점/저장 동작 | 불변 |
-| `transitionToNext()`의 `CharacterSelectScene.newCharacterSelectScene(difficulty:)` 호출 | 불변 |
-| `isTransitioning` 가드 | 불변 |
-| 카드 hit test 우선순위 (난이도 카드 → 시작 버튼) | 불변 |
-| `HighScoreRepository().current` / `StatisticsRepository().current.playCount` 읽기 시점 | 불변 |
-| 카드 *위치*(layoutDifficultyCards 좌표 계산식) | 불변 |
-| `selectedDifficulty: Difficulty = .easy` 기본값 + `difficultyRepo.current` 복원 | 불변 |
+## 불변 계약 표 (Evaluator 체크리스트용)
 
-## 색상 토큰 정의 (ColorTokens.swift 신규)
-
-원본 톤 ganhoUIBrand(#c4847a, 코럴)와 충돌 회피 위해 *액센트* 패밀리로 별도 네이밍.
-
-| 토큰 | Hex | 용도 |
+| 항목 | 상태 | 검증 방법 |
 |---|---|---|
-| `ganhoAccentTeal` | `#5BD7CF` | 그라데이션 하단 + 제목 글로우 외곽 |
-| `ganhoAccentTealDeep` | `#1E3A4C` | 그라데이션 상단 (딥블루-틸 중간 톤) |
-| `ganhoAccentCoral` | `#FFB59A` | 음표 파티클 본체 + 선택 카드 링 글로우 + BEST/PLAYS 액센트 |
+| `PrimaryButtonNode.init(text:)` 시그니처 | 보존 | grep로 `init(text:` 단일 시그니처 확인 |
+| `BackButtonNode.init(text:)` 시그니처 | 보존 | grep로 `init(text:` 단일 시그니처 확인 |
+| `PrimaryButtonNode.name == "primaryButton"` | 보존 | hit-test의 `contains(_:)` 호출부 패턴 유지 |
+| `BackButtonNode.name == "backButton"` | 보존 | hit-test 패턴 유지 |
+| `GradientBackgroundNode.init(size:topColor:bottomColor:)` | 보존 | StartScene 호출부 컴파일 그대로 |
+| `GradientBackgroundNode.name == "gradientBackground"` | 보존 | 자식 추적 패턴 유지 |
+| 기존 `ColorTokens` hex 값 | 0 변경 | git diff에서 기존 라인 변경 0 |
+| `GameConfig` 게임 로직 상수 | 0 변경 | scorePerNote, comboWindow 등 단 1줄도 안 만짐 |
+| `Info.plist` | 0 변경 | UIAppFonts 편집은 사용자 후속 작업 — SPEC OPEN_QUESTION 처리 |
+| 기존 5개 씬 파일 | 0 변경 | grep로 Scenes/ 디렉토리 git diff 비어 있어야 함 |
+| 새 노드 3종은 **호출자 0** | 충족 | grep로 `GlassPillNode(` / `AccentLineNode(` / `DarkContextChipNode(` 호출부 0건 |
 
-> Hex 선택 근거: teal `#5BD7CF`는 ganhoMint(#7DCFB6, 머리띠)와 다른 *더 시원하고 채도 높은* 청록 — 야간 새벽 톤. coral `#FFB59A`는 ganhoUIBrand(#c4847a, 어두운 코럴)보다 *밝고 따뜻한* 살구색 — 떠오르는 멜로디 톤. 두 색은 보색 관계로 그라데이션 위 음표가 또렷이 떠오름.
+---
 
 ## 변경 범위
 
 ### 수정할 파일
+- `GanhoMusic Shared/Config/ColorTokens.swift` — extension 끝에 v2 토큰 16개 **추가만** (기존 라인 변경 금지)
+- `GanhoMusic Shared/Config/GameConfig.swift` — enum 끝쪽에 폰트 상수 3개 + 컴포넌트 상수 + 폰트 헬퍼 1개 **추가만**
+- `GanhoMusic Shared/Nodes/PrimaryButtonNode.swift` — init 시그니처/타입 이름/`name`/탭 컨벤션 보존, 내부 시각만 v2 코랄 스타일로 교체
+- `GanhoMusic Shared/Nodes/BackButtonNode.swift` — init 시그니처/타입 이름/`name`/탭 컨벤션 보존, 내부 시각만 GlassPill 패턴으로 교체
+- `GanhoMusic Shared/Nodes/GradientBackgroundNode.swift` — 기존 init 보존, 새 3-stop static factory **추가**
 
-1. **`GanhoMusic Shared/Scenes/StartScene.swift`** — 비주얼 5채널 추가
-   - 그라데이션 배경 노드(zPos -20) 추가
-   - 떠다니는 음표 파티클 컨테이너(zPos -15) 추가
-   - 제목 글로우 SKEffectNode 래핑
-   - 시작 버튼 pulse 액션 부착
-   - 씬 전환 시 카드 슬라이드업 시퀀스
+### 추가할 파일
+- `GanhoMusic Shared/Nodes/GlassPillNode.swift` — 반투명 화이트 알약 + 가우시안 블러 + 라벨
+- `GanhoMusic Shared/Nodes/AccentLineNode.swift` — 32×3 코랄 라운드 라인 (헤더 위 액센트)
+- `GanhoMusic Shared/Nodes/DarkContextChipNode.swift` — 다크 navy 칩 + 골드 라벨 + 옵션 코랄 뱃지
 
-2. **`GanhoMusic Shared/Config/GameConfig.swift`** — 신규 MARK 섹션 추가 (기존 상수 변경 0건)
-   - `// MARK: - Start Scene Visual (Phase 10-2)` 섹션 신설
-
-3. **`GanhoMusic Shared/Config/ColorTokens.swift`** — 신규 MARK 섹션 추가 (기존 토큰 변경 0건)
-   - `// MARK: - Accent (Phase 10-2)` 섹션 신설
-   - `ganhoAccentTeal`, `ganhoAccentTealDeep`, `ganhoAccentCoral` 3개 토큰
-
-4. **`GanhoMusic Shared/Nodes/DifficultyCardNode.swift`** — `setSelected(_:)` 확장
-   - 기존 alpha + scale 동작 유지
-   - **추가**: spring bounce scale (overshoot 1.12 → 정착 1.08) — 선택 시만
-   - **추가**: 살구 링 글로우 SKShapeNode 자식 — 선택 시 fade-in, 해제 시 즉시 alpha 0
-   - `id`, `setSelected(_:)` 호출 시그니처 불변 — 호출부 변경 0
-
-### 추가할 파일 (신규)
-
-5. **`GanhoMusic Shared/Nodes/GradientBackgroundNode.swift`** — 재사용성 명확 (향후 다른 씬에서도 활용 가능)
-   - SKSpriteNode 서브클래스. CGGradient + UIGraphicsImageRenderer로 1회 생성 → 텍스처 캐싱
-   - init(size: CGSize, topColor: UIColor, bottomColor: UIColor)
-
-6. **`GanhoMusic Shared/Nodes/MusicNoteEmitterNode.swift`** — 떠다니는 음표 파티클 컨테이너
-   - SKNode 서브클래스. 내부에서 SKAction.repeatForever로 음표 SKLabelNode 스폰
-   - 동시 표시 상한 GameConfig.musicNoteEmitterMaxConcurrent로 가드
-   - 자식이 화면 위로 fade-out하면 자가 removeFromParent
-
-7. **`GanhoMusic Shared/Nodes/GlowingTitleNode.swift`** — 제목 + 글로우 컨테이너 (재사용 가치 명확 — ResultScene/CharacterSelect도 향후 사용 가능)
-   - SKNode 서브클래스. 자식: SKEffectNode(CIGaussianBlur 적용한 라벨 사본 — 글로우 레이어) + 본 SKLabelNode
-   - `shouldRasterize = true`로 성능 가드
+---
 
 ## 기능 상세
 
-### 기능 1: 그라데이션 배경
-
-- **설명**: 단색 `.ganhoBgDeep` 대신 세로 그라데이션 노드를 zPosition -20에 깔아 새벽 톤 표현
-- **구현 위치**:
-  - `Nodes/GradientBackgroundNode.swift` (신규)
-  - `Scenes/StartScene.swift`의 `setupOverlayPanel()` *직전*에 `setupGradientBackground()` 신설
-- **핵심 코드 구조**:
+### 기능 1: ColorTokens v2 토큰 16개 추가
+- 설명: DESIGN_RENEWAL_REQUEST.md §3.1 그대로 hex/이름 1:1 복사
+- 구현 위치: `Config/ColorTokens.swift` — 기존 `extension UIColor` **마지막 MARK 섹션 다음**에 새 MARK 섹션 `// MARK: - v2 Design System (Warm Pastel · Sprint 1)` 추가
+- 추가할 토큰 16개 (이름 / hex / 의도):
 
 ```swift
-// Nodes/GradientBackgroundNode.swift
-final class GradientBackgroundNode: SKSpriteNode {
-    init(size: CGSize, topColor: UIColor, bottomColor: UIColor) {
-        let texture = Self.makeGradientTexture(size: size, top: topColor, bottom: bottomColor)
-        super.init(texture: texture, color: .clear, size: size)
-        zPosition = GameConfig.startSceneGradientZPosition
-        name = "gradientBackground"
+// MARK: - v2 Design System (Warm Pastel · Sprint 1)
+// DESIGN_RENEWAL_REQUEST.md §3.1 — 따뜻한 피치-라벤더 그라데이션 + 코랄 액센트 + 카툰 톤.
+// Sprint 1은 *추가만* — 기존 토큰(ganhoBgDeep, ganhoAccentTeal, ganhoUIBrand 등) hex 0 변경.
+
+// 배경 그라데이션 (3-stop)
+static let ganhoBgWarmTop    = UIColor(hex: "#FFE5D0")  // 피치 (상단)
+static let ganhoBgWarmMid    = UIColor(hex: "#FFC8B5")  // 코랄 (중간)
+static let ganhoBgWarmBottom = UIColor(hex: "#DCC9E8")  // 라벤더 (하단)
+static let ganhoBgAccent1    = UIColor(hex: "#FFD9B8")  // BG 액센트 (radial)
+static let ganhoBgAccent2    = UIColor(hex: "#E5C8E8")  // BG 액센트 (radial)
+
+// Primary 액션 (코랄 패밀리)
+static let ganhoCoralPrimary = UIColor(hex: "#FF6B5B")  // 메인 CTA 색
+static let ganhoCoralLight   = UIColor(hex: "#FF8E80")  // 호버/포커스
+static let ganhoCoralShadow  = UIColor(hex: "#C44A3D")  // 입체 그림자 베이스
+
+// 텍스트 & 위계
+static let ganhoNavyDeep     = UIColor(hex: "#2D2A4A")  // 메인 텍스트
+static let ganhoNavyMuted    = UIColor(hex: "#5A5670")  // 보조 텍스트
+static let ganhoMusicGold    = UIColor(hex: "#FFB347")  // 음표·HUD 라벨
+
+// 그래픽 디테일
+static let ganhoLavenderSoft = UIColor(hex: "#B89DD9")  // 라벤더 액센트
+static let ganhoScrubMint    = UIColor(hex: "#9BE0CC")  // 정간호 / 일부 카드
+static let ganhoSkinTone     = UIColor(hex: "#FFE2C6")  // 캐릭터 피부 톤
+
+// 체크보드 (Game floor) — Sprint 3에서 GameScene이 끌어다 씀
+static let ganhoFloorPeachA  = UIColor(hex: "#FFEFE0")  // 체크보드 밝은 칸
+static let ganhoFloorPeachB  = UIColor(hex: "#FFDFC8")  // 체크보드 어두운 칸
+```
+
+- 토큰 카운트: 5(배경) + 3(코랄) + 3(텍스트) + 3(디테일) + 2(체크보드) = **16개**.
+
+---
+
+### 기능 2: GameConfig 폰트 상수 3개 + 컴포넌트 수치 상수 추가
+- 설명: SKLabelNode에서 v2 폰트(Jua, Gowun Dodum, Noto Sans KR)를 호출할 때 쓸 *이름 상수*만 추가. ttf 파일 실제 추가는 사용자 후속 작업 — 그래서 SKLabelNode fontNamed에 직접 넘기면 ttf 미존재 시 시스템 폰트로 fallback되어 *컴파일/런타임 모두 깨지지 않는다*.
+- 구현 위치: `Config/GameConfig.swift` — 파일 끝의 `}` 직전(맨 마지막 MARK 섹션 다음)에 새 MARK 섹션들 추가.
+- 핵심 코드:
+
+```swift
+// MARK: - Typography (Sprint 1 · v2 Design System)
+// DESIGN_RENEWAL_REQUEST.md §3.2 폰트 시스템.
+// ttf 파일 실제 임포트는 사용자 후속 작업(Xcode add to target + Info.plist UIAppFonts).
+// 본 상수는 *이름만* 정의 — SKLabelNode(fontNamed:)는 ttf 미존재 시 시스템 폰트로 자동 fallback,
+// 컴파일 및 런타임 모두 깨지지 않음.
+
+/// Display 폰트 — 타이틀·UI 강조 (Jua-Regular). 모든 타이틀, 버튼 텍스트, HUD 값.
+static let fontDisplay: String = "Jua-Regular"
+/// Body 폰트 — 본문·설명 (GowunDodum-Regular). 태그라인, 스킬 설명, 카드 부제.
+static let fontBody: String = "GowunDodum-Regular"
+/// Numeric 폰트 — 수치 표시 (NotoSansKR-Bold). 점수·시간 등 정렬 필요한 숫자.
+static let fontNumeric: String = "NotoSansKR-Bold"
+
+// MARK: - v2 Components (Sprint 1)
+
+/// GlassPillNode 배경 화이트 α. DESIGN_RENEWAL_REQUEST.md §3.3.B = 0.55.
+static let glassPillFillAlpha: CGFloat = 0.55
+/// GlassPillNode stroke α — 살짝의 외곽선.
+static let glassPillStrokeAlpha: CGFloat = 0.25
+/// GlassPillNode 가우시안 블러 반경. §3.3.B = radius 12.
+static let glassPillBlurRadius: CGFloat = 12
+/// GlassPillNode 라벨 폰트 크기.
+static let glassPillFontSize: CGFloat = 14
+
+/// AccentLineNode 가로 길이(pt). §3.3.C = 32.
+static let accentLineWidth: CGFloat = 32
+/// AccentLineNode 두께(pt). §3.3.C = 3.
+static let accentLineHeight: CGFloat = 3
+
+/// DarkContextChipNode 배경 navy α. §3.3.D = 0.92.
+static let darkContextChipBgAlpha: CGFloat = 0.92
+/// DarkContextChipNode 라벨 폰트 크기.
+static let darkContextChipLabelFontSize: CGFloat = 13
+/// DarkContextChipNode 뱃지 폰트 크기. 더 작음.
+static let darkContextChipBadgeFontSize: CGFloat = 11
+/// DarkContextChipNode 가로 패딩(pt) — 라벨 양옆 여백.
+static let darkContextChipHorizontalPadding: CGFloat = 14
+/// DarkContextChipNode 세로 높이(pt).
+static let darkContextChipHeight: CGFloat = 28
+/// DarkContextChipNode 라벨-뱃지 간 가로 간격(pt).
+static let darkContextChipBadgeSpacing: CGFloat = 8
+
+/// PrimaryButtonNode v2 그림자 y 오프셋(pt) — 음수면 아래쪽. §3.3.A = 6 → -6.
+static let primaryButtonShadowOffsetY: CGFloat = -6
+/// PrimaryButtonNode v2 그림자 blur(pt).
+static let primaryButtonShadowBlurRadius: CGFloat = 12
+/// PrimaryButtonNode v2 우측 화살표 원 반경(pt).
+static let primaryButtonArrowRadius: CGFloat = 12
+/// PrimaryButtonNode v2 우측 화살표 우측 마진(pt) — 배경 우측 끝에서 안쪽 거리.
+static let primaryButtonArrowInsetX: CGFloat = 22
+```
+
+- 폰트 fallback 패턴 가이드 (이번 Sprint에는 호출자 없음 — Sprint 2~3에서 적용):
+  - `SKLabelNode(fontNamed: GameConfig.fontDisplay)` 형태로 직접 호출하면 SpriteKit이 자동으로 시스템 폰트로 fallback. 추가 가드 불필요.
+  - `UIFont`가 필요한 경우(없을 예정이지만 만약): `UIFont(name: GameConfig.fontDisplay, size: 16) ?? UIFont.systemFont(ofSize: 16)` 패턴.
+
+---
+
+### 기능 3: GlassPillNode (신규)
+- 설명: 반투명 화이트(α=0.55) 알약 + 가우시안 블러 + 라벨. CharacterSelectScene "← 난이도 다시" 버튼, 통계 칩, D-Pad 키, 난이도 칩에서 재사용 예정.
+- 구현 위치: `GanhoMusic Shared/Nodes/GlassPillNode.swift` (신규 파일)
+- 시그니처: `init(text: String, size: CGSize)`
+- 핵심 코드 구조:
+
+```swift
+//
+//  GlassPillNode.swift
+//  GanhoMusic Shared
+//
+//  Sprint 1 · v2 Design System
+//
+//  반투명 화이트 알약 + 가우시안 블러 + 라벨. CharacterSelectScene 뒤로 버튼,
+//  통계 칩, D-Pad 키, 난이도 칩에서 재사용.
+//  SKEffectNode + CIGaussianBlur는 iOS 13+ — 시뮬레이터에서도 정상 작동.
+//
+
+import SpriteKit
+import CoreImage
+
+/// 반투명 화이트 알약(α=0.55) + 가우시안 블러 + Jua 라벨.
+/// 부모(SKNode) = 좌표·name, 자식 = 시각. hit-test는 호출부의 `contains(location)` 패턴.
+final class GlassPillNode: SKNode {
+
+    // MARK: - Properties
+    private let blurEffect: SKEffectNode
+    private let background: SKShapeNode
+    private let textLabel: SKLabelNode
+
+    // MARK: - Init
+    /// - Parameters:
+    ///   - text: 라벨 텍스트.
+    ///   - size: 알약 크기. cornerRadius = size.height/2 자동.
+    init(text: String, size: CGSize) {
+        background = SKShapeNode(
+            rectOf: size,
+            cornerRadius: size.height / 2
+        )
+        background.fillColor = UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)
+        background.strokeColor = UIColor.white.withAlphaComponent(GameConfig.glassPillStrokeAlpha)
+        background.lineWidth = GameConfig.uiPanelLineWidth
+        blurEffect = SKEffectNode()
+        blurEffect.filter = CIFilter(
+            name: "CIGaussianBlur",
+            parameters: ["inputRadius": GameConfig.glassPillBlurRadius]
+        )
+        blurEffect.shouldRasterize = true
+        textLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        super.init()
+        name = "glassPill"
+        zPosition = 100
+        blurEffect.addChild(background)
+        addChild(blurEffect)
+        configureLabel(text: text)
+        addChild(textLabel)
     }
 
-    private static func makeGradientTexture(size: CGSize, top: UIColor, bottom: UIColor) -> SKTexture {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let image = renderer.image { ctx in
-            let cgCtx = ctx.cgContext
-            let colors = [top.cgColor, bottom.cgColor] as CFArray
-            guard let gradient = CGGradient(
-                colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                colors: colors,
-                locations: [0.0, 1.0]
-            ) else { return }
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Configure
+    private func configureLabel(text: String) {
+        textLabel.text = text
+        textLabel.fontSize = GameConfig.glassPillFontSize
+        textLabel.fontColor = .ganhoNavyDeep
+        textLabel.horizontalAlignmentMode = .center
+        textLabel.verticalAlignmentMode = .center
+        textLabel.position = .zero
+        textLabel.zPosition = 1  // blurEffect 위로
+    }
+}
+```
+
+- 참고: `GameConfig.uiPanelLineWidth`가 이미 존재한다고 가정. 만약 없다면 Generator는 1.0pt로 대체.
+
+---
+
+### 기능 4: AccentLineNode (신규)
+- 설명: 32×3 라운드 캡 코랄 라인. 모든 헤더 위 시각적 강조.
+- 구현 위치: `GanhoMusic Shared/Nodes/AccentLineNode.swift` (신규 파일)
+- 시그니처: `init()` (크기 고정 — GameConfig 상수)
+- 핵심 코드 구조:
+
+```swift
+//
+//  AccentLineNode.swift
+//  GanhoMusic Shared
+//
+//  Sprint 1 · v2 Design System
+//
+//  32×3 라운드 캡 코랄 라인. 모든 헤더 위 시각적 강조에 재사용.
+//  DESIGN_RENEWAL_REQUEST.md §3.3.C.
+//
+
+import SpriteKit
+
+/// 32×3 코랄 라운드 캡 라인. PhysicsBody 0 — 순수 시각.
+final class AccentLineNode: SKShapeNode {
+
+    // MARK: - Init
+    override init() {
+        super.init()
+        let size = CGSize(
+            width: GameConfig.accentLineWidth,
+            height: GameConfig.accentLineHeight
+        )
+        path = CGPath(
+            roundedRect: CGRect(
+                x: -size.width / 2,
+                y: -size.height / 2,
+                width: size.width,
+                height: size.height
+            ),
+            cornerWidth: size.height / 2,
+            cornerHeight: size.height / 2,
+            transform: nil
+        )
+        fillColor = .ganhoCoralPrimary
+        strokeColor = .clear
+        lineWidth = 0
+        name = "accentLine"
+        zPosition = 10
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+```
+
+---
+
+### 기능 5: DarkContextChipNode (신규)
+- 설명: navy 0.92 배경 + 골드 라벨 + 옵션 코랄 뱃지.
+- 구현 위치: `GanhoMusic Shared/Nodes/DarkContextChipNode.swift` (신규 파일)
+- 시그니처: `init(label: String, badge: String? = nil)`
+- 핵심 코드 구조:
+
+```swift
+//
+//  DarkContextChipNode.swift
+//  GanhoMusic Shared
+//
+//  Sprint 1 · v2 Design System
+//
+//  navy 0.92 배경 + 골드 라벨 + 옵션 코랄 뱃지.
+//  난이도 표시, 브레드크럼, HUD 슬롯, 스킬명 칩에 재사용.
+//  DESIGN_RENEWAL_REQUEST.md §3.3.D.
+//
+
+import SpriteKit
+
+/// 다크 navy 칩(α=0.92) + Jua 골드 라벨 + 옵션 코랄 뱃지.
+/// 폭은 라벨 너비 기반 자동.
+final class DarkContextChipNode: SKNode {
+
+    // MARK: - Properties
+    private let background: SKShapeNode
+    private let labelNode: SKLabelNode
+    private let badgeNode: SKShapeNode?
+    private let badgeLabel: SKLabelNode?
+
+    // MARK: - Init
+    /// - Parameters:
+    ///   - label: 본 라벨 텍스트(Jua + 골드).
+    ///   - badge: 옵션 뱃지 텍스트(코랄 알약 안 흰색). nil이면 미생성.
+    init(label: String, badge: String? = nil) {
+        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        labelNode.text = label
+        labelNode.fontSize = GameConfig.darkContextChipLabelFontSize
+        labelNode.fontColor = .ganhoMusicGold
+        labelNode.horizontalAlignmentMode = .left
+        labelNode.verticalAlignmentMode = .center
+
+        if let badgeText = badge {
+            let bLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            bLabel.text = badgeText
+            bLabel.fontSize = GameConfig.darkContextChipBadgeFontSize
+            bLabel.fontColor = .white
+            bLabel.horizontalAlignmentMode = .center
+            bLabel.verticalAlignmentMode = .center
+            badgeLabel = bLabel
+            let bgSize = CGSize(
+                width: bLabel.frame.width + 12,
+                height: GameConfig.darkContextChipHeight - 8
+            )
+            let bShape = SKShapeNode(
+                rectOf: bgSize,
+                cornerRadius: bgSize.height / 2
+            )
+            bShape.fillColor = .ganhoCoralPrimary
+            bShape.strokeColor = .clear
+            badgeNode = bShape
+        } else {
+            badgeLabel = nil
+            badgeNode = nil
+        }
+
+        let labelWidth = labelNode.frame.width
+        let badgeWidth = badgeNode?.frame.width ?? 0
+        let totalWidth = GameConfig.darkContextChipHorizontalPadding * 2
+            + labelWidth
+            + (badgeNode != nil ? GameConfig.darkContextChipBadgeSpacing + badgeWidth : 0)
+        let bgSize = CGSize(
+            width: totalWidth,
+            height: GameConfig.darkContextChipHeight
+        )
+        background = SKShapeNode(
+            rectOf: bgSize,
+            cornerRadius: bgSize.height / 2
+        )
+        background.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.darkContextChipBgAlpha)
+        background.strokeColor = .clear
+        super.init()
+        name = "darkContextChip"
+        zPosition = 100
+        addChild(background)
+        labelNode.position = CGPoint(
+            x: -bgSize.width / 2 + GameConfig.darkContextChipHorizontalPadding,
+            y: 0
+        )
+        addChild(labelNode)
+        if let bShape = badgeNode, let bLabel = badgeLabel {
+            let badgeCenterX = bgSize.width / 2 - GameConfig.darkContextChipHorizontalPadding - badgeWidth / 2
+            bShape.position = CGPoint(x: badgeCenterX, y: 0)
+            bLabel.position = CGPoint(x: badgeCenterX, y: 0)
+            addChild(bShape)
+            addChild(bLabel)
+        }
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+```
+
+---
+
+### 기능 6: PrimaryButtonNode 내부 리스타일링
+- 설명: init 시그니처/타입 이름/`name`/탭 컨벤션은 그대로. 내부 시각만 v2 코랄 스타일(코랄 배경 + 라운드 알약 + navy 그림자 + 우측 화살표 + Jua 라벨)로 교체.
+- 구현 위치: `GanhoMusic Shared/Nodes/PrimaryButtonNode.swift`
+- **보존**:
+  - `final class PrimaryButtonNode: SKNode` 타입
+  - `init(text: String)` 시그니처
+  - `name = "primaryButton"`
+  - `zPosition = 100`
+  - 호출부에서 `contains(location)`으로 hit-test하는 패턴
+- **변경**:
+  - 배경 fillColor → `.ganhoCoralPrimary`
+  - 배경 strokeColor → `.clear` (v2는 stroke 없이 그림자만)
+  - 라벨 fontColor → `.white`
+  - 라벨 fontName → `GameConfig.fontDisplay`
+  - 그림자 SKShapeNode 자식 추가: 배경과 동일 모양, `fillColor = .ganhoCoralShadow`, `position = (0, primaryButtonShadowOffsetY)`, `zPosition = -1`
+  - 우측 화살표 원 자식 추가: `SKShapeNode(circleOfRadius: primaryButtonArrowRadius)`, `fillColor = UIColor.white.withAlphaComponent(0.25)`, position은 배경 우측 끝에서 `primaryButtonArrowInsetX`만큼 안쪽
+  - 우측 화살표 라벨: SKLabelNode "▶" 흰색, 화살표 원 중앙
+- 호출부 회귀 검증:
+  - StartScene, CharacterSelectScene, SkillExplanationScene 등에서 `PrimaryButtonNode(text: ...)` 호출만 — 컴파일 그대로.
+  - hit-test는 `node.contains(location)` 또는 `nodes(at:).contains(where: { $0.name == "primaryButton" })` 패턴 둘 다 작동.
+
+---
+
+### 기능 7: BackButtonNode 내부 리스타일링 (GlassPill 패턴)
+- 설명: init 시그니처/타입 이름/`name`/탭 컨벤션 그대로. 내부 시각만 GlassPill 톤(반투명 화이트 + Jua + navy 라벨)으로 교체.
+- 구현 위치: `GanhoMusic Shared/Nodes/BackButtonNode.swift`
+- **보존**:
+  - `final class BackButtonNode: SKNode`
+  - `init(text: String)` 시그니처
+  - `name = "backButton"`
+  - `zPosition = 100`
+  - 크기 상수(`backButtonWidth/Height/FontSize`) 사용
+- **변경**:
+  - 배경 fillColor → `UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)`
+  - 배경 strokeColor → `UIColor.white.withAlphaComponent(GameConfig.glassPillStrokeAlpha)`
+  - 라벨 fontColor → `.ganhoNavyDeep`
+  - 라벨 fontName → `GameConfig.fontDisplay`
+- **주의**: GlassPillNode 자체를 인스턴스화하지 말 것 — BackButtonNode는 *내부 시각만 GlassPill 톤을 흉내*. 이유: BackButtonNode의 `init(text:)` 시그니처와 hit-test name이 호출부 가드라 컨테이너 교체 시 회귀 위험.
+
+---
+
+### 기능 8: GradientBackgroundNode 3-stop 옵션 추가
+- 설명: 기존 2-stop `init(size:topColor:bottomColor:)`는 그대로. 새 3-stop static factory를 **추가**. Sprint 2 메뉴 씬들이 이 3-stop을 호출하게 됨. **Sprint 1에서는 호출자 0**.
+- 구현 위치: `GanhoMusic Shared/Nodes/GradientBackgroundNode.swift`
+- **보존**:
+  - 기존 `init(size:topColor:bottomColor:)` 시그니처/동작
+  - `name = "gradientBackground"`
+  - `zPosition = GameConfig.startSceneGradientZPosition`
+  - StartScene 호출부 컴파일 그대로
+- **추가**:
+  - 새 `static func threeStop(size:topColor:midColor:bottomColor:) -> GradientBackgroundNode`
+  - 새 private static `makeGradientTexture3Stop(size:top:mid:bottom:)`
+- 핵심 코드 구조 (방식 A — designated init 체이닝 우회):
+
+```swift
+// MARK: - Init (3-stop, Sprint 1)
+
+/// 3색 세로 그라데이션 인스턴스 생성. top(0.0) → mid(0.5) → bottom(1.0).
+/// Sprint 2 메뉴 씬(StartScene 외)에서 ganhoBgWarmTop/Mid/Bottom 호출 예정.
+/// Sprint 1에서는 호출자 0 — 인프라만 준비.
+///
+/// 구현 노트: SKSpriteNode designated init 체이닝 제약을 피하기 위해
+/// 기존 2-stop init을 한 번 호출한 뒤 texture를 교체하는 패턴.
+static func threeStop(
+    size: CGSize,
+    topColor: UIColor,
+    midColor: UIColor,
+    bottomColor: UIColor
+) -> GradientBackgroundNode {
+    let node = GradientBackgroundNode(size: size, topColor: topColor, bottomColor: bottomColor)
+    node.texture = makeGradientTexture3Stop(
+        size: size,
+        top: topColor,
+        mid: midColor,
+        bottom: bottomColor
+    )
+    return node
+}
+
+private static func makeGradientTexture3Stop(
+    size: CGSize,
+    top: UIColor,
+    mid: UIColor,
+    bottom: UIColor
+) -> SKTexture {
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let image = renderer.image { ctx in
+        let cgCtx = ctx.cgContext
+        let colors = [top.cgColor, mid.cgColor, bottom.cgColor] as CFArray
+        if let gradient = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: colors,
+            locations: [0.0, 0.5, 1.0]
+        ) {
             cgCtx.drawLinearGradient(
                 gradient,
-                start: CGPoint(x: 0, y: size.height),
-                end: CGPoint(x: 0, y: 0),
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: size.height),
                 options: []
             )
+        } else {
+            cgCtx.setFillColor(top.cgColor)
+            cgCtx.fill(CGRect(origin: .zero, size: size))
         }
-        return SKTexture(image: image)
     }
-
-    required init?(coder aDecoder: NSCoder) { fatalError() }
+    return SKTexture(image: image)
 }
 ```
 
-- **주의**: `backgroundColor = .ganhoBgDeep`은 유지 — 그라데이션 노드 로딩 전 1프레임 fallback 톤. 그라데이션이 위에 zPos -20으로 덮음.
-
-### 기능 2: 떠다니는 음표 파티클
-
-- **설명**: 화면 하단에서 살구색 ♪/♫ 음표가 천천히 위로 떠오르며 fade-out. 동시 표시 상한 가드.
-- **구현 위치**:
-  - `Nodes/MusicNoteEmitterNode.swift` (신규)
-  - `Scenes/StartScene.swift`의 `setupOverlayPanel()` *다음*에 `setupMusicNoteEmitter()` 신설
-- **핵심 코드 구조**:
-
-```swift
-final class MusicNoteEmitterNode: SKNode {
-    private let sceneSize: CGSize
-    private var activeCount: Int = 0
-
-    init(sceneSize: CGSize) {
-        self.sceneSize = sceneSize
-        super.init()
-        name = "musicNoteEmitter"
-        zPosition = GameConfig.startSceneMusicNoteZPosition
-        startEmitting()
-    }
-
-    required init?(coder aDecoder: NSCoder) { fatalError() }
-
-    private func startEmitting() {
-        let spawnAction = SKAction.sequence([
-            SKAction.run { [weak self] in self?.spawnOneNote() },
-            SKAction.wait(forDuration: GameConfig.musicNoteEmitterSpawnInterval)
-        ])
-        run(SKAction.repeatForever(spawnAction), withKey: "musicNoteSpawn")
-    }
-
-    private func spawnOneNote() {
-        guard activeCount < GameConfig.musicNoteEmitterMaxConcurrent else { return }
-        let glyphs = ["♪", "♫", "♩"]
-        let label = SKLabelNode(text: glyphs.randomElement() ?? "♪")
-        label.fontSize = GameConfig.musicNoteEmitterFontSize
-        label.fontColor = .ganhoAccentCoral
-        label.alpha = 0
-        let startX = CGFloat.random(in: 0...sceneSize.width)
-        label.position = CGPoint(x: startX, y: -20)
-        addChild(label)
-        activeCount += 1
-
-        let rise = SKAction.moveBy(
-            x: CGFloat.random(in: -30...30),
-            y: sceneSize.height + 40,
-            duration: GameConfig.musicNoteEmitterRiseDuration
-        )
-        let fadeIn = SKAction.fadeAlpha(to: 0.7, duration: 0.5)
-        let fadeOut = SKAction.fadeOut(withDuration: 1.0)
-        let cleanup = SKAction.run { [weak self] in
-            self?.activeCount = max(0, (self?.activeCount ?? 0) - 1)
-        }
-        let remove = SKAction.removeFromParent()
-        label.run(SKAction.sequence([
-            fadeIn,
-            SKAction.group([rise, SKAction.sequence([
-                SKAction.wait(forDuration: GameConfig.musicNoteEmitterRiseDuration - 1.0),
-                fadeOut
-            ])]),
-            cleanup,
-            remove
-        ]))
-    }
-
-    func stopEmitting() {
-        removeAction(forKey: "musicNoteSpawn")
-    }
-}
-```
-
-- **성능 가드**: `musicNoteEmitterMaxConcurrent = 15` 상한. `weak self` 캡처. 자가 removeFromParent.
-
-### 기능 3: 제목 글로우
-
-- **설명**: 기존 `titleLabel: SKLabelNode(text: "김간호는 음악박사")`를 *글로우 컨테이너로 래핑*. 글로우는 SKEffectNode + CIGaussianBlur로 표현. shouldRasterize=true로 성능 가드.
-- **구현 위치**:
-  - `Nodes/GlowingTitleNode.swift` (신규)
-  - `Scenes/StartScene.swift`의 `setupLabels()` 내부 — titleLabel 단독 addChild 대신 GlowingTitleNode로 래핑
-- **핵심 코드 구조**:
-
-```swift
-final class GlowingTitleNode: SKNode {
-    let mainLabel: SKLabelNode
-    private let glowEffect: SKEffectNode
-
-    init(text: String, fontSize: CGFloat, glowColor: UIColor) {
-        mainLabel = SKLabelNode(text: text)
-        mainLabel.fontSize = fontSize
-        mainLabel.fontColor = .ganhoPaper
-        mainLabel.horizontalAlignmentMode = .center
-        mainLabel.verticalAlignmentMode = .center
-
-        let glowLabel = SKLabelNode(text: text)
-        glowLabel.fontSize = fontSize
-        glowLabel.fontColor = glowColor
-        glowLabel.horizontalAlignmentMode = .center
-        glowLabel.verticalAlignmentMode = .center
-
-        glowEffect = SKEffectNode()
-        if let blur = CIFilter(name: "CIGaussianBlur") {
-            blur.setValue(GameConfig.titleGlowBlurRadius, forKey: "inputRadius")
-            glowEffect.filter = blur
-        }
-        glowEffect.shouldRasterize = true
-        glowEffect.shouldEnableEffects = true
-        glowEffect.zPosition = -1
-        glowEffect.addChild(glowLabel)
-
-        super.init()
-        name = "glowingTitle"
-        addChild(glowEffect)
-        addChild(mainLabel)
-    }
-
-    required init?(coder aDecoder: NSCoder) { fatalError() }
-}
-```
-
-- **주의**: `titleLabel` 프로퍼티는 유지 가능 (또는 GlowingTitleNode로 교체) — Generator 판단. **단, layoutLabels()의 좌표 계산식은 *불변***. 좌표는 GlowingTitleNode에 적용.
-
-### 기능 4: BEST/PLAYS 살구색 액센트
-
-- **설명**: `bestLabel`/`playsLabel`의 `fontColor`를 `.ganhoPaper` → `.ganhoAccentCoral`로 변경.
-- **구현 위치**: `Scenes/StartScene.swift` → `setupLabels()` 내부 색상 변경 2줄
-- **주의**: subtitleLabel의 `.ganhoUITextMuted`는 유지 — 부제는 *조용한 톤*.
-
-### 기능 5: 난이도 카드 spring + 링 글로우
-
-- **설명**: 현재 `setSelected(_:)`은 단순 alpha+scale 1.08. 여기에 *spring overshoot* + 살구 링 글로우 추가.
-- **구현 위치**: `Nodes/DifficultyCardNode.swift` → `setSelected(_:)` 내부 확장 + 신규 자식 `ringGlow: SKShapeNode` 프로퍼티 추가
-- **핵심 코드 구조**:
-
-```swift
-// DifficultyCardNode.swift
-private let ringGlow: SKShapeNode   // 신규
-
-// init(id:) 내부:
-let ringSize = CGSize(
-    width: GameConfig.difficultyCardWidth + GameConfig.difficultyCardRingGlowPadding,
-    height: GameConfig.difficultyCardHeight + GameConfig.difficultyCardRingGlowPadding
-)
-ringGlow = SKShapeNode(rectOf: ringSize, cornerRadius: ringSize.height / 2)
-ringGlow.fillColor = .clear
-ringGlow.strokeColor = .ganhoAccentCoral
-ringGlow.lineWidth = GameConfig.difficultyCardRingGlowLineWidth
-ringGlow.alpha = 0
-ringGlow.zPosition = -1
-ringGlow.glowWidth = GameConfig.difficultyCardRingGlowWidth
-
-// setSelected(_:) 확장:
-removeAction(forKey: "cardScale")
-if selected {
-    let overshoot = SKAction.scale(
-        to: GameConfig.difficultyCardSpringOvershootScale,
-        duration: GameConfig.difficultyCardSpringPhase1Duration
-    )
-    overshoot.timingMode = .easeOut
-    let settle = SKAction.scale(
-        to: GameConfig.characterCardSelectedScale,
-        duration: GameConfig.difficultyCardSpringPhase2Duration
-    )
-    settle.timingMode = .easeInEaseOut
-    run(SKAction.sequence([overshoot, settle]), withKey: "cardScale")
-} else {
-    run(SKAction.scale(to: 1.0, duration: GameConfig.characterCardScaleDuration),
-        withKey: "cardScale")
-}
-
-ringGlow.removeAction(forKey: "ringFade")
-let target: CGFloat = selected ? 1.0 : 0.0
-let duration = selected
-    ? GameConfig.difficultyCardRingGlowFadeInDuration
-    : GameConfig.difficultyCardRingGlowFadeOutDuration
-ringGlow.run(SKAction.fadeAlpha(to: target, duration: duration), withKey: "ringFade")
-```
-
-- **불변 계약**: `init(id:)` 시그니처·`setSelected(_:)` 시그니처·`id` 프로퍼티 접근성 모두 불변. StartScene의 호출 코드 변경 0줄.
-
-### 기능 6: 시작 버튼 pulse
-
-- **설명**: PrimaryButtonNode의 *외부에서* StartScene이 pulse 액션을 부착. PrimaryButtonNode 자체는 수정 0.
-- **구현 위치**: `Scenes/StartScene.swift` → `setupStartButton()` 내부에 pulse 부착
-- **핵심 코드 구조**:
-
-```swift
-private func attachStartButtonPulse() {
-    let down = SKAction.scale(to: GameConfig.startButtonPulseScaleMin, duration: GameConfig.startButtonPulseHalfDuration)
-    down.timingMode = .easeInEaseOut
-    let up = SKAction.scale(to: GameConfig.startButtonPulseScaleMax, duration: GameConfig.startButtonPulseHalfDuration)
-    up.timingMode = .easeInEaseOut
-    let pulse = SKAction.sequence([down, up])
-    startButton.run(SKAction.repeatForever(pulse), withKey: "startButtonPulse")
-}
-```
-
-- **주의**: 씬 전환 시 `removeAction(forKey: "startButtonPulse")`로 정리.
-
-### 기능 7: 씬 전환 시 카드 슬라이드업 + 연결감 fade
-
-- **설명**: `transitionToNext()`에서 *바로* presentScene 호출 대신, 카드/스토리박스/시작버튼을 살짝 위로 슬라이드 + fadeOut 후 presentScene.
-- **구현 위치**: `Scenes/StartScene.swift` → `transitionToNext()` 수정
-- **핵심 코드 구조**:
-
-```swift
-private func transitionToNext() {
-    guard let view = self.view else { return }
-    isTransitioning = true
-
-    let slideUp = SKAction.moveBy(
-        x: 0,
-        y: GameConfig.startSceneExitSlideDistance,
-        duration: GameConfig.startSceneExitSlideDuration
-    )
-    slideUp.timingMode = .easeIn
-    let fadeOut = SKAction.fadeOut(withDuration: GameConfig.startSceneExitSlideDuration)
-    let exit = SKAction.group([slideUp, fadeOut])
-
-    for card in difficultyCards { card.run(exit) }
-    storyBox.run(exit)
-    startButton.removeAction(forKey: "startButtonPulse")
-    startButton.run(exit)
-
-    let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
-    run(SKAction.sequence([wait, SKAction.run { [weak self] in
-        guard let self = self else { return }
-        let nextScene = CharacterSelectScene.newCharacterSelectScene(
-            difficulty: self.selectedDifficulty
-        )
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(nextScene, transition: fade)
-    }]))
-
-    _ = characterRepo
-}
-```
-
-- **불변 계약**: `CharacterSelectScene.newCharacterSelectScene(difficulty:)` 호출·`sceneTransitionDuration` 사용 불변. 슬라이드 시간은 *추가*된 prelude.
-
-## GameConfig 신규 상수 (Phase 10-2 MARK 섹션)
-
-```swift
-// MARK: - Start Scene Visual (Phase 10-2)
-static let startSceneGradientZPosition: CGFloat = -20
-static let startSceneMusicNoteZPosition: CGFloat = -15
-
-static let musicNoteEmitterMaxConcurrent: Int = 15
-static let musicNoteEmitterSpawnInterval: TimeInterval = 0.5
-static let musicNoteEmitterFontSize: CGFloat = 18
-static let musicNoteEmitterRiseDuration: TimeInterval = 8.0
-
-static let titleGlowBlurRadius: CGFloat = 8.0
-
-static let difficultyCardSpringOvershootScale: CGFloat = 1.12
-static let difficultyCardSpringPhase1Duration: TimeInterval = 0.18
-static let difficultyCardSpringPhase2Duration: TimeInterval = 0.12
-
-static let difficultyCardRingGlowPadding: CGFloat = 10
-static let difficultyCardRingGlowLineWidth: CGFloat = 2
-static let difficultyCardRingGlowWidth: CGFloat = 6
-static let difficultyCardRingGlowFadeInDuration: TimeInterval = 0.2
-static let difficultyCardRingGlowFadeOutDuration: TimeInterval = 0.1
-
-static let startButtonPulseScaleMin: CGFloat = 0.98
-static let startButtonPulseScaleMax: CGFloat = 1.02
-static let startButtonPulseHalfDuration: TimeInterval = 1.0
-
-static let startSceneExitSlideDistance: CGFloat = 30
-static let startSceneExitSlideDuration: TimeInterval = 0.2
-```
-
-## ColorTokens 신규 상수
-
-```swift
-// MARK: - Accent (Phase 10-2 · 병동의 새벽 톤)
-static let ganhoAccentTeal = UIColor(hex: "#5BD7CF")
-static let ganhoAccentTealDeep = UIColor(hex: "#1E3A4C")
-static let ganhoAccentCoral = UIColor(hex: "#FFB59A")
-```
-
-> `UIColor(hex:)` 헬퍼 extension은 *이미 존재* — 재활용.
-
-## 성능 가드
-
-- **음표 파티클 동시 상한**: `musicNoteEmitterMaxConcurrent = 15`. 스폰 함수 진입부에서 `activeCount` 체크 후 조기 반환.
-- **그라데이션 텍스처**: didMove에서 1회만 생성. 매 프레임 재생성 0.
-- **제목 글로우 SKEffectNode**: `shouldRasterize = true` 필수.
-- **pulse/fade 액션**: 모두 `withKey:` 부여 → 씬 전환 시 정리.
-- **클로저 캡처**: 모든 `SKAction.run { ... }`에서 `[weak self]` 적용.
-- **타겟 FPS**: 60fps 유지.
+---
 
 ## 주의사항
 
-- **`addChild` 순서**: `setupGradientBackground` → `setupOverlayPanel` → `setupMusicNoteEmitter` → `setupLabels` → `setupDifficultyCards` → `setupStoryBox` → `setupStartButton` 순서.
-- **didChangeSize 대응**: 그라데이션 텍스처 재생성. 음표 emitter도 sceneSize 의존 → 재생성.
-- **CIGaussianBlur 옵셔널**: `CIFilter(name:)` 옵셔널 처리 필수. 강제 언래핑 금지.
-- **GameConfig 상수 삽입 위치**: 파일 끝 `}` 직전, 기존 MARK 섹션 뒤. 기존 상수 *변경 0건* — 추가만.
-- **ColorTokens 삽입 위치**: 마지막 토큰 뒤, `extension UIColor` 닫는 `}` 직전.
+### Swift / SpriteKit 패턴
+- **강제 언래핑 0건**: CIFilter init이 옵셔널 반환이지만 SKEffectNode.filter 자체가 `CIFilter?` 타입이라 `filter = CIFilter(name:...)` 직접 대입 가능 (옵셔널 그대로 넘김).
+- **매직 넘버 0건**: 모든 수치는 GameConfig 상수로. 위 §기능 2의 GameConfig 추가 블록 그대로 사용.
+- **MARK 구조 일관성**: 새 노드 3개는 기존 `PrimaryButtonNode.swift` MARK 구조(`// MARK: - Properties` / `// MARK: - Init` / `// MARK: - Configure`)를 그대로 답습.
+- **weak self 캡처**: 새 노드 3개는 SKAction 클로저가 없음 — weak 캡처 필요 0.
+- **SKLabelNode fontName 안전성**: ttf 미존재 시 SpriteKit이 자동으로 시스템 폰트 fallback. 별도 가드 불필요.
 
-## 검증 체크리스트 (Generator가 구현 완료 후 SELF_CHECK.md에 기록)
+### SpriteKit 특성
+- `SKEffectNode + CIGaussianBlur`: iOS 13+ 지원, 시뮬레이터 정상 작동. `shouldRasterize = true` 필수.
+- `SKShapeNode(rectOf:cornerRadius:)`: cornerRadius가 height/2면 자동 알약.
+- `SKSpriteNode.texture` 는 `var` — 인스턴스 생성 후 교체 가능. GradientBackgroundNode 방식 A에서 활용.
 
-- [ ] StartScene 외 다른 씬(.swift) 파일 수정 0건
-- [ ] GameScene·CharacterSelectScene·SkillExplanationScene 변경 0건
-- [ ] GameConfig 기존 상수 *값 변경* 0건 (신규 MARK 섹션만 추가)
-- [ ] ColorTokens 기존 토큰 변경 0건
-- [ ] DifficultyCardNode `init(id:)` / `setSelected(_:)` 시그니처 불변
-- [ ] StartScene의 `selectDifficulty(_:)` / `transitionToNext()`의 *게임플레이 동작* 불변 (저장 시점·다음 씬·난이도 전달)
-- [ ] 강제 언래핑 `!` 사용 0건
-- [ ] `Timer.scheduledTimer` 사용 0건 — 모두 SKAction
-- [ ] 매직 넘버 0건 — 모두 GameConfig 상수
-- [ ] 클로저 `[weak self]` 캡처 적용
-- [ ] 음표 동시 상한 가드 작동 (`activeCount < musicNoteEmitterMaxConcurrent`)
-- [ ] SKEffectNode `shouldRasterize = true` 적용
-- [ ] 빌드 에러 0건, 콘솔 경고 최소화
-- [ ] 시뮬레이터에서 60fps 유지 확인 (디버그 통계)
+### 호출자 0 가드
+- 새 노드 3개(GlassPill/AccentLine/DarkContextChip)는 **이번 Sprint에서 어디서도 인스턴스화되지 않는다**. Sprint 2 메뉴 씬 작업에서 호출자가 들어옴.
+- 만약 Generator가 "기존 화면에 미리 끼워보자"라고 충동하면 **즉시 SPEC 위반**.
+
+### 빌드 에러 가능성
+- `import CoreImage` 누락 시 CIFilter 미해상 — GlassPillNode.swift 상단에 `import CoreImage` 명시.
+- `GameConfig.uiPanelLineWidth`가 이미 정의돼 있다고 가정. 미정의면 Generator는 1.0pt 리터럴로 대체 (단, SPEC상 매직 넘버 0건 규칙은 일관 토큰이 없을 때의 *최소 fallback*으로만 허용).
+
+---
+
+## 검증 체크리스트 (Evaluator용)
+
+### 게임 로직 회귀 (40%)
+- [ ] `git diff GanhoMusic/GanhoMusic\ Shared/Scenes/` → 변경 0줄
+- [ ] `git diff GanhoMusic/GanhoMusic\ Shared/Systems/` → 변경 0줄
+- [ ] GameConfig 게임 수치(scorePerNote, comboWindow, projectileSpeed, tileSize, gameDuration) 변경 0줄
+- [ ] PhysicsCategory 변경 0줄
+- [ ] ContactRouter / PlayerSkill / Difficulty / EnemyNode 변경 0줄
+
+### Swift 패턴 (20%)
+- [ ] 강제 언래핑 `!` 신규 0건
+- [ ] `Timer.scheduledTimer` 신규 0건
+- [ ] 매직 넘버 0건 — 모든 수치 GameConfig 상수
+- [ ] MARK 섹션 구조 일관 (Properties / Init / Configure)
+- [ ] 신규 파일 3개 모두 `import SpriteKit` + 필요 시 `import CoreImage`
+- [ ] `final class` 사용
+
+### 비주얼 인프라 완전성 (25% — Sprint 1 특수)
+- [ ] ColorTokens에 v2 토큰 16개 추가 (ganhoBgWarmTop/Mid/Bottom, ganhoBgAccent1/2, ganhoCoralPrimary/Light/Shadow, ganhoNavyDeep/Muted, ganhoMusicGold, ganhoLavenderSoft, ganhoScrubMint, ganhoSkinTone, ganhoFloorPeachA/B)
+- [ ] 기존 ColorTokens hex 값 0줄 변경 (ganhoBgDeep, ganhoAccentTeal, ganhoUIBrand 등 보존)
+- [ ] GameConfig에 fontDisplay/fontBody/fontNumeric 3개 + 컴포넌트 상수(glassPill*, accentLine*, darkContextChip*, primaryButton 그림자/화살표 상수) 추가
+- [ ] GlassPillNode.swift 신규 생성 + `init(text:size:)` 시그니처
+- [ ] AccentLineNode.swift 신규 생성 + `init()` 시그니처
+- [ ] DarkContextChipNode.swift 신규 생성 + `init(label:badge:)` 시그니처 (badge는 String?, default nil)
+- [ ] PrimaryButtonNode 내부 코랄 + 그림자 + 화살표 + Jua 라벨로 교체. `init(text:)` 보존, `name="primaryButton"` 보존
+- [ ] BackButtonNode 내부 GlassPill 톤(반투명 화이트 + Jua + navy 라벨)으로 교체. `init(text:)` 보존, `name="backButton"` 보존
+- [ ] GradientBackgroundNode에 `static func threeStop(size:topColor:midColor:bottomColor:)` 추가, 기존 `init(size:topColor:bottomColor:)` 보존
+- [ ] 신규 노드 3개를 어디에서도 인스턴스화 0건 (Sprint 2 대기)
+
+### 가독성 & UX (15%)
+- [ ] 컴파일 에러 0건 (Xcode 빌드 클린)
+- [ ] 실행 시 StartScene 시각 결과가 Phase 10-2 결과물과 픽셀 동일 (기존 호출자가 그대로 작동 — GradientBackgroundNode 2-stop init, MusicNoteEmitter, GlowingTitle 등)
+- [ ] 신규 노드 3개를 임시 디버그 호출 시 크래시 0
+
+---
+
+## OPEN_QUESTION (사용자 후속 작업 항목)
+
+### Q1. 폰트 ttf 파일 추가 — 누가 언제?
+- **현재 SPEC 범위**: GameConfig에 폰트 이름 상수 3개만 추가. ttf 파일 추가/Info.plist 편집은 **사용자 후속 작업으로 분리**.
+- **이유**:
+  1. Generator는 Xcode 프로젝트 파일(.xcodeproj/project.pbxproj)을 안전하게 편집할 수 없음 (target membership, build phase 자동 등록 등 IDE 작업).
+  2. ttf 미존재 시 `SKLabelNode(fontNamed:)`는 자동으로 시스템 폰트 fallback — 컴파일/런타임 모두 정상.
+- **사용자 후속 액션** (Sprint 1 완료 후):
+  1. https://fonts.google.com/specimen/Jua 에서 `Jua-Regular.ttf` 다운로드
+  2. https://fonts.google.com/specimen/Gowun+Dodum 에서 `GowunDodum-Regular.ttf` 다운로드
+  3. https://fonts.google.com/specimen/Noto+Sans+KR 에서 `NotoSansKR-Bold.ttf` 다운로드
+  4. Xcode에서 `GanhoMusic Shared/Resources/Fonts/` 폴더 생성 후 3개 ttf 드래그 → "Copy items if needed" + "Add to target: GanhoMusic iOS" 체크
+  5. `GanhoMusic iOS/Info.plist`에 다음 추가:
+     ```xml
+     <key>UIAppFonts</key>
+     <array>
+       <string>Jua-Regular.ttf</string>
+       <string>GowunDodum-Regular.ttf</string>
+       <string>NotoSansKR-Bold.ttf</string>
+     </array>
+     ```
+  6. Sprint 2 시작 전 시뮬레이터에서 한 번 빌드/실행하여 "Jua-Regular" 폰트가 실제 적용되는지 시각 확인.
+- **검수 영향**: Evaluator는 이 항목을 "사용자 후속 작업"으로 인지하고 Sprint 1 합격 판정에서 제외. GameConfig 폰트 *상수 정의*만 검증.
+
+### Q2. PrimaryButton/BackButton "시각 변화 0"의 정확한 해석
+- DESIGN_RENEWAL_STATE.md 합격 기준 "기존 화면 시각 변화 0"과 DESIGN_RENEWAL_REQUEST.md §9 Sprint 1 "PrimaryButtonNode/BackButtonNode 리스타일링"이 **표면적으로 모순**.
+- 본 SPEC의 해석: §9가 우선. **버튼 내부 시각은 v2로 교체되고, 이를 사용하는 모든 씬에서 버튼 자체의 모습은 바뀐다**. 단 init 시그니처/탭 콜백/`name`은 보존 → 기능 회귀 0.
+- 시각 변화 0의 진짜 의미: "씬 *레이아웃*과 *그라데이션 색*은 기존" — 다음 Sprint 2가 끌어다 쓸 *부품*만 새로 깎임.
+- Evaluator는 이 트레이드오프를 인지하고 채점.
+
+---
+
+**SPEC 작성**: Planner Agent (Sprint 1)
+**문서 의존**: DESIGN_RENEWAL_REQUEST.md §3 / §6 / §9 / §11, DESIGN_RENEWAL_STATE.md Sprint 1
+**다음 단계**: Generator가 본 SPEC을 그대로 구현 → Evaluator가 위 §검증 체크리스트로 채점

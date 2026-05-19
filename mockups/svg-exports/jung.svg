@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  정간호 (Jung) — 안경 + 핑크 러닝캡 + 곡괭이 + 근육
+  Character: athletic runner, determined
+  Photo reference: marathon photo with glasses + pink cap
+  Accent color: pink/coral cap (#FF8E80)
+  Scrubs color (for body in Figma): mint (#9BE0CC)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -130 240 240" width="288" height="288">
+  <!-- Head -->
+  <ellipse cx="0" cy="0" rx="64" ry="68" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="5"/>
+  <!-- Short cropped dark hair (mostly hidden by cap) -->
+  <path d="M -56 -20 Q -60 -44 -32 -48 L 32 -48 Q 60 -44 56 -20
+           Q 36 -32 0 -32 Q -36 -32 -56 -20 Z"
+        fill="#1F1410" stroke="#2D2A4A" stroke-width="4"/>
+  <!-- Pink running cap body -->
+  <path d="M -44 -44 Q -44 -72 0 -76 Q 44 -72 44 -44 L 36 -36 L -36 -36 Z"
+        fill="#FF8E80" stroke="#2D2A4A" stroke-width="5"/>
+  <!-- Cap brim -->
+  <path d="M -60 -32 Q -40 -44 0 -44 Q 40 -44 60 -32 L 52 -24 L -52 -24 Z"
+        fill="#C44A3D" stroke="#2D2A4A" stroke-width="4"/>
+  <!-- "G+" logo on cap (circle white) -->
+  <circle cx="0" cy="-56" r="8" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="3"/>
+  <text x="0" y="-51" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="11" font-weight="bold" fill="#C44A3D">G+</text>
+  <!-- Round black glasses (signature) -->
+  <circle cx="-24" cy="-4" r="18" fill="rgba(220,230,255,0.3)" stroke="#2D2A4A" stroke-width="6"/>
+  <circle cx="24" cy="-4" r="18" fill="rgba(220,230,255,0.3)" stroke="#2D2A4A" stroke-width="6"/>
+  <line x1="-6" y1="-4" x2="6" y2="-4" stroke="#2D2A4A" stroke-width="4.5"/>
+  <!-- Determined eyes -->
+  <circle cx="-24" cy="-2" r="4" fill="#2D2A4A"/>
+  <circle cx="24" cy="-2" r="4" fill="#2D2A4A"/>
+  <!-- Glasses shine -->
+  <ellipse cx="-30" cy="-10" rx="5" ry="3" fill="#FFFFFF" opacity="0.6"/>
+  <ellipse cx="18" cy="-10" rx="5" ry="3" fill="#FFFFFF" opacity="0.6"/>
+  <!-- Strong determined eyebrows -->
+  <path d="M -36 -20 L -16 -24" stroke="#2D2A4A" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M 16 -24 L 36 -20" stroke="#2D2A4A" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Slight breathing mouth (runner) -->
+  <path d="M -8 22 Q 0 32 8 22" stroke="#2D2A4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="0" cy="28" rx="7" ry="4" fill="#2D2A4A" opacity="0.4"/>
+  <!-- Sweat drop -->
+  <path d="M 56 -20 Q 60 -12 64 -20 Q 60 -8 56 -20 Z" fill="#9BCDF0" stroke="#2D2A4A" stroke-width="3"/>
+  <!-- Sun-tanned blush -->
+  <ellipse cx="-44" cy="16" rx="10" ry="5" fill="#E87B6A" opacity="0.5"/>
+  <ellipse cx="44" cy="16" rx="10" ry="5" fill="#E87B6A" opacity="0.5"/>
+</svg>

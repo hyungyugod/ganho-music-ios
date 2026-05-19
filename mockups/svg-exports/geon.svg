@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  건간호 (Geon) v6 — 완전 새 디자인, 무난 귀엽 (쿠키런 톤)
+  Character: shy bookish nursing student boy
+  Photo reference: graduation photo (face essence only — not literal)
+  Style: chibi formula — 큰 둥근 검은 눈 + 단일 화이트 하이라이트 + 작은 미소
+  Accent color: lavender (#B89DD9 book + scrubs)
+  Scrubs color (for body in Figma): lavender (#B89DD9)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -130 240 240" width="288" height="288">
+  <!-- Big chibi head -->
+  <ellipse cx="0" cy="4" rx="68" ry="72" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="5"/>
+  <!-- Smooth dark hair (단순 실루엣) -->
+  <path d="M -64 -20 Q -76 -76 -32 -76 Q 0 -84 32 -76 Q 76 -76 64 -20
+           Q 48 -48 0 -44 Q -48 -48 -64 -20 Z"
+        fill="#1F1410" stroke="#2D2A4A" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- Tiny hair tuft on top (귀여운 포인트) -->
+  <path d="M -6 -76 Q 0 -88 6 -76 Q 2 -82 -2 -82 Q -6 -82 -6 -76 Z"
+        fill="#1F1410" stroke="#2D2A4A" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Nurse cap -->
+  <path d="M -28 -60 Q -28 -84 0 -88 Q 28 -84 28 -60 L 22 -54 L -22 -54 Z"
+        fill="#FFFFFF" stroke="#2D2A4A" stroke-width="4"/>
+  <rect x="-4" y="-80" width="8" height="18" fill="#FF6B5B"/>
+  <rect x="-9" y="-75" width="18" height="8" fill="#FF6B5B"/>
+  <!-- BIG round cute eyes (chibi 정석) -->
+  <ellipse cx="-22" cy="-2" rx="9" ry="12" fill="#2D2A4A"/>
+  <ellipse cx="22" cy="-2" rx="9" ry="12" fill="#2D2A4A"/>
+  <!-- Single white highlight per eye -->
+  <circle cx="-24" cy="-6" r="3.6" fill="#FFFFFF"/>
+  <circle cx="20" cy="-6" r="3.6" fill="#FFFFFF"/>
+  <!-- Small simple smile -->
+  <path d="M -8 28 Q 0 34 8 28" stroke="#2D2A4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Blush -->
+  <ellipse cx="-44" cy="20" rx="10" ry="6" fill="#FFB6B0" opacity="0.65"/>
+  <ellipse cx="44" cy="20" rx="10" ry="6" fill="#FFB6B0" opacity="0.65"/>
+</svg>

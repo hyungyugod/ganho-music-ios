@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  임간호 (Im) v6 — 완전 새 디자인, 무난 귀엽 (쿠키런 톤)
+  Character: cute cat-themed nursing student girl
+  Photo reference: exhibition photo (face essence only — not literal)
+  Style: chibi formula — 큰 둥근 검은 눈 + 단일 화이트 하이라이트 + 고양이 귀
+  Accent color: gold (#FFB347) + black scrubs
+  Scrubs color (for body in Figma): navy black (#2D2A4A)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -130 240 260" width="288" height="312">
+  <!-- Long flowing hair (단순 실루엣) -->
+  <path d="M -68 -16 Q -88 56 -72 116 Q -60 140 -44 140 L -40 100 Q -60 50 -56 -20 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M 68 -16 Q 88 56 72 116 Q 60 140 44 140 L 40 100 Q 60 50 56 -20 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- Big chibi head -->
+  <ellipse cx="0" cy="4" rx="68" ry="72" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="5"/>
+  <!-- Middle-parted soft bangs -->
+  <path d="M -64 -20 Q -72 -76 -28 -80 L -4 -64 L 0 -72 L 4 -64 L 28 -80 Q 72 -76 64 -20
+           Q 44 -44 4 -44 L -4 -44 Q -44 -44 -64 -20 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- Nurse cap -->
+  <path d="M -28 -64 Q -28 -84 0 -88 Q 28 -84 28 -64 L 22 -58 L -22 -58 Z"
+        fill="#FFFFFF" stroke="#2D2A4A" stroke-width="4"/>
+  <rect x="-4" y="-80" width="8" height="18" fill="#FF6B5B"/>
+  <rect x="-9" y="-75" width="18" height="8" fill="#FF6B5B"/>
+  <!-- Cat ears (작고 단순한 삼각형) -->
+  <path d="M -40 -68 L -28 -44 L -16 -68 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M 40 -68 L 28 -44 L 16 -68 Z"
+        fill="#3A2418" stroke="#2D2A4A" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M -32 -60 L -28 -52 L -24 -60 Z" fill="#FFB6B0"/>
+  <path d="M 32 -60 L 28 -52 L 24 -60 Z" fill="#FFB6B0"/>
+  <!-- BIG round cute eyes (건간호와 동일 톤) -->
+  <ellipse cx="-22" cy="-2" rx="10" ry="13" fill="#2D2A4A"/>
+  <ellipse cx="22" cy="-2" rx="10" ry="13" fill="#2D2A4A"/>
+  <!-- Single white highlight per eye -->
+  <circle cx="-24" cy="-6" r="4" fill="#FFFFFF"/>
+  <circle cx="20" cy="-6" r="4" fill="#FFFFFF"/>
+  <!-- Small simple smile -->
+  <path d="M -6 26 Q 0 32 6 26" stroke="#2D2A4A" stroke-width="4.6" fill="none" stroke-linecap="round"/>
+  <!-- Pink cat nose (작게) -->
+  <ellipse cx="0" cy="14" rx="3" ry="2.4" fill="#FF8E80" opacity="0.9"/>
+  <!-- Blush -->
+  <ellipse cx="-44" cy="20" rx="10" ry="6" fill="#FFB6B0" opacity="0.65"/>
+  <ellipse cx="44" cy="20" rx="10" ry="6" fill="#FFB6B0" opacity="0.65"/>
+</svg>

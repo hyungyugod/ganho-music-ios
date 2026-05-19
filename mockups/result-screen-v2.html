@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 결과 화면 v2 (3가지 분기)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  .variant-label {
+    font-family: 'Jua', sans-serif; color: #FF8E80; font-size: 14px;
+    margin: 28px 0 10px; padding-left: 12px;
+    border-left: 3px solid #FF6B5B; letter-spacing: 1px;
+  }
+  .variant-label .branch { color: #fff; font-size: 18px; margin-left: 8px; }
+  .variant-label .freq { color: #8a8a95; font-size: 11px; margin-left: 12px; font-family: 'Gowun Dodum', sans-serif; }
+
+  /* === Phone === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px; padding: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9; max-width: 920px; margin: 0 auto 12px; position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute; top: 50%; left: 18px; transform: translateY(-50%);
+    width: 8px; height: 90px; background: #0a0a0a; border-radius: 4px; z-index: 100;
+  }
+
+  /* Music notes deco */
+  .note-deco {
+    position: absolute; font-family: 'Jua', sans-serif; font-weight: bold;
+    pointer-events: none; z-index: 1;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+
+  /* === Center result card === */
+  .result-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 460px; max-width: 78%;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-radius: 22px;
+    padding: 22px 28px 24px;
+    box-shadow:
+      0 16px 40px rgba(45, 42, 74, 0.18),
+      0 4px 12px rgba(45, 42, 74, 0.08);
+    z-index: 5;
+    text-align: center;
+  }
+
+  .accent-line {
+    width: 32px; height: 3px; background: #FF6B5B; border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+
+  /* Header label (난이도 + 캐릭터) */
+  .head-meta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 5px 14px; border-radius: 999px;
+    font-size: 11px; margin-bottom: 12px;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .head-meta .pip {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255, 229, 208, 0.5);
+  }
+  .head-meta .badge {
+    background: #FF6B5B; color: #fff; padding: 1px 8px;
+    border-radius: 999px; font-family: 'Jua', sans-serif; font-size: 10px;
+  }
+
+  /* Title */
+  .title-row {
+    font-family: 'Jua', sans-serif;
+    line-height: 1; letter-spacing: -1px;
+    margin-bottom: 14px;
+  }
+  .title-game-over { color: #2D2A4A; font-size: 30px; }
+  .title-new-best {
+    font-size: 32px;
+    background: linear-gradient(90deg, #FFB347 0%, #FF6B5B 50%, #FFB347 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 0 rgba(196, 74, 61, 0.15);
+  }
+  .title-graduated { color: #FFB347; font-size: 26px; text-shadow: 0 2px 0 rgba(196, 74, 61, 0.2); }
+  .title-row .sub {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px; color: #5A5670;
+    margin-top: 4px;
+  }
+
+  /* Score */
+  .score-block {
+    display: flex; flex-direction: column; align-items: center;
+    margin: 8px 0 14px;
+  }
+  .score-num {
+    font-family: 'Jua', sans-serif;
+    font-size: 64px; line-height: 1;
+    color: #FF6B5B;
+    letter-spacing: -3px;
+    text-shadow: 0 4px 0 rgba(196, 74, 61, 0.15);
+  }
+  .score-num.gold {
+    background: linear-gradient(180deg, #FFD27A 0%, #FFB347 50%, #FF9224 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    text-shadow: 0 4px 0 rgba(196, 74, 61, 0.25);
+    filter: drop-shadow(0 0 12px rgba(255, 179, 71, 0.5));
+  }
+  .score-num .note-icon {
+    font-size: 32px; vertical-align: middle;
+    color: #FFB347; margin-right: 8px;
+  }
+  .score-num.gold .note-icon { color: #FFB347; }
+  .score-label {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 11px; color: #5A5670;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* Best row */
+  .best-row {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255, 179, 71, 0.16);
+    color: #8B5A0E; font-family: 'Jua', sans-serif;
+    padding: 5px 14px; border-radius: 999px;
+    font-size: 13px; margin-bottom: 10px;
+  }
+  .best-row.new-best {
+    background: linear-gradient(90deg, #FFB347, #FFD27A, #FFB347);
+    background-size: 200% 100%;
+    color: #fff;
+    animation: shimmer 1.8s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(255, 179, 71, 0.5);
+  }
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .best-row .star { font-size: 12px; }
+
+  /* Stats divider */
+  .divider {
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(45, 42, 74, 0.18), transparent);
+    margin: 8px auto;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: flex; justify-content: center; gap: 18px;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: #5A5670; font-size: 11px;
+    margin-bottom: 14px;
+  }
+  .stats-row .stat-num {
+    font-family: 'Jua', sans-serif;
+    color: #2D2A4A; font-size: 14px;
+    display: block;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex; justify-content: center; gap: 10px;
+  }
+  .btn {
+    font-family: 'Jua', sans-serif;
+    border: none; border-radius: 999px;
+    cursor: pointer; display: inline-flex;
+    align-items: center; gap: 8px;
+    transition: transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: #FF6B5B; color: #fff; font-size: 15px;
+    padding: 10px 22px 11px;
+    box-shadow: 0 5px 0 #C44A3D, 0 10px 20px rgba(255, 107, 91, 0.35);
+  }
+  .btn-primary:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #C44A3D, 0 4px 12px rgba(255, 107, 91, 0.35);
+  }
+  .btn-primary .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 20px; height: 20px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .btn-ghost {
+    background: rgba(45, 42, 74, 0.08); color: #2D2A4A;
+    font-size: 13px;
+    padding: 10px 18px;
+  }
+
+  /* === Variant-specific decorations === */
+  /* New Best — sparkle particles */
+  .sparkle {
+    position: absolute;
+    color: #FFB347;
+    pointer-events: none;
+    z-index: 4;
+    animation: sparklePop 1.6s ease-out infinite;
+    font-size: 18px;
+  }
+  @keyframes sparklePop {
+    0% { transform: scale(0) rotate(0); opacity: 0; }
+    30% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: scale(0.5) rotate(360deg); opacity: 0; }
+  }
+  .s1 { top: 22%; left: 22%; animation-delay: 0s; }
+  .s2 { top: 30%; right: 22%; animation-delay: 0.3s; font-size: 14px; }
+  .s3 { bottom: 30%; left: 28%; animation-delay: 0.6s; font-size: 22px; color: #FF6B5B; }
+  .s4 { bottom: 22%; right: 26%; animation-delay: 0.9s; font-size: 16px; }
+  .s5 { top: 50%; left: 14%; animation-delay: 1.2s; font-size: 14px; color: #B89DD9; }
+
+  /* === Diploma overlay === */
+  .diploma {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-2deg);
+    width: 520px; max-width: 84%;
+    background:
+      repeating-linear-gradient(45deg, #FFF8E7 0px, #FFF8E7 8px, #FFEDC6 8px, #FFEDC6 16px),
+      linear-gradient(180deg, #FFF9EA 0%, #FFEFC8 100%);
+    background-blend-mode: multiply;
+    background-color: #FFF9EA;
+    border: 4px double #C76F00;
+    border-radius: 8px;
+    padding: 22px 30px 20px;
+    box-shadow:
+      0 20px 50px rgba(196, 74, 61, 0.25),
+      0 8px 16px rgba(45, 42, 74, 0.2),
+      inset 0 0 0 1px rgba(199, 111, 0, 0.4);
+    z-index: 20;
+    text-align: center;
+    font-family: 'Gowun Batang', serif;
+    color: #5A3A0E;
+  }
+  .diploma::before, .diploma::after {
+    content: ""; position: absolute;
+    width: 30px; height: 30px;
+    border: 3px double #C76F00;
+  }
+  .diploma::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+  .diploma::after { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+  .diploma-en {
+    font-family: 'Gowun Batang', serif;
+    font-size: 10px; color: #8B5A0E;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+  }
+  .diploma-ko {
+    font-family: 'Gowun Batang', serif;
+    font-size: 26px; font-weight: 700;
+    color: #5A3A0E; letter-spacing: 4px;
+    margin-bottom: 12px;
+  }
+  .diploma-body {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px; color: #5A3A0E;
+    line-height: 1.6; margin-bottom: 4px;
+  }
+  .diploma-body .name {
+    font-family: 'Gowun Batang', serif; font-weight: 700;
+    color: #C44A3D;
+  }
+  .diploma-meta {
+    display: flex; justify-content: space-between;
+    margin-top: 12px;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 10px; color: #8B5A0E;
+  }
+  .diploma-stamp {
+    position: absolute;
+    right: 28px; bottom: 30px;
+    width: 56px; height: 56px;
+    border: 2px solid #C44A3D;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Jua', sans-serif; font-size: 9px;
+    color: #C44A3D; transform: rotate(-12deg);
+    background: rgba(255, 232, 232, 0.4);
+    line-height: 1.1; text-align: center;
+  }
+  .diploma-tap {
+    margin-top: 10px; font-size: 10px;
+    color: #8B5A0E; opacity: 0.7;
+    letter-spacing: 2px;
+  }
+
+  /* Character placeholder zone */
+  .char-zone {
+    position: absolute;
+    bottom: 6%; left: 6%;
+    width: 90px; height: 110px;
+    z-index: 3;
+    opacity: 0.5;
+  }
+  .char-zone::before {
+    content: "👤"; font-size: 50px;
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    filter: grayscale(1);
+  }
+  .char-zone::after {
+    content: "PNG 자리"; position: absolute;
+    bottom: -16px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; color: #5A5670;
+    font-family: 'Gowun Dodum', sans-serif;
+    white-space: nowrap;
+  }
+
+  /* === Annotations === */
+  .annot-title {
+    font-family: 'Jua', sans-serif; color: #fff; font-size: 18px;
+    margin: 24px 0 14px;
+  }
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .annotation {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .annotation p { font-size: 13px; color: #b5b5bd; line-height: 1.6; }
+
+  .compare-table {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 24px;
+  }
+  .compare-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .compare-table th {
+    text-align: left; color: #FF8E80;
+    font-family: 'Jua', sans-serif; font-weight: normal;
+    padding: 8px 8px; border-bottom: 1px solid #2e2e3a;
+  }
+  .compare-table th:not(:first-child) { text-align: center; }
+  .compare-table td {
+    color: #b5b5bd; padding: 8px 8px; border-bottom: 1px solid #25252e;
+  }
+  .compare-table td:not(:first-child) { text-align: center; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: #e8e8e8; font-weight: 500; }
+  .compare-table .yes { color: #9BE0CC; }
+  .compare-table .no { color: #5A5670; }
+  .compare-table .star { color: #FFB347; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 결과 화면 v2 (3가지 분기)</h1>
+  <p class="sub">ResultScene · 일반 / 신기록 / 졸업장 · 한 페이지에 3변종 비교</p>
+
+  <!-- ================= VARIANT A: NORMAL ================= -->
+  <div class="variant-label">VARIANT A <span class="branch">일반 결과</span> <span class="freq">대부분의 경우 (점수 1~30, isNewBest = false)</span></div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+      <div class="note-deco" style="top:12%;left:16%;font-size:18px;color:#FFB347;--r:-12deg;animation-delay:0s">♪</div>
+      <div class="note-deco" style="top:18%;right:14%;font-size:14px;color:#B89DD9;--r:14deg;animation-delay:1s">♫</div>
+      <div class="note-deco" style="bottom:14%;right:24%;font-size:16px;color:#FF6B5B;--r:-8deg;animation-delay:2s">♬</div>
+
+      <!-- Character placeholder -->
+      <div class="char-zone"></div>
+
+      <!-- Result Card -->
+      <div class="result-card">
+        <div class="accent-line"></div>
+        <div class="head-meta">
+          <span>중 난이도</span><span class="pip"></span>
+          <span>건간호</span>
+        </div>
+        <div class="title-row">
+          <div class="title-game-over">실습 종료</div>
+          <div class="sub">수고했어요! 한 번 더 해볼까요?</div>
+        </div>
+        <div class="score-block">
+          <div class="score-num"><span class="note-icon">♪</span>18</div>
+          <div class="score-label">SCORE</div>
+        </div>
+        <div class="best-row">
+          <span class="star">🏆</span> BEST 24
+        </div>
+        <div class="divider"></div>
+        <div class="stats-row">
+          <div><span class="stat-num">8</span>PLAYS</div>
+          <div><span class="stat-num">156</span>TOTAL</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost">📤 공유</button>
+          <button class="btn btn-primary">다시 시작 <span class="arrow">▶</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VARIANT B: NEW BEST ================= -->
+  <div class="variant-label">VARIANT B <span class="branch">신기록!</span> <span class="freq">isNewBest = true · 황금 효과 + 햅틱 + 사운드</span></div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+      <div class="note-deco" style="top:12%;left:16%;font-size:18px;color:#FFB347;--r:-12deg;animation-delay:0s">♪</div>
+      <div class="note-deco" style="top:18%;right:14%;font-size:14px;color:#B89DD9;--r:14deg;animation-delay:1s">♫</div>
+      <div class="note-deco" style="bottom:14%;right:24%;font-size:16px;color:#FF6B5B;--r:-8deg;animation-delay:2s">♬</div>
+
+      <!-- Sparkles for NEW BEST -->
+      <div class="sparkle s1">✦</div>
+      <div class="sparkle s2">✦</div>
+      <div class="sparkle s3">★</div>
+      <div class="sparkle s4">✦</div>
+      <div class="sparkle s5">★</div>
+
+      <div class="char-zone"></div>
+
+      <div class="result-card">
+        <div class="accent-line"></div>
+        <div class="head-meta">
+          <span>중 난이도</span><span class="pip"></span>
+          <span>건간호</span>
+        </div>
+        <div class="title-row">
+          <div class="title-new-best">✨ NEW BEST! ✨</div>
+          <div class="sub">최고 기록을 갱신했어요!</div>
+        </div>
+        <div class="score-block">
+          <div class="score-num gold"><span class="note-icon">♪</span>32</div>
+          <div class="score-label">NEW SCORE</div>
+        </div>
+        <div class="best-row new-best">
+          <span class="star">⭐</span> ★ NEW BEST! ★
+        </div>
+        <div class="divider"></div>
+        <div class="stats-row">
+          <div><span class="stat-num">9</span>PLAYS</div>
+          <div><span class="stat-num">188</span>TOTAL</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost">📤 자랑하기</button>
+          <button class="btn btn-primary">다시 시작 <span class="arrow">▶</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VARIANT C: DIPLOMA ================= -->
+  <div class="variant-label">VARIANT C <span class="branch">졸업장 발급</span> <span class="freq">isNewGraduation = true · 3난이도 모두 목표점수 달성 최초 1회</span></div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+      <div class="note-deco" style="top:8%;left:12%;font-size:18px;color:#FFB347;--r:-12deg;animation-delay:0s">♪</div>
+      <div class="note-deco" style="top:14%;right:10%;font-size:14px;color:#B89DD9;--r:14deg;animation-delay:1s">♫</div>
+      <div class="note-deco" style="bottom:10%;right:14%;font-size:16px;color:#FF6B5B;--r:-8deg;animation-delay:2s">♬</div>
+
+      <!-- Sparkles around diploma -->
+      <div class="sparkle s1">★</div>
+      <div class="sparkle s2">✦</div>
+      <div class="sparkle" style="bottom:18%;left:8%;font-size:20px;color:#FFB347;animation-delay:0.4s">★</div>
+      <div class="sparkle" style="top:30%;right:8%;font-size:16px;color:#FF6B5B;animation-delay:0.8s">✦</div>
+
+      <!-- Diploma (centered, on top of regular result) -->
+      <div class="diploma">
+        <div class="diploma-en">CERTIFICATE OF GRADUATION</div>
+        <div class="diploma-ko">실습 수료 증서</div>
+        <div class="diploma-body">
+          다사다난한 실습을 마치고 <span class="name">건간호</span>는 드디어 졸업하였다.
+        </div>
+        <div class="diploma-body">
+          이제 세상이라는 악보 위에 마음껏 노래를 부르며 자유롭게 살 것이다.
+        </div>
+        <div class="diploma-meta">
+          <span>📅 2026년 05월 19일</span>
+          <span>hgfolio · 김간호는 음악박사</span>
+        </div>
+        <div class="diploma-stamp">김간호<br>음악대학</div>
+        <div class="diploma-tap">— TAP TO CONTINUE —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============= Annotations ============= -->
+  <div class="annot-title">3가지 분기의 핵심 결정</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🎴 카드 1개 + 분기별 헤더</h3>
+      <p>"GAME OVER" 같은 부정적 단어 대신 <strong style="color:#FFE5D0">"실습 종료" / "NEW BEST!" / "수료 증서"</strong>로 3가지 톤을 분기. 카드 레이아웃은 동일.</p>
+    </div>
+    <div class="annotation">
+      <h3>📊 점수 디스플레이 = 코랄 → 골드</h3>
+      <p>일반: 코랄 (#FF6B5B). 신기록: 골드 그라데이션 + 글로우 필터. 같은 64pt 숫자인데 색만 바뀌어서 임팩트.</p>
+    </div>
+    <div class="annotation">
+      <h3>🏆 BEST 라벨 = 칩 → 황금 칩</h3>
+      <p>일반은 작은 골드 알약. 신기록일 땐 황금 그라데이션이 좌우로 흐르는 shimmer 애니메이션 + 그림자.</p>
+    </div>
+    <div class="annotation">
+      <h3>✨ NEW BEST 별 파편 5개</h3>
+      <p>화면 곳곳에 ★ / ✦ 5개. 펄스 + 회전 애니. heavy 햅틱 + NewMail 사운드와 동시 발화 (기존 코드 유지).</p>
+    </div>
+    <div class="annotation">
+      <h3>📜 졸업장 = 우드컷 종이 톤</h3>
+      <p>대각선 패턴 + double-border + 황토 컬러로 진짜 증서 느낌. 한글 명조(Gowun Batang) 폰트 + 더블 모서리 장식 + 빨간 도장.</p>
+    </div>
+    <div class="annotation">
+      <h3>🗣️ 분기별 부제 카피</h3>
+      <p>A: "수고했어요! 한 번 더 해볼까요?" / B: "최고 기록을 갱신했어요!" / C: 본문 2줄 (DiplomaOverlayNode 코드 그대로). 톤이 점수 안 짠 게임에서 사용자를 응원함.</p>
+    </div>
+  </div>
+
+  <!-- Compare table -->
+  <div class="annot-title">3가지 분기 한눈에 비교</div>
+  <div class="compare-table">
+    <table>
+      <thead>
+        <tr>
+          <th>요소</th>
+          <th>A. 일반</th>
+          <th>B. 신기록</th>
+          <th>C. 졸업장</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>발동 조건</td><td>기본</td><td class="star">isNewBest = true</td><td class="star">isNewGraduation = true</td></tr>
+        <tr><td>타이틀</td><td>"실습 종료"</td><td>"✨ NEW BEST! ✨"</td><td>"실습 수료 증서"</td></tr>
+        <tr><td>점수 색</td><td>코랄</td><td>골드 그라데이션</td><td>(졸업장 뒤로 가려짐)</td></tr>
+        <tr><td>BEST 라벨</td><td>골드 칩 (정적)</td><td>황금 shimmer (애니)</td><td>(졸업장 뒤로 가려짐)</td></tr>
+        <tr><td>별 파편</td><td class="no">없음</td><td class="yes">5개 펄스</td><td class="yes">4개 펄스</td></tr>
+        <tr><td>햅틱</td><td class="no">없음</td><td class="yes">heavy</td><td class="yes">heavy (졸업장 등장 시)</td></tr>
+        <tr><td>사운드</td><td class="no">기본 BGM</td><td class="yes">NewMail</td><td class="yes">NewMail + 졸업 효과음</td></tr>
+        <tr><td>탭 동작</td><td>1탭 → StartScene</td><td>1탭 → StartScene</td><td>1탭 → 졸업장 닫힘<br>1탭 더 → StartScene (2단계)</td></tr>
+        <tr><td>버튼</td><td>공유 + 다시 시작</td><td>자랑하기 + 다시 시작</td><td>TAP TO CONTINUE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SpriteKit mapping -->
+  <div class="annot-title">SpriteKit 구현 매핑</div>
+  <div class="compare-table">
+    <table>
+      <thead>
+        <tr><th>HTML 요소</th><th>SpriteKit 매핑</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>중앙 카드</td><td>기존 setupOverlayPanel() 그대로 — 색·radius만 v2 토큰 교체</td></tr>
+        <tr><td>점수 64pt 코랄</td><td>scoreLabel.fontColor = .ganhoCoralPrimary (기존 .ganhoUIBrandLight 교체)</td></tr>
+        <tr><td>점수 골드 (NEW BEST)</td><td>기존 startBestLabelGoldBlink 패턴 활용 + scoreLabel에도 SKAction.color 적용</td></tr>
+        <tr><td>BEST shimmer</td><td>SKAction.customAction + colorBlend 주기 변경 (기존 ganhoYellowF 활용)</td></tr>
+        <tr><td>별 파편 5개</td><td>SparkleEffectNode 재활용 — 신기록 시 5개 동시 발화</td></tr>
+        <tr><td>졸업장 우드컷 패턴</td><td>DiplomaOverlayNode.background를 SKShapeNode + SKShader (또는 PNG 텍스처 1장)로 교체</td></tr>
+        <tr><td>분기별 부제 카피</td><td>ResultScene.setupLabels()에서 isNewBest/isNewGraduation에 따라 subtitle 라벨 텍스트 분기</td></tr>
+        <tr><td>캐릭터 placeholder</td><td>SKSpriteNode + SKTexture(imageNamed: "kim_down_idle_1") — Sprint 4 PNG 도착 시 자산만 바뀜</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Final summary -->
+  <div class="annot-title">디자인 단계 진행 현황</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>✅ 완료 (5개 화면 + 1개 컨셉)</h3>
+      <p>
+        ✓ main-screen-v2 (메인)<br>
+        ✓ character-select-v2 (캐릭터 선택)<br>
+        ✓ skill-explanation-v2 (스킬 설명)<br>
+        ✓ game-map-v2 (인게임 + D-Pad 우하단 수정)<br>
+        ✓ character-concepts-v2 (5명 사진 기반 시안)<br>
+        ✓ result-screen-v2 (3분기 — 이 파일)
+      </p>
+    </div>
+    <div class="annotation">
+      <h3>📝 문서 (2개)</h3>
+      <p>
+        ✓ DESIGN_RENEWAL_REQUEST.md (리팩토링 부탁 문서, Sprint 1~5)<br>
+        ✓ CHARACTER_SPRITE_PROMPT.md (AI 캐릭터 80장 주문 프롬프트)
+      </p>
+    </div>
+    <div class="annotation">
+      <h3>⏭️ 남은 작업 (병렬 진행 가능)</h3>
+      <p>
+        ① <strong style="color:#FFE5D0">PNG 외주</strong> — 캐릭터 80장 AI 생성 (CHARACTER_SPRITE_PROMPT.md 따라)<br>
+        ② <strong style="color:#FFE5D0">코드 리팩토링</strong> — Sprint 1부터 하네스 시작 (DESIGN_RENEWAL_REQUEST.md 따라)
+      </p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
