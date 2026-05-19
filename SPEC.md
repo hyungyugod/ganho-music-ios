@@ -1,662 +1,322 @@
-# 디바이스 잘림 해소 + 캐릭터·난이도 카드 시인성 강화
+# iPhone Landscape 잘림 해소 + 캐릭터 카드 분리감 강화 + 얼굴 SVG 동기화
 
 ## 개요
-
-iPhone 17 Pro (iOS 26.4) landscape 시뮬레이터에서 4개 메뉴 씬(Start / CharacterSelect / DifficultySelect / Result)의 가장자리 콘텐츠가 Dynamic Island와 홈 인디케이터 영역에 침범해 잘려 보이는 문제를 해결한다. 동시에 (a) CharacterSelectScene 5장 카드가 너무 빽빽한 문제를 *여백·미세 y 오프셋*으로 풀고, (b) DifficultySelectScene 3장 카드의 *흐림·작음·설명 부족* 문제를 *크기 확장 + 미선택 알파 상향 + 난이도별 설명 라벨 추가*로 풀어낸다. 게임플레이·저장 포맷·사운드·햅틱은 한 줄도 손대지 않는 **순수 비주얼** 변경이다.
+iPhone 17 Pro Landscape 시뮬레이터에서 발견된 3가지 UI 문제(StartScene 시작 버튼 하단 잘림, ResultScene 다시시작/공유 버튼 하단 잘림, CharacterSelectScene 5장 카드가 한 덩어리로 보임)를 한 번에 해소한다. 동시에 첨부된 5장 SVG(`mockups/svg-exports/{kim,jung,geon,im,lee}.svg`)와 CharacterFaceNode 현재 코드를 비교해 **차이가 있는 캐릭터만** path/색상을 재이식한다.
 
 ## 변경 유형
-
-**비주얼**. 게임 로직 영향 0. GameScene·Repository·AudioManager·HapticsManager 미접촉.
+**혼합** (UI 비주얼 + 디바이스 대응 인프라)
 
 ## 게임 경험 의도
-
-스크린샷에서 발생한 *주변시야 결손*(타이틀이 노치에 잘리고 BEST 알약이 노치 좌측에서 겹치는 현상)을 제거해, "잘림 없이 한눈에 들어온다"는 첫인상을 회복한다. 캐릭터 선택 화면은 5명이 빽빽이 줄 서 있던 인상에서 *숨 쉬는 여백과 자연스러운 흩어짐*으로 바뀌어 캐릭터 한 명 한 명에게 시선이 머물게 한다. 난이도 선택 화면은 흐릿하게 떠 있던 3개 캡슐이 *또렷한 카드*가 되어 손가락이 어디를 눌러야 할지, 각 난이도가 *어떤 경험*을 주는지 한 줄 설명으로 즉시 이해되도록 한다.
+어떤 디바이스(iPhone SE ~ Pro Max)에서도 핵심 버튼이 잘리지 않고, 캐릭터 선택은 "내 친구를 뽑는다"는 느낌이 들도록 5장의 카드가 시각적으로 분리되어 보여야 한다. 카드 안 얼굴은 정해진 5명의 캐릭터 SVG 시안과 일치해야 캐릭터 정체성이 흔들리지 않는다.
 
 ## Sprint 범위 계약
 
-- **허용**: 본 SPEC의 기능 정상 동작에 필수적인 최소 연동 변경
-  - `GameViewController.swift` — SKView를 safe area에 맞춰 마운트
-  - 4개 메뉴 씬 중 잘림 해소·여백 개선이 필요한 곳의 layout 미세 조정
-  - `DifficultyCardNode.swift` — 카드 크기·시인성·설명 라벨 강화
-  - `Difficulty.swift` — `description: String` *신규 프로퍼티만* 추가
-  - `GameConfig.swift` — 본 SPEC 전용 상수 신설(접미사 `*V3` / `*Description*`)
-  - `CharacterSelectScene.swift` — 카드 간 여백 증가 + 미세 지그재그 y 오프셋
-  - `DifficultySelectScene.swift` — 좌측 summary 카드와 우측 3장 카드의 시각 균형 재조정
-- **금지** (SPEC에 없는 독립 기능 추가 금지)
-  - `GameScene.swift` 게임 루프 / 충돌 / 점수 / 스폰
-  - `Repositories/*` 직렬화 포맷 (DifficultyPreferenceRepository, CharacterPreferenceRepository, HighScoreRepository, StatisticsRepository, GraduationRepository)
-  - `AudioManager`, `HapticsManager`
-  - `Difficulty` enum의 *case 추가/삭제* (raw value "easy"/"normal"/"hard" 불변)
-  - `StartScene` / `ResultScene`의 `transitionToNext` / `presentScene` 시그니처 / SKAction 시퀀스
-  - `CharacterID` enum / `CharacterCardNode` 내부 구조
-  - `GameScene.newGameScene(characterID:difficulty:)` 시그니처
-  - `ResultScene.newResultScene(...)` 시그니처
-  - GlassPillNode / PrimaryButtonNode / DarkContextChipNode 내부 구조
-  - 음표 emitter / 그라데이션 배경 / NurseAvatarNode 시각
-  - StartScene의 타이틀·태그라인 *문구*
-  - 사운드 발화 시퀀스 (newBest reveal, sparkle 5발, diploma)
-- **판단 기준**: "이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용. NO면 금지.
+### 허용 (이 외 절대 건드리지 말 것)
+- **신규**: `GanhoMusic/GanhoMusic Shared/Utilities/SceneSafeArea.swift`
+- **수정**: `GanhoMusic/GanhoMusic iOS/GameViewController.swift` — `viewSafeAreaInsetsDidChange()` 명시(정책 기록용 1메서드)
+- **수정**: `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — 신규 상수 7개 추가 + 카드 치수 6개 갱신
+- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/StartScene.swift` — `layoutStartButton()`만
+- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift` — `layoutLabels()` 내 두 버튼 좌표만
+- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — `cardBaseX`/`cardBaseY` 동적 spacing + `layoutConfirmButton`/`layoutSkillInfoChip` safeArea 적용
+- **수정**: `GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift` — **첨부 SVG와 차이 있는 캐릭터의 빌드 함수만** path/색상 재이식
 
----
+### 금지 (회귀 위험)
+- `GanhoMusic Shared/Models/CharacterID.swift` — 메타데이터 불변
+- `GanhoMusic Shared/Nodes/CharacterCardNode.swift` 내부 구조 — 외부 `GameConfig.characterCardWidth/Height` 치수만 흡수
+- `GanhoMusic Shared/Scenes/GameScene.swift`
+- `GanhoMusic Shared/Scenes/DifficultySelectScene.swift`
+- `GanhoMusic Shared/Scenes/SkillExplanationScene.swift`
+- `PlayerNode.swift` PNG 로딩 로직
+- 기존 상수 `startSceneStartButtonOffsetY`(-180), `resultButtonOffsetYV2`(-180) — **값은 그대로 두고 적용만 중지**(다른 곳 참조 가능성)
+- SKView frame을 만지는 모든 시도(2026-05 무한재귀 사고 기록)
 
-## 근본 원인 분석
-
-### A. 가장자리 잘림 (4개 씬 공통)
-
-모든 씬은 다음 패턴으로 가장자리 콘텐츠를 배치한다.
-
-```swift
-// StartScene.layoutStatPills()
-best.position = CGPoint(
-    x: frame.minX + GameConfig.startSceneStatPillSideMargin,
-    y: y
-)
-plays.position = CGPoint(
-    x: frame.maxX - GameConfig.startSceneStatPillSideMargin,
-    y: y
-)
-```
-
-`frame.minX` / `frame.maxX` / `frame.minY` / `frame.maxY`는 **SKView의 bounds 전체**다. SKView가 view의 전체 영역을 차지하는 한, SKView는 자동으로 safe area를 보정하지 않는다. iPhone 17 Pro landscape에서 시스템 safe area inset은 대략
-
-- left ≈ 59pt (Dynamic Island 쪽)
-- right ≈ 0pt
-- top ≈ 0pt
-- bottom ≈ 21pt (home indicator)
-
-이 inset 안에 BEST GlassPill(side margin 60pt) 같은 콘텐츠가 들어가도, **inset 자체의 시작 픽셀이 노치/홈 인디케이터 영역과 겹치므로** 시각적으로 잘려 보인다.
-
-해결책 두 가지:
-
-**(A) GameViewController에서 SKView를 safe area에 맞춰 마운트.**
-- `viewDidLoad`에서 SKView를 storyboard 풀화면 자식으로 두지 말고, `view.safeAreaLayoutGuide` 영역에만 mount.
-- 한 곳 수정으로 4개 씬이 자동으로 안전.
-- 트레이드오프: 그라데이션 배경이 safe area 바깥(노치 영역)에서는 비게 되므로, **view.backgroundColor에 `.ganhoBgWarmTop` fallback**을 깔아 시각 연속성 유지.
-- 음표 emitter 좌표계도 자연스럽게 따라옴 — 별도 처리 불필요.
-
-**(B) 각 씬에서 `view.safeAreaInsets`를 읽어 가장자리 마진을 합산.**
-- 4개 씬 모두 `didMove(to:)` / `didChangeSize`에서 inset 읽어 GameConfig 상수와 더하기.
-- 코드 변경이 분산되고 회귀 리스크 4배.
-- 장점: 그라데이션 배경이 풀스크린 유지.
-
-→ **결정: (A) 채택.** 한 곳 수정으로 4개 씬 모두 해결. 그라데이션 fallback은 view.backgroundColor 1줄로 처리. NurseAvatarNode·MusicNoteEmitterNode·헤더 정렬 모두 *상대 좌표 기반*이라 회귀 없음.
-
-### B. CharacterSelectScene 빽빽함
-
-현재 상수:
-- `characterCardGlassWidth = 110`
-- `characterCardGlassHeight = 140`
-- `characterCardSpacing = 10`
-
-5장 카드의 합계 가로 폭 = `110 × 5 + 10 × 4 = 590pt`. iPhone landscape `view.safeAreaLayoutGuide` 가로(약 800pt)에 비해 spacing 10pt가 너무 짧아 글래스 컨테이너 가장자리가 거의 맞닿는다. 사용자 요청 "흩어지고 예쁘게"는 (1) spacing 확대 + (2) 각 카드별 y 미세 오프셋(지그재그)으로 *정렬되지 않은 자연스러움*을 추가하는 방향이 적합.
-
-### C. DifficultySelectScene 흐림·작음·설명 부재
-
-현재 상수:
-- `difficultyCardWidth = 80`
-- `difficultyCardHeight = 56`
-- `difficultyCardSpacing = 16`
-- `difficultyCardFontSize = 20`
-- `difficultyCardSubtitleFontSize = 10`
-
-문제:
-1. **흐림**: `DifficultyCardNode.setSelected(false)`에서 `alpha = GameConfig.characterCardDeselectedAlpha (= 0.5)` + `background.fillColor = .clear` + `background.strokeColor = .ganhoUIBorder` (흰색 7% 보더). 미선택 상태가 거의 안 보임.
-2. **작음**: 80×56 캡슐은 글래스 톤 + 흰색 보더 + 글자가 다 들어가야 해서 정보 밀도가 낮음. 부제 라벨이 10pt라 거의 안 읽힘.
-3. **설명 부재**: `Difficulty.subtitle`("여유로운 실습" / "긴장의 병동" / "이교수의 청진기")만 있고, 한 줄 더 풀어쓴 description이 없음.
-
-해결책:
-- `Difficulty`에 `description: String` *신규* computed property 추가. 한 줄 풀이.
-- `DifficultyCardNode`에 descriptionLabel(SKLabelNode) 추가. nameLabel + subtitleLabel + descriptionLabel 3행.
-- 카드 폭/높이 약 1.4배 확장.
-- 미선택 알파 0.5 → 0.78 상향. 미선택 fill 살짝 색 깔기(`id.color α 0.08`). 미선택 stroke도 진하게(`id.color α 0.4`).
-- 부제 라벨 색 `.ganhoUITextDim` → `.ganhoNavyMuted`로 가독성 향상.
-- 카드가 커지면 `difficultyCardSpacing`도 비례 확대, summary 카드 위치(`difficultySelectSummaryCardOffsetX`)도 좌측으로 조금 더 밀어 시각 균형 유지.
+### 판단 기준
+"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
 
 ---
 
 ## 변경 범위
 
 ### 수정할 파일
-
-- `GanhoMusic iOS/GameViewController.swift` — SKView mount를 safe area에 묶음.
-- `GanhoMusic Shared/Models/Difficulty.swift` — `description: String` computed property 추가.
-- `GanhoMusic Shared/Nodes/DifficultyCardNode.swift` — 카드 크기 확장 + descriptionLabel 추가 + 미선택 시각 강화.
-- `GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — 카드 spacing v3 적용 + 카드별 y 미세 오프셋.
-- `GanhoMusic Shared/Scenes/DifficultySelectScene.swift` — summary 카드 offset 조정 + 3장 카드 layout 비례 갱신.
-- `GanhoMusic Shared/Config/GameConfig.swift` — 신규 상수 추가 (`*V3`, `*Description*`).
+1. `GanhoMusic iOS/GameViewController.swift` — 정책 메서드 1개 추가 (frame 미터치 의도 기록)
+2. `GanhoMusic Shared/Config/GameConfig.swift` — 상수 추가/갱신
+3. `GanhoMusic Shared/Scenes/StartScene.swift` — `layoutStartButton()`만
+4. `GanhoMusic Shared/Scenes/ResultScene.swift` — `layoutLabels()` 내 두 버튼 좌표만
+5. `GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — `cardBaseX`/`cardBaseY` 동적 spacing + 확인 버튼/skillInfoChip safeArea 적용
+6. `GanhoMusic Shared/Nodes/CharacterFaceNode.swift` — 차이 있는 캐릭터(예: jung, geon, lee, im)만 재이식
 
 ### 추가할 파일
-
-없음.
+- `GanhoMusic Shared/Utilities/SceneSafeArea.swift` — 모든 씬이 공유하는 safeArea 헬퍼 1개
 
 ---
 
 ## 기능 상세
 
-### 기능 1: SKView Safe Area Mount (GameViewController)
-
-- **설명**: SKView를 view 전체에 깔지 않고, `view.safeAreaLayoutGuide` 영역에만 마운트한다. view.backgroundColor에 그라데이션 top 색을 fallback으로 깔아 노치 영역 비주얼 연속성을 유지.
-- **구현 위치**: `GameViewController.swift` — `viewDidLoad()` + 새 `viewSafeAreaInsetsDidChange()` + `viewDidLayoutSubviews()` + private `relayoutSKView()`.
-- **핵심 코드 구조** (의사코드):
-
+### 기능 1: SceneSafeArea 헬퍼 신설 (인프라)
+- 설명: SKView frame은 절대 만지지 않는 정책 하에, SKScene 내부에서 `view.safeAreaInsets`를 일관되게 읽는 공용 헬퍼. Landscape 전용이므로 left/right 노치 회피가 가장 중요. view 미부착 시 `.zero` 반환으로 강제 언래핑/크래시 0건.
+- 구현 위치: `GanhoMusic Shared/Utilities/SceneSafeArea.swift` (신규)
+- 핵심 코드 구조:
   ```swift
-  // GameViewController.viewDidLoad
-  override func viewDidLoad() {
-      super.viewDidLoad()
+  import SpriteKit
+  import UIKit
 
-      // 1) 시스템 보장 fallback — safe area 바깥(노치 영역)에서도 warm 톤 유지
-      view.backgroundColor = .ganhoBgWarmTop
-
-      // 2) Storyboard의 SKView 자식을 safeAreaLayoutGuide에 묶음
-      guard let skView = self.view as? SKView else {
-          assertionFailure("Root view must be SKView. Check Main.storyboard.")
-          return
+  /// SKScene에서 view.safeAreaInsets를 안전하게 읽는 헬퍼.
+  /// Landscape 전용 게임 — left/right 노치 회피가 가장 중요.
+  /// GameViewController는 SKView frame을 절대 만지지 않는다(2026-05 무한재귀 사고 기록).
+  /// 노드 배치 측에서 이 헬퍼를 호출해 좌표를 보정한다.
+  enum SceneSafeArea {
+      /// 현재 SKView의 safe area insets. view 미부착 시 .zero(안전 폴백).
+      static func insets(for scene: SKScene) -> UIEdgeInsets {
+          return scene.view?.safeAreaInsets ?? .zero
       }
-
-      // Storyboard 제약으로는 풀스크린이 박혀 있으므로 코드에서 frame을 safe area로 갱신.
-      skView.translatesAutoresizingMaskIntoConstraints = true
-      skView.frame = view.safeAreaLayoutGuide.layoutFrame
-      skView.autoresizingMask = []  // 자동 리사이즈는 끄고 우리가 직접 조정
-
-      let scene = StartScene.newStartScene()
-      skView.presentScene(scene)
-
-      skView.ignoresSiblingOrder = true
-      #if DEBUG
-      skView.showsFPS = true
-      skView.showsNodeCount = true
-      #endif
   }
+  ```
 
-  // 회전 / multitasking으로 inset이 바뀔 때 SKView도 따라간다
+### 기능 2: GameViewController 정책 메서드 (정책 기록)
+- 설명: `viewSafeAreaInsetsDidChange()`를 *명시적으로* override하되 본문은 super 호출 + 정책 주석만. 다음 사람이 frame을 만지려는 충동을 막는 의도.
+- 구현 위치: `GameViewController.swift` — `// MARK: - SafeArea Policy` 섹션 신설
+- 핵심 코드 구조:
+  ```swift
+  // MARK: - SafeArea Policy
+  /// SKView frame은 직접 만지지 않는다(2026-05 무한재귀 사고 기록).
+  /// safeArea 회피는 각 SKScene이 view.safeAreaInsets를 읽어 노드 좌표에 가산하는 방식만 허용.
+  /// 본 메서드는 정책을 코드에 명시하기 위해 존재 — 본문은 super 호출만.
   override func viewSafeAreaInsetsDidChange() {
       super.viewSafeAreaInsetsDidChange()
-      relayoutSKView()
-  }
-
-  override func viewDidLayoutSubviews() {
-      super.viewDidLayoutSubviews()
-      relayoutSKView()
-  }
-
-  private func relayoutSKView() {
-      guard let skView = self.view as? SKView else { return }
-      let target = view.safeAreaLayoutGuide.layoutFrame
-      // frame 갱신이 실제로 바뀐 경우에만 — SKScene의 didChangeSize 폭주 방지
-      if skView.frame != target {
-          skView.frame = target
-      }
+      // 의도적 no-op. SKScene가 SceneSafeArea.insets(for:)로 직접 읽는다.
   }
   ```
 
-- **연쇄 효과**:
-  - 4개 씬의 `frame.minX` / `maxX` / `minY` / `maxY`가 자동으로 safe area 내부 좌표가 되므로, 각 씬 layout 코드는 *그대로* 작동.
-  - `didChangeSize(_:)`가 호출되면서 모든 layoutXxx()가 새 frame 기준으로 재계산.
-  - 그라데이션 배경 노드가 safe area 크기에 맞춰 재생성됨(`rebuildGradientBackground()`). 노치 영역은 view.backgroundColor의 warm top 색이 자연스럽게 차지.
-
-- **주의사항**:
-  - SKView의 storyboard 제약을 코드에서 override하므로 `translatesAutoresizingMaskIntoConstraints = true`로 명시.
-  - `view.safeAreaLayoutGuide.layoutFrame`은 viewDidLoad 시점에 `.zero`일 수 있음 → `viewDidLayoutSubviews` / `viewSafeAreaInsetsDidChange`에서 재호출하는 게 안전.
-  - `relayoutSKView`에서 frame 동일성 체크로 무한 didChangeSize 루프 방지.
-
-### 기능 2: Difficulty enum에 description 프로퍼티 추가
-
-- **설명**: `Difficulty` enum에 한 줄 풀이를 반환하는 computed property를 *신규* 추가. 기존 `displayName`/`subtitle`/`color`/`shortName`은 그대로.
-- **구현 위치**: `Models/Difficulty.swift` — 마지막 `}` 직전.
-- **핵심 코드 구조**:
-
+### 기능 3: GameConfig 상수 토큰 갱신 + 신설
+- 설명: 두 분류. (A) 신규 — 화면 가장자리 안전 마진 + 버튼 하단 inset. (B) 갱신 — 카드 치수 키워 분리감 강화. 기존 frame.midY 기반 상수는 **값 보존, 적용 중지**.
+- 구현 위치: `GameConfig.swift` 끝부분에 새 MARK 섹션 추가 + 기존 상수 5개 값 갱신
+- 핵심 코드 구조:
   ```swift
-  /// 카드에 부착되는 한 줄 풀이. subtitle보다 길고 *경험의 톤*을 전달.
-  /// 게임 로직 분기 0 — 순수 시각 라벨용.
-  var description: String {
-      switch self {
-      case .easy:   return "느린 템포로 천천히 익혀요"
-      case .normal: return "적당한 도전, 손에 익는 속도"
-      case .hard:   return "진땀 흐르는 청진기 모드"
-      }
-  }
+  // MARK: - Adaptive Layout (디바이스 대응 · iPhone SE ~ Pro Max)
+  /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
+  static let adaptiveBottomMargin: CGFloat = 24
+  /// 화면 상단 안전 마진.
+  static let adaptiveTopMargin: CGFloat = 16
+  /// 화면 좌우 안전 마진(노치/dynamic island 영역 회피).
+  static let adaptiveHorizontalMargin: CGFloat = 20
+  /// StartScene 시작 버튼 — 화면 하단 기준 안쪽 거리.
+  static let startButtonBottomInset: CGFloat = 64
+  /// ResultScene 두 버튼 — 화면 하단 기준 안쪽 거리.
+  static let resultButtonBottomInset: CGFloat = 56
+  /// CharacterSelect 카드 spacing 최소값(28pt) — 가장 좁은 디바이스(iPhone SE) 보장.
+  static let characterSelectMinCardSpacing: CGFloat = 28
+  /// CharacterSelect 카드 spacing 최대값(56pt) — Pro Max에서 과도하게 벌어지지 않도록 clamp.
+  static let characterSelectMaxCardSpacing: CGFloat = 56
   ```
 
-- **주의사항**:
-  - case는 *추가/삭제 금지* — raw value 직렬화 호환 유지(DifficultyPreferenceRepository).
-  - `description`이라는 이름은 `CustomStringConvertible`과 시그니처가 같지만, `Difficulty`는 해당 프로토콜을 *채택하지 않는다*. Generator는 enum 선언부에 `: CustomStringConvertible` 추가 금지 — 채택하면 `String(describing:)` 동작이 변하여 회귀 가능. 만약 충돌 우려가 강하면 이름을 `tagline`/`oneLineCopy`로 바꿔도 SPEC 기능 동등.
+  **기존 상수 갱신 (값만 변경, 키 보존):**
 
-### 기능 3: DifficultyCardNode 크기 확장 + descriptionLabel 추가 + 시인성 강화
+  | 키 | 기존 | 신규 | 근거 |
+  |---|---|---|---|
+  | `characterCardWidth` | 48 | **76** | 게임 카드 톤(1.58×) |
+  | `characterCardHeight` | 60 | **104** | 세로 카드 비율(1.73×) |
+  | `characterFaceScale` | 0.55 | **0.82** | 카드 확대 비율 동기 |
+  | `characterCardGlassWidth` | 124 | **156** | 카드 확대 비율 동기 |
+  | `characterCardGlassHeight` | 166 | **204** | 카드 확대 비율 동기 |
+  | `characterSelectCardZigzagOffsetV3` | 4 | **6** | 카드 확대에 맞춘 미세 조정 |
 
-- **설명**:
-  1. 카드 폭/높이를 v3 상수로 확장 (`difficultyCardWidthV3`, `difficultyCardHeightV3`).
-  2. 카드 안에 nameLabel(상단) + subtitleLabel(중단) + descriptionLabel(하단) 3행 구조로 라벨 재배치.
-  3. 미선택 상태도 또렷이 — alpha 0.78, fillColor `id.color α 0.08`, strokeColor `id.color α 0.4`.
-  4. 선택 시 v2 효과는 그대로 (fill `id.color α 0.2`, stroke `id.color`).
-- **구현 위치**: `Nodes/DifficultyCardNode.swift` — `init(id:)` + `setSelected(_:)` + `configureLabels()`.
-- **핵심 코드 구조**:
+  **변경 금지(값 보존):** `startSceneStartButtonOffsetY`(-180), `resultButtonOffsetYV2`(-180), `characterSelectCardSpacingV3`(22 — 새 동적 계산이 이걸 우회), `characterSelectConfirmButtonOffsetY`, `characterSelectSkillInfoOffsetY`.
 
+### 기능 4: StartScene 시작 버튼 safeArea 회피
+- 설명: 시작 버튼을 frame.midY 기반 고정 오프셋에서 **화면 하단 + safeArea.bottom + startButtonBottomInset** 식으로 교체.
+- 구현 위치: `StartScene.swift` — `layoutStartButton()` 함수 본문만
+- 핵심 코드 구조:
   ```swift
-  final class DifficultyCardNode: SKNode {
-
-      let id: Difficulty
-      private let background: SKShapeNode
-      private let nameLabel: SKLabelNode
-      private let subtitleLabel: SKLabelNode
-      private let descriptionLabel: SKLabelNode      // 신규
-      private let ringGlow: SKShapeNode
-
-      init(id: Difficulty) {
-          self.id = id
-          let cardSize = CGSize(
-              width: GameConfig.difficultyCardWidthV3,    // 신규 v3 상수
-              height: GameConfig.difficultyCardHeightV3
-          )
-          background = SKShapeNode(
-              rectOf: cardSize,
-              cornerRadius: GameConfig.difficultyCardCornerRadiusV3
-          )
-          // 미선택 기본 — id.color α 0.08 fill + id.color α 0.4 stroke
-          background.fillColor = id.color.withAlphaComponent(
-              GameConfig.difficultyCardDeselectedFillAlphaV3
-          )
-          background.strokeColor = id.color.withAlphaComponent(
-              GameConfig.difficultyCardDeselectedStrokeAlphaV3
-          )
-          background.lineWidth = GameConfig.difficultyCardStrokeLineWidthV3
-
-          nameLabel = SKLabelNode(text: id.displayName)
-          subtitleLabel = SKLabelNode(text: id.subtitle)
-          descriptionLabel = SKLabelNode(text: id.description)   // 신규
-
-          // ringGlow는 기존 그대로 — 단 padding/lineWidth 등은 v3 카드 크기에 맞춰 사용
-          let ringSize = CGSize(
-              width: cardSize.width + GameConfig.difficultyCardRingGlowPadding,
-              height: cardSize.height + GameConfig.difficultyCardRingGlowPadding
-          )
-          ringGlow = SKShapeNode(rectOf: ringSize, cornerRadius: ringSize.height / 2)
-          ringGlow.fillColor = .clear
-          ringGlow.strokeColor = .ganhoAccentCoral
-          ringGlow.lineWidth = GameConfig.difficultyCardRingGlowLineWidth
-          ringGlow.glowWidth = GameConfig.difficultyCardRingGlowWidth
-          ringGlow.alpha = 0
-
-          super.init()
-          name = "difficultyCard_\(id.rawValue)"
-          zPosition = 100
-
-          background.position = .zero
-          ringGlow.position = .zero
-          ringGlow.zPosition = -1
-
-          addChild(ringGlow)
-          addChild(background)
-          configureLabels()
-          addChild(nameLabel)
-          addChild(subtitleLabel)
-          addChild(descriptionLabel)
-      }
-
-      func setSelected(_ selected: Bool) {
-          alpha = selected ? 1.0 : GameConfig.difficultyCardDeselectedAlphaV3
-          // ↑ characterCardDeselectedAlpha(0.5) 대신 v3 상수(0.78) 사용
-
-          // 기존 spring overshoot 시퀀스는 그대로 유지
-          removeAction(forKey: "cardScale")
-          if selected {
-              let overshoot = SKAction.scale(
-                  to: GameConfig.difficultyCardSpringOvershootScale,
-                  duration: GameConfig.difficultyCardSpringPhase1Duration
-              )
-              overshoot.timingMode = .easeOut
-              let settle = SKAction.scale(
-                  to: GameConfig.characterCardSelectedScale,
-                  duration: GameConfig.difficultyCardSpringPhase2Duration
-              )
-              settle.timingMode = .easeInEaseOut
-              run(SKAction.sequence([overshoot, settle]), withKey: "cardScale")
-          } else {
-              run(
-                  SKAction.scale(to: 1.0, duration: GameConfig.characterCardScaleDuration),
-                  withKey: "cardScale"
-              )
-          }
-
-          // v3 — 미선택도 색을 깔되 옅게(α 0.08), 선택 시 진한 fill(α 0.2)
-          background.fillColor = selected
-              ? id.color.withAlphaComponent(GameConfig.difficultyCardSelectedFillAlphaV3)
-              : id.color.withAlphaComponent(GameConfig.difficultyCardDeselectedFillAlphaV3)
-          background.strokeColor = selected
-              ? id.color
-              : id.color.withAlphaComponent(GameConfig.difficultyCardDeselectedStrokeAlphaV3)
-
-          nameLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
-          subtitleLabel.fontColor = .ganhoNavyMuted
-          descriptionLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
-
-          // ringGlow는 기존 그대로
-          ringGlow.removeAction(forKey: "ringFade")
-          let targetAlpha: CGFloat = selected ? 1.0 : 0.0
-          let duration: TimeInterval = selected
-              ? GameConfig.difficultyCardRingGlowFadeInDuration
-              : GameConfig.difficultyCardRingGlowFadeOutDuration
-          ringGlow.run(
-              SKAction.fadeAlpha(to: targetAlpha, duration: duration),
-              withKey: "ringFade"
-          )
-      }
-
-      private func configureLabels() {
-          // 이름 라벨 — 카드 상단
-          nameLabel.fontName = GameConfig.fontDisplay
-          nameLabel.fontSize = GameConfig.difficultyCardFontSizeV3   // 24pt
-          nameLabel.fontColor = .ganhoNavyMuted
-          nameLabel.horizontalAlignmentMode = .center
-          nameLabel.verticalAlignmentMode = .center
-          nameLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardNameOffsetYV3)
-
-          // 부제 — 중단
-          subtitleLabel.fontName = GameConfig.fontBody
-          subtitleLabel.fontSize = GameConfig.difficultyCardSubtitleFontSizeV3   // 12pt
-          subtitleLabel.fontColor = .ganhoNavyMuted
-          subtitleLabel.horizontalAlignmentMode = .center
-          subtitleLabel.verticalAlignmentMode = .center
-          subtitleLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardSubtitleOffsetYV3)
-
-          // 설명 — 하단 (신규)
-          descriptionLabel.fontName = GameConfig.fontBody
-          descriptionLabel.fontSize = GameConfig.difficultyCardDescriptionFontSizeV3   // 10pt
-          descriptionLabel.fontColor = .ganhoNavyMuted
-          descriptionLabel.horizontalAlignmentMode = .center
-          descriptionLabel.verticalAlignmentMode = .center
-          descriptionLabel.numberOfLines = 0
-          descriptionLabel.preferredMaxLayoutWidth = GameConfig.difficultyCardDescriptionMaxWidthV3
-          descriptionLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardDescriptionOffsetYV3)
-      }
+  private func layoutStartButton() {
+      let safe = SceneSafeArea.insets(for: self)
+      // frame.minY는 SpriteKit 좌표계에서 화면 하단. safeArea.bottom + inset만큼 위로.
+      startButton.position = CGPoint(
+          x: frame.midX,
+          y: frame.minY + safe.bottom + GameConfig.startButtonBottomInset
+      )
   }
   ```
+- 제거/회피: `frame.midY + GameConfig.startSceneStartButtonOffsetY` 식은 더이상 사용하지 않음(상수 자체는 보존).
 
-- **주의사항**:
-  - `setSelected`의 호출 시그니처는 *불변* — DifficultySelectScene이 그대로 호출.
-  - `removeAction(forKey:)` 패턴 유지(spring 액션 중복 방지).
-  - ringGlow는 v2 그대로 살림(시각 일관성). lineWidth/glowWidth 상수는 기존 값 재사용.
-  - 라벨 fontName을 `GameConfig.fontDisplay` / `fontBody`로 명시 — Jua/Gowun Dodum 톤 유지.
-
-### 기능 4: CharacterSelectScene 카드 여백 + 지그재그 오프셋
-
-- **설명**:
-  1. `characterCardSpacing` 10pt → v3 상수로 28pt 정도 확대.
-  2. 카드별 y 미세 오프셋(–6 / +8 / –4 / +6 / –6 같은 패턴)으로 정렬되지 않은 부유감 부여.
-- **구현 위치**: `Scenes/CharacterSelectScene.swift` — `cardBaseX(for:)` / `cardBaseY(for:)` 메서드.
-- **핵심 코드 구조**:
-
+### 기능 5: ResultScene 두 버튼 safeArea 회피
+- 설명: `shareButton`과 `restartButton`의 y좌표를 `frame.midY + offset` → `frame.minY + safe.bottom + inset`으로 교체. x좌표는 기존 `resultShareButtonXOffsetV2` / `resultRestartButtonXOffsetV2` 유지.
+- 구현 위치: `ResultScene.swift` — `layoutLabels()` 함수 *끝부분 두 줄만*
+- 핵심 코드 구조:
   ```swift
-  // cardBaseX는 spacing만 v3로 교체
+  let safe = SceneSafeArea.insets(for: self)
+  let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInset
+  shareButton?.position = CGPoint(
+      x: frame.midX + GameConfig.resultShareButtonXOffsetV2,
+      y: buttonY
+  )
+  restartButton.position = CGPoint(
+      x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
+      y: buttonY
+  )
+  ```
+- 다른 라벨 위치(titleLabel/scoreLabel/bestLabel/...)는 변경 0건 — frame.midY 기반 그대로 유지(카드 패널 안 배치이므로 잘림 없음).
+
+### 기능 6: CharacterSelect 카드 동적 spacing + 확인 버튼 safeArea
+- 설명: `cardBaseX(for:)`의 spacing을 **화면 폭 비례 동적 계산**으로 교체. 좌우 안전 마진 회피 + min/max clamp. 확인 버튼과 skillInfoChip도 safeArea.bottom 회피.
+- 구현 위치: `CharacterSelectScene.swift` — `cardBaseX(for:)`, `layoutConfirmButton()`, `layoutSkillInfoChip()`
+- 핵심 코드 구조:
+  ```swift
+  /// Sprint 7+ — 동적 spacing. 화면 폭에 비례해 자동 확장, 최소/최대 clamp.
   private func cardBaseX(for id: CharacterID) -> CGFloat {
       let allCases = CharacterID.allCases
       let count = allCases.count
-      let width = GameConfig.characterCardGlassWidth
-      let spacing = GameConfig.characterCardSpacingV3   // v3 — 기존 characterCardSpacing 미사용
+      let width = GameConfig.characterCardWidth   // 76
+      let safe = SceneSafeArea.insets(for: self)
+      // 좌우 안전 마진을 뺀 사용 가능한 폭.
+      let usable = frame.width
+          - safe.left - safe.right
+          - 2 * GameConfig.adaptiveHorizontalMargin
+      // 카드 N장 자체 폭을 뺀 잔여를 (N-1) 간격에 균등 분배.
+      let rawSpacing = (usable - width * CGFloat(count)) / CGFloat(count - 1)
+      let spacing = min(
+          GameConfig.characterSelectMaxCardSpacing,
+          max(GameConfig.characterSelectMinCardSpacing, rawSpacing)
+      )
       let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
       let startX = frame.midX - totalWidth / 2 + width / 2
       guard let index = allCases.firstIndex(of: id) else { return startX }
       return startX + CGFloat(index) * (width + spacing)
   }
-
-  /// 카드별 y 미세 오프셋. 5장 지그재그 패턴.
-  private func cardBaseY(for id: CharacterID) -> CGFloat {
-      let baseY = frame.midY + GameConfig.characterSelectCardOffsetY
-      let allCases = CharacterID.allCases
-      guard let index = allCases.firstIndex(of: id) else { return baseY }
-      let offsets = GameConfig.characterSelectCardYOffsetsV3  // [CGFloat] — 5개
-      let safe = index < offsets.count ? offsets[index] : 0
-      return baseY + safe
-  }
   ```
+  - `cardBaseY(for:)`는 새 `characterSelectCardZigzagOffsetV3`(=6) 값을 그대로 흡수 — 별도 변경 불필요(상수만 값 변경).
+  - `layoutConfirmButton()`: `frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin + 추가 inset`(PrimaryButton 높이 고려해 카드 줄 아래 + safeArea 위)로 교체. 카드 줄과 충돌 안 나도록 카드 하단(`cardBaseY + characterCardHeight/2`)보다 더 아래여야 함. 동적 계산으로 안전 확보.
+  - `layoutSkillInfoChip()`: confirm 버튼 위쪽 ~36pt 간격으로 배치(상대 좌표). 기존 frame.midY 기반 식은 폐기.
 
-- **연쇄 효과**:
-  - `setupCharacterCards` / `layoutCharacterCards` / `setupCardContainers` / `layoutCardContainers` / `setupCardColorDots` / `layoutCardColorDots` / `setupCharacterFaces` / `layoutCharacterFaces` / `setupTagLabels` / `layoutTagLabels`는 모두 `cardBaseX(for:)` / `cardBaseY(for:)`를 통해 좌표를 얻으므로 자동 동기화. 추가 코드 변경 0.
-  - 선택 시 `applyGlassContainerSelection`이 `let baseY = cardBaseY(for: cid)`를 호출 → 지그재그가 선택 애니메이션의 기준점에도 자연 반영됨. 시각 모순 없음.
-- **주의사항**:
-  - 기존 `characterCardSpacing` 상수는 *유지*(다른 곳 참조 가능성). 본 화면만 v3 상수로 분기.
-  - 지그재그 오프셋 배열은 컴파일타임 고정(`static let` 5개 원소). 인덱스 안전 체크 포함.
-  - 카드별 z-rotation은 본 sprint 범위에서 *제외* — Generator가 욕심내지 않도록 명시. y 오프셋만으로 충분히 흩어진 인상. rotation은 hit test와 글래스 컨테이너 외곽 형상에 영향을 줘 회귀 리스크 증가.
+### 기능 7: CharacterFaceNode SVG 동기화 (차이 있는 캐릭터만)
+- 설명: Generator는 5명의 `build{Kim,Jung,Geon,Im,Lee}Face()`를 첨부 SVG와 1:1 비교. 차이가 있는 캐릭터만 path 좌표/색상을 재이식. SVG y-down → SpriteKit y-up이므로 모든 SVG y 값에 `-1` 곱하기(기존 파일 헤더 라인 11의 변환 패턴 동일).
+- 구현 위치: `CharacterFaceNode.swift` — 각 `build*Face()` 함수
 
-### 기능 5: DifficultySelectScene 좌측 summary 카드와 우측 3장 카드 시각 균형
+#### 비교 결과 (현재 코드 vs 첨부 SVG)
 
-- **설명**: 카드가 1.4배 커지면(80→112, 56→80), spacing도 16→22로 비례 확대. 가로 총 폭이 늘어나므로 `difficultySelectSummaryCardOffsetX`(-220 → -260 정도)를 좌측으로 추가로 밀어 양쪽 시각 균형 유지.
-- **구현 위치**: `Scenes/DifficultySelectScene.swift` — `layoutDifficultyCards` / `layoutSummaryCard`.
-- **핵심 코드 구조**:
-
-  ```swift
-  // layoutDifficultyCards는 GameConfig 상수만 v3로 교체
-  private func layoutDifficultyCards() {
-      let count = difficultyCards.count
-      guard count > 0 else { return }
-      let width = GameConfig.difficultyCardWidthV3
-      let spacing = GameConfig.difficultyCardSpacingV3
-      let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
-      let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetXV3
-      let startX = centerX - totalWidth / 2 + width / 2
-      let y = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetYV3
-      for (index, card) in difficultyCards.enumerated() {
-          card.position = CGPoint(
-              x: startX + CGFloat(index) * (width + spacing),
-              y: y
-          )
-      }
-  }
-
-  // layoutSummaryCard는 offsetX만 V3로 교체 — 다른 baseY 의존 자식들은 그대로
-  private func layoutSummaryCard() {
-      let baseX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3
-      let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetY
-      // ... 이하 기존과 동일
-  }
-  ```
-
-- **주의사항**:
-  - 기존 `difficultyCardWidth/Height/Spacing` 상수는 *유지*. 본 화면만 v3로 분기.
-  - `layoutDifficultyCards`의 `centerX` 기준점은 frame.midX + offset → safe area에 자동으로 따라옴.
-  - 시작 버튼(`difficultySelectStartButtonOffsetY = -160`)은 카드 row offset이 -10이므로 카드 row가 가운데, 시작 버튼이 그 아래. 카드 높이가 56→80으로 +24pt 늘어도 시작 버튼과의 간격이 -150 → -126 정도여서 충돌 없음. Generator가 실제 빌드에서 확인 후 필요 시 시작 버튼 offsetY를 -10~-20 추가 하향 가능 (v3 상수 분기 권장).
-  - 좌측 summary 카드는 width 200, 우측 3장 카드 합계 폭(112×3 + 22×2 = 380). 좌측 summary 중심이 midX-260, 우측 3장 중심이 midX+110 → 시각 균형 적절. Generator가 실제 화면에서 미세 조정 가능.
-
-### 기능 6: GameConfig 신규 상수 일람
-
-새 상수는 **모두 `*V3` 또는 `*Description*` 접미사**로 추가. 기존 상수는 한 줄도 *값 변경하지 않는다*(다른 사용처 회귀 방지).
-
-```swift
-// MARK: - Sprint Visual-3 · Safe Area + Cards V3
-
-// --- DifficultyCardNode v3 ---
-/// v3 카드 폭(112pt). 기존 difficultyCardWidth(80) 대비 1.4배.
-static let difficultyCardWidthV3: CGFloat = 112
-/// v3 카드 높이(80pt). description 라벨 추가에 따른 세로 공간 확장.
-static let difficultyCardHeightV3: CGFloat = 80
-/// v3 카드 코너 반경(20pt). 캡슐 → 둥근 사각형 톤. height/2=40보다 작아 카드 인상.
-static let difficultyCardCornerRadiusV3: CGFloat = 20
-/// v3 카드 spacing(22pt). 기존 16 대비 +6.
-static let difficultyCardSpacingV3: CGFloat = 22
-/// v3 카드 stroke 두께(1.5pt).
-static let difficultyCardStrokeLineWidthV3: CGFloat = 1.5
-
-/// v3 미선택 카드 알파(0.78). 기존 characterCardDeselectedAlpha(0.5) 대비 +0.28 — 흐림 해소.
-static let difficultyCardDeselectedAlphaV3: CGFloat = 0.78
-/// v3 미선택 fill alpha — id.color × 0.08. 살짝 깔리는 톤.
-static let difficultyCardDeselectedFillAlphaV3: CGFloat = 0.08
-/// v3 미선택 stroke alpha — id.color × 0.4. 미선택도 색 대비 명확.
-static let difficultyCardDeselectedStrokeAlphaV3: CGFloat = 0.4
-/// v3 선택 fill alpha — id.color × 0.2. 기존 Phase 8-3 값 유지.
-static let difficultyCardSelectedFillAlphaV3: CGFloat = 0.2
-
-/// v3 nameLabel 폰트 크기(24pt). 기존 20 대비 +4.
-static let difficultyCardFontSizeV3: CGFloat = 24
-/// v3 subtitleLabel 폰트 크기(12pt). 기존 10 대비 +2.
-static let difficultyCardSubtitleFontSizeV3: CGFloat = 12
-/// v3 descriptionLabel 폰트 크기(10pt). 한 줄 풀이.
-static let difficultyCardDescriptionFontSizeV3: CGFloat = 10
-/// v3 description 라벨 최대 폭(카드 폭 - 좌우 16pt 패딩 = 96pt).
-static let difficultyCardDescriptionMaxWidthV3: CGFloat = 96
-
-/// v3 nameLabel y offset (+22 — 카드 상단).
-static let difficultyCardNameOffsetYV3: CGFloat = 22
-/// v3 subtitleLabel y offset (+2 — 카드 중간 살짝 위).
-static let difficultyCardSubtitleOffsetYV3: CGFloat = 2
-/// v3 descriptionLabel y offset (-22 — 카드 하단).
-static let difficultyCardDescriptionOffsetYV3: CGFloat = -22
-
-// --- DifficultySelectScene v3 ---
-/// v3 우측 3장 카드 행의 centerX 오프셋(+110). 기존 동일 — 우측 영역 중앙.
-static let difficultySelectDifficultyRowOffsetXV3: CGFloat = 110
-/// v3 우측 3장 카드 행의 y 오프셋(-10). 기존 동일 — summary와 같은 baseline.
-static let difficultySelectDifficultyRowOffsetYV3: CGFloat = -10
-/// v3 좌측 summary 카드 offsetX(-260). 기존 -220 대비 좌측으로 -40 추가 — 우측 카드 폭 확장에 대한 균형.
-static let difficultySelectSummaryCardOffsetXV3: CGFloat = -260
-
-// --- CharacterSelectScene v3 ---
-/// v3 캐릭터 카드 간 spacing(28pt). 기존 characterCardSpacing(10) 대비 +18 — 흩어진 인상.
-static let characterCardSpacingV3: CGFloat = 28
-/// v3 카드별 y 미세 오프셋(지그재그 패턴). [좌→우 5개]. 인덱스 안전 체크는 호출부.
-static let characterSelectCardYOffsetsV3: [CGFloat] = [-6, 8, -4, 6, -6]
-```
-
-- **주의사항**:
-  - GameConfig.swift는 거대 파일 — 새 섹션은 파일 끝 `// MARK: - Sprint Visual-3 · ...`로 명확히 분리.
-  - 매직 넘버 0 — 모든 값은 한국어 주석으로 의미 한 줄 설명.
-  - `characterSelectCardYOffsetsV3`는 `[CGFloat]` 배열 — `static let`으로 컴파일타임 고정. 인덱스 안전 체크는 호출부에서 한다.
-
-### 기능 7: ResultScene — 추가 변경 없음 (Safe Area로 자동 해결)
-
-- ResultScene은 좌우 가장자리 콘텐츠가 거의 없고(공유 버튼과 다시시작 버튼은 frame.midX 기준 ±70~80pt 오프셋), panel은 가운데 380pt 폭. SKView가 safe area에 맞춰 mount되면 panel과 버튼이 자동으로 안전 영역 안에 자리잡음.
-- 변경 0. 회귀 0.
-
-### 기능 8: StartScene — 추가 변경 없음 (Safe Area로 자동 해결)
-
-- StartScene의 BEST/PLAYS GlassPill은 `frame.minX + 60` / `frame.maxX - 60`을 사용. SKView가 safe area에 맞춰지면 frame.minX 자체가 노치 안쪽 픽셀 → BEST 알약이 노치를 침범하지 않음.
-- 타이틀 블록(`frame.maxX - 64`)도 동일하게 안전 영역 내부로 들어옴.
-- 변경 0.
-
----
-
-## 화면별 적용 결과 요약 (사용자가 체감할 변화)
-
-| 화면 | 변경 전 | 변경 후 |
-|---|---|---|
-| StartScene | BEST 알약 노치 좌측에서 겹침. 타이틀이 우측 끝에서 잘려 보임. | 모든 콘텐츠 safe area 안. 그라데이션 배경은 노치 영역도 warm top 색 fallback으로 연속. |
-| CharacterSelectScene | 5장 카드가 가운데에서 거의 맞닿음. 평평한 한 줄. | 카드 간 28pt 여백 + 지그재그 y 오프셋으로 자연스럽게 흩어진 인상. |
-| DifficultySelectScene | 우측 3장 카드 흐릿(α 0.5). 부제 거의 안 보임. 설명 없음. 카드 작음. | 카드 1.4배 확장(112×80). 미선택도 α 0.78로 또렷. 미선택 fill `id.color α 0.08`로 톤 깔림. 한 줄 description 라벨 신규 (예: "느린 템포로 천천히 익혀요"). |
-| ResultScene | 화면 가장자리 콘텐츠가 잘려 보일 위험. | Safe area mount로 panel 가운데 자동 정렬. 공유/다시시작 버튼 안전. |
-
----
-
-## 합격 기준 (Evaluator가 채점할 항목)
-
-### Swift 패턴 일관성 (35%)
-- [ ] 강제 언래핑(`!`) 신규 0건. `guard let view = self.view as? SKView else { return }` 패턴 유지.
-- [ ] `Timer.scheduledTimer` 신규 0건. SKView frame 재조정은 `viewSafeAreaInsetsDidChange` / `viewDidLayoutSubviews` 활용.
-- [ ] 매직 넘버 신규 0건. 모든 새 수치는 `GameConfig.*V3` 상수로 분리.
-- [ ] `[weak self]` 클로저 캡처 — 본 SPEC은 신규 클로저 없으므로 N/A. 기존 클로저 회귀 없음.
-- [ ] MARK 섹션 구분 유지. 신규 코드는 `// MARK: - Sprint Visual-3 ...` 라벨로 묶음.
-
-### 게임 로직 완성도 (30%)
-- [ ] `didMove(to:)` 초기화 패턴 회귀 0건.
-- [ ] `didChangeSize(_:)`에서 layout 재호출 패턴 유지.
-- [ ] SKAction 키(`cardScale`, `ringFade`, `glassSelect`) 그대로.
-- [ ] `DifficultyCardNode.setSelected(_:)` 시그니처 불변.
-- [ ] `Difficulty` enum의 case / rawValue 불변.
-- [ ] `GameScene.newGameScene(characterID:difficulty:)` 호출 시그니처 불변.
-
-### 성능 & 안정성 (20%)
-- [ ] 빌드 경고 신규 0건.
-- [ ] 4개 씬 모두 60fps 유지 — 노드 증가량 미미 (DifficultyCardNode당 SKLabelNode 1개 추가, 5장도 아니고 3장).
-- [ ] `viewSafeAreaInsetsDidChange` / `viewDidLayoutSubviews`에서 SKView frame 동일성 체크로 무한 재호출 방지 (`if skView.frame != target`).
-- [ ] `view.backgroundColor = .ganhoBgWarmTop` — UIColor extension(`ColorTokens`)에 이미 정의된 토큰만 사용. 하드코딩 색상 0건.
-
-### 기능 완성도 (15%)
-- [ ] iPhone 17 Pro landscape 시뮬레이터에서 4개 화면 가장자리 잘림 0건.
-- [ ] CharacterSelectScene 5장 카드 간 시각적 여백 명확.
-- [ ] DifficultyCard 미선택 상태가 또렷이 보임 (사용자 "흐리다" 불만 해소).
-- [ ] DifficultyCard에 한 줄 description 라벨 표시 (3개 난이도 각각 다른 문구).
-- [ ] DifficultyCard 크기 1.4배 이상 확장.
-- [ ] 게임플레이/저장/사운드 회귀 0건 — Repository 메서드, AudioManager.play, HapticsManager 호출부 변경 0.
-
----
-
-## 디자인 토큰 (변경 없음 — 참고)
-
-기존 `ColorTokens.swift`에 정의된 토큰만 사용. 신규 색상 0건.
-
-- `.ganhoBgWarmTop` / `.ganhoBgWarmMid` / `.ganhoBgWarmBottom` — 그라데이션 3-stop
-- `.ganhoNavyDeep` / `.ganhoNavyMuted` — 텍스트
-- `.ganhoCoralPrimary` / `.ganhoAccentCoral` — 액센트
-- `.ganhoMint` / `.ganhoYellowF` / `.ganhoBloodAccent` — Difficulty.color 매핑 (각각 easy/normal/hard)
-- `.ganhoUIBorder` — 기존 흰색 7% 보더 (v3에서는 미사용)
-- `.ganhoMusicGold` — NEW BEST 황금 (Result, 변경 없음)
-- `.ganhoScrubMint` — Summary 속도 칩 (변경 없음)
-
-폰트:
-- `GameConfig.fontDisplay` — Jua
-- `GameConfig.fontBody` — Gowun Dodum
-
----
-
-## 주의사항 (Generator를 위한 함정 목록)
-
-1. **GameViewController 변경은 단 한 곳**. Storyboard를 건드리지 말 것. `translatesAutoresizingMaskIntoConstraints = true`로 명시하고 `frame`만 코드에서 갱신.
-
-2. **`relayoutSKView`의 무한 루프 방지**. `if skView.frame != target` 조건 빠뜨리면 `viewDidLayoutSubviews` → `frame` 변경 → 다시 layout → 무한 호출 가능. 반드시 동일성 체크.
-
-3. **DifficultyCardNode의 `setSelected(_:)` 시그니처 불변**. DifficultySelectScene.setupDifficultyCards / selectDifficulty가 그대로 호출하고 있음.
-
-4. **`Difficulty.description` 이름 충돌 가능성**. Swift 표준 `CustomStringConvertible` 프로토콜의 `var description: String { get }`과 시그니처가 동일하지만, `Difficulty`가 해당 프로토콜을 채택하지 않는다면 충돌 없음. Generator는 enum 선언부에서 `: CustomStringConvertible` 추가하지 말 것 — 채택하면 `String(describing:)` 동작이 변하여 회귀 가능. 또는 이름을 `tagline`/`oneLineCopy`로 바꿔도 SPEC 기능 동등.
-
-5. **`characterCardSpacing` 상수 자체는 유지**. 다른 화면에서 참조 가능성. 본 SPEC은 *값 변경 금지, 새 상수 추가만*.
-
-6. **`Difficulty` enum의 raw value("easy"/"normal"/"hard") 절대 변경 금지**. `DifficultyPreferenceRepository`가 UserDefaults에 raw string으로 저장 — case 이름이나 raw value가 바뀌면 기존 사용자 설정이 무효화.
-
-7. **그라데이션 배경 fallback**. `view.backgroundColor = .ganhoBgWarmTop` 한 줄로 노치 영역 자연 톤 유지. 더 정교한 그라데이션은 본 sprint 범위 밖.
-
-8. **NurseAvatarNode 위치**. StartScene의 `nurseAvatarOffsetX = 180`은 `frame.minX + 180` 기준. safe area 적용 후 frame.minX가 노치 안쪽으로 들어오므로 NurseAvatar가 화면 가장자리에서 *살짝 멀어진다*. 의도된 변경이며 추가 조정 불필요.
-
-9. **DifficultySelectScene의 summary 카드 offsetX 변경**. -220 → -260으로 좌측 이동 시, summary 카드 폭이 200pt라 좌측 경계가 `centerX - 260 - 100 = midX - 360`. iPhone 17 Pro landscape safe area 가로 ~800pt 기준 midX가 400pt 근처, 따라서 좌측 경계 40pt 근처 — 안전. Generator는 실제 빌드에서 한 번 확인.
-
-10. **DifficultyCardNode의 ringGlow padding 상수 재사용**. `difficultyCardRingGlowPadding = 10`은 카드 크기가 80→112로 커져도 동일하게 +10pt만 외곽으로 빛남. 시각적으로 충분 — 별도 v3 padding 불필요.
-
-11. **SKLabelNode `numberOfLines = 0` + `preferredMaxLayoutWidth`**. description 라벨이 카드 폭(112pt - 좌우 패딩 16pt = 96pt)을 넘으면 자동 줄바꿈. 9~13자 한글 한 줄이 96pt에 들어가도록 description 문구 길이를 조절했음.
-
-12. **테스트 시뮬레이터**. iPhone 17 Pro 외에 iPhone SE(노치 없음), iPhone 15(노치 있음) 등에서도 잘림이 없어야 함. Safe area 기반이므로 모든 기기에서 자동 작동.
-
-13. **`background.lineWidth` 상수 분리**. 기존 코드는 `GameConfig.uiPanelLineWidth`를 사용했음. v3는 `difficultyCardStrokeLineWidthV3 = 1.5`로 분기. 카드 강조에 적절한 두께.
-
----
-
-## 변경 후 파일 라인 수 예측 (참고)
-
-| 파일 | 변경 전 | 변경 후 예상 | 증가 |
+| 캐릭터 | 현재 코드 | 첨부 SVG | 차이 판단 |
 |---|---|---|---|
-| GameViewController.swift | 63 | ~95 | +32 |
-| Difficulty.swift | 54 | ~70 | +16 |
-| DifficultyCardNode.swift | 145 | ~195 | +50 |
-| CharacterSelectScene.swift | 479 | ~485 | +6 |
-| DifficultySelectScene.swift | 448 | ~450 | +2 |
-| GameConfig.swift | ~1730 | ~1790 | +60 (신규 상수) |
+| **kim** | viewBox -50..55 좌표계 사용, 헤드폰 cy=2 rx=7 ry=10, 닫힌 눈 path(-14,-6)~ | viewBox -120..130 (큰 좌표) 헤드폰 cy=4 rx=14 ry=20, 컬 디테일 4개, 클로즈드아이 path(-28,-4)~(-12,-4) | 좌표계 다르지만 형태 일치. 카드 위 76×104 안에서 시각 동일 결과 가능성. **유지(변경 0)** 권장 — 차이 발견 시 재이식. |
+| **jung** | 스파이크 머리 + 헤드밴드(코랄) + 작은 cap + 곡괭이 미니 | 핑크 러닝캡(#FF8E80) + 챙(#C44A3D) + G+ 로고 + 안경(rx=18) + 땀방울 | **완전 다른 디자인** — 곡괭이/스파이크/헤드밴드 없음. **재이식 강력 후보**: 핑크 러닝캡 + 안경 + 땀방울. |
+| **geon** | 단정한 머리 + 작은 안경(r=9) + 책 미니 + 갈색 눈 path | **라벤더 톤** 큰 둥근 검은 눈(rx=9 ry=12) + 위 머리 한 점 tuft + 단순 어두운 머리 + 작은 미소. 안경/책 없음 | **완전 다른 디자인 (v6)** — **재이식 강력 후보**. |
+| **im** | 긴머리 좌우 + 앞머리 + 고양이귀 + 고양이눈 + 수염 + 분홍코 | 긴머리 좌우 + 가운데 가르마 앞머리 + 작은 고양이귀(삼각형) + 큰 둥근 눈(쿠키런 톤) + 분홍 고양이코. **수염 없음** | **부분 차이 (v6)** — 큰 둥근 눈 + 수염 제거. **재이식 강력 후보**. |
+| **lee** | Bob cut + **강아지귀** ❌ + 동그란 눈 + 혀 | 곱슬 단발(side curls) + 앞머리 + 닫힌 눈 미소(SVG 시그너처) + 따뜻한 미소. **강아지귀 명시적으로 제거(SVG 주석 v3)** | **부분 차이 (v3)** — 강아지귀 제거 + 닫힌 눈 + side curls dots. **재이식 강력 후보**. |
 
-총 +166 라인. 새 파일 0.
+#### Generator 작업 절차
+1. 각 빌드 함수를 첨부 SVG와 시각 비교(코드 path 좌표 → 머릿속 렌더 → SVG 형태 매칭)
+2. **kim**: 변경 권장 0 (좌표 스케일은 다르지만 형태 일치). Generator가 명확한 차이를 발견하면 재이식 가능.
+3. **jung**: 첨부 SVG 기반으로 buildJungFace 전체 재이식 — 핑크 러닝캡(`#FF8E80`) + 챙(`#C44A3D`) + 안경 원형 + 동공 + 결연한 눈썹 + 땀방울(`#9BCDF0`)
+4. **geon**: 전체 재이식 — `#1F1410`(어두운 머리) + 위 한 점 tuft path + 큰 검은 눈 ellipse + 흰 highlight + 작은 미소. 책/안경/단정한머리 제거.
+5. **im**: 부분 재이식 — 수염 제거 + 고양이눈을 큰 둥근 눈(`#2D2A4A` 채움) + 흰 highlight로 교체 + 앞머리 가운데 가르마 path 갱신. 긴머리/고양이귀/분홍코는 유지.
+6. **lee**: 부분 재이식 — 강아지귀 ellipse 제거 + side curls + curl detail dots 추가 + 동그란 눈을 닫힌 눈 path로 교체 + 혀 제거.
+7. 새 raw 색상이 필요하면 `UIColor(hex: "#...")` 기존 패턴 따름. `ColorTokens`에 동일 hex 토큰이 있으면 그쪽 우선.
+8. SVG y-down → SpriteKit y-up: 모든 y 값에 `-1` 곱하기(기존 변환 패턴 보존).
+9. SVG의 큰 좌표계(±120)를 코드의 작은 좌표계(±32~±70)로 *축소*하지 말 것 — Generator는 기존 함수의 좌표 스케일을 답습하고 *형태* 일치를 우선시.
+10. 빌드 함수 시작에 `// 기준 SVG: mockups/svg-exports/<id>.svg (vN)` 주석 1줄 추가.
 
 ---
 
-## 최종 체크리스트 (Generator가 완료 시 자가 확인)
+## 상수 토큰 표
 
-- [ ] GameViewController.viewDidLoad에서 view.backgroundColor와 SKView.frame 갱신.
-- [ ] viewSafeAreaInsetsDidChange + viewDidLayoutSubviews에서 relayoutSKView 호출.
-- [ ] relayoutSKView 내부에 `if skView.frame != target` 가드.
-- [ ] Difficulty.description 추가 (3 case 모두).
-- [ ] DifficultyCardNode에 descriptionLabel(SKLabelNode) property 추가.
-- [ ] DifficultyCardNode.init에서 v3 상수 사용 (Width/Height/CornerRadius/StrokeLineWidth).
-- [ ] DifficultyCardNode.setSelected에서 v3 alpha 사용 (deselected 0.78).
-- [ ] DifficultyCardNode.setSelected에서 fillColor: id.color × 0.08 (deselected) / × 0.2 (selected).
-- [ ] DifficultyCardNode.setSelected에서 strokeColor: id.color × 0.4 (deselected) / id.color (selected).
-- [ ] DifficultyCardNode의 3 라벨 fontColor가 .ganhoNavyDeep / .ganhoNavyMuted 토큰.
-- [ ] CharacterSelectScene.cardBaseX에서 characterCardSpacingV3 사용.
-- [ ] CharacterSelectScene.cardBaseY에서 characterSelectCardYOffsetsV3 적용.
-- [ ] DifficultySelectScene.layoutDifficultyCards에서 v3 상수 사용.
-- [ ] DifficultySelectScene.layoutSummaryCard에서 difficultySelectSummaryCardOffsetXV3 사용.
-- [ ] GameConfig에 신규 V3 상수 모두 정의 + 한국어 주석 부여.
-- [ ] 기존 GameConfig 상수의 값 변경 0건 (새 상수 추가만).
-- [ ] 빌드 에러 0, 신규 경고 0.
-- [ ] iPhone 17 Pro landscape 시뮬레이터에서 4개 화면 잘림 없음 (Generator가 직접 빌드 후 확인).
+### 신규 추가 (GameConfig.swift 끝)
+| 상수 | 값 | 용도 |
+|---|---|---|
+| `adaptiveBottomMargin` | 24 | 화면 하단 안전 마진 |
+| `adaptiveTopMargin` | 16 | 화면 상단 안전 마진 |
+| `adaptiveHorizontalMargin` | 20 | 좌우 노치 회피 |
+| `startButtonBottomInset` | 64 | StartScene 시작 버튼 하단 inset |
+| `resultButtonBottomInset` | 56 | ResultScene 두 버튼 하단 inset |
+| `characterSelectMinCardSpacing` | 28 | 카드 spacing 최소(SE 보장) |
+| `characterSelectMaxCardSpacing` | 56 | 카드 spacing 최대(Pro Max clamp) |
+
+### 갱신 (키 보존, 값만 변경)
+| 상수 | 기존 | 신규 |
+|---|---|---|
+| `characterCardWidth` | 48 | **76** |
+| `characterCardHeight` | 60 | **104** |
+| `characterFaceScale` | 0.55 | **0.82** |
+| `characterCardGlassWidth` | 124 | **156** |
+| `characterCardGlassHeight` | 166 | **204** |
+| `characterSelectCardZigzagOffsetV3` | 4 | **6** |
+
+### 보존 (값 변경 0, 적용 중지)
+- `startSceneStartButtonOffsetY` (-180) — 새 식이 이걸 우회
+- `resultButtonOffsetYV2` (-180) — 새 식이 이걸 우회
+- `characterSelectCardSpacingV3` (22) — 새 동적 계산이 이걸 우회
+- `characterSelectConfirmButtonOffsetY`, `characterSelectSkillInfoOffsetY` — 새 식이 이걸 우회
+
+---
+
+## 합격 기준 (Evaluator 채점)
+
+### 빌드 / 패턴
+- xcodebuild 성공 (iPhone SE / 17 Pro / 17 Pro Max 시뮬레이터)
+- 강제 언래핑 0건 (SceneSafeArea가 `?? .zero` 폴백 제공)
+- Timer 사용 0건
+- 매직 넘버 0건 — 모든 새 좌표가 GameConfig 상수 참조
+- MARK 섹션 구분 적절 (`// MARK: - Adaptive Layout`, `// MARK: - SafeArea Policy`)
+
+### SpriteKit 패턴
+- `didChangeSize(_:)` → `layoutXxx()` 재호출 보존 (StartScene/ResultScene/CharacterSelectScene 모두)
+- scaleMode `.resizeFill` 보존
+- 초기화는 `didMove(to:)`에 보존
+- SKView frame **건드림 0건** (GameViewController)
+
+### 기능 완성도
+- StartScene 시작 버튼이 화면 하단 safeArea 위 64pt에 위치 — Pro Max에서도 잘림 없음
+- ResultScene 두 버튼이 화면 하단 safeArea 위 56pt에 위치 — SE에서도 잘림 없음
+- CharacterSelect 5장 카드가 76×104pt + 화면 폭 비례 동적 spacing(28~56pt clamp)
+- 카드 외곽 글래스 컨테이너(156×204) 동기 확대
+- 얼굴 노드(scale 0.82)도 동기 확대
+- 첨부 SVG와 차이 있는 캐릭터(최소 jung, geon)의 얼굴이 시각 동기화됨
+
+### 회귀 방지 (각 항목 0건)
+- GameScene 코드 변경 0
+- DifficultySelectScene 코드 변경 0
+- SkillExplanationScene 코드 변경 0
+- CharacterCardNode 내부 구조 변경 0 (외부 GameConfig 치수만 흡수)
+- CharacterID 변경 0
+- PlayerNode 변경 0
+
+---
+
+## 검증 절차
+
+### 1. 빌드 검증
+```bash
+xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
+  -scheme "GanhoMusic iOS" \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  build
+```
+SUCCEED.
+
+### 2. 시각 비교 (수동)
+| 디바이스 | StartScene | CharacterSelect | ResultScene |
+|---|---|---|---|
+| iPhone SE | 시작 버튼 잘림 X | 카드 5장 화면 폭 안에 + spacing ≥ 28pt | 다시시작/공유 잘림 X |
+| iPhone 17 Pro | 시작 버튼 잘림 X | 카드 spacing 자연스럽게 늘어남 | 잘림 X |
+| iPhone 17 Pro Max | 시작 버튼 잘림 X | spacing ≤ 56pt clamp 작동 | 잘림 X |
+
+### 3. 캐릭터 얼굴 비교
+`mockups/svg-exports/*.svg`를 브라우저로 띄우고 시뮬레이터 CharacterSelect 옆에 두고 1:1 시각 비교:
+- kim: 곱슬 번머리 + 코랄 헤드폰
+- jung: 핑크 러닝캡 + 안경 + 땀방울 (스파이크/곡괭이 없음)
+- geon: 라벤더 톤 큰 검은 눈 + 위 머리 한 점 (안경/책 없음)
+- im: 긴머리 + 작은 고양이귀 + 큰 둥근 눈 + 분홍 고양이코 (수염 없음)
+- lee: 곱슬 단발 + 앞머리 + 닫힌 눈 미소 (강아지귀 없음)
+
+### 4. 회귀 검증
+StartScene → CharacterSelect(5명 모두 탭) → DifficultySelect → GameScene(45초 플레이) → ResultScene → 다시시작 → StartScene 1사이클 정상 작동.
+
+---
+
+## 주의사항
+
+- **SKView frame 미터치 절대 원칙**: GameViewController에 `view.frame =` 또는 `skView.frame =` 같은 대입은 절대 추가 금지. `viewSafeAreaInsetsDidChange()` 본문은 super 호출만.
+- **SceneSafeArea 호출 시점**: `didMove(to:)`보다는 `layoutXxx()` 안에서 매번 호출. `didChangeSize`에서 layout이 다시 불릴 때 회전/safeArea 변화를 자동 흡수.
+- **CharacterCardNode 내부 미터치**: 카드 크기는 init 시점에 `GameConfig.characterCardWidth/Height`로 흡수 — 자동 확대. CharacterCardNode 자체 코드 수정 0건이어야 함.
+- **CharacterFaceNode 좌표계 보존**: 기존 작은 좌표계(±32~±70)와 모든 캐릭터가 일관성을 가짐. 신규 캐릭터(jung/geon) 재이식 시도 *기존 작은 좌표계로 환산*하는 게 안전(SVG의 ±120 좌표계를 그대로 옮기면 카드 밖으로 비어져 나옴).
+- **빌드 에러 가능성**: `SceneSafeArea`는 `import UIKit` 필요. 다른 씬 파일은 이미 SpriteKit만 import 중이므로 헬퍼 호출 시 추가 import 불필요(SKScene이 UIKit 전이 import).
+- **didChangeSize 회귀**: 모든 씬의 `didChangeSize`는 기존 layout 함수들을 재호출하므로 자동 적응. 새 코드를 추가할 때 이 패턴을 깨지 말 것.
+- **alpha=0 라벨 보존**: ResultScene의 `characterLabel`, `difficultyLabel`, `statsLabel`, `promptLabel`은 alpha=0이지만 부착되어 있다. 위치 코드는 frame.midY 기반 그대로 두기(보호 가드).
+- **Sprint 카운터**: 이 변경은 단일 디자인 리뉴얼 Sprint가 아니므로 `DESIGN_RENEWAL_STATE.md` 갱신은 진행 로그 한 줄만.

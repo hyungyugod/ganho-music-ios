@@ -11,6 +11,7 @@
 		A1C0F1620000000000000002 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1520000000000000002 /* GameState.swift */; };
 		A1C0F1630000000000000003 /* PhysicsCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1530000000000000003 /* PhysicsCategory.swift */; };
 		A1C0F1640000000000000004 /* ColorTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1540000000000000004 /* ColorTokens.swift */; };
+		A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000073 /* SceneSafeArea.swift */; };
 		A1C0F1650000000000000005 /* PlayerNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1550000000000000005 /* PlayerNode.swift */; };
 		A1C0F1660000000000000006 /* DPadNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1560000000000000006 /* DPadNode.swift */; };
 		A1C0F1680000000000000008 /* NoteNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1580000000000000008 /* NoteNode.swift */; };
@@ -86,6 +87,7 @@
 		A1C0F1520000000000000002 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 		A1C0F1530000000000000003 /* PhysicsCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsCategory.swift; sourceTree = "<group>"; };
 		A1C0F1540000000000000004 /* ColorTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTokens.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000073 /* SceneSafeArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSafeArea.swift; sourceTree = "<group>"; };
 		A1C0F1550000000000000005 /* PlayerNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerNode.swift; sourceTree = "<group>"; };
 		A1C0F1560000000000000006 /* DPadNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPadNode.swift; sourceTree = "<group>"; };
 		A1C0F1580000000000000008 /* NoteNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteNode.swift; sourceTree = "<group>"; };
@@ -278,6 +280,7 @@
 				A1C0F1520000000000000002 /* GameState.swift */,
 				A1C0F1530000000000000003 /* PhysicsCategory.swift */,
 				A1C0F1540000000000000004 /* ColorTokens.swift */,
+				A1C0F1A00000000000000073 /* SceneSafeArea.swift */,
 			);
 			name = Config;
 			path = "GanhoMusic Shared/Config";
@@ -644,6 +647,7 @@
 				A1C0F1B00000000000000070 /* CharacterFaceNode.swift in Sources */,
 				A1C0F1B00000000000000071 /* NurseAvatarNode.swift in Sources */,
 				A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */,
+				A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

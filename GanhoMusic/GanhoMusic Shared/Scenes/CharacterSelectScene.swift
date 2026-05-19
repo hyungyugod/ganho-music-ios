@@ -316,10 +316,17 @@ final class CharacterSelectScene: SKScene {
     }
 
     /// Sprint 2 — confirm 버튼은 가운데. backButton 인스턴스 제거됨.
+    /// Sprint 7+ — safeArea.bottom 회피. 카드 하단(cardBaseY + characterCardHeight/2)보다 충분히 아래.
+    ///   - 카드 하단 ≈ frame.midY + 30 + 6 + 52 = frame.midY + 88(최대 zigzag 포함).
+    ///   - 새 confirm.y = frame.minY + safe.bottom + adaptiveBottomMargin + characterSelectConfirmButtonBottomInset.
+    ///   - 두 값 사이 간격이 PrimaryButton 높이(약 40~56pt)보다 큼.
+    /// 기존 characterSelectConfirmButtonOffsetY(-180)는 값 보존(다른 곳 참조 가능성).
     private func layoutConfirmButton() {
+        let safe = SceneSafeArea.insets(for: self)
         confirmButton.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.characterSelectConfirmButtonOffsetY
+            y: frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin
+                + GameConfig.characterSelectConfirmButtonBottomInset
         )
     }
 
@@ -341,10 +348,17 @@ final class CharacterSelectScene: SKScene {
         layoutSkillInfoChip()
     }
 
+    /// Sprint 7+ — confirm 버튼 위쪽 상대 간격(`characterSelectSkillInfoChipAbove`). frame.midY 기반 식은 폐기.
+    /// QA 2차 — confirmButton.position.y 직접 참조로 DRY 회복(두 식이 갈라질 위험 0).
+    /// 호출 순서: didMove(to:)는 setupConfirmButton → rebuildSkillInfoPanel 순,
+    ///           didChangeSize(_:)는 layoutConfirmButton → layoutSkillInfoChip 순.
+    ///           confirmButton의 position이 layoutSkillInfoChip 호출 시점에 항상 설정되어 있음.
+    /// 기존 characterSelectSkillInfoOffsetY(-100)는 값 보존(다른 곳 참조 가능성).
     private func layoutSkillInfoChip() {
+        // confirm 버튼 좌표를 직접 참조 — 두 식이 갈라질 위험 0(DRY).
         skillInfoChip?.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.characterSelectSkillInfoOffsetY
+            y: confirmButton.position.y + GameConfig.characterSelectSkillInfoChipAbove
         )
     }
 
@@ -361,13 +375,26 @@ final class CharacterSelectScene: SKScene {
     // MARK: - Card Geometry Helpers (Sprint 2 · §Q5)
     /// 카드 5장 가로 정렬 — 기존 layoutCharacterCards 좌표식과 동일 구조.
     /// 헬퍼로 분리 — 카드/컨테이너/색 점/태그 라벨/얼굴이 모두 같은 헬퍼를 호출하여 좌표 동기화.
-    /// Sprint 7 — spacing을 `characterSelectCardSpacingV3`(22pt)로 교체. 기존 `characterCardSpacing`(10)은
-    /// 다른 사용처 참조 가능성을 위해 *값/상수 자체는 그대로 유지*. 본 화면만 V3 분기.
+    /// Sprint 7+ — *동적 spacing*으로 교체. 화면 폭에 비례해 자동 확장, min/max clamp.
+    ///   - 좁은 디바이스(iPhone SE): rawSpacing < 28 → 최소 28pt 보장.
+    ///   - 넓은 디바이스(iPhone Pro Max): rawSpacing > 56 → 최대 56pt clamp.
+    ///   - 좌우 safeArea.left/.right + adaptiveHorizontalMargin 회피로 노치 안전.
+    /// 기존 characterSelectCardSpacingV3(22)는 다른 사용처 참조 가능성을 위해 값 보존.
     private func cardBaseX(for id: CharacterID) -> CGFloat {
         let allCases = CharacterID.allCases
         let count = allCases.count
-        let width = GameConfig.characterCardWidth
-        let spacing = GameConfig.characterSelectCardSpacingV3   // Sprint 7 — V3 spacing
+        let width = GameConfig.characterCardWidth   // 76
+        let safe = SceneSafeArea.insets(for: self)
+        // 좌우 안전 마진을 뺀 사용 가능한 폭.
+        let usable = frame.width
+            - safe.left - safe.right
+            - 2 * GameConfig.adaptiveHorizontalMargin
+        // 카드 N장 자체 폭을 뺀 잔여를 (N-1) 간격에 균등 분배.
+        let rawSpacing = (usable - width * CGFloat(count)) / CGFloat(count - 1)
+        let spacing = min(
+            GameConfig.characterSelectMaxCardSpacing,
+            max(GameConfig.characterSelectMinCardSpacing, rawSpacing)
+        )
         let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
         let startX = frame.midX - totalWidth / 2 + width / 2
         guard let index = allCases.firstIndex(of: id) else { return startX }

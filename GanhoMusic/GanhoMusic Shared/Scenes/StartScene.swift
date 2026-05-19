@@ -231,10 +231,16 @@ final class StartScene: SKScene {
         layoutStartButton()
     }
 
+    /// Sprint 7+ — safeArea.bottom 회피로 교체.
+    /// frame.midY + offset 식은 디바이스에 따라 시작 버튼이 잘렸다(iPhone 17 Pro Landscape 사고).
+    /// 새 식: frame.minY + safeArea.bottom + startButtonBottomInset → 모든 디바이스 보장.
+    /// 기존 GameConfig.startSceneStartButtonOffsetY(-180)는 값만 보존(다른 곳 참조 가능성).
     private func layoutStartButton() {
+        let safe = SceneSafeArea.insets(for: self)
+        // frame.minY는 SpriteKit 좌표계에서 화면 하단. safeArea.bottom + inset만큼 위로.
         startButton.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.startSceneStartButtonOffsetY
+            y: frame.minY + safe.bottom + GameConfig.startButtonBottomInset
         )
     }
 

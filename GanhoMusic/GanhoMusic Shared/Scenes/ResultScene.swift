@@ -534,13 +534,18 @@ final class ResultScene: SKScene {
             x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
             y: frame.midY + GameConfig.resultStatTitleOffsetYV2
         )
+        // Sprint 7+ — safeArea.bottom 회피로 교체.
+        // 기존 resultButtonOffsetYV2(-180)는 값 보존 — 다른 곳 참조 가능성.
+        // frame.midY + offset 식은 디바이스에 따라 두 버튼이 잘렸다.
+        let safe = SceneSafeArea.insets(for: self)
+        let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInset
         shareButton?.position = CGPoint(
             x: frame.midX + GameConfig.resultShareButtonXOffsetV2,
-            y: frame.midY + GameConfig.resultButtonOffsetYV2
+            y: buttonY
         )
         restartButton.position = CGPoint(
             x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
-            y: frame.midY + GameConfig.resultButtonOffsetYV2
+            y: buttonY
         )
 
         // gradient 배경 위치 — frame.midY 기준 정중앙. size 변화 시에도 안전.

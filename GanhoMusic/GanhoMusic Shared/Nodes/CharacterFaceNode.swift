@@ -137,6 +137,7 @@ final class CharacterFaceNode: SKNode {
 
     // MARK: - 1. Kim (번머리 + 모자 + 헤드폰)
     /// mockup char-card[0] — 번머리(curly bangs) + nurse cap + 헤드폰 + 미소눈.
+    /// 기준 SVG: mockups/svg-exports/kim.svg (v1) — 형태 일치 확인. 좌표 스케일은 작은 좌표계(±32~±34) 유지.
     private func buildKimFace() {
         buildHeadBase()
 
@@ -228,95 +229,142 @@ final class CharacterFaceNode: SKNode {
         buildBlush()
     }
 
-    // MARK: - 2. Jung (스파이크 헤어 + 헤어밴드 + 곡괭이)
-    /// mockup char-card[1] — 짧은 스파이크 머리 + 헤드밴드 + 작은 모자(기울어진) + 결연한 눈.
+    // MARK: - 2. Jung (핑크 러닝캡 + 안경 + 땀방울)
+    /// 기준 SVG: mockups/svg-exports/jung.svg (v2) — 완전 재작성.
+    /// 핑크 러닝캡(#FF8E80) + 챙(#C44A3D) + 안경(원형 + 흰 빛) + 결연한 눈썹 + 땀방울.
+    /// 스파이크/곡괭이/헤드밴드 모두 제거.
+    /// SVG ±64~±88 좌표계 → 코드 ±32~±44 (절반 축소).
     private func buildJungFace() {
         buildHeadBase()
 
-        // 스파이크 머리 — `<path d="M -28 -18 L -22 -30 L -14 -22 L -6 -32 L 0 -22 L 6 -32 L 14 -22 L 22 -30 L 28 -18 Q 20 -22 0 -22 Q -20 -22 -28 -18 Z"/>`
+        // 짧은 어두운 머리(모자에 거의 가려짐) — SVG `<path d="M -56 -20 Q -60 -44 -32 -48 L 32 -48 Q 60 -44 56 -20 ..."/>` 축소.
+        // 좌표: SVG(-56,-20) → SK(-28, 10), SVG(-32,-48) → SK(-16, 24), SVG(32,-48) → SK(16, 24), SVG(56,-20) → SK(28, 10).
         let hair = CGMutablePath()
-        hair.move(to: CGPoint(x: -28, y: 18))
-        hair.addLine(to: CGPoint(x: -22, y: 30))
-        hair.addLine(to: CGPoint(x: -14, y: 22))
-        hair.addLine(to: CGPoint(x: -6, y: 32))
-        hair.addLine(to: CGPoint(x: 0, y: 22))
-        hair.addLine(to: CGPoint(x: 6, y: 32))
-        hair.addLine(to: CGPoint(x: 14, y: 22))
-        hair.addLine(to: CGPoint(x: 22, y: 30))
-        hair.addLine(to: CGPoint(x: 28, y: 18))
-        hair.addQuadCurve(to: CGPoint(x: 0, y: 22), control: CGPoint(x: 20, y: 22))
-        hair.addQuadCurve(to: CGPoint(x: -28, y: 18), control: CGPoint(x: -20, y: 22))
+        hair.move(to: CGPoint(x: -28, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: -16, y: 24), control: CGPoint(x: -30, y: 22))
+        hair.addLine(to: CGPoint(x: 16, y: 24))
+        hair.addQuadCurve(to: CGPoint(x: 28, y: 10), control: CGPoint(x: 30, y: 22))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 16), control: CGPoint(x: 18, y: 16))
+        hair.addQuadCurve(to: CGPoint(x: -28, y: 10), control: CGPoint(x: -18, y: 16))
         hair.closeSubpath()
         let hairNode = SKShapeNode(path: hair)
-        hairNode.fillColor = Self.hairBrown
+        hairNode.fillColor = UIColor(hex: "#1F1410")   // SVG fill="#1F1410"
         hairNode.strokeColor = Self.navy
         hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
         hairNode.zPosition = 10
         addChild(hairNode)
 
-        // 헤드밴드 — `<rect x="-30" y="-12" width="60" height="8" rx="2"/>` 중심 (0, 8).
-        let band = SKShapeNode(rectOf: CGSize(width: 60, height: 8), cornerRadius: 2)
-        band.fillColor = Self.capCross
-        band.strokeColor = Self.navy
-        band.lineWidth = 2
-        band.position = CGPoint(x: 0, y: 8)
-        band.zPosition = 11
-        addChild(band)
-
-        // 헤드밴드 골드 점.
-        let bandDot = SKShapeNode(circleOfRadius: 2)
-        bandDot.fillColor = Self.bandDot
-        bandDot.strokeColor = .clear
-        bandDot.position = CGPoint(x: 0, y: 8)
-        bandDot.zPosition = 12
-        addChild(bandDot)
-
-        // 작은 nurse cap(기울어진) — 별도 path. transform rotate(-8deg).
+        // 핑크 러닝캡 본체 — SVG `<path d="M -44 -44 Q -44 -72 0 -76 Q 44 -72 44 -44 L 36 -36 L -36 -36 Z"/>` 축소.
+        // 좌표: SVG(-44,-44) → SK(-22, 22), SVG(0,-76) → SK(0, 38), SVG(44,-44) → SK(22, 22).
         let cap = CGMutablePath()
-        cap.move(to: CGPoint(x: -13, y: 22))
-        cap.addQuadCurve(to: CGPoint(x: 0, y: 38), control: CGPoint(x: -13, y: 36))
-        cap.addQuadCurve(to: CGPoint(x: 13, y: 22), control: CGPoint(x: 13, y: 36))
-        cap.addLine(to: CGPoint(x: 10, y: 19))
-        cap.addLine(to: CGPoint(x: -10, y: 19))
+        cap.move(to: CGPoint(x: -22, y: 22))
+        cap.addQuadCurve(to: CGPoint(x: 0, y: 38), control: CGPoint(x: -22, y: 36))
+        cap.addQuadCurve(to: CGPoint(x: 22, y: 22), control: CGPoint(x: 22, y: 36))
+        cap.addLine(to: CGPoint(x: 18, y: 18))
+        cap.addLine(to: CGPoint(x: -18, y: 18))
         cap.closeSubpath()
         let capNode = SKShapeNode(path: cap)
-        capNode.fillColor = Self.capWhite
+        capNode.fillColor = UIColor(hex: "#FF8E80")  // SVG fill="#FF8E80" 핑크
         capNode.strokeColor = Self.navy
-        capNode.lineWidth = 2
-        capNode.zRotation = -.pi / 180 * 8  // -8deg
+        capNode.lineWidth = 2.5
+        capNode.lineJoin = .round
         capNode.zPosition = 20
         addChild(capNode)
 
-        // 결연한 눈 — `<path d="M -16 -2 L -8 -2"/>` 가로 라인.
-        for sign in [-1.0, 1.0] {
-            let eye = CGMutablePath()
-            eye.move(to: CGPoint(x: 16 * CGFloat(sign), y: 2))
-            eye.addLine(to: CGPoint(x: 8 * CGFloat(sign), y: 2))
-            let eyeNode = SKShapeNode(path: eye)
-            eyeNode.strokeColor = Self.navy
-            eyeNode.lineWidth = 3
-            eyeNode.fillColor = .clear
-            eyeNode.lineCap = .round
-            eyeNode.zPosition = 30
-            addChild(eyeNode)
+        // 캡 챙 — SVG `<path d="M -60 -32 Q -40 -44 0 -44 Q 40 -44 60 -32 L 52 -24 L -52 -24 Z"/>` 축소.
+        let brim = CGMutablePath()
+        brim.move(to: CGPoint(x: -30, y: 16))
+        brim.addQuadCurve(to: CGPoint(x: 0, y: 22), control: CGPoint(x: -20, y: 22))
+        brim.addQuadCurve(to: CGPoint(x: 30, y: 16), control: CGPoint(x: 20, y: 22))
+        brim.addLine(to: CGPoint(x: 26, y: 12))
+        brim.addLine(to: CGPoint(x: -26, y: 12))
+        brim.closeSubpath()
+        let brimNode = SKShapeNode(path: brim)
+        brimNode.fillColor = UIColor(hex: "#C44A3D")  // SVG fill="#C44A3D" 짙은 코랄
+        brimNode.strokeColor = Self.navy
+        brimNode.lineWidth = 2
+        brimNode.lineJoin = .round
+        brimNode.zPosition = 21
+        addChild(brimNode)
 
-            // 결연한 눈썹 — `<path d="M -18 -10 L -8 -8"/>`
-            let brow = CGMutablePath()
-            brow.move(to: CGPoint(x: 18 * CGFloat(sign), y: 10))
-            brow.addLine(to: CGPoint(x: 8 * CGFloat(sign), y: 8))
-            let browNode = SKShapeNode(path: brow)
-            browNode.strokeColor = Self.navy
-            browNode.lineWidth = 2.5
-            browNode.fillColor = .clear
-            browNode.lineCap = .round
-            browNode.zPosition = 30
-            addChild(browNode)
+        // 캡 로고(작은 흰색 원) — SVG `<circle cx="0" cy="-56" r="8"/>` 축소 → SK(0, 28) r=4.
+        let logo = SKShapeNode(circleOfRadius: 4)
+        logo.fillColor = .white
+        logo.strokeColor = Self.navy
+        logo.lineWidth = 1.5
+        logo.position = CGPoint(x: 0, y: 28)
+        logo.zPosition = 22
+        addChild(logo)
+
+        // 결연한 눈썹 — SVG `<path d="M -36 -20 L -16 -24"/>`/우측 대칭, 좌측 안쪽이 살짝 들림.
+        // 좌측: SK(-18, 10) → SK(-8, 12). 우측: SK(8, 12) → SK(18, 10).
+        let browLeft = CGMutablePath()
+        browLeft.move(to: CGPoint(x: -18, y: 10))
+        browLeft.addLine(to: CGPoint(x: -8, y: 12))
+        let browLeftNode = SKShapeNode(path: browLeft)
+        browLeftNode.strokeColor = Self.navy
+        browLeftNode.lineWidth = 2.5
+        browLeftNode.fillColor = .clear
+        browLeftNode.lineCap = .round
+        browLeftNode.zPosition = 30
+        addChild(browLeftNode)
+
+        let browRight = CGMutablePath()
+        browRight.move(to: CGPoint(x: 8, y: 12))
+        browRight.addLine(to: CGPoint(x: 18, y: 10))
+        let browRightNode = SKShapeNode(path: browRight)
+        browRightNode.strokeColor = Self.navy
+        browRightNode.lineWidth = 2.5
+        browRightNode.fillColor = .clear
+        browRightNode.lineCap = .round
+        browRightNode.zPosition = 30
+        addChild(browRightNode)
+
+        // 둥근 안경 렌즈 좌우 — SVG `<circle cx="±24" cy="-4" r="18"/>` 축소 → SK(±12, 2) r=9.
+        for sign in [-1.0, 1.0] {
+            let lens = SKShapeNode(circleOfRadius: 9)
+            lens.fillColor = Self.glassesLens
+            lens.strokeColor = Self.navy
+            lens.lineWidth = 3
+            lens.position = CGPoint(x: 12 * CGFloat(sign), y: 2)
+            lens.zPosition = 40
+            addChild(lens)
+
+            // 결연한 동공 — SVG `<circle cx="±24" cy="-2" r="4"/>` 축소 → r=2.
+            let pupil = SKShapeNode(circleOfRadius: 2)
+            pupil.fillColor = Self.navy
+            pupil.strokeColor = .clear
+            pupil.position = CGPoint(x: 12 * CGFloat(sign), y: 1)
+            pupil.zPosition = 41
+            addChild(pupil)
+
+            // 안경 빛 — SVG `<ellipse cx="-30 or 18" cy="-10" rx="5" ry="3"/>` 축소 → ry=1.5.
+            let shine = SKShapeNode(ellipseOf: CGSize(width: 5, height: 3))
+            shine.fillColor = UIColor.white.withAlphaComponent(0.6)
+            shine.strokeColor = .clear
+            // 좌측 렌즈는 좌상단 빛, 우측 렌즈는 우상단 빛.
+            let shineDx: CGFloat = sign < 0 ? -3 : 3
+            shine.position = CGPoint(x: 12 * CGFloat(sign) + shineDx, y: 5)
+            shine.zPosition = 42
+            addChild(shine)
         }
 
-        // 자신감 미소.
+        // 안경 다리(가운데 가로 라인) — SVG `<line x1="-6" y1="-4" x2="6" y2="-4"/>` 축소.
+        let bridge = CGMutablePath()
+        bridge.move(to: CGPoint(x: -3, y: 2))
+        bridge.addLine(to: CGPoint(x: 3, y: 2))
+        let bridgeNode = SKShapeNode(path: bridge)
+        bridgeNode.strokeColor = Self.navy
+        bridgeNode.lineWidth = 2
+        bridgeNode.fillColor = .clear
+        bridgeNode.zPosition = 40
+        addChild(bridgeNode)
+
+        // 러너의 거친 호흡 입 — SVG `<path d="M -8 22 Q 0 32 8 22"/>` 축소 → SK y=-11~-16.
         let mouth = CGMutablePath()
-        mouth.move(to: CGPoint(x: -6, y: -12))
-        mouth.addQuadCurve(to: CGPoint(x: 6, y: -12), control: CGPoint(x: 0, y: -18))
+        mouth.move(to: CGPoint(x: -4, y: -11))
+        mouth.addQuadCurve(to: CGPoint(x: 4, y: -11), control: CGPoint(x: 0, y: -16))
         let mouthNode = SKShapeNode(path: mouth)
         mouthNode.strokeColor = Self.navy
         mouthNode.lineWidth = 2.5
@@ -325,93 +373,102 @@ final class CharacterFaceNode: SKNode {
         mouthNode.zPosition = 30
         addChild(mouthNode)
 
-        buildBlush(radiusX: 4, radiusY: 2.5, cy: 10, alpha: 0.5)
+        // 살짝 벌어진 입 안쪽(어두운 타원) — SVG `<ellipse cx="0" cy="28" rx="7" ry="4" fill alpha 0.4"/>`.
+        let mouthInner = SKShapeNode(ellipseOf: CGSize(width: 6, height: 3))
+        mouthInner.fillColor = Self.navy.withAlphaComponent(0.4)
+        mouthInner.strokeColor = .clear
+        mouthInner.position = CGPoint(x: 0, y: -14)
+        mouthInner.zPosition = 31
+        addChild(mouthInner)
 
-        // 곡괭이 미니 아이콘 — translate(28, 28) rotate(40deg).
-        let pickContainer = SKNode()
-        pickContainer.position = CGPoint(x: 28, y: -28)
-        pickContainer.zRotation = -.pi / 180 * 40
-        pickContainer.zPosition = 40
-        addChild(pickContainer)
+        // 땀방울(우측 위) — SVG `<path d="M 56 -20 Q 60 -12 64 -20 Q 60 -8 56 -20 Z" fill="#9BCDF0"/>`.
+        // 축소 → SK(28~32, 10). 작은 물방울 모양.
+        let sweat = CGMutablePath()
+        sweat.move(to: CGPoint(x: 28, y: 10))
+        sweat.addQuadCurve(to: CGPoint(x: 32, y: 10), control: CGPoint(x: 30, y: 6))
+        sweat.addQuadCurve(to: CGPoint(x: 28, y: 10), control: CGPoint(x: 30, y: 4))
+        sweat.closeSubpath()
+        let sweatNode = SKShapeNode(path: sweat)
+        sweatNode.fillColor = UIColor(hex: "#9BCDF0")  // SVG fill="#9BCDF0" 파스텔 블루
+        sweatNode.strokeColor = Self.navy
+        sweatNode.lineWidth = 1.5
+        sweatNode.zPosition = 41
+        addChild(sweatNode)
 
-        let handle = SKShapeNode(rectOf: CGSize(width: 3, height: 18))
-        handle.fillColor = Self.pickHandle
-        handle.strokeColor = Self.navy
-        handle.lineWidth = 1.2
-        // SVG rect y=-12, h=18 → 중심 y = -(- 12 + 9) = 3 → SK 3.
-        handle.position = CGPoint(x: 0, y: 3)
-        pickContainer.addChild(handle)
-
-        let headPath = CGMutablePath()
-        headPath.move(to: CGPoint(x: -8, y: 12))
-        headPath.addLine(to: CGPoint(x: 8, y: 10))
-        headPath.addLine(to: CGPoint(x: 6, y: 8))
-        headPath.addLine(to: CGPoint(x: -6, y: 10))
-        headPath.closeSubpath()
-        let pickHead = SKShapeNode(path: headPath)
-        pickHead.fillColor = Self.pickHead
-        pickHead.strokeColor = Self.navy
-        pickHead.lineWidth = 1.2
-        pickContainer.addChild(pickHead)
+        // 태양에 그을린 볼터치(코랄 톤) — SVG `<ellipse cx="-44" cy="16" rx="10" ry="5" fill="#E87B6A" alpha 0.5"/>`.
+        for sign in [-1.0, 1.0] {
+            let cheek = SKShapeNode(ellipseOf: CGSize(width: 10, height: 5))
+            cheek.fillColor = UIColor(hex: "#E87B6A").withAlphaComponent(0.5)
+            cheek.strokeColor = .clear
+            cheek.position = CGPoint(x: 22 * CGFloat(sign), y: -8)
+            cheek.zPosition = 29
+            addChild(cheek)
+        }
     }
 
-    // MARK: - 3. Geon (안경 + 책 + 단정한 머리)
-    /// mockup char-card[2] — 단정한 갈래 머리 + nurse cap + 안경 + 책 미니.
+    // MARK: - 3. Geon (라벤더 너스캡 + 큰 둥근 검은 눈 + 위 머리 한 점 tuft)
+    /// 기준 SVG: mockups/svg-exports/geon.svg (v6) — 완전 재작성 (쿠키런 톤).
+    /// 어두운 머리(#1F1410) + 큰 둥근 검은 눈(rx=9 ry=12) + 위 한 점 tuft + 작은 미소.
+    /// 안경/책 제거.
+    /// SVG ±64~±88 좌표계 → 코드 ±32~±44 (절반 축소).
     private func buildGeonFace() {
         buildHeadBase()
 
-        // 단정한 머리.
+        // 어두운 머리 단순 실루엣 — SVG `<path d="M -64 -20 Q -76 -76 -32 -76 ..."/>` 축소.
+        // SVG(-64,-20) → SK(-32, 10), SVG(-32,-76) → SK(-16, 38), SVG(32,-76) → SK(16, 38), SVG(64,-20) → SK(32, 10).
         let hair = CGMutablePath()
-        hair.move(to: CGPoint(x: -28, y: 14))
-        hair.addQuadCurve(to: CGPoint(x: -14, y: 34), control: CGPoint(x: -32, y: 32))
-        hair.addLine(to: CGPoint(x: -2, y: 30))
-        hair.addLine(to: CGPoint(x: 2, y: 30))
-        hair.addLine(to: CGPoint(x: 14, y: 34))
-        hair.addQuadCurve(to: CGPoint(x: 28, y: 14), control: CGPoint(x: 32, y: 32))
-        hair.addQuadCurve(to: CGPoint(x: 2, y: 24), control: CGPoint(x: 18, y: 24))
-        hair.addLine(to: CGPoint(x: -2, y: 24))
-        hair.addQuadCurve(to: CGPoint(x: -28, y: 14), control: CGPoint(x: -18, y: 24))
+        hair.move(to: CGPoint(x: -32, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: -16, y: 38), control: CGPoint(x: -38, y: 38))
+        hair.addQuadCurve(to: CGPoint(x: 16, y: 38), control: CGPoint(x: 0, y: 42))
+        hair.addQuadCurve(to: CGPoint(x: 32, y: 10), control: CGPoint(x: 38, y: 38))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 22), control: CGPoint(x: 24, y: 24))
+        hair.addQuadCurve(to: CGPoint(x: -32, y: 10), control: CGPoint(x: -24, y: 24))
         hair.closeSubpath()
         let hairNode = SKShapeNode(path: hair)
-        hairNode.fillColor = Self.hairBrown
+        hairNode.fillColor = UIColor(hex: "#1F1410")  // SVG fill="#1F1410"
         hairNode.strokeColor = Self.navy
-        hairNode.lineWidth = 2
+        hairNode.lineWidth = 2.5
+        hairNode.lineJoin = .round
         hairNode.zPosition = 10
         addChild(hairNode)
 
+        // 위 머리 한 점 tuft (귀여운 포인트) — SVG `<path d="M -6 -76 Q 0 -88 6 -76 ..."/>` 축소.
+        let tuft = CGMutablePath()
+        tuft.move(to: CGPoint(x: -3, y: 38))
+        tuft.addQuadCurve(to: CGPoint(x: 3, y: 38), control: CGPoint(x: 0, y: 44))
+        tuft.addQuadCurve(to: CGPoint(x: -1, y: 41), control: CGPoint(x: 1, y: 41))
+        tuft.addQuadCurve(to: CGPoint(x: -3, y: 38), control: CGPoint(x: -3, y: 41))
+        tuft.closeSubpath()
+        let tuftNode = SKShapeNode(path: tuft)
+        tuftNode.fillColor = UIColor(hex: "#1F1410")
+        tuftNode.strokeColor = Self.navy
+        tuftNode.lineWidth = 1.5
+        tuftNode.lineJoin = .round
+        tuftNode.zPosition = 11
+        addChild(tuftNode)
+
         buildNurseCap()
 
-        // 안경 — `<circle cx="±12" cy="-1" r="9"/>` 렌즈 + 가운데 다리.
+        // 큰 둥근 검은 눈 (chibi 정석) — SVG `<ellipse cx="±22" cy="-2" rx="9" ry="12"/>` 축소 → rx=4.5, ry=6.
         for sign in [-1.0, 1.0] {
-            let lens = SKShapeNode(circleOfRadius: 9)
-            lens.fillColor = Self.glassesLens
-            lens.strokeColor = Self.navy
-            lens.lineWidth = 2.5
-            lens.position = CGPoint(x: 12 * CGFloat(sign), y: 1)
-            lens.zPosition = 40
-            addChild(lens)
+            let eye = SKShapeNode(ellipseOf: CGSize(width: 9, height: 12))
+            eye.fillColor = Self.navy
+            eye.strokeColor = .clear
+            eye.position = CGPoint(x: 11 * CGFloat(sign), y: 1)
+            eye.zPosition = 30
+            addChild(eye)
 
-            // 렌즈 안 동공.
-            let pupil = SKShapeNode(circleOfRadius: 2)
-            pupil.fillColor = Self.navy
-            pupil.strokeColor = .clear
-            pupil.position = CGPoint(x: 12 * CGFloat(sign), y: 1)
-            pupil.zPosition = 41
-            addChild(pupil)
+            // 단일 흰 highlight — SVG `<circle cx="-24 or 20" cy="-6" r="3.6"/>` 축소 → r=1.8.
+            let hl = SKShapeNode(circleOfRadius: 1.8)
+            hl.fillColor = .white
+            hl.strokeColor = .clear
+            let hlDx: CGFloat = sign < 0 ? -1 : -1
+            hl.position = CGPoint(x: 11 * CGFloat(sign) + hlDx, y: 3)
+            hl.zPosition = 31
+            addChild(hl)
         }
 
-        // 안경 다리 가운데 — `<line x1="-3" y1="-1" x2="3" y2="-1"/>`
-        let bridge = CGMutablePath()
-        bridge.move(to: CGPoint(x: -3, y: 1))
-        bridge.addLine(to: CGPoint(x: 3, y: 1))
-        let bridgeNode = SKShapeNode(path: bridge)
-        bridgeNode.strokeColor = Self.navy
-        bridgeNode.lineWidth = 2
-        bridgeNode.fillColor = .clear
-        bridgeNode.zPosition = 40
-        addChild(bridgeNode)
-
-        // 입 — `<path d="M -4 14 Q 0 17 4 14"/>`
+        // 작은 미소 — SVG `<path d="M -8 28 Q 0 34 8 28"/>` 축소 → SK y=-14.
         let mouth = CGMutablePath()
         mouth.move(to: CGPoint(x: -4, y: -14))
         mouth.addQuadCurve(to: CGPoint(x: 4, y: -14), control: CGPoint(x: 0, y: -17))
@@ -423,42 +480,24 @@ final class CharacterFaceNode: SKNode {
         mouthNode.zPosition = 30
         addChild(mouthNode)
 
-        buildBlush(radiusX: 4, radiusY: 2.5, cy: 10, alpha: 0.55)
-
-        // 책 미니 — translate(-28, 30): SK 좌표 (-28, -30).
-        let bookContainer = SKNode()
-        bookContainer.position = CGPoint(x: -28, y: -30)
-        bookContainer.zPosition = 40
-        addChild(bookContainer)
-
-        let book = SKShapeNode(rectOf: CGSize(width: 12, height: 8), cornerRadius: 1)
-        book.fillColor = Self.bookCover
-        book.strokeColor = Self.navy
-        book.lineWidth = 1.5
-        bookContainer.addChild(book)
-
-        let spine = CGMutablePath()
-        spine.move(to: CGPoint(x: 0, y: -4))
-        spine.addLine(to: CGPoint(x: 0, y: 4))
-        let spineNode = SKShapeNode(path: spine)
-        spineNode.strokeColor = Self.navy
-        spineNode.lineWidth = 1
-        spineNode.fillColor = .clear
-        bookContainer.addChild(spineNode)
+        buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
     }
 
-    // MARK: - 4. Im (긴머리 + 고양이귀 + 수염)
-    /// mockup char-card[3] — 좌우 긴머리 + 앞머리 + 고양이귀 + 고양이눈 + 수염 + 분홍 코.
+    // MARK: - 4. Im (긴머리 + 가운데 가르마 + 작은 고양이귀 + 큰 둥근 눈)
+    /// 기준 SVG: mockups/svg-exports/im.svg (v6) — 부분 재이식 (수염 제거).
+    /// 긴머리 좌우 + 가운데 가르마 앞머리 + 작은 고양이귀 + 큰 둥근 눈 + 흰 highlight + 분홍 고양이코.
+    /// **수염 제거 + 고양이눈 → 큰 둥근 눈 교체 + 앞머리 가운데 가르마 path 갱신.**
     private func buildImFace() {
         // 긴머리(좌우) — 머리 베이스보다 먼저 그림(뒤에 깔리도록).
-        // 좌측: `<path d="M -30 -10 Q -38 30 -28 50 L -20 30 Q -28 0 -22 -22 Z"/>`
+        // SVG: `<path d="M -68 -16 Q -88 56 -72 116 ..."/>` 축소 → ±34~±36 좌표.
         for sign in [-1.0, 1.0] {
             let s = CGFloat(sign)
             let hair = CGMutablePath()
-            hair.move(to: CGPoint(x: 30 * s, y: 10))
-            hair.addQuadCurve(to: CGPoint(x: 28 * s, y: -50), control: CGPoint(x: 38 * s, y: -30))
-            hair.addLine(to: CGPoint(x: 20 * s, y: -30))
-            hair.addQuadCurve(to: CGPoint(x: 22 * s, y: 22), control: CGPoint(x: 28 * s, y: 0))
+            hair.move(to: CGPoint(x: 34 * s, y: 8))
+            hair.addQuadCurve(to: CGPoint(x: 36 * s, y: -28), control: CGPoint(x: 44 * s, y: -28))
+            hair.addQuadCurve(to: CGPoint(x: 22 * s, y: -48), control: CGPoint(x: 30 * s, y: -50))
+            hair.addLine(to: CGPoint(x: 20 * s, y: -28))
+            hair.addQuadCurve(to: CGPoint(x: 28 * s, y: 10), control: CGPoint(x: 30 * s, y: -10))
             hair.closeSubpath()
             let hairNode = SKShapeNode(path: hair)
             hairNode.fillColor = Self.hairBrown
@@ -471,28 +510,36 @@ final class CharacterFaceNode: SKNode {
 
         buildHeadBase()
 
-        // 앞머리 — `<path d="M -28 -14 Q -32 -32 0 -34 Q 32 -32 28 -14 Q 18 -22 0 -22 Q -18 -22 -28 -14 Z"/>`
+        // 가운데 가르마 앞머리 — SVG `<path d="M -64 -20 Q -72 -76 -28 -80 L -4 -64 L 0 -72 L 4 -64 L 28 -80 ..."/>` 축소.
+        // 핵심: 가운데 V자(가르마)가 명확히 보이도록 짧은 라인 segment 두 개 추가.
         let bangs = CGMutablePath()
-        bangs.move(to: CGPoint(x: -28, y: 14))
-        bangs.addQuadCurve(to: CGPoint(x: 0, y: 34), control: CGPoint(x: -32, y: 32))
-        bangs.addQuadCurve(to: CGPoint(x: 28, y: 14), control: CGPoint(x: 32, y: 32))
-        bangs.addQuadCurve(to: CGPoint(x: 0, y: 22), control: CGPoint(x: 18, y: 22))
-        bangs.addQuadCurve(to: CGPoint(x: -28, y: 14), control: CGPoint(x: -18, y: 22))
+        bangs.move(to: CGPoint(x: -32, y: 10))
+        bangs.addQuadCurve(to: CGPoint(x: -14, y: 40), control: CGPoint(x: -36, y: 38))
+        bangs.addLine(to: CGPoint(x: -2, y: 32))   // V자 좌측 아래 — 가르마.
+        bangs.addLine(to: CGPoint(x: 0, y: 36))    // V자 정점.
+        bangs.addLine(to: CGPoint(x: 2, y: 32))    // V자 우측 아래 — 가르마.
+        bangs.addLine(to: CGPoint(x: 14, y: 40))
+        bangs.addQuadCurve(to: CGPoint(x: 32, y: 10), control: CGPoint(x: 36, y: 38))
+        bangs.addQuadCurve(to: CGPoint(x: 2, y: 22), control: CGPoint(x: 22, y: 22))
+        bangs.addLine(to: CGPoint(x: -2, y: 22))
+        bangs.addQuadCurve(to: CGPoint(x: -32, y: 10), control: CGPoint(x: -22, y: 22))
         bangs.closeSubpath()
         let bangsNode = SKShapeNode(path: bangs)
         bangsNode.fillColor = Self.hairBrown
         bangsNode.strokeColor = Self.navy
         bangsNode.lineWidth = 2
+        bangsNode.lineJoin = .round
         bangsNode.zPosition = 10
         addChild(bangsNode)
 
-        // 고양이 귀 — `<path d="M -22 -32 L -16 -22 L -10 -30 Z"/>` 좌, 우는 부호 반전.
+        // 작은 고양이 귀(삼각형) — SVG `<path d="M -40 -68 L -28 -44 L -16 -68 Z"/>` 축소.
+        // 좌측: SK(-20, 34) ~ (-14, 22) ~ (-8, 34). 작아짐.
         for sign in [-1.0, 1.0] {
             let s = CGFloat(sign)
             let ear = CGMutablePath()
-            ear.move(to: CGPoint(x: 22 * s, y: 32))
-            ear.addLine(to: CGPoint(x: 16 * s, y: 22))
-            ear.addLine(to: CGPoint(x: 10 * s, y: 30))
+            ear.move(to: CGPoint(x: 20 * s, y: 34))
+            ear.addLine(to: CGPoint(x: 14 * s, y: 22))
+            ear.addLine(to: CGPoint(x: 8 * s, y: 34))
             ear.closeSubpath()
             let earNode = SKShapeNode(path: ear)
             earNode.fillColor = Self.hairBrown
@@ -502,11 +549,11 @@ final class CharacterFaceNode: SKNode {
             earNode.zPosition = 20
             addChild(earNode)
 
-            // 귀 안쪽 분홍 — `<path d="M -19 -28 L -16 -24 L -13 -28 Z" fill="#FFB6B0"/>`
+            // 귀 안쪽 분홍 — SVG `<path d="M -32 -60 L -28 -52 L -24 -60 Z"/>` 축소.
             let inner = CGMutablePath()
-            inner.move(to: CGPoint(x: 19 * s, y: 28))
-            inner.addLine(to: CGPoint(x: 16 * s, y: 24))
-            inner.addLine(to: CGPoint(x: 13 * s, y: 28))
+            inner.move(to: CGPoint(x: 16 * s, y: 30))
+            inner.addLine(to: CGPoint(x: 14 * s, y: 26))
+            inner.addLine(to: CGPoint(x: 12 * s, y: 30))
             inner.closeSubpath()
             let innerNode = SKShapeNode(path: inner)
             innerNode.fillColor = Self.blush
@@ -515,127 +562,144 @@ final class CharacterFaceNode: SKNode {
             addChild(innerNode)
         }
 
-        // 고양이눈 — `<path d="M -16 -3 Q -10 -8 -6 -1 Q -10 -2 -16 -3 Z"/>`
+        // 큰 둥근 검은 눈(chibi 정석) — SVG `<ellipse cx="±22" cy="-2" rx="10" ry="13"/>` 축소 → rx=5, ry=6.5.
         for sign in [-1.0, 1.0] {
-            let s = CGFloat(sign)
-            let eye = CGMutablePath()
-            eye.move(to: CGPoint(x: 16 * s, y: 3))
-            eye.addQuadCurve(to: CGPoint(x: 6 * s, y: 1), control: CGPoint(x: 10 * s, y: 8))
-            eye.addQuadCurve(to: CGPoint(x: 16 * s, y: 3), control: CGPoint(x: 10 * s, y: 2))
-            eye.closeSubpath()
-            let eyeNode = SKShapeNode(path: eye)
-            eyeNode.fillColor = Self.navy
-            eyeNode.strokeColor = .clear
-            eyeNode.zPosition = 30
-            addChild(eyeNode)
+            let eye = SKShapeNode(ellipseOf: CGSize(width: 10, height: 13))
+            eye.fillColor = Self.navy
+            eye.strokeColor = .clear
+            eye.position = CGPoint(x: 11 * CGFloat(sign), y: 1)
+            eye.zPosition = 30
+            addChild(eye)
+
+            // 단일 흰 highlight — SVG `<circle cx="-24 or 20" cy="-6" r="4"/>` 축소 → r=2.
+            let hl = SKShapeNode(circleOfRadius: 2)
+            hl.fillColor = .white
+            hl.strokeColor = .clear
+            let hlDx: CGFloat = sign < 0 ? -1 : -1
+            hl.position = CGPoint(x: 11 * CGFloat(sign) + hlDx, y: 3)
+            hl.zPosition = 31
+            addChild(hl)
         }
 
-        // 수염 — 4가닥(좌우 위/아래).
-        let whiskerCoords: [(start: CGPoint, end: CGPoint)] = [
-            (CGPoint(x: -30, y: -6), CGPoint(x: -22, y: -6)),
-            (CGPoint(x: -30, y: -10), CGPoint(x: -22, y: -9)),
-            (CGPoint(x: 22, y: -6), CGPoint(x: 30, y: -6)),
-            (CGPoint(x: 22, y: -9), CGPoint(x: 30, y: -10))
-        ]
-        for (start, end) in whiskerCoords {
-            let path = CGMutablePath()
-            path.move(to: start)
-            path.addLine(to: end)
-            let whisker = SKShapeNode(path: path)
-            whisker.strokeColor = Self.navy
-            whisker.lineWidth = 1.5
-            whisker.fillColor = .clear
-            whisker.zPosition = 30
-            addChild(whisker)
-        }
-
-        // 냥 입 — `<path d="M -4 10 Q 0 14 4 10 Q 8 14 4 10"/>`
+        // 작은 미소 — SVG `<path d="M -6 26 Q 0 32 6 26"/>` 축소 → SK y=-13.
         let mouth = CGMutablePath()
-        mouth.move(to: CGPoint(x: -4, y: -10))
-        mouth.addQuadCurve(to: CGPoint(x: 4, y: -10), control: CGPoint(x: 0, y: -14))
-        mouth.addQuadCurve(to: CGPoint(x: 4, y: -10), control: CGPoint(x: 8, y: -14))
+        mouth.move(to: CGPoint(x: -3, y: -13))
+        mouth.addQuadCurve(to: CGPoint(x: 3, y: -13), control: CGPoint(x: 0, y: -16))
         let mouthNode = SKShapeNode(path: mouth)
         mouthNode.strokeColor = Self.navy
-        mouthNode.lineWidth = 2
+        mouthNode.lineWidth = 2.3
         mouthNode.fillColor = .clear
         mouthNode.lineCap = .round
         mouthNode.zPosition = 30
         addChild(mouthNode)
 
-        // 분홍 코.
-        let nose = SKShapeNode(ellipseOf: CGSize(width: 4, height: 3))
+        // 분홍 고양이 코(작게) — SVG `<ellipse cx="0" cy="14" rx="3" ry="2.4"/>` 축소 → rx=1.5, ry=1.2.
+        let nose = SKShapeNode(ellipseOf: CGSize(width: 3, height: 2.4))
         nose.fillColor = Self.pinkNose
         nose.strokeColor = .clear
-        nose.position = CGPoint(x: 0, y: -6)
+        nose.position = CGPoint(x: 0, y: -7)
         nose.zPosition = 30
         addChild(nose)
+
+        buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
     }
 
-    // MARK: - 5. Lee (단발 + 강아지귀 + 동그란 눈 + 혀)
-    /// mockup char-card[4] — Bob cut + 처진 강아지귀 + 동그란 흥분된 눈 + 혀 내민 미소.
+    // MARK: - 5. Lee (곱슬 단발 + side curls + 닫힌 눈 미소)
+    /// 기준 SVG: mockups/svg-exports/lee.svg (v3) — 부분 재이식 (강아지귀 제거).
+    /// 곱슬 단발 side curls + 앞머리 + 닫힌 눈 미소(SVG 시그너처) + 따뜻한 미소.
+    /// **강아지귀 ellipse 제거 + side curls + curl detail dots 추가 + 동그란 눈 → 닫힌 눈 path 교체 + 혀 제거.**
     private func buildLeeFace() {
+        // Side curls (좌우 곱슬 — 머리 베이스보다 먼저 그려 뒤에 깔림).
+        // SVG `<path d="M -64 -16 Q -76 16 -72 44 Q -68 68 -56 76 Q -44 56 -52 36 Q -64 16 -60 -20 Z"/>` 축소.
+        for sign in [-1.0, 1.0] {
+            let s = CGFloat(sign)
+            let curl = CGMutablePath()
+            curl.move(to: CGPoint(x: 32 * s, y: 8))
+            curl.addQuadCurve(to: CGPoint(x: 36 * s, y: -22), control: CGPoint(x: 38 * s, y: -8))
+            curl.addQuadCurve(to: CGPoint(x: 28 * s, y: -38), control: CGPoint(x: 34 * s, y: -34))
+            curl.addQuadCurve(to: CGPoint(x: 26 * s, y: -18), control: CGPoint(x: 22 * s, y: -28))
+            curl.addQuadCurve(to: CGPoint(x: 30 * s, y: 10), control: CGPoint(x: 32 * s, y: -8))
+            curl.closeSubpath()
+            let curlNode = SKShapeNode(path: curl)
+            curlNode.fillColor = Self.hairBrown
+            curlNode.strokeColor = Self.navy
+            curlNode.lineWidth = 2
+            curlNode.lineJoin = .round
+            curlNode.zPosition = -1
+            addChild(curlNode)
+        }
+
+        // Curl detail dots (좌우 위·아래 한 쌍씩) — SVG `<circle cx="±60" cy="40" r="8"/>` + `<circle cx="±52" cy="64" r="6"/>` 축소.
+        let curlDotCoords: [(x: CGFloat, y: CGFloat, r: CGFloat)] = [
+            (-30, -20, 4),
+            (30, -20, 4),
+            (-26, -32, 3),
+            (26, -32, 3)
+        ]
+        for coord in curlDotCoords {
+            let dot = SKShapeNode(circleOfRadius: coord.r)
+            dot.fillColor = Self.hairBrown
+            dot.strokeColor = Self.navy
+            dot.lineWidth = 1.5
+            dot.position = CGPoint(x: coord.x, y: coord.y)
+            dot.zPosition = 1
+            addChild(dot)
+        }
+
         buildHeadBase()
 
-        // Bob cut — `<path d="M -30 -8 Q -32 -32 0 -34 Q 32 -32 30 -8 L 28 12 Q 22 6 22 -10 Q 0 -22 -22 -10 Q -22 6 -28 12 Z"/>`
-        let hair = CGMutablePath()
-        hair.move(to: CGPoint(x: -30, y: 8))
-        hair.addQuadCurve(to: CGPoint(x: 0, y: 34), control: CGPoint(x: -32, y: 32))
-        hair.addQuadCurve(to: CGPoint(x: 30, y: 8), control: CGPoint(x: 32, y: 32))
-        hair.addLine(to: CGPoint(x: 28, y: -12))
-        hair.addQuadCurve(to: CGPoint(x: 22, y: 10), control: CGPoint(x: 22, y: -6))
-        hair.addQuadCurve(to: CGPoint(x: -22, y: 10), control: CGPoint(x: 0, y: 22))
-        hair.addQuadCurve(to: CGPoint(x: -28, y: -12), control: CGPoint(x: -22, y: -6))
-        hair.closeSubpath()
-        let hairNode = SKShapeNode(path: hair)
-        hairNode.fillColor = Self.hairBrown
-        hairNode.strokeColor = Self.navy
-        hairNode.lineWidth = 2
-        hairNode.lineJoin = .round
-        hairNode.zPosition = 10
-        addChild(hairNode)
+        // 앞머리 — SVG `<path d="M -56 -28 Q -64 -64 -32 -68 L -16 -56 L -4 -64 L 4 -64 L 16 -56 L 32 -68 ..."/>` 축소.
+        let bangs = CGMutablePath()
+        bangs.move(to: CGPoint(x: -28, y: 14))
+        bangs.addQuadCurve(to: CGPoint(x: -16, y: 34), control: CGPoint(x: -32, y: 32))
+        bangs.addLine(to: CGPoint(x: -8, y: 28))
+        bangs.addLine(to: CGPoint(x: -2, y: 32))
+        bangs.addLine(to: CGPoint(x: 2, y: 32))
+        bangs.addLine(to: CGPoint(x: 8, y: 28))
+        bangs.addLine(to: CGPoint(x: 16, y: 34))
+        bangs.addQuadCurve(to: CGPoint(x: 28, y: 14), control: CGPoint(x: 32, y: 32))
+        bangs.addQuadCurve(to: CGPoint(x: 8, y: 22), control: CGPoint(x: 18, y: 22))
+        bangs.addQuadCurve(to: CGPoint(x: -8, y: 22), control: CGPoint(x: 0, y: 24))
+        bangs.addQuadCurve(to: CGPoint(x: -28, y: 14), control: CGPoint(x: -18, y: 22))
+        bangs.closeSubpath()
+        let bangsNode = SKShapeNode(path: bangs)
+        bangsNode.fillColor = Self.hairBrown
+        bangsNode.strokeColor = Self.navy
+        bangsNode.lineWidth = 2
+        bangsNode.lineJoin = .round
+        bangsNode.zPosition = 10
+        addChild(bangsNode)
 
-        // 강아지 귀(처진) — `<ellipse cx="-26" cy="-4" rx="6" ry="14" transform="rotate(-20 -26 -4)"/>`
-        // SVG y=-4 → SK y=4. SVG rotate(-20deg) → SK 양의 회전.
+        // 작은 fringe 디테일 점(앞머리 텍스처) — SVG `<circle cx="±36" cy="-44" r="5" opacity 0.4"/>` 축소.
         for sign in [-1.0, 1.0] {
-            let s = CGFloat(sign)
-            let ear = SKShapeNode(ellipseOf: CGSize(width: 12, height: 28))
-            ear.fillColor = Self.hairBrown
-            ear.strokeColor = Self.navy
-            ear.lineWidth = 2
-            ear.position = CGPoint(x: 26 * s, y: 4)
-            ear.zRotation = .pi / 180 * 20 * s  // SVG -20deg, +20deg → SK 부호 반전
-            ear.zPosition = 20
-            addChild(ear)
-
-            let innerEar = SKShapeNode(ellipseOf: CGSize(width: 6, height: 16))
-            innerEar.fillColor = Self.blush
-            innerEar.strokeColor = .clear
-            innerEar.position = CGPoint(x: 26 * s, y: 0)
-            innerEar.zRotation = .pi / 180 * 20 * s
-            innerEar.zPosition = 21
-            addChild(innerEar)
+            let dot = SKShapeNode(circleOfRadius: 2.5)
+            dot.fillColor = UIColor(hex: "#1F1410").withAlphaComponent(0.4)
+            dot.strokeColor = .clear
+            dot.position = CGPoint(x: 18 * CGFloat(sign), y: 22)
+            dot.zPosition = 11
+            addChild(dot)
         }
 
-        // 동그란 눈.
+        // 닫힌 눈 미소 (SVG 시그너처) — SVG `<path d="M -32 -4 Q -20 -16 -12 -2"/>` 축소.
+        // 좌측: SK(-16, 2) Q (-10, 8) (-6, 1). 우측 대칭.
         for sign in [-1.0, 1.0] {
             let s = CGFloat(sign)
-            let eye = SKShapeNode(circleOfRadius: 4)
-            eye.fillColor = Self.navy
-            eye.strokeColor = .clear
-            eye.position = CGPoint(x: 12 * s, y: 1)
-            eye.zPosition = 30
-            addChild(eye)
-
-            // 흰자 highlight.
-            let hl = SKShapeNode(circleOfRadius: 1.5)
-            hl.fillColor = .white
-            hl.strokeColor = .clear
-            hl.position = CGPoint(x: (12 * s) + (sign < 0 ? 1 : 1), y: 2)
-            hl.zPosition = 31
-            addChild(hl)
+            let eye = CGMutablePath()
+            eye.move(to: CGPoint(x: 16 * s, y: 2))
+            eye.addQuadCurve(
+                to: CGPoint(x: 6 * s, y: 1),
+                control: CGPoint(x: 10 * s, y: 8)
+            )
+            let eyeNode = SKShapeNode(path: eye)
+            eyeNode.strokeColor = Self.navy
+            eyeNode.lineWidth = 2.8
+            eyeNode.fillColor = .clear
+            eyeNode.lineCap = .round
+            eyeNode.zPosition = 30
+            addChild(eyeNode)
         }
 
-        // 미소 — `<path d="M -6 12 Q 0 18 6 12"/>`
+        // 따뜻한 미소 — SVG `<path d="M -12 24 Q 0 36 12 24"/>` 축소 → SK y=-12.
         let mouth = CGMutablePath()
         mouth.move(to: CGPoint(x: -6, y: -12))
         mouth.addQuadCurve(to: CGPoint(x: 6, y: -12), control: CGPoint(x: 0, y: -18))
@@ -647,14 +711,7 @@ final class CharacterFaceNode: SKNode {
         mouthNode.zPosition = 30
         addChild(mouthNode)
 
-        // 분홍 혀 — `<ellipse cx="0" cy="16" rx="3" ry="2"/>` → SK y=-16.
-        let tongue = SKShapeNode(ellipseOf: CGSize(width: 6, height: 4))
-        tongue.fillColor = Self.pinkNose
-        tongue.strokeColor = .clear
-        tongue.position = CGPoint(x: 0, y: -16)
-        tongue.zPosition = 30
-        addChild(tongue)
-
-        buildBlush()
+        // 강한 볼터치(따뜻한·축제 느낌) — SVG `<ellipse cx="-44" cy="20" rx="14" ry="8" alpha 0.75"/>` 축소 → rx=7, ry=4.
+        buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
     }
 }

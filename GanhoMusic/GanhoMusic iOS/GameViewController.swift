@@ -61,4 +61,14 @@ class GameViewController: UIViewController {
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
         return [.bottom, .top]
     }
+
+    // MARK: - SafeArea Policy
+    /// SKView frame은 직접 만지지 않는다(2026-05 무한재귀 사고 기록).
+    /// safeArea 회피는 각 SKScene이 view.safeAreaInsets를 읽어 노드 좌표에 가산하는 방식만 허용.
+    /// 본 메서드는 정책을 코드에 명시하기 위해 존재 — 본문은 super 호출만.
+    /// 실제 회피 로직은 `SceneSafeArea.insets(for:)`를 거쳐 각 씬의 `layoutXxx()`가 담당.
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        // 의도적 no-op. SKScene가 SceneSafeArea.insets(for:)로 직접 읽는다.
+    }
 }

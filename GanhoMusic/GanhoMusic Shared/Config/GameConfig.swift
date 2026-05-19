@@ -231,10 +231,12 @@ enum GameConfig {
     static let enemyFleeDuration: TimeInterval = 5.0
 
     // MARK: - Character Card (Phase 5-1)
-    /// 캐릭터 선택 카드 1장 가로 (pt). 5장 일렬 + 화면 폭에 맞춰 작게.
-    static let characterCardWidth: CGFloat = 48
-    /// 캐릭터 선택 카드 1장 세로 (pt). 가로보다 살짝 큼.
-    static let characterCardHeight: CGFloat = 60
+    /// 캐릭터 선택 카드 1장 가로 (pt). Sprint 7+ — 48 → 76 (1.58×).
+    /// 카드를 키워 5장 간 분리감 강화. 글래스 컨테이너/얼굴 스케일과 동기 확대.
+    static let characterCardWidth: CGFloat = 76
+    /// 캐릭터 선택 카드 1장 세로 (pt). Sprint 7+ — 60 → 104 (1.73×).
+    /// 세로 비율을 더 키워 친구 카드 느낌. 가로 76 × 세로 104 = 1:1.37.
+    static let characterCardHeight: CGFloat = 104
     /// 카드 사이 간격 (pt). 5장 일렬 — 전체 폭 = 5×48 + 4×10 = 280.
     static let characterCardSpacing: CGFloat = 10
     /// 카드 이름 라벨 폰트 크기 (pt). 카드 폭(48) 안에 한국어 3자 들어가야 함.
@@ -1226,10 +1228,12 @@ enum GameConfig {
     /// Top bar 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
     static let characterSelectTopBarMarginY: CGFloat = 30
 
-    /// 카드 외곽 글래스 컨테이너 폭(pt). §4.2 = 110.
-    static let characterCardGlassWidth: CGFloat = 110
-    /// 카드 외곽 글래스 컨테이너 높이(pt).
-    static let characterCardGlassHeight: CGFloat = 140
+    /// 카드 외곽 글래스 컨테이너 폭(pt). Sprint 7+ — 110 → 156 (카드 확대에 동기).
+    /// characterCardWidth(76) + 좌우 inset 40 = 156. 카드 위 글래스 띠 두께 보존.
+    static let characterCardGlassWidth: CGFloat = 156
+    /// 카드 외곽 글래스 컨테이너 높이(pt). Sprint 7+ — 140 → 204 (카드 확대에 동기).
+    /// characterCardHeight(104) + 상하 inset 100 = 204. 라벨/태그 공간 확보.
+    static let characterCardGlassHeight: CGFloat = 204
     /// 카드 외곽 글래스 cornerRadius(pt).
     static let characterCardGlassCornerRadius: CGFloat = 18
     /// 카드 외곽 글래스 fill 알파(흰색).
@@ -1617,8 +1621,9 @@ enum GameConfig {
     static let nurseAvatarArmWidth: CGFloat = 20
 
     // MARK: CharacterFaceNode (CharacterSelectScene 5장 카드 위 얼굴)
-    /// 카드 안에서 얼굴 차지 비율 — viewBox 64×64를 카드(110×140) 안에 들어가게 0.55 정도.
-    static let characterFaceScale: CGFloat = 0.55
+    /// 카드 안에서 얼굴 차지 비율 — Sprint 7+ — 0.55 → 0.82 (카드 확대에 동기).
+    /// 카드(76×104)와 글래스(156×204) 확대에 맞춰 얼굴도 키워 시인성 강화.
+    static let characterFaceScale: CGFloat = 0.82
     /// 카드 중심에서 얼굴 y 오프셋 — 라벨(이름·태그)과 겹치지 않도록 +6~+10. (OPEN_QUESTION OQ-1)
     static let characterFaceOffsetYWithinCard: CGFloat = 8
     /// 5장 카드 위 얼굴 노드의 zPosition. 글래스 컨테이너(90) < 카드(100) < CharacterFaceNode(105) < 색 점/태그(110).
@@ -1784,7 +1789,34 @@ enum GameConfig {
     /// Sprint 7 — v3 캐릭터 카드 간 spacing(22pt). 기존 characterCardSpacing(10) 대비 +12
     /// — 흩어진 인상. 카드 cardBaseX 계산에만 사용.
     static let characterSelectCardSpacingV3: CGFloat = 22
-    /// Sprint 7 — v3 카드별 y 미세 오프셋 절대값(8pt). 지그재그 패턴 — 홀수 인덱스(0/2/4)는
-    /// +8, 짝수 인덱스(1/3)는 -8 식으로 호출부에서 부호 결정.
-    static let characterSelectCardZigzagOffsetV3: CGFloat = 8
+    /// Sprint 7 — v3 카드별 y 미세 오프셋 절대값. Sprint 7+ — 8 → 6 (카드 확대로 절댓값은 줄임).
+    /// 지그재그 패턴 — 홀수 인덱스(0/2/4)는 +6, 짝수 인덱스(1/3)는 -6 식으로 호출부에서 부호 결정.
+    static let characterSelectCardZigzagOffsetV3: CGFloat = 6
+
+    // MARK: - Adaptive Layout (Sprint 7+ · 디바이스 대응 · iPhone SE ~ Pro Max)
+    /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
+    /// SceneSafeArea.insets(for:).bottom + adaptiveBottomMargin = 노드 y 최소값.
+    static let adaptiveBottomMargin: CGFloat = 24
+    /// 화면 상단 안전 마진 — safeArea.top 아래에 추가로 띄울 여백.
+    static let adaptiveTopMargin: CGFloat = 16
+    /// 화면 좌우 안전 마진(노치/Dynamic Island 영역 회피).
+    /// Landscape에서 노치가 한쪽(또는 양쪽)을 침범 — 카드 spacing 계산의 입력값.
+    static let adaptiveHorizontalMargin: CGFloat = 20
+    /// StartScene 시작 버튼 — 화면 하단(safeArea.bottom) 기준 안쪽 거리.
+    /// frame.minY + safe.bottom + startButtonBottomInset = startButton.y.
+    static let startButtonBottomInset: CGFloat = 64
+    /// ResultScene 두 버튼(공유/다시시작) — 화면 하단(safeArea.bottom) 기준 안쪽 거리.
+    /// frame.minY + safe.bottom + resultButtonBottomInset = button.y.
+    static let resultButtonBottomInset: CGFloat = 56
+    /// CharacterSelect 카드 spacing 최소값(28pt) — 가장 좁은 디바이스(iPhone SE) 보장.
+    /// 카드 76 × 5장 + 28 × 4 spacing = 492pt — SE 가로(667pt safeArea 후) 안에 안전 수용.
+    static let characterSelectMinCardSpacing: CGFloat = 28
+    /// CharacterSelect 카드 spacing 최대값(56pt) — Pro Max에서 과도하게 벌어지지 않도록 clamp.
+    /// 카드 76 × 5장 + 56 × 4 spacing = 604pt — Pro Max 가로(900+pt)에서 자연 균형.
+    static let characterSelectMaxCardSpacing: CGFloat = 56
+    /// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
+    /// PrimaryButton의 시각적 중앙을 카드 줄과 충분히 분리하기 위한 미세 inset.
+    static let characterSelectConfirmButtonBottomInset: CGFloat = 40
+    /// CharacterSelect 스킬 정보 칩 — 확인 버튼 위쪽 상대 간격.
+    static let characterSelectSkillInfoChipAbove: CGFloat = 36
 }
