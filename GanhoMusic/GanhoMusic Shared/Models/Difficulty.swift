@@ -51,4 +51,16 @@ enum Difficulty: String, CaseIterable {
         case .hard:   return "상"
         }
     }
+
+    /// Sprint 7 — 카드에 부착되는 한 줄 풀이. subtitle보다 길고 *경험의 톤*을 전달.
+    /// DifficultyCardNode의 descriptionLabel에만 사용 — 게임 로직 분기 0, 순수 시각 라벨용.
+    /// `: CustomStringConvertible` 채택은 *하지 않는다* — `String(describing:)` 동작 변경
+    /// 회귀를 막기 위함(SPEC §주의사항 4).
+    var description: String {
+        switch self {
+        case .easy:   return "느린 템포로 패턴을 천천히 익혀요"
+        case .normal: return "표준 템포. 김간호의 평일 컨디션"
+        case .hard:   return "이교수의 청진기가 따라옵니다"
+        }
+    }
 }

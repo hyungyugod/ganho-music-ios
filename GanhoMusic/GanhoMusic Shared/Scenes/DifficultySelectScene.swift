@@ -314,7 +314,8 @@ final class DifficultySelectScene: SKScene {
     }
 
     private func layoutSummaryCard() {
-        let baseX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetX
+        // Sprint 7 — 우측 3장 카드가 1.4배 커지면서 시각 균형을 위해 좌측 summary를 V3 offset(-260)으로 추가 좌측 이동.
+        let baseX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3
         let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetY
         summaryContainer?.position = CGPoint(x: baseX, y: baseY)
         let badgeY = baseY + GameConfig.difficultySelectSummaryNameBadgeOffsetY
@@ -355,11 +356,12 @@ final class DifficultySelectScene: SKScene {
     }
 
     /// 3 카드 가로 일렬 — 화면 우측 영역 중앙(midX + offset).
+    /// Sprint 7 — width/spacing 모두 V3 상수(112 / 22) 참조. 기존 상수는 보존(다른 사용처 회귀 방지).
     private func layoutDifficultyCards() {
         let count = difficultyCards.count
         guard count > 0 else { return }
-        let width = GameConfig.difficultyCardWidth
-        let spacing = GameConfig.difficultyCardSpacing
+        let width = GameConfig.difficultyCardWidthV3
+        let spacing = GameConfig.difficultyCardSpacingV3
         let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
         let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetX
         let startX = centerX - totalWidth / 2 + width / 2

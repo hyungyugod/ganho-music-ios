@@ -359,22 +359,30 @@ final class CharacterSelectScene: SKScene {
     }
 
     // MARK: - Card Geometry Helpers (Sprint 2 · §Q5)
-    /// 카드 5장 가로 정렬 — 기존 layoutCharacterCards 좌표식과 동일.
+    /// 카드 5장 가로 정렬 — 기존 layoutCharacterCards 좌표식과 동일 구조.
     /// 헬퍼로 분리 — 카드/컨테이너/색 점/태그 라벨/얼굴이 모두 같은 헬퍼를 호출하여 좌표 동기화.
+    /// Sprint 7 — spacing을 `characterSelectCardSpacingV3`(22pt)로 교체. 기존 `characterCardSpacing`(10)은
+    /// 다른 사용처 참조 가능성을 위해 *값/상수 자체는 그대로 유지*. 본 화면만 V3 분기.
     private func cardBaseX(for id: CharacterID) -> CGFloat {
         let allCases = CharacterID.allCases
         let count = allCases.count
         let width = GameConfig.characterCardWidth
-        let spacing = GameConfig.characterCardSpacing
+        let spacing = GameConfig.characterSelectCardSpacingV3   // Sprint 7 — V3 spacing
         let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
         let startX = frame.midX - totalWidth / 2 + width / 2
         guard let index = allCases.firstIndex(of: id) else { return startX }
         return startX + CGFloat(index) * (width + spacing)
     }
 
+    /// Sprint 7 — 카드별 미세 y 오프셋(지그재그). 짝수 인덱스(0/2/4)는 +zigzag, 홀수(1/3)는 -zigzag.
+    /// 정렬되지 않은 자연스러운 부유감을 만든다. z-rotation은 hit test/외곽 형상 회귀 위험이 있어 *제외*.
     private func cardBaseY(for id: CharacterID) -> CGFloat {
-        _ = id  // 향후 캐릭터별 y 미세 조정 여지. 현재는 모두 동일 y.
-        return frame.midY + GameConfig.characterSelectCardOffsetY
+        let baseY = frame.midY + GameConfig.characterSelectCardOffsetY
+        let allCases = CharacterID.allCases
+        guard let index = allCases.firstIndex(of: id) else { return baseY }
+        let zigzag = GameConfig.characterSelectCardZigzagOffsetV3
+        let signedOffset: CGFloat = (index % 2 == 0) ? zigzag : -zigzag
+        return baseY + signedOffset
     }
 
     // MARK: - Selection

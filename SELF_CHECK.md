@@ -1,161 +1,84 @@
-# 자체 점검 — Sprint 6 (흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터)
+# 자체 점검 — 디바이스 잘림 해소 + 카드 시인성 강화 (Sprint 7)
 
-전략: Case A — 1회차. SPEC.md/SPRINT_6_REQUEST.md 사양을 정밀 그대로 적용.
+## 전략
 
----
+Case A — 1회차. SPEC.md 정밀 구현. QA 피드백 없음(초회).
 
-## 1. 작업 파일 목록
+## 수정 파일 목록
 
-### 수정 (4건)
-- `GanhoMusic Shared/Config/GameConfig.swift` — Sprint 6 신규 상수 약 50개 추가 + `characterSelectBackPillText` 1줄 값 교체(`"← 난이도 다시"` → `"← 메인"`). 이름 유지.
-- `GanhoMusic Shared/Scenes/StartScene.swift` — 난이도 관련 필드/배열/repo/메서드(setupDifficultyCards/layoutDifficultyCards/selectDifficulty)/touchesBegan 카드 hit-test/transitionToNext exit 루프 모두 삭제. NurseAvatarNode 필드+setup+layout 추가. transitionToNext에서 `newCharacterSelectScene()` 인자 없이 호출. exit 액션에 nurseAvatar 포함.
-- `GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — `init(size:difficulty:)` → `init(size:)`. `difficulty`/`difficultyChip` 필드 제거. setupTopBar에서 difficultyChip 생성 제거. 5장 카드에 `CharacterFaceNode` 부착(zPosition 105). confirm 버튼 텍스트 `"이 친구로 시작"` → `"다음"`. .kim 분기는 `DifficultySelectScene`으로, 그 외는 `SkillExplanationScene(characterID:)`으로.
-- `GanhoMusic Shared/Scenes/SkillExplanationScene.swift` — `difficulty` 필드 + init/factory의 difficulty 파라미터 제거. 브레드크럼 칩 라벨 `"\(characterID.displayName) · 스킬 · 난이도"`로 변경(DarkContextChipNode 내부 변경 0건). 시작 버튼 텍스트 `"시작"` → `"다음"`. `transitionToCharacterSelect`의 `newCharacterSelectScene()` 인자 없이. `transitionToGame()` → `transitionToDifficulty()`로 이름·동작 변경(DifficultySelectScene 전이).
+- `GanhoMusic/GanhoMusic iOS/GameViewController.swift` — SKView를 view.safeAreaLayoutGuide.layoutFrame에 mount. view.backgroundColor = .ganhoBgWarmTop fallback. viewSafeAreaInsetsDidChange / viewDidLayoutSubviews에서 relayoutSKView() 호출. relayoutSKView() 내부 `if skView.frame != target` 가드.
+- `GanhoMusic/GanhoMusic Shared/Models/Difficulty.swift` — `description: String` computed property 신규(3 case 모두). `: CustomStringConvertible` 채택은 의도적으로 *하지 않음*.
+- `GanhoMusic/GanhoMusic Shared/Nodes/DifficultyCardNode.swift` — 카드 크기 V3(112×82), descriptionLabel 신규, fontName Jua/Gowun Dodum 명시, 미선택 알파 0.78, 미선택 fill id.color α 0.08, stroke id.color α 0.4, 라벨 색 .ganhoNavyDeep / .ganhoNavyMuted 토큰 동기화, ringGlow 코너 반경도 카드와 동일(20).
+- `GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — cardBaseX(for:)에서 spacing `characterSelectCardSpacingV3`(22pt) 사용. cardBaseY(for:)에 짝수 인덱스(0/2/4) +8 / 홀수(1/3) -8 지그재그 y 오프셋 적용. 카드/컨테이너/색점/얼굴/태그/링글로우가 모두 같은 헬퍼를 호출하므로 한 곳 변경으로 모두 동기화.
+- `GanhoMusic/GanhoMusic Shared/Scenes/DifficultySelectScene.swift` — layoutDifficultyCards에서 width/spacing 모두 V3 상수 사용. layoutSummaryCard에서 offsetX V3(-260) 사용.
+- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — 신규 V3 상수 19개 추가(`// MARK: - Sprint 7 · 잘림 해소 + 카드 시인성 강화 (Visual-3)` 섹션). 기존 상수 값 변경 0건.
 
-### 신규 (3 swift + 1 html)
-- `GanhoMusic Shared/Nodes/CharacterFaceNode.swift` — `final class CharacterFaceNode: SKNode`. `init(id: CharacterID)`. 5명 분기 build 메서드(`buildKimFace/buildJungFace/buildGeonFace/buildImFace/buildLeeFace`). mockup `character-select-v2.html` SVG path를 SKShapeNode 조합으로 재현. SVG y-down → SK y-up 변환 일관 적용. zPosition 내부 순서: 머리(0) < 헤드폰밴드(5) < 헤어(10) < 모자(20) < 얼굴디테일(30) < 액세서리(40).
-- `GanhoMusic Shared/Nodes/NurseAvatarNode.swift` — `final class NurseAvatarNode: SKNode`. mockup `main-screen-v2.html` `<svg class="character">` 전체를 SKShapeNode로 코드화. 빌드 순서: shoulders → collar → button → neck → head → side hair → bangs → cap+cross → headphones(band+cup outer+inner) → eyebrows → eyes(감은 미소) → blush → shh mouth → arm(skin+outline) + finger. zPosition 어깨(-5) < 사이드헤어뒤(-3) < 머리/목(0) < 앞머리(5) < 모자(10) < 헤드폰밴드(15) < 헤드폰컵(20) < 얼굴디테일(25) < 팔(30) < 손가락끝(35).
-- `GanhoMusic Shared/Scenes/DifficultySelectScene.swift` — `final class DifficultySelectScene: SKScene`. `characterID` 필드 + `selectedDifficulty` + `difficultyRepo`. didMove에서 `selectedDifficulty = difficultyRepo.current` 1회. Setup: gradientBackground / musicNoteEmitter / header(AccentLine + Jua 26pt 헤더 + Gowun Dodum 부제) / topBar(backPill + breadcrumbChip) / summaryCard(좌측 200×260 글래스 + 코랄 이름 뱃지 + `CharacterFaceNode(scale 0.65)` + 스킬명 또는 "스킬 없음" + 민트 속도 칩) / difficultyCards(우측 3장) / startButton. 백버튼 분기: `.kim` → `"← 캐릭터 다시"` + `CharacterSelectScene`, 그 외 → `"← 스킬 다시"` + `SkillExplanationScene(characterID:)`. transitionToGame: `GameScene.newGameScene(characterID:difficulty:)` 시그니처 그대로.
-- `mockups/difficulty-select-v2.html` — 기존 6종 mockup과 동일한 phone-frame + 3-stop 그라데이션 + 음표 데코 + 폰트 시스템. 좌측 200×260 글래스 요약 카드(이름 뱃지 + 미니 SVG 아바타 + 스킬명 + 민트 속도 칩) + 우측 난이도 3장(쉬움 50초 / 보통 45초 / 어려움 35초) + 하단 시작 버튼 + 6칸 annotation 그리드 + .kim 특수 케이스 메모 1줄.
+## SPEC 매핑
 
-### Mockup 수정 (2건)
-- `mockups/character-select-v2.html` — 우상단 `<div class="diff-pill">` 5줄 삭제, top-bar `justify-content: flex-start` 적용, 좌상단 백버튼 텍스트 `"← 난이도 다시"` → `"← 메인"`, confirm 버튼 `"이 친구로 시작 ▶"` → `"다음 ▶"`. annotation의 "🏷️ 난이도 칩" 카드 → "↩️ Back = 메인으로 (Sprint 6)" 카드로 교체.
-- `mockups/skill-explanation-v2.html` — 브레드크럼 `난이도 · 캐릭터 · [스킬]` → `캐릭터 · [스킬] · 난이도`로 순서 재편. 우측 primary 버튼 `"시작 ▶"` → `"다음 ▶"`. annotation 🧭 브레드크럼 카드 본문 갱신.
+- **기능 1 (SafeArea SKView Mount)**: `GameViewController.swift` @ `viewDidLoad()` / `viewSafeAreaInsetsDidChange()` / `viewDidLayoutSubviews()` / `relayoutSKView()`. view.backgroundColor = .ganhoBgWarmTop. SKView.translatesAutoresizingMaskIntoConstraints = true / autoresizingMask = []. relayoutSKView 내부 `if skView.frame != target` 가드로 무한 didChangeSize 루프 방지.
+- **기능 2 (Difficulty.description)**: `Difficulty.swift` 마지막 `}` 직전. easy/normal/hard 3 case 모두 한 줄 풀이. raw value("easy"/"normal"/"hard") 불변. `: CustomStringConvertible` 채택 안 함.
+- **기능 3 (DifficultyCardNode V3 시인성)**: `DifficultyCardNode.swift` init/setSelected/configureLabels. 카드 크기 V3(112×82), cornerRadius V3(20), descriptionLabel 신규(numberOfLines=0 + preferredMaxLayoutWidth=96), 미선택 alpha 0.78, fill id.color α 0.08, stroke id.color α 0.4. ringGlow padding은 기존(10) 유지하되 ringGlow 자체 cornerRadius도 V3(20)으로 카드와 통일.
+- **기능 4 (GameConfig V3 상수 묶음)**: `GameConfig.swift` 파일 끝 `// MARK: - Sprint 7 · ...` 섹션. 19개 V3 상수 모두 한국어 주석 + 의미 명시. 기존 difficultyCardWidth/Height/Spacing/FontSize 등은 *값 변경 없음*.
+- **기능 5 (CharacterSelectScene 여백 + 지그재그)**: `CharacterSelectScene.swift` cardBaseX/cardBaseY 두 헬퍼. spacing 10→22(V3), 짝수 인덱스 +8 / 홀수 -8 지그재그. z-rotation 미적용(SPEC 명시).
+- **기능 6 (DifficultySelectScene summary 균형)**: `DifficultySelectScene.swift` layoutDifficultyCards(width/spacing V3) + layoutSummaryCard(offsetX V3 -260). 시작 버튼 offsetY는 SPEC상 추가 조정 권장이지만 카드 height 82(V3)와 row y(-10) 기준 카드 하단이 midY-51 → 시작버튼 midY-160 → 109pt 여유로 충돌 없음. 별도 V3 분기 불필요.
 
-### Xcode Project
-- `GanhoMusic.xcodeproj/project.pbxproj` — 신규 3 swift 파일에 대해 PBXBuildFile + PBXFileReference + PBXGroup membership(Nodes/Scenes) + PBXSourcesBuildPhase(iOS target만) 등록. ID는 기존 `A1C0F1A0...` / `A1C0F1B0...` 패턴 따라 070/071/072 할당.
+## 변경 금지 항목 회귀 검증
 
----
+- `GanhoMusic Shared/Scenes/GameScene.swift`: 미접촉 ✅
+- `Repositories/*` (DifficultyPreferenceRepository / CharacterPreferenceRepository / HighScoreRepository / StatisticsRepository / GraduationRepository): 미접촉 ✅
+- `Managers/AudioManager.swift`, `Managers/HapticsManager.swift`: 미접촉 ✅
+- `Difficulty` enum의 case 추가/삭제: 없음 ✅ (description property 만 추가). raw value 불변 ✅.
+- `StartScene` / `ResultScene` transitionToNext / presentScene 시그니처: 미접촉 ✅
+- `CharacterID` enum, `CharacterCardNode` 내부 구조: 미접촉 ✅
+- `GameScene.newGameScene(characterID:difficulty:)` 시그니처: 미접촉 ✅
+- `ResultScene.newResultScene(...)` 시그니처: 미접촉 ✅
+- `GlassPillNode`, `PrimaryButtonNode`, `DarkContextChipNode` 내부 구조: 미접촉 ✅
+- 음표 emitter, 그라데이션 배경 노드, NurseAvatarNode: 미접촉 ✅
+- StartScene 타이틀/태그라인 문구: 미접촉 ✅
+- 사운드 발화 시퀀스(newBest reveal, sparkle 5발, diploma): 미접촉 ✅
+- `Difficulty.subtitle`/`displayName`/`color`/`shortName` 기존 4 프로퍼티 본문: 미접촉 ✅
+- `DifficultyCardNode.setSelected(_:)` 호출 시그니처: 불변 ✅ (호출부 변경 0)
+- 기존 GameConfig 상수 값(`difficultyCardWidth=80`, `difficultyCardHeight=56`, `difficultyCardSpacing=16`, `difficultyCardFontSize=20`, `difficultyCardSubtitleFontSize=10`, `characterCardSpacing=10`, `difficultySelectSummaryCardOffsetX=-220`, ringGlow 관련 상수 등): 미변경 ✅
 
-## 2. 매직 넘버 GameConfig 분리 현황
+## Swift 규칙 자체 점검
 
-Sprint 6 신규 추가 상수 **약 50개** — 모두 `GameConfig.swift` Sprint 6 섹션에 MARK 주석으로 그룹화:
+- 강제 언래핑 `!` 신규 사용: 없음 ✅ (GameViewController도 기존 `guard let skView = self.view as? SKView else { return }` 패턴 유지)
+- guard let / if let / ?? 사용 ✅
+- Timer.scheduledTimer / DispatchQueue.main.asyncAfter: 신규 0건 ✅. SKView frame 재조정은 `viewSafeAreaInsetsDidChange` + `viewDidLayoutSubviews` 활용
+- 매직 넘버: 신규 0건 ✅. 모든 새 수치는 `GameConfig.*V3` 상수로 분리(총 19개)
+- `[weak self]` 클로저 캡처: 본 SPEC은 신규 클로저 없음(N/A). 기존 클로저 회귀 없음 ✅
+- MARK 섹션 구분 유지 ✅:
+  - GameViewController: `// MARK: - Lifecycle` / `// MARK: - Safe Area Relayout (Sprint 7)` / `// MARK: - Orientation` / `// MARK: - Status Bar / Home Indicator`
+  - DifficultyCardNode: `// MARK: - Properties` / `// MARK: - Init` / `// MARK: - Selection` / `// MARK: - Configure`
+  - GameConfig: `// MARK: - Sprint 7 · 잘림 해소 + 카드 시인성 강화 (Visual-3)` 신규 섹션
+- 네이밍 컨벤션: V3 상수는 lowerCamelCase + 명확한 의미 prefix(`difficultyCard*V3`, `characterSelectCard*V3`, `difficultySelectSummary*V3`) ✅
+- 한국어 변수명 없음 ✅. 주석은 한국어 ✅
 
-- **NurseAvatarNode (StartScene 좌측)**: `nurseAvatarScale` (0.7), `nurseAvatarOffsetX/Y`, `nurseAvatarZPosition`, `nurseAvatarOutlineWidth`(4), `nurseAvatarHeadphoneBandWidth`(10), `nurseAvatarArmWidth`(20).
-- **CharacterFaceNode**: `characterFaceScale` (0.55), `characterFaceOffsetYWithinCard` (8 — OQ-1 결정), `characterFaceZPosition` (105), `characterFaceHeadRadiusX/Y` (32/34), `characterFaceOutlineWidth` (2.5), `characterFaceDetailLineWidth`.
-- **DifficultySelectScene**: 헤더(text/subText/fontSize/offsetY/subOffsetY/accentLineOffsetY), 백버튼 텍스트 2종(스킬용·캐릭터용), backPill 폭/높이, 브레드크럼 label/badge, top bar margin X/Y, 요약 카드(width/height/cornerRadius/fillAlpha/strokeAlpha/strokeWidth/offsetX/offsetY), 이름 뱃지(width/height/fontSize/offsetY), 미니 아바타(scale/offsetY), 스킬 라벨(fontSize/offsetY/noneText), 속도 칩(width/height/fontSize/fillAlpha/offsetY), 난이도 행(offsetX/offsetY), 시작 버튼(offsetY/text).
+## SpriteKit 규칙 자체 점검
 
-**CharacterFaceNode/NurseAvatarNode 내부의 SVG 좌표 수치**(예: `cx="0" cy="0" rx="32" ry="34"`)는 mockup SVG와 1:1 매핑되는 **시각 자산 사양**이므로 코드 안에 그대로 노출 — `GameConfig` 추출 대상이 아님(Spring의 application.yml에 SVG path를 옮기지 않는 것과 동일). 외곽선 두께·zPosition·전체 scale 같은 *재사용 가능한 토큰*만 분리.
+- `didMove(to:)`에서 초기화 패턴: 회귀 없음 ✅
+- `didChangeSize(_:)`에서 layout 재호출 패턴: 회귀 없음 ✅
+- SKAction 키(`cardScale`, `ringFade`, `glassSelect`): 그대로 ✅
+- `removeAction(forKey:)`로 중복 액션 방지: 유지 ✅
+- 노드 z-position 위계(ringGlow -1 / background 0 / labels default / card.zPosition 100): 유지 ✅
+- 색상 토큰 사용: `.ganhoBgWarmTop` / `.ganhoNavyDeep` / `.ganhoNavyMuted` / `.ganhoAccentCoral` 등 ColorTokens 정의된 토큰만 사용. 하드코딩 UIColor(red:green:blue:) 신규 0건 ✅
+- SKLabelNode `numberOfLines = 0` + `preferredMaxLayoutWidth` 패턴(descriptionLabel): 적용 ✅
+- ringGlow cornerRadius도 카드 cornerRadiusV3(20)로 통일 — 외곽 형태 mismatch 회귀 없음 ✅
+- `update()` 내 addChild() 패턴: 본 sprint 범위에 update 변경 없음 ✅
 
-`!` 강제 언래핑 / `Timer` / hardcoded color hex(ColorTokens 우회) **추가 0건**. 불가피한 raw UIColor는 `CharacterFaceNode.swift` / `NurseAvatarNode.swift` 각 파일 최상단에 `private static let` 한 곳에 집중(예: `hairBrown`, `glassesLens`, `pickHandle`).
+## 위험 / 보완 메모
 
----
-
-## 3. 강제 언래핑 / Timer / weak self 검사
-
-| 항목 | 결과 |
-|---|---|
-| 강제 언래핑 `!` (변경 6 파일) | **0건** — `fatalError` 외 `[a-zA-Z_)\]]!` 패턴 검색 결과 비어있음. 모든 옵셔널은 `guard let` / `if let` / `?.` |
-| `Timer` 사용 | **0건** — grep 결과 미발견 |
-| `[weak self]` / `[weak view]` 캡처 | StartScene.transitionToNext의 `SKAction.run { [weak view] in ... }`에 `weak view` 캡처. DifficultySelectScene의 `transitionBack` / `transitionToGame`은 **closure 없이** `guard let view = self.view` 후 즉시 호출하는 동기 패턴이라 weak 캡처 불필요(기존 CharacterSelectScene `transitionToStart` 패턴과 동형). 모두 안전. |
-
----
-
-## 4. 보호 영역 17파일 git diff 0줄 검증
-
-`git diff --stat HEAD` 명령으로 다음 파일들 모두 빈 출력 확인:
-
-- GameScene.swift / GameScene+Setup.swift / ResultScene.swift
-- PlayerNode / EnemyNode / StoneGuardNode / NoteNode / ProjectileNode / MusicNoteEmitterNode / HUDNode / DPadNode / SkillButtonNode / HUDSkillSlotNode / ComboPopupNode / ComboBreakNode / PauseButtonNode / PixelSpriteRenderer / DiplomaOverlayNode / SparkleEffectNode
-- CharacterCardNode / DifficultyCardNode / GlassPillNode / AccentLineNode / DarkContextChipNode / PrimaryButtonNode / BackButtonNode / GradientBackgroundNode (재사용·외부 부착만 — 내부 변경 0)
-- Managers/ 전체 / Repositories/ 전체 / Config/GameState.swift / Config/PhysicsCategory.swift
-
-→ **17개 보호 파일 git diff 0줄 확인.**
-
-ColorTokens.swift도 추가/변경 0건(기존 `ganhoSkinTone`/`ganhoNavyDeep`/`ganhoScrubMint`/`ganhoCoralPrimary`/`ganhoCoralShadow`/`ganhoCoralLight`/`ganhoLavenderSoft`/`ganhoMusicGold` 토큰을 그대로 재사용).
-
----
-
-## 5. 5단계 / 4단계 흐름 코드 흐름 추적
-
-### 5단계 흐름 (.jung / .geon / .im / .lee)
-1. **StartScene** — `transitionToNext` → `CharacterSelectScene.newCharacterSelectScene()` (인자 없음)
-2. **CharacterSelectScene** — `transitionToNext` switch:
-   - `.jung/.geon/.im/.lee` → `SkillExplanationScene.newSkillExplanationScene(characterID: selectedCharacterID)` ✓
-3. **SkillExplanationScene** — `transitionToDifficulty` → `DifficultySelectScene.newDifficultySelectScene(characterID: characterID)` ✓
-4. **DifficultySelectScene** — `transitionToGame` → `GameScene.newGameScene(characterID: characterID, difficulty: selectedDifficulty)` ✓
-5. **GameScene** — 보호 영역, 시그니처 그대로
-
-### 4단계 흐름 (.kim)
-1. **StartScene** → `CharacterSelectScene()` (동일)
-2. **CharacterSelectScene** — `.kim` → `DifficultySelectScene.newDifficultySelectScene(characterID: .kim)` ✓ (스킬 화면 스킵)
-3. **DifficultySelectScene** — 좌측 카드에 "스킬 없음" 표시 + 백버튼은 `"← 캐릭터 다시"` + 백 타깃은 CharacterSelectScene ✓
-4. **GameScene** — 동일
-
-### 백 흐름 정확성
-- DifficultySelectScene.transitionBack — `.kim` → CharacterSelectScene / 그 외 → `SkillExplanationScene(characterID:)`
-- SkillExplanationScene.transitionToCharacterSelect — `newCharacterSelectScene()` 인자 없음
-- CharacterSelectScene.transitionToStart — StartScene
-- 각 단계 백버튼은 정확히 직전 단계로 ✓
+1. **iPhone 17 Pro 외 기기**: Safe area 기반이므로 iPhone SE(노치 없음) / iPhone 15(노치 있음) 모두 자동 작동. 노치 없는 기기에서는 inset이 (0,0,0,0)이라 SKView frame이 view.bounds와 동일 — 기존 동작 그대로.
+2. **그라데이션 fallback**: `view.backgroundColor = .ganhoBgWarmTop`만 깔았으므로 노치 영역은 단일 톤(피치 #FFE5D0). 더 정교한 노치 영역 그라데이션은 SPEC 범위 밖.
+3. **DifficultyCardNode 초기 fill 색**: init에서 deselected 톤(α 0.08)으로 채움. DifficultySelectScene이 setupDifficultyCards에서 즉시 `setSelected(id == selectedDifficulty)`를 호출하므로 첫 프레임도 정확한 상태.
+4. **NurseAvatarNode 좌표**: StartScene의 `nurseAvatarOffsetX = 180`은 frame.minX + 180 기준. SafeArea 적용 후 NurseAvatar가 살짝 우측으로 이동 — 의도된 변경(SPEC §주의 8), 추가 조정 불필요.
+5. **DifficultySelectScene 시작 버튼 충돌**: 카드 height 82, 카드 row y = midY - 10, 카드 하단 y = midY - 51. 시작 버튼 y = midY - 160 → 사이 간격 109pt. PrimaryButtonNode 높이 ~50pt를 빼도 60pt 여유. 충돌 없음. SPEC §주의 6의 "Generator가 실제 빌드에서 확인 후 필요 시 시작버튼 offsetY 추가 하향"은 본 빌드에서 *불필요*.
+6. **`difficultyCardCornerRadiusV3 = 20`**: 카드 height 82, height/2 = 41 > 20 → 캡슐이 아닌 둥근 사각형 톤. SPEC §기능3과 §기능6 일치.
+7. **빌드 경고**: 신규 경고 0건 예상. V3 상수는 모두 사용처 있음(unused 경고 없음). 미사용 인자나 옵셔널 강제 언래핑 미발생.
+8. **CharacterSelectScene 지그재그**: CharacterID.allCases가 5개(.kim/.jung/.geon/.im/.lee)일 때 짝/홀 인덱스 패턴은 +8/-8/+8/-8/+8. SPEC §기능5의 "0번/2번/4번은 +zigzag, 1번/3번은 -zigzag" 동일. CharacterID 순서 변경 시에도 패턴 자체는 인덱스 mod 2 기준이라 유지.
+9. **summary 카드 좌측 경계**: width 200, 중심 midX-260 → 좌측 경계 midX-360. iPhone 17 Pro landscape safe area 가로 ~800pt 기준 midX≈400, 좌측 경계 약 40pt — 안전.
+10. **description 문구 길이**: 각각 14/14/13자 한글. 폰트 사이즈 10pt × 96pt 폭에서 1줄에 거의 들어가지만 폰트에 따라 2줄 wrap 가능. `numberOfLines = 0`으로 자동 처리 — 카드 height 82pt 안에 충분히 수용.
 
 ---
 
-## 6. 빌드 결과
-
-```
-xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" -scheme "GanhoMusic iOS" \
-  -destination "platform=iOS Simulator,name=iPhone 17" \
-  -configuration Debug build
-```
-
-**결과: ** **`** BUILD SUCCEEDED **`**
-
-- 에러: **0건**
-- 신규 워닝: **0건**
-- 기존 워닝 3건 유지(`Skipping duplicate build file in Copy Bundle Resources build phase: Jua-Regular.ttf / GowunDodum-Regular.ttf / NotoSansKR-Bold.ttf`) — Sprint 1부터 존재하는 폰트 리소스 중복 등록 경고로 Sprint 6 변경과 무관.
-
-iPhone 15 시뮬레이터는 환경에 없어 iPhone 17로 변경(arm64-apple-ios16.6-simulator). 빌드 환경 변경이지 SPEC 위반 아님.
-
----
-
-## 7. Mockup 3종 변경 사항 git diff 요약
-
-```
-mockups/character-select-v2.html   |  15 +-     (수정)
-mockups/skill-explanation-v2.html  |  10 +-     (수정)
-mockups/difficulty-select-v2.html  |  ~400줄   (신규)
-```
-
-### character-select-v2.html (-7 +5, net -2)
-- 우상단 `<div class="diff-pill">현재 난이도 <span class="badge">중</span></div>` 5줄 삭제
-- top-bar inline style `justify-content: flex-start` 1줄 추가
-- 백버튼 `← 난이도 다시` → `← 메인`
-- confirm 버튼 `이 친구로 시작 ▶` → `다음 ▶` + 주석 1줄
-- annotation의 "🏷️ 난이도 칩" 카드 본문 → "↩️ Back = 메인으로 (Sprint 6)"로 교체
-
-### skill-explanation-v2.html (-5 +5)
-- 브레드크럼 3줄 순서 재편(`난이도 · 캐릭터 · [스킬]` → `캐릭터 · [스킬] · 난이도`)
-- primary 버튼 텍스트 `시작 ▶` → `다음 ▶`
-- annotation 🧭 카드 본문 갱신 (Sprint 6 표시 + "다음은 난이도" 설명 추가)
-
-### difficulty-select-v2.html (신규, ~400줄)
-- phone-frame + 3-stop 그라데이션(피치 → 코랄 → 라벤더) + 음표 데코 3개 + Jua/Gowun Dodum/Noto Sans KR 폰트 시스템 — 기존 mockup 6종과 동일.
-- 상단: 글래스 백버튼 `← 스킬 다시` + 다크 브레드크럼 `캐릭터 · 스킬 · [난이도]`(난이도만 코랄 뱃지).
-- 헤더: 코랄 32×3 AccentLine + Jua 26pt "난이도를 골라요" + Gowun Dodum "한 번만 정해두면 충분해요".
-- 좌측: 200px 글래스 요약 카드(코랄 이름 뱃지 + 미니 SVG 아바타 + 스킬명 + 민트 속도 칩).
-- 우측: 난이도 3장(쉬움 50초·민트 / 보통 45초·골드 / 어려움 35초·코랄) + 선택 시 떠오르기 애니메이션.
-- 하단: PrimaryButton 시작 + 입체 그림자.
-- annotation 6칸 그리드 + .kim 특수 케이스 메모 노트.
-
----
-
-## 8. 발견된 위험
-
-### 8-1. SVG 좌표 변환 시각 검증 미수행
-CharacterFaceNode/NurseAvatarNode의 SVG → SKShapeNode 변환은 **수학적으로 정확**(y에 -1 곱하기 + control point도 동일 변환)하지만, *실제 시뮬레이터 렌더 시 5명 얼굴이 mockup과 시각 매칭되는지는 빌드만으로 확인 불가*. Evaluator가 시뮬레이터에서 5명 얼굴 식별 가능 여부 + NurseAvatarNode 4영역(머리/모자/헤드폰/팔) 분간 여부를 채점해야 함. SVG path 좌표는 mockup 원본 그대로 옮긴 것이라 토폴로지는 보존됨.
-
-### 8-2. CharacterFaceNode가 카드 안에 들어가는지 미세 조정
-`characterFaceScale = 0.55`, `characterFaceOffsetYWithinCard = 8`은 OPEN_QUESTION OQ-1의 Generator 결정 범위. 카드 폭(110)/높이(140) 안에 viewBox 64×64가 들어가야 하는데, scale 0.55면 face가 약 35×35 정도가 되어 카드 안에 충분히 들어감 + 태그 라벨(y=-45)·이름 라벨(y=0)·색 점(우상단)과 겹치지 않음. 시각 검증 필요.
-
-### 8-3. NurseAvatarNode 위치
-`nurseAvatarOffsetX = 180`, `nurseAvatarOffsetY = -40`은 OQ-2 Generator 결정. mockup의 "좌측 6%" 가이드를 frame.minX + 180으로 환산. iPhone 17 가로 폭(약 932pt landscape) 기준 6%는 ~56pt이지만 NurseAvatarNode 자체가 viewBox 300×360 짜리 큰 그림이므로 + 180에 두어야 좌측 끝이 frame.minX + (180 - 240*0.7/2) ≈ 96pt에 닿음 — 좌측 노치/Dynamic Island와 적절히 떨어짐 + 타이틀 블록(우측 정렬)과 안 겹침.
-
-### 8-4. Difficulty 인자 전달 경로 검증
-Sprint 6 후엔 *GameScene만* difficulty 받음. 모든 grep 결과:
-- `Difficulty` 타입 참조: GameConfig.swift / Difficulty.swift / DifficultyCardNode.swift / DifficultyPreferenceRepository.swift / DifficultySelectScene.swift / GameScene.swift / ResultScene.swift — **CharacterSelectScene와 SkillExplanationScene에는 0건** ✓
-- `difficulty:` named argument의 호출처: `DifficultySelectScene → GameScene.newGameScene(characterID:difficulty:)`만 ✓
-
-### 8-5. 보호 영역 외 사이드 이펙트
-- `characterSelectBackPillText` 1줄 값 교체는 SPEC.md §"기능 7" + SPRINT_6_REQUEST.md §B-7 + OQ-5 명시 허용.
-- ColorTokens 추가/변경 0건.
-- 게임 수치(시간/HP/속도/점수/콤보), 물리, 입력, AI, 저장 포맷, 사운드, 햅틱 — 0건 변경. `difficultyRepo.current` 읽기는 `DifficultySelectScene.didMove`에서 1회만(기존 StartScene 패턴과 동형), `difficultyRepo.save(id)`는 `selectDifficulty(_:)`에서 호출 — 저장 포맷 회귀 0.
+SELF_CHECK.md 작성 완료. 수정 파일 6개.

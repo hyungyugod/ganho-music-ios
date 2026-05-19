@@ -1,218 +1,171 @@
-# QA_REPORT.md — Sprint 6 (흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터)
+# QA_REPORT.md — 디바이스 잘림 해소 + 카드 시인성 강화 (Sprint 7)
 
 **채점 일자**: 2026-05-19
-**평가 근거**: SPEC.md / SELF_CHECK.md / SPRINT_6_REQUEST.md §5 / DESIGN_RENEWAL_REQUEST.md §11 / docs/swift-rules.md / docs/spritekit-rules.md
+**전략**: Case A 초회
+**빌드 검증**: SKIP — Linux workspace (xcodebuild 부재). 정적 검수만 적용 (evaluator.md §4-2 SKIP 처리).
 
-> 비고: 본 보고서는 Evaluator subagent가 stream idle timeout(648초)으로 partial response만 반환하여, 부모 하네스가 직접 핵심 검증(보호 영역 git diff / 강제 언래핑 / Timer / GameScene 시그니처 / 흐름 라우팅 / 빌드)을 Bash로 실행해 작성. SELF_CHECK.md의 자기 진단을 교차 확인한 결과 일치.
+## 점수 요약
 
----
+| 영역 | 점수 | 가중치 | 가중점수 |
+|---|---|---|---|
+| Swift 패턴 | 9.0/10 | 0.2 | 1.80 |
+| SpriteKit 패턴 | 8.5/10 | 0.2 | 1.70 |
+| 성능 | 9.0/10 | 0.2 | 1.80 |
+| 기능 완성도 | 8.5/10 | 0.4 | 3.40 |
+| **가중 합산** | | | **8.70/10** |
 
-## 1. 카테고리별 점수
-
-| # | 카테고리 | 가중치 | 점수 | 가중치 적용 |
-|---|---|---|---|---|
-| 1 | 게임 로직 회귀 0 | 40% | **9.8** | 3.92 |
-| 2 | Swift 패턴 | 20% | **9.4** | 1.88 |
-| 3 | 비주얼 일관성 | 25% | **9.2** | 2.30 |
-| 4 | 가독성 & UX | 15% | **9.5** | 1.43 |
-| **합계** | | **100%** | | **9.53 / 10** |
-
-**판정**: ✅ **합격** (가중 평균 7.5+ 통과, 모든 카테고리 통과선 초과)
+**판정**: 합격 (가중점수 7.5 이상)
 
 ---
 
-## 2. P0 자동 불합격 항목 검사
+## 영역별 상세
 
-| 항목 | 결과 |
-|---|---|
-| 빌드 에러 1건 이상 | **0건** — `BUILD SUCCEEDED` (iPhone 17 시뮬레이터, Debug) |
-| 보호 영역 git diff 1줄 이상 | **0줄** — 17개 보호 파일 `git diff main --stat`로 빈 출력 확인 |
-| 흐름 단계 1개라도 끊김 | **0건** — 5단계 + 4단계 모두 코드 흐름 추적 통과 |
-| 강제 언래핑 `!` 1건 이상 | **0건** — Sprint 6 신규/수정 7파일 grep 비어있음 |
+### Swift 패턴 (9.0/10)
 
-**P0 모두 PASS.**
+- **강점**:
+  - 강제 언래핑 신규 0건. `GameViewController.swift:33`에서 `guard let skView = self.view as? SKView else { ... return }` 패턴 유지. 주석으로 `as!` 회피 의도까지 명시.
+  - `Timer` / `DispatchQueue.main.asyncAfter` 신규 0건. SKView frame 동기화는 `viewSafeAreaInsetsDidChange` + `viewDidLayoutSubviews`로 시스템 콜백만 활용.
+  - 매직 넘버 신규 0건. 19개 신규 수치를 모두 `GameConfig.*V3` 상수로 분리 (`GameConfig.swift:1731-1789`).
+  - `// MARK:` 섹션 구분 유지. `GameViewController`에 `// MARK: - Lifecycle` / `// MARK: - Safe Area Relayout (Sprint 7)` / `// MARK: - Orientation` / `// MARK: - Status Bar / Home Indicator` 신설. `DifficultyCardNode`에 `// MARK: - Properties` / `// MARK: - Init` / `// MARK: - Selection` / `// MARK: - Configure` 4섹션. `GameConfig.swift:1731`에 `// MARK: - Sprint 7 · 잘림 해소 + 카드 시인성 강화 (Visual-3)` 명확 분리.
+  - 네이밍: V3 상수가 lowerCamelCase + 명확한 의미 prefix(`difficultyCard*V3`, `difficultySelect*V3`, `characterSelectCard*V3`) 일관.
+  - 한국어 주석 풍부 + 한국어 변수명 0건.
 
----
+- **약점/관찰**:
+  - SPEC §기능 6에서 제시한 상수명 `characterCardSpacingV3`(28pt) 대신 `characterSelectCardSpacingV3`(22pt)로 *이름과 값 모두 변경*. SPEC §기능 4 본문에서도 28pt 언급. 이름 변경 자체는 의미 분리 측면에서 더 좋지만 SPEC과의 불일치는 P2.
+  - SPEC §기능 6의 `difficultyCardFontSizeV3 = 24` 대신 `difficultyCardNameFontSizeV3 = 22` 사용. 이름이 더 명확해진 장점 / SPEC 수치와 -2pt 차이. P2.
+  - `characterSelectCardYOffsetsV3: [CGFloat]` 배열 대신 단일 스칼라 `characterSelectCardZigzagOffsetV3: CGFloat = 8` + 짝홀 부호 패턴으로 단순화. 배열 인덱스 안전 체크 부담을 없앤 합리적 선택. SELF_CHECK에 의도 명시. P2 (SPEC 형태 deviation).
 
-## 3. 보호 영역 git diff 0줄 확인
+- **개선 제안**: 없음 — 합격선.
 
-```
-$ git diff main --stat -- \
-    "GanhoMusic Shared/GameScene.swift" \
-    "GanhoMusic Shared/GameScene+Setup.swift" \
-    "Scenes/ResultScene.swift" \
-    Nodes/{PlayerNode, EnemyNode, StoneGuardNode, NoteNode, ProjectileNode, \
-           MusicNoteEmitterNode, HUDNode, DPadNode, SkillButtonNode, \
-           HUDSkillSlotNode, ComboPopupNode, ComboBreakNode, PauseButtonNode, \
-           PixelSpriteRenderer, DiplomaOverlayNode, SparkleEffectNode}.swift \
-    Nodes/{CharacterCardNode, DifficultyCardNode, GlassPillNode, AccentLineNode, \
-           DarkContextChipNode, PrimaryButtonNode, BackButtonNode, \
-           GradientBackgroundNode}.swift \
-    Managers/ Repositories/ Config/{GameState, PhysicsCategory, ColorTokens}.swift
-```
+### SpriteKit 패턴 (8.5/10)
 
-**결과: 빈 출력** → 보호 영역 17파일(+ 공용 노드 8파일 + 도메인 폴더 2개 + 도메인 Config 3파일) 모두 **0줄 변경**.
+- **강점**:
+  - `didMove(to:)`/`didChangeSize(_:)` 초기화·layout 분리 패턴 회귀 없음. 신규 변경분도 동일 패턴 안에서 처리.
+  - SKAction 키(`cardScale`, `ringFade`, `glassSelect`) 그대로 유지. `removeAction(forKey:)`로 중복 액션 방지 패턴 그대로.
+  - `DifficultyCardNode`의 z-position 위계(ringGlow -1 / background 0 / labels default / 노드 자체 zPosition 100) 유지.
+  - 색 토큰만 사용 — 하드코딩 색 0건. `.ganhoBgWarmTop` / `.ganhoNavyDeep` / `.ganhoNavyMuted` / `.ganhoAccentCoral` 토큰 일관.
+  - `descriptionLabel`이 `numberOfLines = 0` + `preferredMaxLayoutWidth = 96`로 자동 wrap 처리 (`DifficultyCardNode.swift:180-181`).
+  - SafeArea mount의 무한 didChangeSize 루프 가드: `GameViewController.swift:80` `if skView.frame != target` 체크 — SPEC §주의 2와 일치.
 
-ColorTokens.swift도 추가/변경 0건 — 기존 토큰(`ganhoSkinTone` / `ganhoNavyDeep` / `ganhoScrubMint` / `ganhoCoralPrimary` / `ganhoCoralShadow` / `ganhoCoralLight` / `ganhoLavenderSoft` / `ganhoMusicGold` 등)만 재사용.
+- **약점/관찰**:
+  - `setSelected(_:)` 내 spring 시퀀스가 `selected` 분기에서 `removeAction(forKey: "cardScale")` 호출 후 새 시퀀스 실행, `else` 분기에서도 키 재사용. 회귀 없음. 단 `else` 분기에서 `scale: 1.0` 액션 이후 `background.fillColor` 변경이 액션 실행과 동시 — 시각 글리치 가능성 매우 낮으나 액션 완료 콜백이 아닌 즉시 변경. P2.
+  - SafeArea mount는 SKView의 frame을 코드로 직접 갱신(`translatesAutoresizingMaskIntoConstraints = true` + `autoresizingMask = []`). storyboard와 코드 제약이 혼재되는 패턴이라 향후 storyboard 수정 시 함정 가능. 본 SPEC 범위 내에서는 합리적인 절충.
+  - `view.backgroundColor = .ganhoBgWarmTop` — UIColor extension의 시맨틱 토큰이라 SwiftRules §9의 "하드코딩 색상" 룰 위배 아님. SafeArea 바깥 fallback으로 적절. 단 그라데이션 노드와 fallback이 *단색-그라데이션 경계*에서 살짝 컬러 점프 가능 — 노치 영역만 영향이라 시각적으로 무시 가능.
 
----
+- **개선 제안**: 없음 — 합격선.
 
-## 4. 빌드 결과
+### 성능 (9.0/10)
 
-```
-$ xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
-             -scheme "GanhoMusic iOS" \
-             -destination "platform=iOS Simulator,name=iPhone 17" \
-             -configuration Debug build
-...
-** BUILD SUCCEEDED **
-```
+- **강점**:
+  - 신규 노드: `DifficultyCardNode`당 SKLabelNode 1개(descriptionLabel) 추가 × 카드 3장 = 총 +3개 노드. 무시 가능.
+  - `setupDifficultyCards`/`layoutDifficultyCards`/`layoutSummaryCard` 모두 `didMove`·`didChangeSize` 시점 1회 호출. update 루프 내 노드 생성 없음.
+  - `relayoutSKView`의 frame 동일성 체크가 viewDidLayoutSubviews 무한 재호출을 차단. 회전 시 1회만 didChangeSize 발화.
+  - `[weak self]` 캡처: 본 sprint는 신규 클로저 없음(N/A). 기존 클로저 회귀 없음.
+  - `DifficultyCardNode.init`에서 fill 색을 초기화 후 `setSelected`가 호출되며 다시 설정 — 한 프레임 중복 set이지만 첫 프레임만 발생. 60fps 영향 없음.
 
-- 에러: **0건**
-- 신규 워닝: **0건**
-- 기존 워닝 3건 유지 — `Skipping duplicate build file in Copy Bundle Resources build phase: Jua-Regular.ttf / GowunDodum-Regular.ttf / NotoSansKR-Bold.ttf` (Sprint 1부터 존재, Sprint 6 무관)
-- iPhone 17 시뮬레이터 사용 — iPhone 15 환경 부재 시 대체. arm64-apple-ios16.6-simulator 그대로.
+- **약점/관찰**:
+  - `descriptionLabel.numberOfLines = 0` + `preferredMaxLayoutWidth = 96`는 SKLabelNode가 매 layout마다 텍스트 너비 계산을 수행 — 단, 텍스트가 init 후 변경되지 않으므로 1회만 계산. 성능 영향 없음.
+  - SKLabelNode가 동적 텍스트 wrap 사용 시 일부 iOS 버전에서 baseline 정렬이 약간 어긋날 수 있음. `verticalAlignmentMode = .center`로 명시 — 안전.
 
----
+- **개선 제안**: 없음.
 
-## 5. 강제 언래핑 / Timer / 매직 넘버 검사
+### 기능 완성도 (8.5/10)
 
-| 항목 | 명령 | 결과 |
-|---|---|---|
-| 강제 언래핑 `!` (7파일) | `grep -nE '[a-zA-Z_\)\]]\!' …` | **0건** (`fatalError`/`init(coder:)`/주석 제외) |
-| `Timer.` 사용 | `grep -rn '\bTimer\.' Scenes/ Nodes/` | **0건** |
-| 매직 넘버 GameConfig 분리 | Sprint 6 신규 상수 ~50개 (`difficultySelect*`, `characterFace*`, `nurseAvatar*`) | 통과 |
+**SPEC §기능 1~6 매핑**:
 
-**SVG 좌표 예외 정책**: CharacterFaceNode/NurseAvatarNode 내부 `cx/cy/rx/ry/path` 좌표 수치는 mockup SVG와 1:1 매핑되는 시각 자산 사양이므로 코드 안에 그대로 노출(Spring `application.yml`에 SVG path를 옮기지 않는 것과 동형). 외곽선 두께·zPosition·전체 scale 같은 재사용 가능한 토큰만 GameConfig으로 분리. ➜ 매직 넘버 룰 합리적 적용.
+- [PASS] **기능 1 SKView Safe Area Mount**: `GameViewController.swift:22-83`. viewDidLoad에 backgroundColor fallback + SKView frame 갱신 + autoresizing 끄기. viewSafeAreaInsetsDidChange + viewDidLayoutSubviews에서 relayoutSKView 호출. relayoutSKView 내부 frame 동일성 가드 (line 80). SPEC §주의 1~2 완전 준수.
 
-**weak 캡처**: StartScene.transitionToNext의 `SKAction.run { [weak view] in ... }` 적용. DifficultySelect의 `transitionBack`/`transitionToGame`은 closure 없는 동기 패턴(`guard let view = self.view` 후 즉시 `view.presentScene`) — 기존 CharacterSelectScene `transitionToStart` 패턴과 동형, weak 캡처 불필요.
+- [PASS] **기능 2 Difficulty.description**: `Difficulty.swift:55-65`. 3 case 모두 한 줄 풀이. `: CustomStringConvertible` 미채택(SPEC §주의 4 준수). raw value 불변. 본 sprint 외 `Difficulty` 인스턴스를 `String(describing:)`/`\()` 형태로 직접 보간하는 사용처 0건 grep 확인(ResultScene은 `displayName`/`shortName` 명시 호출).
 
----
+- [PASS] **기능 3 DifficultyCardNode V3 시인성**:
+  - 카드 크기 112×82 (V3 상수 사용, `DifficultyCardNode.swift:41-44`)
+  - cornerRadius 20 (V3)
+  - descriptionLabel 신규 + numberOfLines=0 + preferredMaxLayoutWidth=96 (line 180-181)
+  - 미선택 alpha 0.78 (line 104)
+  - 미선택 fill α 0.08 / stroke α 0.4 (line 129-134)
+  - 선택 fill α 0.2 / stroke id.color 정색
+  - 3 라벨 색 .ganhoNavyDeep / .ganhoNavyMuted 토큰 동기화 (line 137-139)
+  - ringGlow cornerRadius도 V3(20)로 카드와 통일 (line 71) — 시각 일관성
 
-## 6. 5단계 / 4단계 흐름 코드 추적
+- [PASS] **기능 4 CharacterSelectScene 여백 + 지그재그**:
+  - `cardBaseX`에서 `characterSelectCardSpacingV3`(22pt) 사용 (`CharacterSelectScene.swift:370`)
+  - `cardBaseY`에서 `characterSelectCardZigzagOffsetV3` 기반 짝/홀 인덱스 부호 처리 (line 383-384)
+  - 모든 카드/컨테이너/색점/얼굴/태그 라벨/링글로우가 동일 헬퍼를 호출 — 자동 동기화
 
-### 5단계 흐름 (.jung / .geon / .im / .lee)
-```
-StartScene.transitionToNext
-  → CharacterSelectScene.newCharacterSelectScene()                       [StartScene.swift:309]
+- [PASS] **기능 5 DifficultySelectScene 시각 균형**:
+  - `layoutDifficultyCards`에서 width/spacing V3 사용 (`DifficultySelectScene.swift:363-364`)
+  - `layoutSummaryCard`에서 `difficultySelectSummaryCardOffsetXV3`(-260) 사용 (line 318)
+  - 시작 버튼 offsetY 미조정 — SELF_CHECK §위험 5에 109pt 여유 근거 명시. 합리적 판단.
 
-CharacterSelectScene.transitionToNext (switch selectedCharacterID)
-  case .jung/.geon/.im/.lee:
-  → SkillExplanationScene.newSkillExplanationScene(characterID: ...)     [CharacterSelectScene.swift:473]
+- [PASS] **기능 6 GameConfig V3 상수 묶음**: `GameConfig.swift:1731-1789`. 19개 신규 상수, 한국어 주석 부여, MARK 섹션 분리. 기존 상수 값 변경 0건(grep 확인 — `characterCardSpacing=10`, `difficultyCardWidth=80`, `difficultyCardHeight=56`, `difficultySelectSummaryCardOffsetX=-220` 모두 보존).
 
-SkillExplanationScene.transitionToDifficulty
-  → DifficultySelectScene.newDifficultySelectScene(characterID: ...)     [SkillExplanationScene.swift:589]
+**변경 금지 회귀 확인**:
+- GameScene 미접촉 OK
+- Repositories/* 미접촉 OK
+- AudioManager / HapticsManager 미접촉 OK
+- Difficulty enum case·rawValue 불변 OK (description만 추가)
+- StartScene / ResultScene transitionToNext 시그니처 미접촉 OK
+- CharacterID / CharacterCardNode 내부 미접촉 OK
+- GameScene.newGameScene(characterID:difficulty:) 시그니처 불변 OK
+- ResultScene.newResultScene(...) 시그니처 불변 OK
+- GlassPillNode / PrimaryButtonNode / DarkContextChipNode 내부 미접촉 OK
+- 음표 emitter / 그라데이션 배경 / NurseAvatarNode 미접촉 OK
+- 사운드 발화 시퀀스 미접촉 OK
+- DifficultyCardNode.setSelected(_:) 시그니처 불변 OK
+- 기존 GameConfig 상수 값 미변경 OK
 
-DifficultySelectScene.transitionToGame
-  → GameScene.newGameScene(characterID: ..., difficulty: ...)            [DifficultySelectScene.swift:441]
-```
+**SPEC 수치 deviation (P2 등급)**:
+- SPEC §기능 6: `characterCardSpacingV3 = 28` → 구현 `characterSelectCardSpacingV3 = 22` (이름·값 모두 변경)
+- SPEC §기능 6: `difficultyCardFontSizeV3 = 24` → 구현 `difficultyCardNameFontSizeV3 = 22`
+- SPEC §기능 6: `difficultyCardHeightV3 = 80` → 구현 82
+- SPEC §기능 6: `characterSelectCardYOffsetsV3: [CGFloat] = [-6, 8, -4, 6, -6]` 5개 배열 → 구현 단일 스칼라 `characterSelectCardZigzagOffsetV3 = 8` + 짝홀 부호
+- SPEC §기능 6에 명시된 `difficultySelectDifficultyRowOffsetXV3` / `difficultySelectDifficultyRowOffsetYV3` *V3 신설 상수* 부재. 대신 기존 `difficultySelectDifficultyRowOffsetX/Y`를 그대로 사용 — 값 동일(110, -10)이라 기능 동등.
 
-### 4단계 흐름 (.kim)
-```
-StartScene → CharacterSelectScene (동일)
+이 deviation들은 모두 SPEC §주의사항 1·5·6 같은 "회귀 방지 절대 룰"을 어기지 않고, 사용자 경험 측면에서도 합리적이지만 SPEC 텍스트와의 1:1 매핑이 깨진 점이 감점 요소. -1.5점.
 
-CharacterSelectScene.transitionToNext (switch selectedCharacterID)
-  case .kim:
-  → DifficultySelectScene.newDifficultySelectScene(characterID: .kim)    [CharacterSelectScene.swift:467]
-  ↳ 스킬 화면 스킵, 좌측 카드에 "스킬 없음" 표시, 백버튼은 "← 캐릭터 다시"
-
-DifficultySelectScene → GameScene (동일)
-```
-
-### 백 흐름
-```
-DifficultySelectScene.transitionBack (switch characterID)
-  .kim       → CharacterSelectScene.newCharacterSelectScene()           [DifficultySelectScene.swift:426]
-  그 외      → SkillExplanationScene.newSkillExplanationScene(...)       [DifficultySelectScene.swift:429]
-
-SkillExplanationScene.transitionToCharacterSelect
-  → CharacterSelectScene.newCharacterSelectScene()                       [SkillExplanationScene.swift:579] (인자 없음)
-
-CharacterSelectScene.transitionToStart
-  → StartScene.newStartScene()                                           [CharacterSelectScene.swift:454]
-```
-
-**평가**: 모든 라우팅 정확. 각 단계 백버튼은 정확히 직전 단계로 회귀.
-
-### GameScene 시그니처 보존
-```swift
-class func newGameScene(characterID: CharacterID = .kim, difficulty: Difficulty = .easy) -> GameScene
-```
-[GameScene.swift:137] — DifficultySelectScene가 그대로 호출. **보호 영역 무위반**.
+**잠재 이슈 (참고용, P3)**:
+- `CharacterSelectScene.cardBaseX`는 layout grid 계산에 `GameConfig.characterCardWidth`(48pt)를 사용하지만 실제 시각 컨테이너는 `characterCardGlassWidth`(110pt). 이건 *Sprint 7 이전부터* 존재했던 패턴 — Generator가 새로 도입한 회귀가 아님. 5장 카드의 카드 간 *시각 거리*는 `48 + 22 = 70pt` 그리드 — 110pt 글래스 컨테이너는 각각 70pt 그리드 위에서 양옆 20pt씩 overlap. 사용자가 "흩어진 인상"을 느끼는지 여부는 글래스 컨테이너 거리가 결정하므로, 22pt spacing은 실효 +12pt 여백 — SPEC §기능 5의 "흩어진 인상" 의도와 일치. *이상 동작 가능성*은 글래스 컨테이너가 서로 살짝 겹쳐 보일 수 있다는 점이지만 fillAlpha 0.65 + strokeColor clear라 시각적으로 자연스럽게 융합. 차회 sprint에서 사용자 피드백을 본 뒤 spacing 28까지 확장하는 옵션 보유.
 
 ---
 
-## 7. Mockup 3종 git diff 요약
+## 사용자 요구 충족도 (육안 검증 시뮬레이션)
 
-| 파일 | 변경 형태 | 변경 라인 |
-|---|---|---|
-| `mockups/character-select-v2.html` | 수정 | -7 +5 (diff-pill 삭제, 백버튼/confirm 텍스트 변경, top-bar justify 조정, annotation 갱신) |
-| `mockups/skill-explanation-v2.html` | 수정 | -5 +5 (브레드크럼 순서 재편, primary 버튼 텍스트, annotation 갱신) |
-| `mockups/difficulty-select-v2.html` | 신규 | **510줄** — phone-frame + 3-stop 그라데이션 + 음표 + 좌측 200×260 요약 카드 + 우측 난이도 3장 + 시작 버튼 + 6칸 annotation + .kim 메모 |
+- **메인 화면(StartScene) 잘림 해소**: PASS
+  - 근거: GameViewController가 SKView를 `view.safeAreaLayoutGuide.layoutFrame`에 mount. StartScene의 `frame.minX + 60` BEST GlassPill / `frame.maxX - 64` 타이틀이 자동으로 safe area 안으로 들어옴. view.backgroundColor = .ganhoBgWarmTop fallback으로 노치 영역 연속성도 유지.
 
-### 시각 매칭 (브라우저 확인 권장)
-- character-select-v2.html: 우상단 난이도 칩 없음, 좌상단 `← 메인`, 5장 카드는 그대로
-- skill-explanation-v2.html: 브레드크럼 `캐릭터 · [스킬] · 난이도` 순서, 우측 버튼 `다음 ▶`
-- difficulty-select-v2.html: 기존 mockup 6종과 동일한 톤(피치-라벤더 그라데이션·코랄 액센트), 6칸 annotation 그리드 + .kim 케이스 명시
+- **캐릭터 카드 흩어짐 + 예쁨**: PASS (소폭 미달 가능)
+  - 근거: spacing 10→22(+12pt) — SPEC §기능 5에서 제시한 28pt보다 작지만 카드 폭 산정에 사용되는 characterCardWidth가 48임을 고려하면 시각적으로 *합당한 여백* 확보. 짝/홀 인덱스 ±8pt 지그재그로 5장이 자연스럽게 흩어진 인상. z-rotation은 SPEC 지시대로 *미적용* — hit test 회귀 방지.
 
----
+- **난이도 흐림 해소 + 설명 추가 + 크기 확대**: PASS
+  - 근거:
+    - 미선택 alpha 0.5 → 0.78 상향 (+0.28)
+    - 미선택 fill을 `id.color × 0.08`로 색이 살짝 깔리는 톤
+    - 미선택 stroke `id.color × 0.4`로 미선택도 명확
+    - 카드 크기 80×56 → 112×82 (1.4× × 1.46× 확장)
+    - descriptionLabel 신규 (3 case 모두 다른 한 줄 풀이)
+    - 폰트 nameLabel 20→22pt, subtitle 10→12pt, description 10pt
+    - 라벨 색 .ganhoNavyDeep / .ganhoNavyMuted로 가독성 향상
 
-## 8. 카테고리별 채점 근거
-
-### 8-1. 게임 로직 회귀 0 — 9.8/10
-- 보호 영역 17파일 git diff 0줄 ✓
-- GameScene.newGameScene 시그니처 byte-identical ✓
-- difficultyRepo.current 읽기 시점은 흐름 마지막(DifficultySelect.didMove)에서 1회로 이동되었지만, *호출 자체*는 보존 — 저장 포맷 회귀 0 ✓
-- 게임 수치/물리/입력/AI/사운드/햅틱 0건 변경 ✓
-- 0.2 감점: SkillExplanationScene의 init 시그니처 변경이 *씬간 인자 전달 경로*에 영향을 주는 흐름 변경이므로 절대 9.0+를 만족하나 "회귀 0" 표현이 인접 영역의 인터페이스 변경까지는 포함하지 않음을 명확히.
-
-### 8-2. Swift 패턴 — 9.4/10
-- `!` 0건, `Timer` 0건 ✓
-- 매직 넘버 GameConfig 약 50개 분리 ✓ (SVG 내부 좌표 예외 정책 합리적)
-- weak 캡처: StartScene `[weak view]` 적용, 동기 경로는 패턴 동형 보존 ✓
-- final class / private(set) / fileprivate 일관 ✓
-- 0.6 감점: NurseAvatarNode 374줄 / CharacterFaceNode 660줄로 단일 파일 비대화 가능성 — 캐릭터별 builder를 extension으로 분리하면 가독성 ↑ (P2 잔존, 합격 영향 0)
-
-### 8-3. 비주얼 일관성 — 9.2/10
-- mockup 3종 시각 매칭 ✓
-- ColorTokens v2 토큰 우선 사용 (불가피한 raw UIColor는 파일 최상단 `private static let` 집중) ✓
-- 글래스 컨테이너 / AccentLine / DarkContextChip / PrimaryButton / GlassPill / GradientBackgroundNode 재사용 — 디자인 시스템 일관 ✓
-- 0.8 감점: SVG → SKShapeNode 변환은 *수학적으로* 정확하나 5명 얼굴 식별 가능 여부 + NurseAvatar 4영역 분간 여부는 시뮬레이터 실기 시각 확인이 필요(자동화된 빌드 검증만으로 결정 불가). SELF_CHECK §8-1과 같은 위험 인지.
-
-### 8-4. 가독성 & UX — 9.5/10
-- 5단계 흐름 + 4단계 흐름 모두 코드 추적 통과 ✓
-- .kim 분기 백버튼이 "← 캐릭터 다시"로 정확 회귀 ✓
-- "스킬 없음" 표시 — 김간호 정공법 정체성 시각 명시 ✓
-- 브레드크럼 순서 재편으로 사용자가 현재 단계를 인지 ✓
-- 0.5 감점: DifficultySelect 좌측 요약 카드의 정보 밀도(이름·아바타·스킬·속도 4정보) — 작은 200×260 영역에 4개 정보가 들어가 microcopy 가독성 우려. 시뮬레이터 실기 확인 필요(P2).
+- **결과창(ResultScene) 잘림 해소**: PASS
+  - 근거: SafeArea mount로 자동 해결. ResultScene 자체는 변경 0건 — frame.midX 기준 콘텐츠라 SKView frame이 safe area로 줄어들면 panel·버튼이 자동으로 안전 영역 내부 정렬. SPEC §기능 7 의도 그대로.
 
 ---
 
-## 9. P1 / P2 잔존 이슈
+## 구체적 개선 지시 (점수 6.0 미만일 때만)
 
-### P2 (합격 영향 0, 추후 개선 권장)
-1. **NurseAvatarNode 단일 파일 374줄 / CharacterFaceNode 660줄** — 시각 자산 충실 재현으로 인한 자연스러운 결과지만, 향후 PNG swap 시점에 `extension NurseAvatarNode { func buildHead() }` 패턴으로 분리하면 가독성 ↑.
-2. **시뮬레이터 실기 시각 검증 미수행** — 빌드 SUCCEEDED는 컴파일·링크만 보장. 5명 얼굴 식별 가능 여부는 사용자 실기 또는 후속 작업으로.
-3. **NurseAvatarNode 호흡 애니메이션** — SPRINT_6_REQUEST.md §7에 명시된 후속 옵션, Sprint 6 범위 외(범위 보존 정책 통과).
+없음 — 가중점수 8.70으로 합격선(7.5) 초과.
 
-### P1, P0 — **없음**.
+다만 차회 sprint에서 다듬을 수 있는 권장(점수 영향 없음):
 
----
-
-## 10. 최종 판정
-
-### ✅ **합격** — 가중 평균 **9.53 / 10**
-
-- 모든 P0 자동 불합격 항목 PASS
-- 4개 카테고리 모두 통과선 초과
-- 보호 영역 17파일 git diff 0줄
-- 빌드 SUCCEEDED, 신규 워닝 0건
-- 5단계 / 4단계 흐름 모두 라우팅 정확
-- 강제 언래핑 / Timer / 매직 넘버 모두 통과
-
-**다음 단계**: DESIGN_RENEWAL_STATE.md에 Sprint 6 합격 행 추가, 진행 로그 갱신.
+1. `characterSelectCardSpacingV3 = 22`를 SPEC 권장값(28)에 맞춰 늘려보고 사용자 만족도 확인 — 22가 충분히 흩어진 인상이면 그대로 두되, 빽빽한 인상이 남으면 28까지 확장.
+2. `setSelected(_:)`의 `else` 분기에서 background fillColor 변경 직후 scale 1.0 액션 — 액션과 색 변경 동시 발화가 시각 글리치 없는지 실기 빌드에서 확인. 필요 시 `SKAction.colorize` 0.15s로 부드럽게.
+3. SPEC §기능 6의 `difficultyCardHeightV3 = 80` 권장값과 구현(82)의 +2pt 차이가 시작 버튼과 충돌 없는지 카드 row 하단 y = midY-51 기준 109pt 여유로 안전 — 회귀 0. 변경 권장 아님.
+4. SPEC §주의사항 12 — iPhone SE / iPhone 15 등 다양한 기기에서도 잘림 없는지 시뮬레이터 실기 확인 권장(Linux workspace 환경상 본 검수에서는 미수행).
 
 ---
 
-**채점자**: Claude Code 부모 하네스 (Evaluator subagent timeout 대체)
-**근거 검증 도구**: Bash (git diff / grep / xcodebuild), Read (SELF_CHECK.md / 7파일 핵심 라인)
+## 판정 근거 한 줄
+
+SPEC §주의사항(케이스 추가/삭제 금지·rawValue 불변·서명 불변·기존 상수 값 보존·무한 layout 루프 가드·CustomStringConvertible 미채택·storyboard 미수정) 모두 정확히 준수했고, 사용자 4대 요구(메인/캐릭터/난이도/결과창)를 SafeArea + V3 카드 + descriptionLabel + summary offsetX 보정으로 통합 해결한 합격품. SPEC 수치 deviation 4건은 모두 합리적 절충으로 P2 등급.
+
+QA_REPORT.md 작성 완료. 판정: 합격. 가중점수: 8.70/10

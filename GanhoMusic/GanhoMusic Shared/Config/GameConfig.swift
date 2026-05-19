@@ -1727,4 +1727,64 @@ enum GameConfig {
     static let difficultySelectStartButtonOffsetY: CGFloat = -160
     /// 시작 버튼 텍스트.
     static let difficultySelectStartButtonText: String = "시작"
+
+    // MARK: - Sprint 7 · 잘림 해소 + 카드 시인성 강화 (Visual-3)
+    //
+    // SafeArea 마운트(GameViewController)로 4개 메뉴 씬 가장자리 잘림 해소 +
+    // DifficultyCardNode 1.4배 확장 + descriptionLabel 추가 + 미선택 시각 강화 +
+    // CharacterSelectScene 카드 여백 확대 + 지그재그 y 오프셋.
+    //
+    // 모든 신규 상수는 `*V3` 접미사. 기존 상수는 값 변경 없음(다른 사용처 회귀 방지).
+
+    // --- DifficultyCardNode v3 ---
+    /// Sprint 7 — v3 카드 폭(112pt). 기존 difficultyCardWidth(80) 대비 1.4배.
+    static let difficultyCardWidthV3: CGFloat = 112
+    /// Sprint 7 — v3 카드 높이(82pt). 3행 라벨(name + subtitle + description) 수용.
+    static let difficultyCardHeightV3: CGFloat = 82
+    /// Sprint 7 — v3 카드 코너 반경(20pt). 캡슐 → 둥근 사각형 톤. height/2(41)보다 작아 카드 인상.
+    static let difficultyCardCornerRadiusV3: CGFloat = 20
+    /// Sprint 7 — v3 카드 spacing(22pt). 기존 16 대비 +6.
+    static let difficultyCardSpacingV3: CGFloat = 22
+    /// Sprint 7 — v3 카드 stroke 두께(1.5pt).
+    static let difficultyCardStrokeLineWidthV3: CGFloat = 1.5
+
+    /// Sprint 7 — v3 미선택 카드 알파(0.78). 기존 characterCardDeselectedAlpha(0.5) 대비 +0.28
+    /// — 흐림 해소 핵심 수치.
+    static let difficultyCardDeselectedAlphaV3: CGFloat = 0.78
+    /// Sprint 7 — v3 미선택 fill alpha — id.color × 0.08. 살짝 깔리는 톤.
+    static let difficultyCardDeselectedFillAlphaV3: CGFloat = 0.08
+    /// Sprint 7 — v3 미선택 stroke alpha — id.color × 0.4. 미선택도 색 대비 명확.
+    static let difficultyCardDeselectedStrokeAlphaV3: CGFloat = 0.4
+    /// Sprint 7 — v3 선택 fill alpha — id.color × 0.2. 기존 Phase 8-3 값 유지.
+    static let difficultyCardSelectedFillAlphaV3: CGFloat = 0.2
+
+    /// Sprint 7 — v3 nameLabel 폰트 크기(22pt). 기존 20 대비 +2.
+    static let difficultyCardNameFontSizeV3: CGFloat = 22
+    /// Sprint 7 — v3 subtitleLabel 폰트 크기(12pt). 기존 10 대비 +2.
+    static let difficultyCardSubtitleFontSizeV3: CGFloat = 12
+    /// Sprint 7 — v3 descriptionLabel 폰트 크기(10pt). 한 줄 풀이.
+    static let difficultyCardDescriptionFontSizeV3: CGFloat = 10
+    /// Sprint 7 — v3 description 라벨 최대 폭(카드 폭 - 좌우 16pt 패딩 = 96pt).
+    /// numberOfLines = 0 + preferredMaxLayoutWidth에 사용.
+    static let difficultyCardDescriptionMaxWidthV3: CGFloat = 96
+
+    /// Sprint 7 — v3 nameLabel y offset (+24 — 카드 상단).
+    static let difficultyCardNameOffsetYV3: CGFloat = 24
+    /// Sprint 7 — v3 subtitleLabel y offset (+4 — 카드 중간 살짝 위).
+    static let difficultyCardSubtitleOffsetYV3: CGFloat = 4
+    /// Sprint 7 — v3 descriptionLabel y offset (-20 — 카드 하단).
+    static let difficultyCardDescriptionOffsetYV3: CGFloat = -20
+
+    // --- DifficultySelectScene v3 ---
+    /// Sprint 7 — v3 좌측 summary 카드 offsetX(-260). 기존 -220 대비 -40 좌측 추가 이동
+    /// — 우측 3장 카드가 112×3+22×2=380pt로 커지면서 시각 균형 보정.
+    static let difficultySelectSummaryCardOffsetXV3: CGFloat = -260
+
+    // --- CharacterSelectScene v3 ---
+    /// Sprint 7 — v3 캐릭터 카드 간 spacing(22pt). 기존 characterCardSpacing(10) 대비 +12
+    /// — 흩어진 인상. 카드 cardBaseX 계산에만 사용.
+    static let characterSelectCardSpacingV3: CGFloat = 22
+    /// Sprint 7 — v3 카드별 y 미세 오프셋 절대값(8pt). 지그재그 패턴 — 홀수 인덱스(0/2/4)는
+    /// +8, 짝수 인덱스(1/3)는 -8 식으로 호출부에서 부호 결정.
+    static let characterSelectCardZigzagOffsetV3: CGFloat = 8
 }
