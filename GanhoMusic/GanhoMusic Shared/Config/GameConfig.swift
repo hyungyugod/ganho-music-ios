@@ -1819,4 +1819,96 @@ enum GameConfig {
     static let characterSelectConfirmButtonBottomInset: CGFloat = 40
     /// CharacterSelect 스킬 정보 칩 — 확인 버튼 위쪽 상대 간격.
     static let characterSelectSkillInfoChipAbove: CGFloat = 36
+
+    // MARK: - Sprint 7 Phase A · CharacterCard v3 (NIKKE 4:5)
+    //
+    // 카드 폭 160 / 높이 200 / cornerRadius 22 / gap 22 — NIKKE 식 세로 4:5 카드.
+    // 카드 내부에 5요소(속성 헥사·등급 배지·CD 미니칩·얼굴·이름+속도)를 위계 있게 배치.
+    // 선택 상태는 v2 scale 1.08 + 코랄 stroke에 *하단 코랄 radial glow + 상단 "선택됨" 알약* 추가.
+    //
+    // 모든 신규 상수는 `*V3` 접미사 또는 v3 의도값. 기존 v2 상수(characterCardWidth 76,
+    // characterCardHeight 104, characterCardGlassWidth 156, characterCardGlassHeight 204,
+    // characterCardSelectedScale 1.08, characterCardScaleDuration 0.10)는 값 변경 0.
+
+    /// v3 카드 폭(160pt). 기존 characterCardWidth(76) 대비 +84. 4:5 세로 비율 carrier.
+    static let characterCardWidthV3: CGFloat = 160
+    /// v3 카드 높이(200pt). 폭 160 × 1.25 = 200 → 4:5 비율.
+    static let characterCardHeightV3: CGFloat = 200
+    /// v3 카드 사이 gap(22pt). 기존 characterCardSpacing(10) 대비 +12. 겹침 0 보장.
+    static let characterCardGapV3: CGFloat = 22
+    /// v3 카드 cornerRadius(22pt). NIKKE 식 부드러운 둥금.
+    static let characterCardCornerRadiusV3: CGFloat = 22
+
+    // --- 속성 헥사 아이콘 (좌상단) ---
+    /// 헥사 outer radius(원에 외접) — 14pt → 28pt 헥사 폭.
+    static let characterCardElementHexRadius: CGFloat = 14
+    /// 헥사 stroke(흰색 1.5pt) — 카드 배경(반투명 화이트)과 분리.
+    static let characterCardElementHexStrokeWidth: CGFloat = 1.5
+    /// 카드 좌상단 코너 inset (x, y) — 헥사 중심 좌표 계산에 사용.
+    static let characterCardElementHexInsetX: CGFloat = 18
+    static let characterCardElementHexInsetY: CGFloat = 18
+    /// 헥사 안 이모지 폰트 크기(pt). 헥사 폭 28의 약 57% — 시각 균형.
+    static let characterCardElementSymbolFontSize: CGFloat = 16
+
+    // --- 등급 로마숫자 배지 (좌하단) ---
+    /// 배지 크기(26×18pt) — Jua 11pt 한 자리 로마숫자 수용.
+    static let characterCardRarityBadgeWidth: CGFloat = 26
+    static let characterCardRarityBadgeHeight: CGFloat = 18
+    /// 배지 cornerRadius(8pt) — 부드럽지만 사각.
+    static let characterCardRarityBadgeCornerRadius: CGFloat = 8
+    /// 배지 fill alpha — navyDeep × 0.85.
+    static let characterCardRarityBadgeFillAlpha: CGFloat = 0.85
+    /// 카드 좌하단 코너 inset (x, y) — 배지 중심 좌표.
+    static let characterCardRarityBadgeInsetX: CGFloat = 22
+    static let characterCardRarityBadgeInsetY: CGFloat = 22
+    /// 배지 라벨 폰트 크기(pt).
+    static let characterCardRarityBadgeFontSize: CGFloat = 11
+
+    // --- CD 미니칩 (우상단) ---
+    /// 칩 높이(16pt) — 자동 폭(라벨 너비 + padding).
+    static let characterCardCDChipHeight: CGFloat = 16
+    /// 칩 좌우 패딩(8pt).
+    static let characterCardCDChipHorizontalPadding: CGFloat = 8
+    /// 칩 fill — coralLight × 0.85.
+    static let characterCardCDChipFillAlpha: CGFloat = 0.85
+    /// 칩 라벨 폰트 크기(pt).
+    static let characterCardCDChipFontSize: CGFloat = 9
+    /// 카드 우상단 코너 inset (x, y).
+    static let characterCardCDChipInsetX: CGFloat = 16
+    static let characterCardCDChipInsetY: CGFloat = 18
+
+    // --- 이름 + 속도 (하단) ---
+    /// 이름 라벨 폰트 크기(pt). Jua, navyDeep.
+    static let characterCardNameFontSizeV3: CGFloat = 15
+    /// 이름 라벨 y offset (카드 하단 기준 + 28).
+    static let characterCardNameOffsetYV3: CGFloat = 28
+    /// 속도 칩 라벨 폰트 크기(pt). Gowun Dodum, scrubMint.
+    static let characterCardSpeedFontSizeV3: CGFloat = 10
+    /// 속도 칩 y offset (카드 하단 기준 + 12 — 이름 아래).
+    static let characterCardSpeedOffsetYV3: CGFloat = 12
+
+    // --- 선택 상태 강화 (Phase A) ---
+    /// 카드 하단 코랄 radial glow 노드 폭(카드 폭 × 1.4 = 224pt).
+    static let characterCardSelectedGlowWidth: CGFloat = 224
+    /// 코랄 glow 높이(60pt).
+    static let characterCardSelectedGlowHeight: CGFloat = 60
+    /// 코랄 glow y offset (카드 하단 기준 -12 — 카드 아래로 살짝 새어 나옴).
+    static let characterCardSelectedGlowOffsetY: CGFloat = -12
+    /// 코랄 glow 알파(0.45).
+    static let characterCardSelectedGlowAlpha: CGFloat = 0.45
+
+    /// "선택됨" 알약 폭(60pt) / 높이(20pt). Jua 10pt 흰색 "선택됨" 수용.
+    static let characterCardSelectedPillWidth: CGFloat = 60
+    static let characterCardSelectedPillHeight: CGFloat = 20
+    /// 알약 라벨 폰트 크기(pt).
+    static let characterCardSelectedPillFontSize: CGFloat = 10
+    /// 알약 텍스트.
+    static let characterCardSelectedPillText: String = "선택됨"
+    /// 알약 y offset (카드 상단 기준 +14 — 카드 위로 솟음).
+    static let characterCardSelectedPillOffsetY: CGFloat = 14
+
+    // --- 스킬 패널 폭 축소 (Phase A) ---
+    /// 하단 스킬 정보 칩 최대 폭(320pt). v2 무한 → v3 320 clamp.
+    /// 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
+    static let characterSelectSkillInfoMaxWidth: CGFloat = 320
 }

@@ -178,20 +178,24 @@ final class CharacterSelectScene: SKScene {
 
     // MARK: - Setup (Sprint 2 · Card Containers · Glass Outer)
     /// 5 카드 외곽 글래스 컨테이너. *카드보다 뒤*(zPos 90)에 배치되어 카드 위 시각만 강조.
+    /// Sprint 7 Phase A — 크기를 v3(160×200, cornerRadius 22)로 갱신. alpha 0 — NIKKE 카드 자체가 충분히 강조,
+    /// 글래스 외곽은 시각상 제거(코드/구조 변경 최소 — applyGlassContainerSelection은 계속 작동).
     private func setupCardContainers() {
         for id in CharacterID.allCases {
             let size = CGSize(
-                width: GameConfig.characterCardGlassWidth,
-                height: GameConfig.characterCardGlassHeight
+                width: GameConfig.characterCardWidthV3,
+                height: GameConfig.characterCardHeightV3
             )
             let container = SKShapeNode(
                 rectOf: size,
-                cornerRadius: GameConfig.characterCardGlassCornerRadius
+                cornerRadius: GameConfig.characterCardCornerRadiusV3
             )
+            // Sprint 7 Phase A — alpha 0(시각 0). 노드는 남아 위치/scale 계산 보존.
             container.fillColor = UIColor.white
                 .withAlphaComponent(GameConfig.characterCardGlassFillAlpha)
             container.strokeColor = .clear
             container.lineWidth = 0
+            container.alpha = 0.0
             container.zPosition = 90
             container.name = "characterCardGlass_\(id.rawValue)"
             cardContainers[id] = container
@@ -254,6 +258,7 @@ final class CharacterSelectScene: SKScene {
 
     // MARK: - Setup (Sprint 2 · Color Dots)
     /// 각 카드 우상단의 작은 색 점(반지름 4). 글래스 컨테이너 위(zPos 110).
+    /// Sprint 7 Phase A — 카드 내부 elementHex로 흡수 → isHidden = true. 노드/위치 계산은 유지(회귀 안전).
     private func setupCardColorDots() {
         for id in CharacterID.allCases {
             let dot = SKShapeNode(circleOfRadius: GameConfig.characterCardColorDotRadius)
@@ -262,20 +267,24 @@ final class CharacterSelectScene: SKScene {
             dot.lineWidth = 0
             dot.zPosition = 110
             dot.name = "characterCardDot_\(id.rawValue)"
+            // Sprint 7 Phase A — 카드 내부 elementHex로 흡수.
+            dot.isHidden = true
             cardColorDots[id] = dot
             addChild(dot)
         }
         layoutCardColorDots()
     }
 
+    /// Sprint 7 Phase A — 색점 isHidden이지만 위치 계산은 v3 폭(160×200)에 맞춰 일관성 유지.
+    /// 기존 characterCardGlassWidth(156)/Height(204) 상수는 값 보존(다른 사용처 가능성).
     private func layoutCardColorDots() {
         for (id, dot) in cardColorDots {
             let baseX = cardBaseX(for: id)
             let baseY = cardBaseY(for: id)
             dot.position = CGPoint(
-                x: baseX + GameConfig.characterCardGlassWidth / 2
+                x: baseX + GameConfig.characterCardWidthV3 / 2
                     - GameConfig.characterCardColorDotInsetX,
-                y: baseY + GameConfig.characterCardGlassHeight / 2
+                y: baseY + GameConfig.characterCardHeightV3 / 2
                     - GameConfig.characterCardColorDotInsetY
             )
         }
@@ -283,6 +292,8 @@ final class CharacterSelectScene: SKScene {
 
     /// 5 태그 라벨 — 카드 *외부*. CharacterCardNode 내부 변경 0건 정책.
     /// 각 카드와 같은 x 좌표 + characterSelectTagOffsetY만큼 아래 위치.
+    /// Sprint 7 Phase A — 카드 내부 nameLabel + speedLabel로 흡수 → isHidden = true.
+    /// 노드/위치 계산은 유지(회귀 안전 — id.tag 값은 보존).
     private func setupTagLabels() {
         for id in CharacterID.allCases {
             let label = SKLabelNode(fontNamed: GameConfig.fontBody)
@@ -293,6 +304,8 @@ final class CharacterSelectScene: SKScene {
             label.verticalAlignmentMode = .center
             label.zPosition = 110
             label.name = "characterTag_\(id.rawValue)"
+            // Sprint 7 Phase A — 카드 내부로 흡수됨.
+            label.isHidden = true
             tagLabels[id] = label
             addChild(label)
         }
@@ -355,11 +368,21 @@ final class CharacterSelectScene: SKScene {
     ///           confirmButton의 position이 layoutSkillInfoChip 호출 시점에 항상 설정되어 있음.
     /// 기존 characterSelectSkillInfoOffsetY(-100)는 값 보존(다른 곳 참조 가능성).
     private func layoutSkillInfoChip() {
+        guard let chip = skillInfoChip else { return }
         // confirm 버튼 좌표를 직접 참조 — 두 식이 갈라질 위험 0(DRY).
-        skillInfoChip?.position = CGPoint(
+        chip.position = CGPoint(
             x: frame.midX,
             y: confirmButton.position.y + GameConfig.characterSelectSkillInfoChipAbove
         )
+        // Sprint 7 Phase A — 폭 clamp. 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
+        // 칩 자체는 라벨 너비 기반 자동 폭이므로 setScale(maxW / currentW)로 축소.
+        let maxW = GameConfig.characterSelectSkillInfoMaxWidth
+        // setScale 직전에 1.0으로 리셋 — 누적 scale 방지(didChangeSize 반복 시).
+        chip.setScale(1.0)
+        let currentW = chip.calculateAccumulatedFrame().width
+        if currentW > maxW {
+            chip.setScale(maxW / currentW)
+        }
     }
 
     /// 1.10 → "1.1", 1.00 → "1.0", 0.95 → "0.95"처럼 소수점 한 자리 우선.
@@ -383,7 +406,8 @@ final class CharacterSelectScene: SKScene {
     private func cardBaseX(for id: CharacterID) -> CGFloat {
         let allCases = CharacterID.allCases
         let count = allCases.count
-        let width = GameConfig.characterCardWidth   // 76
+        // Sprint 7 Phase A — v3 카드 폭(160)으로 교체. 기존 characterCardWidth(76) 값 보존.
+        let width = GameConfig.characterCardWidthV3
         let safe = SceneSafeArea.insets(for: self)
         // 좌우 안전 마진을 뺀 사용 가능한 폭.
         let usable = frame.width

@@ -1,322 +1,703 @@
-# iPhone Landscape 잘림 해소 + 캐릭터 카드 분리감 강화 + 얼굴 SVG 동기화
+# Sprint 7 Phase A — 캐릭터 선택 NIKKE 카드 리뉴얼
 
 ## 개요
-iPhone 17 Pro Landscape 시뮬레이터에서 발견된 3가지 UI 문제(StartScene 시작 버튼 하단 잘림, ResultScene 다시시작/공유 버튼 하단 잘림, CharacterSelectScene 5장 카드가 한 덩어리로 보임)를 한 번에 해소한다. 동시에 첨부된 5장 SVG(`mockups/svg-exports/{kim,jung,geon,im,lee}.svg`)와 CharacterFaceNode 현재 코드를 비교해 **차이가 있는 캐릭터만** path/색상을 재이식한다.
+캐릭터 선택 화면의 5장 카드를 **NIKKE 식 세로 4:5 구조**로 재정비한다. 카드 폭/gap을 130/14 → 160/22로 키워 겹침 0을 보장하고, 좌상단 속성 헥사·좌하단 등급·우상단 CD 미니칩·하단 이름+속도 칩으로 한 카드에 5종 정보를 위계 있게 배치한다. 선택 상태는 기존 scale 1.08 + translateY -12 + 코랄 stroke에 **하단 코랄 radial 글로우 + 상단 "선택됨" 코랄 알약**을 추가해 시선이 즉시 잡히도록 강화한다.
 
 ## 변경 유형
-**혼합** (UI 비주얼 + 디바이스 대응 인프라)
+**비주얼** (게임 로직 0 회귀, 새로 추가되는 model property는 모두 시각용 computed)
 
 ## 게임 경험 의도
-어떤 디바이스(iPhone SE ~ Pro Max)에서도 핵심 버튼이 잘리지 않고, 캐릭터 선택은 "내 친구를 뽑는다"는 느낌이 들도록 5장의 카드가 시각적으로 분리되어 보여야 한다. 카드 안 얼굴은 정해진 5명의 캐릭터 SVG 시안과 일치해야 캐릭터 정체성이 흔들리지 않는다.
+플레이어가 캐릭터 선택 화면에 진입한 0.5초 안에 "이 친구는 어떤 속성·등급·스킬을 가졌는지"를 한눈에 인지하게 한다. 작은 카드 안에 정보가 빽빽이 들어차 있지만 위계(속성→얼굴→이름→메타)가 명확해서 다섯 친구를 비교하는 재미가 생긴다. 톤은 여전히 따뜻한 피치·코랄 — NIKKE의 다크 톤은 차용하지 않는다.
 
-## Sprint 범위 계약
+## Sprint 7 Phase A 범위 계약
 
-### 허용 (이 외 절대 건드리지 말 것)
-- **신규**: `GanhoMusic/GanhoMusic Shared/Utilities/SceneSafeArea.swift`
-- **수정**: `GanhoMusic/GanhoMusic iOS/GameViewController.swift` — `viewSafeAreaInsetsDidChange()` 명시(정책 기록용 1메서드)
-- **수정**: `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — 신규 상수 7개 추가 + 카드 치수 6개 갱신
-- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/StartScene.swift` — `layoutStartButton()`만
-- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift` — `layoutLabels()` 내 두 버튼 좌표만
-- **수정**: `GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — `cardBaseX`/`cardBaseY` 동적 spacing + `layoutConfirmButton`/`layoutSkillInfoChip` safeArea 적용
-- **수정**: `GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift` — **첨부 SVG와 차이 있는 캐릭터의 빌드 함수만** path/색상 재이식
+### 허용 (이 SPEC 범위)
+- `CharacterID` 신규 computed property 2종(`rarity`, `elementSymbol`) — 순수 시각 lookup, 게임 로직 분기 0
+- `PlayerSkill` 신규 computed property 1종(`cooldownText`) — CD 미니칩 표시용 문자열
+- `GameConfig` 카드 v3 상수 4종 + 배지/칩 상수 ~12종 추가 (기존 상수 값 변경 0)
+- `CharacterCardNode` 내부 구조 변경: 카드 폭·높이를 `characterCardWidthV3`/`HeightV3`로 교체, 카드 외부에 부착되던 정보(이름·태그·색점)를 카드 내부로 흡수, 신규 배지 3종(`attachElementBadge`/`attachRarityBadge`/`attachCDChip`) 부착
+- `CharacterSelectScene` 카드 외곽 글래스 컨테이너 폭/높이/cornerRadius를 새 카드 비율(160×200, 4:5)에 맞춰 갱신, 선택 상태에 코랄 glow + 코랄 알약 부착, 하단 스킬 패널 폭 좁히기 + 카드 행과의 충돌 회피 마진 추가
+- `cardBaseX(for:)` / `cardBaseY(for:)` 좌표 계산 함수 본문만 v3 폭/spacing 상수 참조로 갱신 (시그니처 0 변경)
+- 신규 mockup HTML 1건: `mockups/character-select-v3.html`
 
-### 금지 (회귀 위험)
-- `GanhoMusic Shared/Models/CharacterID.swift` — 메타데이터 불변
-- `GanhoMusic Shared/Nodes/CharacterCardNode.swift` 내부 구조 — 외부 `GameConfig.characterCardWidth/Height` 치수만 흡수
-- `GanhoMusic Shared/Scenes/GameScene.swift`
-- `GanhoMusic Shared/Scenes/DifficultySelectScene.swift`
-- `GanhoMusic Shared/Scenes/SkillExplanationScene.swift`
-- `PlayerNode.swift` PNG 로딩 로직
-- 기존 상수 `startSceneStartButtonOffsetY`(-180), `resultButtonOffsetYV2`(-180) — **값은 그대로 두고 적용만 중지**(다른 곳 참조 가능성)
-- SKView frame을 만지는 모든 시도(2026-05 무한재귀 사고 기록)
+### 금지 (절대 건드림 0)
+- `CharacterSelectScene.init(size:)` / `newCharacterSelectScene()` 시그니처
+- `CharacterPreferenceRepository.current` 복원/저장 로직
+- `cardBaseX(for:)` / `cardBaseY(for:)` 함수 **이름·시그니처·호출 순서** (수치만 갱신 OK)
+- `.kim → DifficultySelectScene` / `그 외 → SkillExplanationScene` 분기 로직
+- `transitionToNext` / `transitionToStart` 콜백 시그니처와 fade transition 시간
+- `CharacterID.dotColor` (기존 색 점 토큰 — 카드 흡수 후에도 *값* 유지)
+- `CharacterID.displayName` / `tag` / `playerSpeedMultiplier` / `skill` / `color` 값
+- `PlayerSkill.cooldown` / `duration` / `oncePerGame` / `displayName` / `fullDescription` / `rangeText` / `castText` 값
+- 게임 로직 일체: 점수·콤보·물리·hitbox·input·AI·저장·사운드 — Phase A는 메뉴 씬 비주얼만
+- `ResultScene` / `GameScene` / `GameState` / `PhysicsCategory` / Managers / Repositories — 0줄
+- 기존 `characterCardWidth`(76)·`characterCardHeight`(104)·`characterCardGlassWidth`(156)·`characterCardGlassHeight`(204) 등 v2 상수 — 값 보존 (다른 참조 가능성)
 
 ### 판단 기준
-"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+"이 변경이 없으면 NIKKE 식 5요소 카드가 제대로 보이지 않는가?" → YES면 허용, NO면 금지.
 
 ---
 
 ## 변경 범위
 
-### 수정할 파일
-1. `GanhoMusic iOS/GameViewController.swift` — 정책 메서드 1개 추가 (frame 미터치 의도 기록)
-2. `GanhoMusic Shared/Config/GameConfig.swift` — 상수 추가/갱신
-3. `GanhoMusic Shared/Scenes/StartScene.swift` — `layoutStartButton()`만
-4. `GanhoMusic Shared/Scenes/ResultScene.swift` — `layoutLabels()` 내 두 버튼 좌표만
-5. `GanhoMusic Shared/Scenes/CharacterSelectScene.swift` — `cardBaseX`/`cardBaseY` 동적 spacing + 확인 버튼/skillInfoChip safeArea 적용
-6. `GanhoMusic Shared/Nodes/CharacterFaceNode.swift` — 차이 있는 캐릭터(예: jung, geon, lee, im)만 재이식
+### 수정할 파일 (5개)
+- `Models/CharacterID.swift`: `rarity: Int` + `elementSymbol: String` 두 computed property 추가
+- `Models/PlayerSkill.swift`: `cooldownText: String` computed property 추가 (CD 미니칩 라벨용)
+- `Config/GameConfig.swift`: v3 카드 상수 4종 + 배지/칩 위치·폰트 상수 ~12종 추가 (기존 값 변경 0)
+- `Nodes/CharacterCardNode.swift`: 카드 폭/높이를 v3로, 정보 흡수(이름 라벨), 배지 3종 부착 메서드 추가, `setSelected` 코랄 glow + "선택됨" 알약 토글
+- `Scenes/CharacterSelectScene.swift`: 글래스 컨테이너 폭/높이를 v3 카드(160×200)에 맞춰 갱신, 카드 외부 태그·색점·이름 부착 코드 *비활성 또는 제거*(카드 내부로 이전), 카드 자식 배지가 화면에 보이도록 zPosition 정리, 하단 스킬 패널 폭 좁히기, `cardBaseX`/`cardBaseY` 내부의 폭/spacing 상수만 v3로 교체
 
-### 추가할 파일
-- `GanhoMusic Shared/Utilities/SceneSafeArea.swift` — 모든 씬이 공유하는 safeArea 헬퍼 1개
+### 추가할 파일 (1개)
+- `mockups/character-select-v3.html`: Phase A 신규 시각 레퍼런스 (브라우저 시각 확인용, Swift 코드 컴파일 영향 0)
+
+---
+
+## 신규 mockup 시각 사양 — `mockups/character-select-v3.html`
+
+Generator가 이 파일을 신규 작성한다. 아래 사양을 그대로 옮기면 된다.
+
+### 페이지 골격
+- v2와 동일한 phone-frame(aspect-ratio 19.5/9, max-width 920px) + island bar(좌측 18px) 재사용
+- 외곽 페이지 톤·폰트 로딩(Jua, Gowun Dodum, Noto Sans KR) v2 그대로 복사
+
+### 배경 그라데이션 (v2와 동일 3-stop)
+```css
+background:
+  radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+  radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+  linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+```
+
+### 상단 영역
+- 좌상단 GlassPill "← 메인" (v2 그대로)
+- 헤더 중앙: AccentLine(32×3 코랄) + Jua 28pt "함께할 친구를 골라요" + Gowun Dodum 12pt "친구마다 다른 스킬과 이동속도를 가져요"
+- 헤더 top 위치 기존 16%
+
+### 카드 5장 배치
+- `.cards-row` `top: 36%` (v2 42%에서 -6% 위로 — 카드 키운 만큼 공간 확보)
+- gap **22px** (v2 14px → 22)
+- 카드 폭 **160px** / 높이 **200px** / cornerRadius **22px** / 4:5 비율
+- 배경: `rgba(255,255,255,0.65)` + backdrop-filter blur(10px)
+- border: 2px transparent
+
+### 카드 내부 5요소 (zPos 순서: glow → background → 얼굴 → 배지 → 텍스트)
+
+| 요소 | 위치 (카드 좌상단 기준) | 시각 |
+|---|---|---|
+| **속성 헥사 아이콘** (좌상단) | top 12, left 12 | 28×28 헥사(육각형 path) — 캐릭터별 색 토큰 fill, 흰색 1.5 stroke, 안에 16pt 이모지 (⚡/💧/🌿/🌙/🌸) |
+| **등급 로마숫자 배지** (좌하단) | bottom 12, left 12 | 26×18 라운드 사각(cornerRadius 8) — navyDeep 알파 0.85 fill, Jua 11pt 골드 "I"/"II"/"III" |
+| **CD 미니칩** (우상단) | top 12, right 12 | 자동 폭 라운드 알약 (Jua 9pt 흰색, padding 4×8, coralLight 알파 0.85 fill) — 텍스트 "1회"/"2회"/"∞" |
+| **얼굴 SVG** (중앙) | 카드 중앙 (translate -8 위쪽) | viewBox -50 -55 100 110 v2 SVG 그대로 재사용 — width 88, height 88 |
+| **이름 + 속도 칩** (하단) | bottom 22 | Jua 15pt navyDeep "김간호" 위 | Gowun Dodum 10pt scrubMint "⚡ ×1.00" 아래 |
+
+### 5장 캐릭터별 배지 매핑
+
+| 캐릭터 | 속성 헥사 색 (dotColor 재사용) | 속성 이모지 | 등급 (rarity) | CD 미니칩 |
+|---|---|---|---|---|
+| 김간호 (kim) | #FF8E80 coralLight | 🌸 | **II** (2) | ∞ (스킬 없음) |
+| 정간호 (jung) | #9BE0CC scrubMint | 🌿 | **I** (1) | 1회 |
+| 건간호 (geon) | #B89DD9 lavenderSoft | 🌙 | **III** (3) | 1회 |
+| 임간호 (im) | #FFB347 musicGold | ⚡ | **II** (2) | **1회** (oncePerGame = true → "1회"로 매핑) |
+| 이간호 (lee) | #FF8E80 coralLight | 💧 | **I** (1) | 1회 |
+
+> **합의 (Generator는 이 매핑 그대로 따른다)**: `cooldownText`는 `oncePerGame == true`면 "1회", `cooldown == .infinity`면 "∞", 그 외는 "1회"로 단순화 (NIKKE 식 1·2·∞ 시각 위계 차용). 정확한 초 단위는 SkillExplanationScene 메타 칩이 담당 — 카드의 CD 미니칩은 *위계 신호*일 뿐.
+
+### 선택 상태 강화 (3번째 카드 .selected 데모)
+- 기존: scale(1.08) + translateY(-12) + 코랄 stroke 2px + 박스 그림자
+- 신규 추가:
+  - **하단 코랄 radial 글로우**: 카드 하단 80% 위치에 `radial-gradient(ellipse at 50% 50%, rgba(255,107,91,0.45) 0%, transparent 70%)` 절대 위치 div, width 카드폭×1.4, height 80, zIndex -1
+  - **상단 "선택됨" 알약**: 카드 top -14에 `position:absolute; left:50%; transform:translateX(-50%);` Jua 10pt 흰색 "선택됨", coral fill, padding 3×12, border-radius 999
+
+### 하단 스킬 패널 (폭 좁히기)
+- v2의 `.skill-panel` `bottom: 16%` → **`bottom: 14%`** (카드 키운 만큼 살짝 아래로)
+- 최대 폭 **320px** 명시 — 5장 카드 총 폭(160×5 + 22×4 = 888px)과 시각적 분리
+- 내부: 기존 라벨 그대로
+
+### Confirm 버튼 (v2와 동일)
+- `.confirm-btn` "다음 ▶" coralPrimary alabel — bottom 7%
+
+### 플로팅 음표 (v2 동일)
+3개 ♪ ♫ ♬ 배치 그대로.
+
+### 하단 annotation 박스 (필수)
+mockup HTML 하단에 다음 3개 annotation 박스 추가:
+1. **🎴 카드 4:5 NIKKE 구조** — "정사각이 아닌 세로 카드. 5종 정보(속성·얼굴·이름·등급·CD)를 위계 있게 배치."
+2. **✨ 선택 = 떠오르기 + 글로우** — "하단 코랄 radial glow + 상단 '선택됨' 알약 추가. 5장 중 시선이 즉시 잡힘."
+3. **📋 CD 미니칩** — "스킬 cooldown을 1회/2회/∞ 3단계로 단순화. 정확한 초는 SkillExplanationScene이 담당."
 
 ---
 
 ## 기능 상세
 
-### 기능 1: SceneSafeArea 헬퍼 신설 (인프라)
-- 설명: SKView frame은 절대 만지지 않는 정책 하에, SKScene 내부에서 `view.safeAreaInsets`를 일관되게 읽는 공용 헬퍼. Landscape 전용이므로 left/right 노치 회피가 가장 중요. view 미부착 시 `.zero` 반환으로 강제 언래핑/크래시 0건.
-- 구현 위치: `GanhoMusic Shared/Utilities/SceneSafeArea.swift` (신규)
-- 핵심 코드 구조:
+### 기능 1: `CharacterID` 신규 computed property 2종
+- **설명**: 카드 좌상단(속성)·좌하단(등급) 배지에 표시할 시각용 데이터. 게임 로직 분기 0.
+- **구현 위치**: `Models/CharacterID.swift` 파일 끝 (기존 `dotColor` 뒤에 이어 추가, MARK 섹션 분리)
+- **시그니처**:
   ```swift
-  import SpriteKit
-  import UIKit
+  // MARK: - Sprint 7 Phase A — NIKKE 카드 시각용 메타데이터
 
-  /// SKScene에서 view.safeAreaInsets를 안전하게 읽는 헬퍼.
-  /// Landscape 전용 게임 — left/right 노치 회피가 가장 중요.
-  /// GameViewController는 SKView frame을 절대 만지지 않는다(2026-05 무한재귀 사고 기록).
-  /// 노드 배치 측에서 이 헬퍼를 호출해 좌표를 보정한다.
-  enum SceneSafeArea {
-      /// 현재 SKView의 safe area insets. view 미부착 시 .zero(안전 폴백).
-      static func insets(for scene: SKScene) -> UIEdgeInsets {
-          return scene.view?.safeAreaInsets ?? .zero
+  /// 카드 좌하단 등급 배지에 표시할 정수(1·2·3 = I·II·III).
+  /// switch default 미사용 — 5 case exhaustive. 순수 시각 lookup, 게임 로직 분기 0.
+  var rarity: Int {
+      switch self {
+      case .jung: return 1
+      case .kim:  return 2
+      case .geon: return 3
+      case .im:   return 2
+      case .lee:  return 1
+      }
+  }
+
+  /// 카드 좌상단 헥사 아이콘 안에 표시할 속성 이모지 단문자.
+  /// 5종(⚡ 번개/💧 물/🌿 풀/🌙 달/🌸 꽃) — 캐릭터별 색 토큰(dotColor)과 시각 짝.
+  var elementSymbol: String {
+      switch self {
+      case .kim:  return "🌸"
+      case .jung: return "🌿"
+      case .geon: return "🌙"
+      case .im:   return "⚡"
+      case .lee:  return "💧"
       }
   }
   ```
+- **주의**: `displayName`/`tag`/`color`/`playerSpeedMultiplier`/`skill`/`dotColor` 모두 값 변경 0.
 
-### 기능 2: GameViewController 정책 메서드 (정책 기록)
-- 설명: `viewSafeAreaInsetsDidChange()`를 *명시적으로* override하되 본문은 super 호출 + 정책 주석만. 다음 사람이 frame을 만지려는 충동을 막는 의도.
-- 구현 위치: `GameViewController.swift` — `// MARK: - SafeArea Policy` 섹션 신설
-- 핵심 코드 구조:
+### 기능 2: `PlayerSkill.cooldownText` 신규 computed property
+- **설명**: CD 미니칩 라벨 — NIKKE 식 1·2·∞ 3단계 위계.
+- **구현 위치**: `Models/PlayerSkill.swift` 파일 끝 (기존 `castText` 뒤에 MARK 섹션 분리)
+- **시그니처**:
   ```swift
-  // MARK: - SafeArea Policy
-  /// SKView frame은 직접 만지지 않는다(2026-05 무한재귀 사고 기록).
-  /// safeArea 회피는 각 SKScene이 view.safeAreaInsets를 읽어 노드 좌표에 가산하는 방식만 허용.
-  /// 본 메서드는 정책을 코드에 명시하기 위해 존재 — 본문은 super 호출만.
-  override func viewSafeAreaInsetsDidChange() {
-      super.viewSafeAreaInsetsDidChange()
-      // 의도적 no-op. SKScene가 SceneSafeArea.insets(for:)로 직접 읽는다.
+  // MARK: - Sprint 7 Phase A — CD 미니칩
+
+  /// 카드 우상단 CD 미니칩 라벨. 정확한 초 단위가 아닌 *위계 신호*.
+  /// 스킬 없음(.none) → "∞", 그 외 → "1회".
+  /// (정확한 초는 SkillExplanationScene 메타 칩이 담당.)
+  var cooldownText: String {
+      switch self {
+      case .none:           return "∞"
+      case .charmStudent:   return "1회"
+      case .dashClimb:      return "1회"
+      case .bookClubRally:  return "1회"
+      case .taiwanTrip:     return "1회"
+      }
   }
   ```
+- **주의**: 기존 `cooldown` TimeInterval, `oncePerGame` Bool은 손대지 않는다. `cooldownText`는 두 값으로부터 *파생 표시*이지만 lookup 단순화 위해 switch. `PlayerSkill` enum의 정확한 case 이름은 Generator가 코드에서 확인 후 동일하게 매핑(상기 case 이름은 추정 — 실제 enum 이름이 다르면 그에 맞춰 5 case exhaustive switch).
 
-### 기능 3: GameConfig 상수 토큰 갱신 + 신설
-- 설명: 두 분류. (A) 신규 — 화면 가장자리 안전 마진 + 버튼 하단 inset. (B) 갱신 — 카드 치수 키워 분리감 강화. 기존 frame.midY 기반 상수는 **값 보존, 적용 중지**.
-- 구현 위치: `GameConfig.swift` 끝부분에 새 MARK 섹션 추가 + 기존 상수 5개 값 갱신
-- 핵심 코드 구조:
+### 기능 3: `GameConfig` v3 카드 상수 + 배지 상수 신규
+- **설명**: NIKKE 카드 v3 폭 160 / 높이 200(4:5) / gap 22 / cornerRadius 22 + 4종 배지 폰트·offset 상수.
+- **구현 위치**: `Config/GameConfig.swift` 파일 끝 (기존 `characterSelectSkillInfoChipAbove` 뒤에 MARK 섹션 분리)
+- **추가 상수 (값 모두 신규, 기존 값 변경 0)**:
   ```swift
-  // MARK: - Adaptive Layout (디바이스 대응 · iPhone SE ~ Pro Max)
-  /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
-  static let adaptiveBottomMargin: CGFloat = 24
-  /// 화면 상단 안전 마진.
-  static let adaptiveTopMargin: CGFloat = 16
-  /// 화면 좌우 안전 마진(노치/dynamic island 영역 회피).
-  static let adaptiveHorizontalMargin: CGFloat = 20
-  /// StartScene 시작 버튼 — 화면 하단 기준 안쪽 거리.
-  static let startButtonBottomInset: CGFloat = 64
-  /// ResultScene 두 버튼 — 화면 하단 기준 안쪽 거리.
-  static let resultButtonBottomInset: CGFloat = 56
-  /// CharacterSelect 카드 spacing 최소값(28pt) — 가장 좁은 디바이스(iPhone SE) 보장.
-  static let characterSelectMinCardSpacing: CGFloat = 28
-  /// CharacterSelect 카드 spacing 최대값(56pt) — Pro Max에서 과도하게 벌어지지 않도록 clamp.
-  static let characterSelectMaxCardSpacing: CGFloat = 56
+  // MARK: - Sprint 7 Phase A · CharacterCard v3 (NIKKE 4:5)
+
+  /// v3 카드 폭(160pt). 기존 characterCardWidth(76) 대비 +84. 4:5 세로 비율 carrier.
+  static let characterCardWidthV3: CGFloat = 160
+  /// v3 카드 높이(200pt). 폭 160 × 1.25 = 200 → 4:5 비율.
+  static let characterCardHeightV3: CGFloat = 200
+  /// v3 카드 사이 gap(22pt). 기존 characterCardSpacing(10) 대비 +12. 겹침 0 보장.
+  static let characterCardGapV3: CGFloat = 22
+  /// v3 카드 cornerRadius(22pt). NIKKE 식 부드러운 둥금.
+  static let characterCardCornerRadiusV3: CGFloat = 22
+
+  // --- 속성 헥사 아이콘 (좌상단) ---
+  /// 헥사 outer radius(원에 외접) — 14pt → 28pt 헥사 폭.
+  static let characterCardElementHexRadius: CGFloat = 14
+  /// 헥사 stroke(흰색 1.5pt) — 카드 배경(반투명 화이트)과 분리.
+  static let characterCardElementHexStrokeWidth: CGFloat = 1.5
+  /// 카드 좌상단 코너 inset (x, y) — 헥사 중심 좌표 계산에 사용.
+  static let characterCardElementHexInsetX: CGFloat = 18
+  static let characterCardElementHexInsetY: CGFloat = 18
+  /// 헥사 안 이모지 폰트 크기(pt). 헥사 폭 28의 약 57% — 시각 균형.
+  static let characterCardElementSymbolFontSize: CGFloat = 16
+
+  // --- 등급 로마숫자 배지 (좌하단) ---
+  /// 배지 크기(26×18pt) — Jua 11pt 한 자리 로마숫자 수용.
+  static let characterCardRarityBadgeWidth: CGFloat = 26
+  static let characterCardRarityBadgeHeight: CGFloat = 18
+  /// 배지 cornerRadius(8pt) — 부드럽지만 사각.
+  static let characterCardRarityBadgeCornerRadius: CGFloat = 8
+  /// 배지 fill alpha — navyDeep × 0.85.
+  static let characterCardRarityBadgeFillAlpha: CGFloat = 0.85
+  /// 카드 좌하단 코너 inset (x, y) — 배지 중심 좌표.
+  static let characterCardRarityBadgeInsetX: CGFloat = 22
+  static let characterCardRarityBadgeInsetY: CGFloat = 22
+  /// 배지 라벨 폰트 크기(pt).
+  static let characterCardRarityBadgeFontSize: CGFloat = 11
+
+  // --- CD 미니칩 (우상단) ---
+  /// 칩 높이(16pt) — 자동 폭(라벨 너비 + padding).
+  static let characterCardCDChipHeight: CGFloat = 16
+  /// 칩 좌우 패딩(8pt).
+  static let characterCardCDChipHorizontalPadding: CGFloat = 8
+  /// 칩 fill — coralLight × 0.85.
+  static let characterCardCDChipFillAlpha: CGFloat = 0.85
+  /// 칩 라벨 폰트 크기(pt).
+  static let characterCardCDChipFontSize: CGFloat = 9
+  /// 카드 우상단 코너 inset (x, y).
+  static let characterCardCDChipInsetX: CGFloat = 16
+  static let characterCardCDChipInsetY: CGFloat = 18
+
+  // --- 이름 + 속도 (하단) ---
+  /// 이름 라벨 폰트 크기(pt). Jua, navyDeep.
+  static let characterCardNameFontSizeV3: CGFloat = 15
+  /// 이름 라벨 y offset (카드 하단 기준 + 28).
+  static let characterCardNameOffsetYV3: CGFloat = 28
+  /// 속도 칩 라벨 폰트 크기(pt). Gowun Dodum, scrubMint.
+  static let characterCardSpeedFontSizeV3: CGFloat = 10
+  /// 속도 칩 y offset (카드 하단 기준 + 12 — 이름 아래).
+  static let characterCardSpeedOffsetYV3: CGFloat = 12
+
+  // --- 선택 상태 강화 (Phase A) ---
+  /// 카드 하단 코랄 radial glow 노드 폭(카드 폭 × 1.4 = 224pt).
+  static let characterCardSelectedGlowWidth: CGFloat = 224
+  /// 코랄 glow 높이(60pt).
+  static let characterCardSelectedGlowHeight: CGFloat = 60
+  /// 코랄 glow y offset (카드 하단 기준 -12 — 카드 아래로 살짝 새어 나옴).
+  static let characterCardSelectedGlowOffsetY: CGFloat = -12
+  /// 코랄 glow 알파(0.45).
+  static let characterCardSelectedGlowAlpha: CGFloat = 0.45
+
+  /// "선택됨" 알약 폭(60pt) / 높이(20pt). Jua 10pt 흰색 "선택됨" 수용.
+  static let characterCardSelectedPillWidth: CGFloat = 60
+  static let characterCardSelectedPillHeight: CGFloat = 20
+  /// 알약 라벨 폰트 크기(pt).
+  static let characterCardSelectedPillFontSize: CGFloat = 10
+  /// 알약 텍스트.
+  static let characterCardSelectedPillText: String = "선택됨"
+  /// 알약 y offset (카드 상단 기준 +14 — 카드 위로 솟음).
+  static let characterCardSelectedPillOffsetY: CGFloat = 14
+
+  // --- 스킬 패널 폭 축소 (Phase A) ---
+  /// 하단 스킬 정보 칩 최대 폭(320pt). v2 무한 → v3 320 clamp.
+  /// 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
+  static let characterSelectSkillInfoMaxWidth: CGFloat = 320
   ```
+- **주의**: 기존 `characterCardWidth`(76)·`characterCardHeight`(104)·`characterCardGlassWidth`(156)·`characterCardGlassHeight`(204)·`characterCardSelectedScale`(1.08)·`characterCardGlassSelectedScale`(1.08) 등은 **값 그대로 유지**(다른 호출처가 있을 가능성 — 회귀 방지).
 
-  **기존 상수 갱신 (값만 변경, 키 보존):**
-
-  | 키 | 기존 | 신규 | 근거 |
-  |---|---|---|---|
-  | `characterCardWidth` | 48 | **76** | 게임 카드 톤(1.58×) |
-  | `characterCardHeight` | 60 | **104** | 세로 카드 비율(1.73×) |
-  | `characterFaceScale` | 0.55 | **0.82** | 카드 확대 비율 동기 |
-  | `characterCardGlassWidth` | 124 | **156** | 카드 확대 비율 동기 |
-  | `characterCardGlassHeight` | 166 | **204** | 카드 확대 비율 동기 |
-  | `characterSelectCardZigzagOffsetV3` | 4 | **6** | 카드 확대에 맞춘 미세 조정 |
-
-  **변경 금지(값 보존):** `startSceneStartButtonOffsetY`(-180), `resultButtonOffsetYV2`(-180), `characterSelectCardSpacingV3`(22 — 새 동적 계산이 이걸 우회), `characterSelectConfirmButtonOffsetY`, `characterSelectSkillInfoOffsetY`.
-
-### 기능 4: StartScene 시작 버튼 safeArea 회피
-- 설명: 시작 버튼을 frame.midY 기반 고정 오프셋에서 **화면 하단 + safeArea.bottom + startButtonBottomInset** 식으로 교체.
-- 구현 위치: `StartScene.swift` — `layoutStartButton()` 함수 본문만
-- 핵심 코드 구조:
+### 기능 4: `CharacterCardNode` 카드 본체 NIKKE 식 재구성
+- **설명**: 카드 폭/높이를 v3 상수로 교체, 카드 내부에 5요소(헥사·등급·CD·얼굴 자리·이름+속도)를 흡수. 기존 외부 부착(태그 라벨·색점)은 `CharacterSelectScene` 쪽에서 제거 또는 hidden.
+- **구현 위치**: `Nodes/CharacterCardNode.swift` 전체 (init 본문 + 신규 메서드)
+- **핵심 구조 (의사코드)**:
   ```swift
-  private func layoutStartButton() {
-      let safe = SceneSafeArea.insets(for: self)
-      // frame.minY는 SpriteKit 좌표계에서 화면 하단. safeArea.bottom + inset만큼 위로.
-      startButton.position = CGPoint(
-          x: frame.midX,
-          y: frame.minY + safe.bottom + GameConfig.startButtonBottomInset
-      )
+  // MARK: - Sprint 7 Phase A — NIKKE 4:5 카드
+
+  final class CharacterCardNode: SKNode {
+
+      // MARK: - Properties
+      let id: CharacterID
+      private let background: SKSpriteNode
+      private let border: SKShapeNode
+      private let nameLabel: SKLabelNode             // Jua 15pt — 카드 하단 내부로 흡수
+      private let speedLabel: SKLabelNode            // Gowun Dodum 10pt 속도 ×N.NN
+
+      // Phase A 신규
+      private let elementHex: SKShapeNode            // 좌상단 헥사
+      private let elementSymbol: SKLabelNode         // 헥사 안 이모지
+      private let rarityBadge: SKShapeNode           // 좌하단 배지
+      private let rarityLabel: SKLabelNode           // 배지 안 로마숫자
+      private let cdChip: SKShapeNode                // 우상단 CD
+      private let cdLabel: SKLabelNode               // CD 안 텍스트
+      private let selectedGlow: SKShapeNode          // 하단 코랄 radial (선택 시만 보임)
+      private let selectedPill: SKShapeNode          // 상단 "선택됨" 알약 (선택 시만 보임)
+      private let selectedPillLabel: SKLabelNode
+
+      // MARK: - Init
+      init(id: CharacterID) {
+          self.id = id
+          let cardSize = CGSize(
+              width: GameConfig.characterCardWidthV3,
+              height: GameConfig.characterCardHeightV3
+          )
+          background = SKSpriteNode(color: .ganhoUIBgCard, size: cardSize)
+          border = SKShapeNode(rectOf: cardSize, cornerRadius: GameConfig.characterCardCornerRadiusV3)
+          // 노드 인스턴스 빈 초기화
+          nameLabel = SKLabelNode()
+          speedLabel = SKLabelNode()
+          elementHex = SKShapeNode()
+          elementSymbol = SKLabelNode()
+          rarityBadge = SKShapeNode()
+          rarityLabel = SKLabelNode()
+          cdChip = SKShapeNode()
+          cdLabel = SKLabelNode()
+          selectedGlow = SKShapeNode()
+          selectedPill = SKShapeNode()
+          selectedPillLabel = SKLabelNode()
+          super.init()
+          name = "characterCard_\(id.rawValue)"
+          zPosition = 100
+          addChild(background)
+          addChild(border)
+          attachElementBadge()
+          attachRarityBadge()
+          attachCDChip()
+          attachNameAndSpeed()
+          attachSelectedDecor()
+      }
+
+      // MARK: - Phase A · 좌상단 속성 헥사 아이콘
+      private func attachElementBadge() {
+          // 6각형 path — outer radius 14, 꼭짓점이 위 (시작 각도 90도)
+          let r = GameConfig.characterCardElementHexRadius
+          let path = CGMutablePath()
+          for i in 0..<6 {
+              let angle = CGFloat(i) * .pi / 3 + .pi / 2
+              let x = r * cos(angle)
+              let y = r * sin(angle)
+              if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+              else { path.addLine(to: CGPoint(x: x, y: y)) }
+          }
+          path.closeSubpath()
+          elementHex.path = path
+          elementHex.fillColor = id.dotColor
+          elementHex.strokeColor = .white
+          elementHex.lineWidth = GameConfig.characterCardElementHexStrokeWidth
+
+          let halfW = GameConfig.characterCardWidthV3 / 2
+          let halfH = GameConfig.characterCardHeightV3 / 2
+          elementHex.position = CGPoint(
+              x: -halfW + GameConfig.characterCardElementHexInsetX,
+              y:  halfH - GameConfig.characterCardElementHexInsetY
+          )
+          elementHex.zPosition = 5
+          addChild(elementHex)
+
+          elementSymbol.text = id.elementSymbol
+          elementSymbol.fontName = GameConfig.fontDisplay
+          elementSymbol.fontSize = GameConfig.characterCardElementSymbolFontSize
+          elementSymbol.horizontalAlignmentMode = .center
+          elementSymbol.verticalAlignmentMode = .center
+          elementSymbol.position = elementHex.position
+          elementSymbol.zPosition = 6
+          addChild(elementSymbol)
+      }
+
+      // MARK: - Phase A · 좌하단 등급 로마숫자 배지
+      private func attachRarityBadge() {
+          let size = CGSize(
+              width: GameConfig.characterCardRarityBadgeWidth,
+              height: GameConfig.characterCardRarityBadgeHeight
+          )
+          rarityBadge.path = CGPath(
+              roundedRect: CGRect(x: -size.width/2, y: -size.height/2,
+                                  width: size.width, height: size.height),
+              cornerWidth: GameConfig.characterCardRarityBadgeCornerRadius,
+              cornerHeight: GameConfig.characterCardRarityBadgeCornerRadius,
+              transform: nil
+          )
+          rarityBadge.fillColor = UIColor.ganhoNavyDeep
+              .withAlphaComponent(GameConfig.characterCardRarityBadgeFillAlpha)
+          rarityBadge.strokeColor = .clear
+          let halfW = GameConfig.characterCardWidthV3 / 2
+          let halfH = GameConfig.characterCardHeightV3 / 2
+          rarityBadge.position = CGPoint(
+              x: -halfW + GameConfig.characterCardRarityBadgeInsetX,
+              y: -halfH + GameConfig.characterCardRarityBadgeInsetY
+          )
+          rarityBadge.zPosition = 5
+          addChild(rarityBadge)
+
+          let roman: String
+          switch id.rarity {
+          case 1: roman = "I"
+          case 2: roman = "II"
+          case 3: roman = "III"
+          default: roman = "I"  // 안전 fallback (현재 값은 1·2·3만)
+          }
+          rarityLabel.text = roman
+          rarityLabel.fontName = GameConfig.fontDisplay
+          rarityLabel.fontSize = GameConfig.characterCardRarityBadgeFontSize
+          rarityLabel.fontColor = .ganhoMusicGold
+          rarityLabel.horizontalAlignmentMode = .center
+          rarityLabel.verticalAlignmentMode = .center
+          rarityLabel.position = rarityBadge.position
+          rarityLabel.zPosition = 6
+          addChild(rarityLabel)
+      }
+
+      // MARK: - Phase A · 우상단 CD 미니칩
+      private func attachCDChip() {
+          cdLabel.text = id.skill.cooldownText
+          cdLabel.fontName = GameConfig.fontDisplay
+          cdLabel.fontSize = GameConfig.characterCardCDChipFontSize
+          cdLabel.fontColor = .white
+          cdLabel.horizontalAlignmentMode = .center
+          cdLabel.verticalAlignmentMode = .center
+          let labelW = cdLabel.frame.width
+          let chipSize = CGSize(
+              width: labelW + GameConfig.characterCardCDChipHorizontalPadding * 2,
+              height: GameConfig.characterCardCDChipHeight
+          )
+          cdChip.path = CGPath(
+              roundedRect: CGRect(x: -chipSize.width/2, y: -chipSize.height/2,
+                                  width: chipSize.width, height: chipSize.height),
+              cornerWidth: chipSize.height / 2,
+              cornerHeight: chipSize.height / 2,
+              transform: nil
+          )
+          cdChip.fillColor = UIColor.ganhoCoralLight
+              .withAlphaComponent(GameConfig.characterCardCDChipFillAlpha)
+          cdChip.strokeColor = .clear
+          let halfW = GameConfig.characterCardWidthV3 / 2
+          let halfH = GameConfig.characterCardHeightV3 / 2
+          cdChip.position = CGPoint(
+              x:  halfW - GameConfig.characterCardCDChipInsetX - chipSize.width/2,
+              y:  halfH - GameConfig.characterCardCDChipInsetY
+          )
+          cdChip.zPosition = 5
+          addChild(cdChip)
+          cdLabel.position = cdChip.position
+          cdLabel.zPosition = 6
+          addChild(cdLabel)
+      }
+
+      // MARK: - Phase A · 카드 하단 이름 + 속도
+      private func attachNameAndSpeed() {
+          nameLabel.text = id.displayName
+          nameLabel.fontName = GameConfig.fontDisplay
+          nameLabel.fontSize = GameConfig.characterCardNameFontSizeV3
+          nameLabel.fontColor = .ganhoNavyDeep
+          nameLabel.horizontalAlignmentMode = .center
+          nameLabel.verticalAlignmentMode = .center
+          let halfH = GameConfig.characterCardHeightV3 / 2
+          nameLabel.position = CGPoint(
+              x: 0, y: -halfH + GameConfig.characterCardNameOffsetYV3
+          )
+          nameLabel.zPosition = 5
+          addChild(nameLabel)
+
+          speedLabel.text = "⚡ ×\(formattedSpeed(id.playerSpeedMultiplier))"
+          speedLabel.fontName = GameConfig.fontBody
+          speedLabel.fontSize = GameConfig.characterCardSpeedFontSizeV3
+          speedLabel.fontColor = .ganhoScrubMint
+          speedLabel.horizontalAlignmentMode = .center
+          speedLabel.verticalAlignmentMode = .center
+          speedLabel.position = CGPoint(
+              x: 0, y: -halfH + GameConfig.characterCardSpeedOffsetYV3
+          )
+          speedLabel.zPosition = 5
+          addChild(speedLabel)
+      }
+
+      private func formattedSpeed(_ value: CGFloat) -> String {
+          let rounded1 = (value * 10).rounded() / 10
+          if abs(value - rounded1) < 0.001 {
+              return String(format: "%.1f", Double(value))
+          }
+          return String(format: "%.2f", Double(value))
+      }
+
+      // MARK: - Phase A · 선택 데코(글로우 + 알약, 기본 isHidden)
+      private func attachSelectedDecor() {
+          let glowSize = CGSize(
+              width: GameConfig.characterCardSelectedGlowWidth,
+              height: GameConfig.characterCardSelectedGlowHeight
+          )
+          selectedGlow.path = CGPath(ellipseIn: CGRect(
+              x: -glowSize.width/2, y: -glowSize.height/2,
+              width: glowSize.width, height: glowSize.height
+          ), transform: nil)
+          selectedGlow.fillColor = UIColor.ganhoCoralPrimary
+              .withAlphaComponent(GameConfig.characterCardSelectedGlowAlpha)
+          selectedGlow.strokeColor = .clear
+          let halfH = GameConfig.characterCardHeightV3 / 2
+          selectedGlow.position = CGPoint(
+              x: 0, y: -halfH + GameConfig.characterCardSelectedGlowOffsetY
+          )
+          selectedGlow.zPosition = -1
+          selectedGlow.isHidden = true
+          addChild(selectedGlow)
+
+          let pillSize = CGSize(
+              width: GameConfig.characterCardSelectedPillWidth,
+              height: GameConfig.characterCardSelectedPillHeight
+          )
+          selectedPill.path = CGPath(
+              roundedRect: CGRect(x: -pillSize.width/2, y: -pillSize.height/2,
+                                  width: pillSize.width, height: pillSize.height),
+              cornerWidth: pillSize.height / 2,
+              cornerHeight: pillSize.height / 2,
+              transform: nil
+          )
+          selectedPill.fillColor = .ganhoCoralPrimary
+          selectedPill.strokeColor = .clear
+          selectedPill.position = CGPoint(
+              x: 0, y: halfH + GameConfig.characterCardSelectedPillOffsetY
+          )
+          selectedPill.zPosition = 10
+          selectedPill.isHidden = true
+          addChild(selectedPill)
+
+          selectedPillLabel.text = GameConfig.characterCardSelectedPillText
+          selectedPillLabel.fontName = GameConfig.fontDisplay
+          selectedPillLabel.fontSize = GameConfig.characterCardSelectedPillFontSize
+          selectedPillLabel.fontColor = .white
+          selectedPillLabel.horizontalAlignmentMode = .center
+          selectedPillLabel.verticalAlignmentMode = .center
+          selectedPillLabel.position = selectedPill.position
+          selectedPillLabel.zPosition = 11
+          selectedPillLabel.isHidden = true
+          addChild(selectedPillLabel)
+      }
+
+      // MARK: - Selection
+      func setSelected(_ selected: Bool) {
+          alpha = selected ? 1.0 : GameConfig.characterCardDeselectedAlpha
+          let targetScale: CGFloat = selected ? GameConfig.characterCardSelectedScale : 1.0
+          removeAction(forKey: "cardScale")
+          run(
+              SKAction.scale(to: targetScale, duration: GameConfig.characterCardScaleDuration),
+              withKey: "cardScale"
+          )
+          background.color = selected ? .ganhoUIBrand12 : .ganhoUIBgCard
+          border.strokeColor = selected ? .ganhoCoralPrimary : .ganhoUIBorder
+          nameLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
+          selectedGlow.isHidden = !selected
+          selectedPill.isHidden = !selected
+          selectedPillLabel.isHidden = !selected
+      }
   }
   ```
-- 제거/회피: `frame.midY + GameConfig.startSceneStartButtonOffsetY` 식은 더이상 사용하지 않음(상수 자체는 보존).
+- **주의**:
+  - 강제 언래핑 0건. SKShapeNode/SKLabelNode init은 옵셔널 아님.
+  - `selectedGlow.zPosition = -1`은 카드 background보다 뒤. 외부 글래스 컨테이너(`CharacterSelectScene` cardContainers)가 zPos 90 또는 alpha 0(isHidden 옵션 채택 시)이면 글로우는 시각상 카드 아래로 새어 나옴.
+  - 기존 CharacterCardNode가 어떤 프로퍼티/메서드를 외부에 노출하는지 Generator가 확인 후, 외부 호출자(예: `CharacterSelectScene.setupCardContainers`)가 깨지지 않도록 *기존 public/internal 시그니처 보존*. 특히 `setSelected(_:)`는 시그니처 byte-identical.
 
-### 기능 5: ResultScene 두 버튼 safeArea 회피
-- 설명: `shareButton`과 `restartButton`의 y좌표를 `frame.midY + offset` → `frame.minY + safe.bottom + inset`으로 교체. x좌표는 기존 `resultShareButtonXOffsetV2` / `resultRestartButtonXOffsetV2` 유지.
-- 구현 위치: `ResultScene.swift` — `layoutLabels()` 함수 *끝부분 두 줄만*
-- 핵심 코드 구조:
-  ```swift
-  let safe = SceneSafeArea.insets(for: self)
-  let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInset
-  shareButton?.position = CGPoint(
-      x: frame.midX + GameConfig.resultShareButtonXOffsetV2,
-      y: buttonY
-  )
-  restartButton.position = CGPoint(
-      x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
-      y: buttonY
-  )
-  ```
-- 다른 라벨 위치(titleLabel/scoreLabel/bestLabel/...)는 변경 0건 — frame.midY 기반 그대로 유지(카드 패널 안 배치이므로 잘림 없음).
+### 기능 5: `CharacterSelectScene` 글래스/외부 정보 조정 + 좌표 갱신
+- **설명**: v3 카드(160×200)에 맞춰 글래스 컨테이너 폭/높이/cornerRadius 갱신, 외부 부착 정보(태그 라벨·색점)는 카드 내부 흡수로 인해 비활성(isHidden), 좌표 계산은 v3 폭 사용, 하단 스킬 패널 최대 폭 clamp.
+- **구현 위치**: `Scenes/CharacterSelectScene.swift`
+- **변경 포인트**:
 
-### 기능 6: CharacterSelect 카드 동적 spacing + 확인 버튼 safeArea
-- 설명: `cardBaseX(for:)`의 spacing을 **화면 폭 비례 동적 계산**으로 교체. 좌우 안전 마진 회피 + min/max clamp. 확인 버튼과 skillInfoChip도 safeArea.bottom 회피.
-- 구현 위치: `CharacterSelectScene.swift` — `cardBaseX(for:)`, `layoutConfirmButton()`, `layoutSkillInfoChip()`
-- 핵심 코드 구조:
-  ```swift
-  /// Sprint 7+ — 동적 spacing. 화면 폭에 비례해 자동 확장, 최소/최대 clamp.
-  private func cardBaseX(for id: CharacterID) -> CGFloat {
-      let allCases = CharacterID.allCases
-      let count = allCases.count
-      let width = GameConfig.characterCardWidth   // 76
-      let safe = SceneSafeArea.insets(for: self)
-      // 좌우 안전 마진을 뺀 사용 가능한 폭.
-      let usable = frame.width
-          - safe.left - safe.right
-          - 2 * GameConfig.adaptiveHorizontalMargin
-      // 카드 N장 자체 폭을 뺀 잔여를 (N-1) 간격에 균등 분배.
-      let rawSpacing = (usable - width * CGFloat(count)) / CGFloat(count - 1)
-      let spacing = min(
-          GameConfig.characterSelectMaxCardSpacing,
-          max(GameConfig.characterSelectMinCardSpacing, rawSpacing)
-      )
-      let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
-      let startX = frame.midX - totalWidth / 2 + width / 2
-      guard let index = allCases.firstIndex(of: id) else { return startX }
-      return startX + CGFloat(index) * (width + spacing)
-  }
-  ```
-  - `cardBaseY(for:)`는 새 `characterSelectCardZigzagOffsetV3`(=6) 값을 그대로 흡수 — 별도 변경 불필요(상수만 값 변경).
-  - `layoutConfirmButton()`: `frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin + 추가 inset`(PrimaryButton 높이 고려해 카드 줄 아래 + safeArea 위)로 교체. 카드 줄과 충돌 안 나도록 카드 하단(`cardBaseY + characterCardHeight/2`)보다 더 아래여야 함. 동적 계산으로 안전 확보.
-  - `layoutSkillInfoChip()`: confirm 버튼 위쪽 ~36pt 간격으로 배치(상대 좌표). 기존 frame.midY 기반 식은 폐기.
+  **5-1. 글래스 컨테이너 크기 갱신** (`setupCardContainers`)
+  - 컨테이너 폭/높이를 `characterCardWidthV3`(160) / `characterCardHeightV3`(200)로 교체, cornerRadius `characterCardCornerRadiusV3`(22) 사용.
+  - 컨테이너 alpha를 0.0으로 설정(시각상 안 보임 — NIKKE 카드 자체가 충분히 강조)  ← **OQ-1 결정**.
+  - 회귀 안전성: 컨테이너 노드 자체는 남아있고 위치 계산 함수도 호출되지만 시각 0.
 
-### 기능 7: CharacterFaceNode SVG 동기화 (차이 있는 캐릭터만)
-- 설명: Generator는 5명의 `build{Kim,Jung,Geon,Im,Lee}Face()`를 첨부 SVG와 1:1 비교. 차이가 있는 캐릭터만 path 좌표/색상을 재이식. SVG y-down → SpriteKit y-up이므로 모든 SVG y 값에 `-1` 곱하기(기존 파일 헤더 라인 11의 변환 패턴 동일).
-- 구현 위치: `CharacterFaceNode.swift` — 각 `build*Face()` 함수
+  **5-2. 좌표 계산 v3 폭 사용** (`cardBaseX(for:)`)
+  - 함수 본문 안 `let width = GameConfig.characterCardWidth`(76)을 `characterCardWidthV3`(160)로 교체.
+  - spacing clamp(28~56)는 그대로. `characterCardGapV3`(22)는 *디자인 의도값* — SE 좁은 화면에서는 28pt 최소값이 우선 작용. OK.
+  - `cardBaseY(for:)`의 zigzag offset(±6)은 유지.
 
-#### 비교 결과 (현재 코드 vs 첨부 SVG)
+  **5-3. 외부 부착 정보 isHidden** (`setupTagLabels`, `setupCardColorDots`)
+  - 태그 라벨 5개: 카드 내부 nameLabel + speedLabel로 흡수 → `label.isHidden = true` 한 줄.
+  - 색점 5개: 카드 내부 elementHex로 흡수 → `dot.isHidden = true` 한 줄.
+  - 얼굴 5개(`characterFaces`): 카드 중앙에 표시 → **유지**. zPos 105 유지.
 
-| 캐릭터 | 현재 코드 | 첨부 SVG | 차이 판단 |
-|---|---|---|---|
-| **kim** | viewBox -50..55 좌표계 사용, 헤드폰 cy=2 rx=7 ry=10, 닫힌 눈 path(-14,-6)~ | viewBox -120..130 (큰 좌표) 헤드폰 cy=4 rx=14 ry=20, 컬 디테일 4개, 클로즈드아이 path(-28,-4)~(-12,-4) | 좌표계 다르지만 형태 일치. 카드 위 76×104 안에서 시각 동일 결과 가능성. **유지(변경 0)** 권장 — 차이 발견 시 재이식. |
-| **jung** | 스파이크 머리 + 헤드밴드(코랄) + 작은 cap + 곡괭이 미니 | 핑크 러닝캡(#FF8E80) + 챙(#C44A3D) + G+ 로고 + 안경(rx=18) + 땀방울 | **완전 다른 디자인** — 곡괭이/스파이크/헤드밴드 없음. **재이식 강력 후보**: 핑크 러닝캡 + 안경 + 땀방울. |
-| **geon** | 단정한 머리 + 작은 안경(r=9) + 책 미니 + 갈색 눈 path | **라벤더 톤** 큰 둥근 검은 눈(rx=9 ry=12) + 위 머리 한 점 tuft + 단순 어두운 머리 + 작은 미소. 안경/책 없음 | **완전 다른 디자인 (v6)** — **재이식 강력 후보**. |
-| **im** | 긴머리 좌우 + 앞머리 + 고양이귀 + 고양이눈 + 수염 + 분홍코 | 긴머리 좌우 + 가운데 가르마 앞머리 + 작은 고양이귀(삼각형) + 큰 둥근 눈(쿠키런 톤) + 분홍 고양이코. **수염 없음** | **부분 차이 (v6)** — 큰 둥근 눈 + 수염 제거. **재이식 강력 후보**. |
-| **lee** | Bob cut + **강아지귀** ❌ + 동그란 눈 + 혀 | 곱슬 단발(side curls) + 앞머리 + 닫힌 눈 미소(SVG 시그너처) + 따뜻한 미소. **강아지귀 명시적으로 제거(SVG 주석 v3)** | **부분 차이 (v3)** — 강아지귀 제거 + 닫힌 눈 + side curls dots. **재이식 강력 후보**. |
+  **5-4. 하단 스킬 패널 폭 좁히기** (`layoutSkillInfoChip`)
+  - `DarkContextChipNode`는 라벨 너비 기반 자동 폭이므로, frame.width 측정 → `setScale(maxW / currentW)` clamp 패턴:
+    ```swift
+    private func layoutSkillInfoChip() {
+        guard let chip = skillInfoChip else { return }
+        chip.position = CGPoint(
+            x: frame.midX,
+            y: confirmButton.position.y + GameConfig.characterSelectSkillInfoChipAbove
+        )
+        let maxW = GameConfig.characterSelectSkillInfoMaxWidth
+        let currentW = chip.calculateAccumulatedFrame().width
+        if currentW > maxW {
+            chip.setScale(maxW / currentW)
+        } else {
+            chip.setScale(1.0)
+        }
+    }
+    ```
+    실제 함수 이름은 Generator가 코드에서 확인. (`layoutSkillInfoChip` 또는 `rebuildSkillInfoPanel` 또는 다른 이름)
 
-#### Generator 작업 절차
-1. 각 빌드 함수를 첨부 SVG와 시각 비교(코드 path 좌표 → 머릿속 렌더 → SVG 형태 매칭)
-2. **kim**: 변경 권장 0 (좌표 스케일은 다르지만 형태 일치). Generator가 명확한 차이를 발견하면 재이식 가능.
-3. **jung**: 첨부 SVG 기반으로 buildJungFace 전체 재이식 — 핑크 러닝캡(`#FF8E80`) + 챙(`#C44A3D`) + 안경 원형 + 동공 + 결연한 눈썹 + 땀방울(`#9BCDF0`)
-4. **geon**: 전체 재이식 — `#1F1410`(어두운 머리) + 위 한 점 tuft path + 큰 검은 눈 ellipse + 흰 highlight + 작은 미소. 책/안경/단정한머리 제거.
-5. **im**: 부분 재이식 — 수염 제거 + 고양이눈을 큰 둥근 눈(`#2D2A4A` 채움) + 흰 highlight로 교체 + 앞머리 가운데 가르마 path 갱신. 긴머리/고양이귀/분홍코는 유지.
-6. **lee**: 부분 재이식 — 강아지귀 ellipse 제거 + side curls + curl detail dots 추가 + 동그란 눈을 닫힌 눈 path로 교체 + 혀 제거.
-7. 새 raw 색상이 필요하면 `UIColor(hex: "#...")` 기존 패턴 따름. `ColorTokens`에 동일 hex 토큰이 있으면 그쪽 우선.
-8. SVG y-down → SpriteKit y-up: 모든 y 값에 `-1` 곱하기(기존 변환 패턴 보존).
-9. SVG의 큰 좌표계(±120)를 코드의 작은 좌표계(±32~±70)로 *축소*하지 말 것 — Generator는 기존 함수의 좌표 스케일을 답습하고 *형태* 일치를 우선시.
-10. 빌드 함수 시작에 `// 기준 SVG: mockups/svg-exports/<id>.svg (vN)` 주석 1줄 추가.
+- **주의**:
+  - `preferenceRepo.save(_:)` 호출 라인 byte-identical.
+  - `transitionToNext` / `transitionToStart` 콜백 시그니처와 transition 시간(0.3s 등) byte-identical.
+  - 5장 카드 선택 → 해제 → 다른 선택 시 액션 시간 0.18s(`characterCardScaleDuration`) 유지.
+  - 만약 기존 CharacterCardNode가 외부에서 `nameLabel`을 읽거나 수정하는 호출자가 있다면 Generator는 호환 인터페이스를 보존(예: nameLabel은 내부 hidden + getter 그대로).
 
 ---
 
-## 상수 토큰 표
+## 합격 기준 (SPRINT_7_REQUEST.md §2.5 + Phase A 한정)
 
-### 신규 추가 (GameConfig.swift 끝)
-| 상수 | 값 | 용도 |
+### 절대 통과선
+1. **시뮬레이터에서 5장 카드 시각적으로 0px 겹침** — 카드 폭 160 + gap 22 × 4 + spacing clamp 작동.
+2. **헥사 아이콘 5종이 캐릭터 색과 일치** — `id.dotColor` 5종이 각 카드 헥사 fill로 표시.
+3. **선택 → 해제 → 다른 선택 시 시각 전환 매끄러움** — 액션 시간 0.18s 유지. glow/알약 isHidden 토글은 즉시.
+4. **`preferenceRepo` 저장값이 v2와 byte-identical** — `select(_:)` → `preferenceRepo.save(id)` 호출 라인 1 변경 0.
+
+### Phase A 채점 룰 (4-카테고리, SPRINT_7_REQUEST.md §11)
+| 카테고리 | 가중치 | Phase A 통과선 |
 |---|---|---|
-| `adaptiveBottomMargin` | 24 | 화면 하단 안전 마진 |
-| `adaptiveTopMargin` | 16 | 화면 상단 안전 마진 |
-| `adaptiveHorizontalMargin` | 20 | 좌우 노치 회피 |
-| `startButtonBottomInset` | 64 | StartScene 시작 버튼 하단 inset |
-| `resultButtonBottomInset` | 56 | ResultScene 두 버튼 하단 inset |
-| `characterSelectMinCardSpacing` | 28 | 카드 spacing 최소(SE 보장) |
-| `characterSelectMaxCardSpacing` | 56 | 카드 spacing 최대(Pro Max clamp) |
+| 게임 로직 회귀 0 | 40% | 9.0 이상 — preferenceRepo / transition / 게임 상수 0 변경 |
+| Swift 패턴 | 20% | 7.0 이상 — guard let, MARK, GameConfig 상수, 강제 언래핑 0 |
+| 비주얼 일관성 (mockup) | 25% | 7.0 이상 — `character-select-v3.html` 매칭률 ≥ 85% |
+| 가독성 & UX | 15% | 7.0 이상 — 5요소 0px 겹침 + 헥사·등급·CD 식별 가능 |
 
-### 갱신 (키 보존, 값만 변경)
-| 상수 | 기존 | 신규 |
-|---|---|---|
-| `characterCardWidth` | 48 | **76** |
-| `characterCardHeight` | 60 | **104** |
-| `characterFaceScale` | 0.55 | **0.82** |
-| `characterCardGlassWidth` | 124 | **156** |
-| `characterCardGlassHeight` | 166 | **204** |
-| `characterSelectCardZigzagOffsetV3` | 4 | **6** |
-
-### 보존 (값 변경 0, 적용 중지)
-- `startSceneStartButtonOffsetY` (-180) — 새 식이 이걸 우회
-- `resultButtonOffsetYV2` (-180) — 새 식이 이걸 우회
-- `characterSelectCardSpacingV3` (22) — 새 동적 계산이 이걸 우회
-- `characterSelectConfirmButtonOffsetY`, `characterSelectSkillInfoOffsetY` — 새 식이 이걸 우회
+### AI 슬롭 자동 감점 항목
+- 강제 언래핑 `!` → Swift 패턴 -1
+- 매직 넘버 하드코딩 → Swift 패턴 -1 per 3건 이상
+- `update()` 안 `addChild()` → 성능 -1
+- `Timer.scheduledTimer` → Swift 패턴 -1
+- 클로저 `self` 강한 캡처 → 성능 -1
 
 ---
 
-## 합격 기준 (Evaluator 채점)
+## 변경 LOC 추정치
 
-### 빌드 / 패턴
-- xcodebuild 성공 (iPhone SE / 17 Pro / 17 Pro Max 시뮬레이터)
-- 강제 언래핑 0건 (SceneSafeArea가 `?? .zero` 폴백 제공)
-- Timer 사용 0건
-- 매직 넘버 0건 — 모든 새 좌표가 GameConfig 상수 참조
-- MARK 섹션 구분 적절 (`// MARK: - Adaptive Layout`, `// MARK: - SafeArea Policy`)
-
-### SpriteKit 패턴
-- `didChangeSize(_:)` → `layoutXxx()` 재호출 보존 (StartScene/ResultScene/CharacterSelectScene 모두)
-- scaleMode `.resizeFill` 보존
-- 초기화는 `didMove(to:)`에 보존
-- SKView frame **건드림 0건** (GameViewController)
-
-### 기능 완성도
-- StartScene 시작 버튼이 화면 하단 safeArea 위 64pt에 위치 — Pro Max에서도 잘림 없음
-- ResultScene 두 버튼이 화면 하단 safeArea 위 56pt에 위치 — SE에서도 잘림 없음
-- CharacterSelect 5장 카드가 76×104pt + 화면 폭 비례 동적 spacing(28~56pt clamp)
-- 카드 외곽 글래스 컨테이너(156×204) 동기 확대
-- 얼굴 노드(scale 0.82)도 동기 확대
-- 첨부 SVG와 차이 있는 캐릭터(최소 jung, geon)의 얼굴이 시각 동기화됨
-
-### 회귀 방지 (각 항목 0건)
-- GameScene 코드 변경 0
-- DifficultySelectScene 코드 변경 0
-- SkillExplanationScene 코드 변경 0
-- CharacterCardNode 내부 구조 변경 0 (외부 GameConfig 치수만 흡수)
-- CharacterID 변경 0
-- PlayerNode 변경 0
-
----
-
-## 검증 절차
-
-### 1. 빌드 검증
-```bash
-xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj \
-  -scheme "GanhoMusic iOS" \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  build
-```
-SUCCEED.
-
-### 2. 시각 비교 (수동)
-| 디바이스 | StartScene | CharacterSelect | ResultScene |
+| 파일 | 신규 LOC | 수정 LOC | 합계 |
 |---|---|---|---|
-| iPhone SE | 시작 버튼 잘림 X | 카드 5장 화면 폭 안에 + spacing ≥ 28pt | 다시시작/공유 잘림 X |
-| iPhone 17 Pro | 시작 버튼 잘림 X | 카드 spacing 자연스럽게 늘어남 | 잘림 X |
-| iPhone 17 Pro Max | 시작 버튼 잘림 X | spacing ≤ 56pt clamp 작동 | 잘림 X |
+| `Models/CharacterID.swift` | ~22 (rarity + elementSymbol switch) | 0 | ~22 |
+| `Models/PlayerSkill.swift` | ~12 (cooldownText switch) | 0 | ~12 |
+| `Config/GameConfig.swift` | ~70 (v3 상수 4종 + 배지/칩 12종 + 선택 데코 7종 + 패널 폭 1) | 0 | ~70 |
+| `Nodes/CharacterCardNode.swift` | ~180 (attach* 메서드 + 인스턴스 + setSelected 갱신) | ~10 (init 본문 폭 교체) | ~190 |
+| `Scenes/CharacterSelectScene.swift` | ~10 (스킬 패널 폭 clamp) | ~15 (글래스 컨테이너 크기, 외부 부착 isHidden, cardBaseX 폭) | ~25 |
+| `mockups/character-select-v3.html` | ~350 (HTML + CSS + annotation) | 0 | ~350 |
+| **합계** | **~644** | **~25** | **~669** |
 
-### 3. 캐릭터 얼굴 비교
-`mockups/svg-exports/*.svg`를 브라우저로 띄우고 시뮬레이터 CharacterSelect 옆에 두고 1:1 시각 비교:
-- kim: 곱슬 번머리 + 코랄 헤드폰
-- jung: 핑크 러닝캡 + 안경 + 땀방울 (스파이크/곡괭이 없음)
-- geon: 라벤더 톤 큰 검은 눈 + 위 머리 한 점 (안경/책 없음)
-- im: 긴머리 + 작은 고양이귀 + 큰 둥근 눈 + 분홍 고양이코 (수염 없음)
-- lee: 곱슬 단발 + 앞머리 + 닫힌 눈 미소 (강아지귀 없음)
-
-### 4. 회귀 검증
-StartScene → CharacterSelect(5명 모두 탭) → DifficultySelect → GameScene(45초 플레이) → ResultScene → 다시시작 → StartScene 1사이클 정상 작동.
+Swift 코드만 ~319 LOC → SPRINT_7_REQUEST.md §1 Phase A 예상치(~300) 부합.
 
 ---
 
 ## 주의사항
 
-- **SKView frame 미터치 절대 원칙**: GameViewController에 `view.frame =` 또는 `skView.frame =` 같은 대입은 절대 추가 금지. `viewSafeAreaInsetsDidChange()` 본문은 super 호출만.
-- **SceneSafeArea 호출 시점**: `didMove(to:)`보다는 `layoutXxx()` 안에서 매번 호출. `didChangeSize`에서 layout이 다시 불릴 때 회전/safeArea 변화를 자동 흡수.
-- **CharacterCardNode 내부 미터치**: 카드 크기는 init 시점에 `GameConfig.characterCardWidth/Height`로 흡수 — 자동 확대. CharacterCardNode 자체 코드 수정 0건이어야 함.
-- **CharacterFaceNode 좌표계 보존**: 기존 작은 좌표계(±32~±70)와 모든 캐릭터가 일관성을 가짐. 신규 캐릭터(jung/geon) 재이식 시도 *기존 작은 좌표계로 환산*하는 게 안전(SVG의 ±120 좌표계를 그대로 옮기면 카드 밖으로 비어져 나옴).
-- **빌드 에러 가능성**: `SceneSafeArea`는 `import UIKit` 필요. 다른 씬 파일은 이미 SpriteKit만 import 중이므로 헬퍼 호출 시 추가 import 불필요(SKScene이 UIKit 전이 import).
-- **didChangeSize 회귀**: 모든 씬의 `didChangeSize`는 기존 layout 함수들을 재호출하므로 자동 적응. 새 코드를 추가할 때 이 패턴을 깨지 말 것.
-- **alpha=0 라벨 보존**: ResultScene의 `characterLabel`, `difficultyLabel`, `statsLabel`, `promptLabel`은 alpha=0이지만 부착되어 있다. 위치 코드는 frame.midY 기반 그대로 두기(보호 가드).
-- **Sprint 카운터**: 이 변경은 단일 디자인 리뉴얼 Sprint가 아니므로 `DESIGN_RENEWAL_STATE.md` 갱신은 진행 로그 한 줄만.
+### Swift / SpriteKit 패턴
+- **강제 언래핑 0건**: SKShapeNode/SKLabelNode init은 옵셔널이 아님. `guard let`/`if let` 패턴은 `skillInfoChip` 같은 옵셔널 프로퍼티에만 적용.
+- **GameConfig 상수만 사용**: 카드 안 모든 위치/크기는 `GameConfig.characterCardXxxV3` 참조. 헥사 path의 `.pi / 3`은 수학 상수(매직 넘버 아님).
+- **switch default 미사용**: `CharacterID.rarity`/`elementSymbol`, `PlayerSkill.cooldownText` 모두 enum 5 case exhaustive. `rarityBadge` 안 Int → 로마숫자 변환은 `default: return "I"` 허용(Int 전체 case 망라 불가).
+- **MARK 섹션 구분**: 새 코드는 모두 `// MARK: - Sprint 7 Phase A · …` 시작.
+- **클로저 `self` 캡처**: Phase A는 SKAction.run 클로저 사용 0건. 추가 시 `[weak self]` 필수.
+
+### SpriteKit 좌표 / zPosition
+- 카드 좌표계 (0,0)이 카드 중심. 좌상단 배지 = `(-halfW + insetX, halfH - insetY)`. y-up.
+- 카드 자식 zPos: background(0) < 헥사/배지/칩/이름/속도(5) < 알약 라벨(11). 글로우(-1) — 카드 background 뒤이지만 외부 컨테이너(alpha 0)보다 앞이므로 시각상 새어 나옴.
+- `CharacterFaceNode`는 *씬 자식*으로 별도 부착 zPos 105 — 카드 자식이 아님. 회귀 방지 위해 그대로 유지.
+
+### 빌드 / 회귀 위험
+- 기존 `characterCardWidth`(76) 참조처: `CharacterCardNode` + `CharacterSelectScene.cardBaseX` 두 곳을 모두 v3로 갱신.
+- `characterCardGlassWidth/Height`(156/204) 참조처: `setupCardContainers` + `layoutCardColorDots`(우상단 색점 inset 계산). 색점이 isHidden이라도 계산은 작동 — 글래스 폭/높이도 v3로 갱신해 일관성 확보.
+
+### OPEN_QUESTION
+
+**OQ-1 (결정됨)**: 카드 외곽 글래스 컨테이너(`cardContainers`, zPos 90)와 외부 색점·태그 라벨은 시각상 불필요 →
+- **(A) 채택**: `cardContainers` 폭/높이/cornerRadius를 v3로 갱신하되 `alpha = 0.0`(시각 0). 색점·태그 라벨은 `isHidden = true`. 코드/구조 변경 최소.
+- 글래스 컨테이너 alpha 0이 어색하면 후속에서 `alpha = 0.3` 정도로 *카드 외곽 fade* 가능 — Phase A는 0.0으로 시작.
+
+**OQ-2 (결정됨)**: 헥사 아이콘 — *이모지* 채택. Jua/Gowun 폰트로 렌더링 가능, 5종 시각 차별성 즉시 확보.
+
+**OQ-3 (결정됨)**: 등급 매핑 `CharacterID.rarity`:
+- 김간호 II (주인공, 정공법 → 중간)
+- 정간호 I (이동속도 +10% 기본 등급)
+- 건간호 III (북클럽 6타일 광역, 가장 *희귀*)
+- 임간호 II (전역 매혹 게임당 1회 — 위력 III급이지만 제약으로 II)
+- 이간호 I (대시 클라임 기본 등급)
+→ 사용자 후속 조정은 별도 Sprint에서.
+
+**OQ-4 (결정됨)**: spacing clamp 28~56 vs `characterCardGapV3`(22). 22pt는 *디자인 의도값* — clamp가 우선 작동. 0px 겹침 통과선이 22pt 사양보다 우선.
+
+---
+
+## 관련 파일 (절대 경로)
+
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Nodes/CharacterCardNode.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Models/CharacterID.swift`
+- `GanhoMusic/GanhoMusic/GanhoMusic Shared/Models/PlayerSkill.swift`
+- `mockups/character-select-v2.html` (참고용)
+- 신규: `mockups/character-select-v3.html`

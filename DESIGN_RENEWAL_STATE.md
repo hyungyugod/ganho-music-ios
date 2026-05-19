@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 6 합격 — 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터)
-**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5/6 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase A 합격 — 캐릭터 선택 NIKKE 카드 리뉴얼)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A ✅ / B~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -40,6 +40,13 @@ Sprint 2 진행해줘
 | **4** | PNG 캐릭터 통합 | ⏸️ 자산 대기 | - | 0/3 |
 | **5** | ResultScene 3분기 | ✅ 합격 | 9.70/10 | 1/3 |
 | **6** | 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터 | ✅ 합격 | 9.53/10 | 1/3 |
+| **7-A** | 캐릭터 선택 NIKKE 카드 리뉴얼 | ✅ 합격 | 9.45/10 | 1/3 |
+| **7-B** | 스킬 설명 겹침 해소 | ⏳ 대기 | - | 0/3 |
+| **7-C** | 난이도 카드 색 위계 | ⏸️ 미시작 | - | 0/3 |
+| **7-D** | 결과창 + ScoreboardScene 신설 | ⏸️ 미시작 | - | 0/3 |
+| **7-E** | 카운트다운 오버레이 | ⏸️ 미시작 | - | 0/3 |
+| **7-F** | 빌런 4종 + 박병장 신규 | ⏸️ 미시작 | - | 0/3 |
+| **7-G** | 플레이어 4방향 스프라이트 | ⏸️ 미시작 | - | 0/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -96,6 +103,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase A — 캐릭터 선택 NIKKE 카드 리뉴얼
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.45/10** (게임로직 9.8 · Swift패턴 9.4 · 비주얼 9.3 · UX 8.8)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 카드 폭 76→160 · 높이 104→200 · gap 10→22 · 4:5 NIKKE 식 세로 카드. 카드 내부 5요소(좌상단 헥사 28×28 캐릭터 색 + 이모지 5종 / 좌하단 등급 로마숫자 배지 26×18 navyDeep×0.85 + 골드 라벨 / 우상단 CD 미니칩 9pt coralLight×0.85 / 중앙 얼굴 SVG / 하단 이름 Jua 15 + 속도 Gowun 10) 흡수. 선택 데코 신규 2종(하단 코랄 ellipse glow 224×60 alpha 0.45 + 상단 "선택됨" 알약 60×20 Jua 10 흰/코랄). CharacterID.rarity/elementSymbol · PlayerSkill.cooldownText 3종 computed property 추가(5 case exhaustive switch). GameConfig v3 상수 ~28종 신규(기존 7종 값 보존). CharacterCardNode 5요소 attach* 메서드 신규 + setSelected glow/pill 토글. CharacterSelectScene 글래스 컨테이너 v3 폭/높이 + alpha 0.0, 외부 색점·태그 isHidden, cardBaseX/Y 본문만 v3 폭, 스킬 패널 setScale clamp(max 320). 신규 mockup character-select-v3.html ~445줄. 보호 영역 git diff 0줄(ResultScene/GameScene/GameState/PhysicsCategory/Managers/Repositories), preferenceRepo·transitionTo*·.kim 분기·CharacterID/PlayerSkill 기존 값 byte-identical. 강제 언래핑 0건, Timer 0건, update()-내-addChild 0건. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (Phase A 합격 영향 0)**: (1) glow 높이 mockup CSS 80 vs Swift 60 SPEC 자가-모순 정렬. (2) iPhone 12 Pro 가로에서 카드 5장 합산 폭 912pt가 화면 844pt 초과 → 양 끝 ±34pt 외측 → 후속 Phase에서 minCardSpacing 축소 또는 카드 폭 v3.5 보정 권장. (3) attachCDChip의 frame.width 측정 패턴 주석 보강.
 
 ### Sprint 6 — 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터
 - 시작: 2026-05-19

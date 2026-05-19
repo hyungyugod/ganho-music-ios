@@ -87,4 +87,37 @@ enum CharacterID: String, CaseIterable {
         case .lee:  return .ganhoCoralLight
         }
     }
+
+    // MARK: - Sprint 7 Phase A — NIKKE 카드 시각용 메타데이터
+
+    /// 카드 좌하단 등급 배지에 표시할 정수(1·2·3 = I·II·III).
+    /// switch default 미사용 — 5 case exhaustive. 순수 시각 lookup, 게임 로직 분기 0.
+    /// 매핑(OQ-3 결정):
+    ///   - 김간호 II (주인공, 정공법 → 중간)
+    ///   - 정간호 I (이동속도 +10% 기본 등급)
+    ///   - 건간호 III (북클럽 6타일 광역, 가장 *희귀*)
+    ///   - 임간호 II (전역 매혹 게임당 1회 — 위력 III급이지만 제약으로 II)
+    ///   - 이간호 I (대시 클라임 기본 등급)
+    var rarity: Int {
+        switch self {
+        case .jung: return 1
+        case .kim:  return 2
+        case .geon: return 3
+        case .im:   return 2
+        case .lee:  return 1
+        }
+    }
+
+    /// 카드 좌상단 헥사 아이콘 안에 표시할 속성 이모지 단문자.
+    /// 5종(⚡ 번개/💧 물/🌿 풀/🌙 달/🌸 꽃) — 캐릭터별 색 토큰(dotColor)과 시각 짝.
+    /// 게임 로직 분기 0 — 순수 시각 lookup.
+    var elementSymbol: String {
+        switch self {
+        case .kim:  return "🌸"
+        case .jung: return "🌿"
+        case .geon: return "🌙"
+        case .im:   return "⚡"
+        case .lee:  return "💧"
+        }
+    }
 }

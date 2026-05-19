@@ -112,4 +112,20 @@ extension PlayerSkill {
             return "\(seconds)초"
         }
     }
+
+    // MARK: - Sprint 7 Phase A — CD 미니칩
+
+    /// 카드 우상단 CD 미니칩 라벨. 정확한 초 단위가 아닌 *위계 신호*.
+    /// 스킬 없음(.none) → "∞", 그 외 → "1회".
+    /// (정확한 초는 SkillExplanationScene 메타 칩이 담당.)
+    /// switch default 미사용 — 5 case exhaustive.
+    var cooldownText: String {
+        switch self {
+        case .none:           return "∞"
+        case .dashClimb:      return "1회"
+        case .bookClubRally:  return "1회"
+        case .charmStudent:   return "1회"
+        case .taiwanTrip:     return "1회"
+        }
+    }
 }

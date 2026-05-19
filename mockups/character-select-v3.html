@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 캐릭터 선택 화면 v3 (NIKKE 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  /* === Phone frame === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px;
+    padding: 14px;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9;
+    max-width: 920px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 90px;
+    background: #0a0a0a;
+    border-radius: 4px;
+    z-index: 10;
+  }
+
+  /* === Top bar === */
+  .top-bar {
+    position: absolute;
+    top: 22px;
+    left: 48px;
+    right: 32px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    z-index: 5;
+  }
+  .back-btn {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 14px 6px 12px;
+    border-radius: 999px;
+    font-family: 'Jua', sans-serif;
+    font-size: 13px;
+    color: #2D2A4A;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(45, 42, 74, 0.08);
+  }
+
+  /* === Header === */
+  .header {
+    position: absolute;
+    top: 16%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 4;
+  }
+  .accent-line {
+    width: 32px;
+    height: 3px;
+    background: #FF6B5B;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+  .header-title {
+    font-family: 'Jua', sans-serif;
+    font-size: 28px;
+    color: #2D2A4A;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header-sub {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px;
+    color: #5A5670;
+    margin-top: 6px;
+  }
+
+  /* === Character cards row (v3 — NIKKE 4:5) === */
+  .cards-row {
+    position: absolute;
+    top: 36%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 22px;
+    padding: 0 4%;
+    z-index: 3;
+  }
+  /* v3 카드: 폭 160 / 높이 200 / cornerRadius 22 / 4:5 비율 */
+  .char-card {
+    width: 160px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 22px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+    position: relative;
+    overflow: visible;
+  }
+  .char-card:hover { transform: translateY(-3px); }
+
+  /* 속성 헥사 아이콘 (좌상단) */
+  .element-hex {
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 28px; height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+  .element-hex svg { position: absolute; top: 0; left: 0; }
+  .element-hex .symbol {
+    font-family: 'Jua', sans-serif;
+    font-size: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 등급 로마숫자 배지 (좌하단) */
+  .rarity-badge {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    width: 26px; height: 18px;
+    background: rgba(45, 42, 74, 0.85);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Jua', sans-serif;
+    font-size: 11px;
+    color: #FFB347;
+    letter-spacing: 0.5px;
+    z-index: 3;
+  }
+
+  /* CD 미니칩 (우상단) */
+  .cd-chip {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: rgba(255, 142, 128, 0.85);
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 9px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    z-index: 3;
+  }
+
+  /* 얼굴 SVG — 카드 중앙(살짝 위쪽) */
+  .char-card .avatar {
+    width: 88px;
+    height: 88px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, calc(-50% - 8px));
+    z-index: 2;
+  }
+
+  /* 이름 라벨 + 속도 칩 (하단) */
+  .char-card .name {
+    position: absolute;
+    bottom: 22px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'Jua', sans-serif;
+    font-size: 15px;
+    color: #2D2A4A;
+    letter-spacing: -0.3px;
+    z-index: 2;
+  }
+  .char-card .speed {
+    position: absolute;
+    bottom: 8px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 10px;
+    color: #9BE0CC;
+    z-index: 2;
+  }
+
+  /* Selected card — v3 강화 */
+  .char-card.selected {
+    transform: translateY(-12px) scale(1.08);
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #FF6B5B;
+    box-shadow:
+      0 12px 32px rgba(255, 107, 91, 0.35),
+      0 4px 12px rgba(45, 42, 74, 0.15);
+  }
+  /* Phase A 추가: 하단 코랄 radial 글로우 */
+  .char-card.selected::before {
+    content: "";
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 224px;
+    height: 80px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(255,107,91,0.45) 0%, transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+  }
+  /* Phase A 추가: 상단 "선택됨" 코랄 알약 */
+  .char-card.selected::after {
+    content: "선택됨";
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 10px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(255, 107, 91, 0.4);
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    z-index: 4;
+  }
+
+  /* === Skill info panel — v3 폭 좁힘 === */
+  .skill-panel {
+    position: absolute;
+    bottom: 14%;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 320px;
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 8px 18px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    z-index: 4;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 20px rgba(45, 42, 74, 0.3);
+  }
+  .skill-panel .skill-label {
+    font-family: 'Jua', sans-serif;
+    color: #FFB347;
+    font-size: 11px;
+  }
+  .skill-panel .skill-name {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #fff;
+  }
+  .skill-panel .sp-speed {
+    color: #9BE0CC;
+    font-size: 11px;
+    font-weight: 700;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* === Confirm button === */
+  .confirm-btn {
+    position: absolute;
+    bottom: 7%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 18px;
+    padding: 12px 36px 14px;
+    border: none;
+    border-radius: 999px;
+    box-shadow:
+      0 6px 0 #C44A3D,
+      0 12px 24px rgba(255, 107, 91, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    z-index: 5;
+    letter-spacing: 0.5px;
+  }
+  .confirm-btn .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* === Floating music notes === */
+  .note-deco {
+    position: absolute;
+    font-family: 'Jua', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 1;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .n1 { top: 14%; left: 12%; font-size: 22px; color: #FFB347; --r:-10deg; animation-delay:0s; }
+  .n2 { top: 24%; right: 14%; font-size: 18px; color: #B89DD9; --r:14deg; animation-delay:1s; }
+  .n3 { bottom: 25%; left: 10%; font-size: 16px; color: #FF6B5B; --r:-18deg; animation-delay:2s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+
+  /* === Annotations === */
+  .annot-title {
+    font-family: 'Jua', sans-serif;
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .annotation {
+    background: #1f1f28;
+    border: 1px solid #2e2e3a;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #FF8E80;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+  .annotation p {
+    font-size: 13px;
+    color: #b5b5bd;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 캐릭터 선택 화면 v3 (Sprint 7 Phase A · NIKKE 4:5)</h1>
+  <p class="sub">v2 → v3: 카드 폭 130→160, gap 14→22, 비율 정사각→4:5, 카드 내부 5요소(속성·등급·CD·얼굴·이름+속도)</p>
+
+  <!-- ==================== PHONE MOCKUP ==================== -->
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- Music notes deco -->
+      <div class="note-deco n1" style="--r:-10deg">♪</div>
+      <div class="note-deco n2" style="--r:14deg">♫</div>
+      <div class="note-deco n3" style="--r:-18deg">♬</div>
+
+      <!-- Top bar: back only -->
+      <div class="top-bar">
+        <button class="back-btn">← 메인</button>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="accent-line"></div>
+        <div class="header-title">함께할 친구를 골라요</div>
+        <div class="header-sub">친구마다 다른 스킬과 이동속도를 가져요</div>
+      </div>
+
+      <!-- 5 Character cards · v3 NIKKE 4:5 -->
+      <div class="cards-row">
+
+        <!-- 1. 김간호 — 🌸 II ∞ (스킬 없음) -->
+        <div class="char-card">
+          <span class="element-hex">
+            <svg width="28" height="28" viewBox="-14 -14 28 28">
+              <polygon points="0,14 12.12,7 12.12,-7 0,-14 -12.12,-7 -12.12,7" fill="#FF8E80" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <span class="symbol">🌸</span>
+          </span>
+          <span class="rarity-badge">II</span>
+          <span class="cd-chip">∞</span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -28 -12 Q -32 -28 -18 -32 Q -10 -34 0 -32 Q 10 -34 18 -32 Q 32 -28 28 -12 Q 20 -22 10 -20 Q 0 -22 -10 -20 Q -20 -22 -28 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <circle cx="-22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+            <circle cx="22" cy="-22" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+            <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+            <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+            <path d="M -34 -2 Q -34 -38 0 -38 Q 34 -38 34 -2" stroke="#FF6B5B" stroke-width="5" fill="none"/>
+            <ellipse cx="-34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <ellipse cx="34" cy="2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <path d="M -14 -2 Q -10 -6 -6 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M 6 -2 Q 10 -6 14 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M -5 12 Q 0 16 5 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="-18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+            <ellipse cx="18" cy="8" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+          </svg>
+          <div class="name">김간호</div>
+          <div class="speed">⚡ ×1.0</div>
+        </div>
+
+        <!-- 2. 정간호 — 🌿 I 1회 -->
+        <div class="char-card">
+          <span class="element-hex">
+            <svg width="28" height="28" viewBox="-14 -14 28 28">
+              <polygon points="0,14 12.12,7 12.12,-7 0,-14 -12.12,-7 -12.12,7" fill="#9BE0CC" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <span class="symbol">🌿</span>
+          </span>
+          <span class="rarity-badge">I</span>
+          <span class="cd-chip">1회</span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -28 -18 L -22 -30 L -14 -22 L -6 -32 L 0 -22 L 6 -32 L 14 -22 L 22 -30 L 28 -18 Q 20 -22 0 -22 Q -20 -22 -28 -18 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-30" y="-12" width="60" height="8" rx="2" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+            <circle cx="0" cy="-8" r="2" fill="#FFB347"/>
+            <path d="M -16 -2 L -8 -2" stroke="#2D2A4A" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 8 -2 L 16 -2" stroke="#2D2A4A" stroke-width="3" stroke-linecap="round"/>
+            <path d="M -18 -10 L -8 -8" stroke="#2D2A4A" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 8 -8 L 18 -10" stroke="#2D2A4A" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="-20" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.5"/>
+            <ellipse cx="20" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.5"/>
+          </svg>
+          <div class="name">정간호</div>
+          <div class="speed">⚡ ×1.1</div>
+        </div>
+
+        <!-- 3. 건간호 — 🌙 III 1회 (SELECTED 데모) -->
+        <div class="char-card selected">
+          <span class="element-hex">
+            <svg width="28" height="28" viewBox="-14 -14 28 28">
+              <polygon points="0,14 12.12,7 12.12,-7 0,-14 -12.12,-7 -12.12,7" fill="#B89DD9" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <span class="symbol">🌙</span>
+          </span>
+          <span class="rarity-badge">III</span>
+          <span class="cd-chip">1회</span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -28 -14 Q -32 -32 -14 -34 L -2 -30 L 2 -30 L 14 -34 Q 32 -32 28 -14 Q 18 -24 2 -24 L -2 -24 Q -18 -24 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#FFFFFF" stroke="#2D2A4A" stroke-width="2"/>
+            <rect x="-2" y="-38" width="4" height="9" fill="#FF6B5B"/>
+            <rect x="-4.5" y="-35.5" width="9" height="4" fill="#FF6B5B"/>
+            <circle cx="-12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <circle cx="12" cy="-1" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="2.5"/>
+            <line x1="-3" y1="-1" x2="3" y2="-1" stroke="#2D2A4A" stroke-width="2"/>
+            <circle cx="-12" cy="-1" r="2" fill="#2D2A4A"/>
+            <circle cx="12" cy="-1" r="2" fill="#2D2A4A"/>
+            <path d="M -4 14 Q 0 17 4 14" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="-22" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.55"/>
+            <ellipse cx="22" cy="10" rx="4" ry="2.5" fill="#FFB6B0" opacity="0.55"/>
+          </svg>
+          <div class="name">건간호</div>
+          <div class="speed">⚡ ×0.9</div>
+        </div>
+
+        <!-- 4. 임간호 — ⚡ II 1회 -->
+        <div class="char-card">
+          <span class="element-hex">
+            <svg width="28" height="28" viewBox="-14 -14 28 28">
+              <polygon points="0,14 12.12,7 12.12,-7 0,-14 -12.12,-7 -12.12,7" fill="#FFB347" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <span class="symbol">⚡</span>
+          </span>
+          <span class="rarity-badge">II</span>
+          <span class="cd-chip">1회</span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <path d="M -30 -10 Q -38 30 -28 50 L -20 30 Q -28 0 -22 -22 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M 30 -10 Q 38 30 28 50 L 20 30 Q 28 0 22 -22 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -28 -14 Q -32 -32 0 -34 Q 32 -32 28 -14 Q 18 -22 0 -22 Q -18 -22 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+            <path d="M -22 -32 L -16 -22 L -10 -30 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M 22 -32 L 16 -22 L 10 -30 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M -19 -28 L -16 -24 L -13 -28 Z" fill="#FFB6B0"/>
+            <path d="M 19 -28 L 16 -24 L 13 -28 Z" fill="#FFB6B0"/>
+            <path d="M -16 -3 Q -10 -8 -6 -1 Q -10 -2 -16 -3 Z" fill="#2D2A4A"/>
+            <path d="M 16 -3 Q 10 -8 6 -1 Q 10 -2 16 -3 Z" fill="#2D2A4A"/>
+            <line x1="-30" y1="6" x2="-22" y2="6" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="-30" y1="10" x2="-22" y2="9" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="22" y1="6" x2="30" y2="6" stroke="#2D2A4A" stroke-width="1.5"/>
+            <line x1="22" y1="9" x2="30" y2="10" stroke="#2D2A4A" stroke-width="1.5"/>
+            <path d="M -4 10 Q 0 14 4 10 Q 8 14 4 10" stroke="#2D2A4A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <ellipse cx="0" cy="6" rx="2" ry="1.5" fill="#FF8E80"/>
+          </svg>
+          <div class="name">임간호</div>
+          <div class="speed">⚡ ×0.95</div>
+        </div>
+
+        <!-- 5. 이간호 — 💧 I 1회 -->
+        <div class="char-card">
+          <span class="element-hex">
+            <svg width="28" height="28" viewBox="-14 -14 28 28">
+              <polygon points="0,14 12.12,7 12.12,-7 0,-14 -12.12,-7 -12.12,7" fill="#FF8E80" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <span class="symbol">💧</span>
+          </span>
+          <span class="rarity-badge">I</span>
+          <span class="cd-chip">1회</span>
+          <svg class="avatar" viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+            <path d="M -30 -8 Q -32 -32 0 -34 Q 32 -32 30 -8 L 28 12 Q 22 6 22 -10 Q 0 -22 -22 -10 Q -22 6 -28 12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" stroke-linejoin="round"/>
+            <ellipse cx="-26" cy="-4" rx="6" ry="14" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" transform="rotate(-20 -26 -4)"/>
+            <ellipse cx="26" cy="-4" rx="6" ry="14" fill="#3A2418" stroke="#2D2A4A" stroke-width="2" transform="rotate(20 26 -4)"/>
+            <ellipse cx="-26" cy="0" rx="3" ry="8" fill="#FFB6B0" transform="rotate(-20 -26 0)"/>
+            <ellipse cx="26" cy="0" rx="3" ry="8" fill="#FFB6B0" transform="rotate(20 26 0)"/>
+            <circle cx="-12" cy="-1" r="4" fill="#2D2A4A"/>
+            <circle cx="12" cy="-1" r="4" fill="#2D2A4A"/>
+            <circle cx="-11" cy="-2" r="1.5" fill="#fff"/>
+            <circle cx="13" cy="-2" r="1.5" fill="#fff"/>
+            <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="0" cy="16" rx="3" ry="2" fill="#FF8E80"/>
+            <ellipse cx="-20" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+            <ellipse cx="20" cy="10" rx="5" ry="3" fill="#FFB6B0" opacity="0.6"/>
+          </svg>
+          <div class="name">이간호</div>
+          <div class="speed">⚡ ×1.05</div>
+        </div>
+
+      </div>
+
+      <!-- Skill info panel (for selected character: 건간호) — v3 폭 좁힘 -->
+      <div class="skill-panel">
+        <span class="skill-label">스킬</span>
+        <span class="skill-name">북클럽</span>
+        <span class="sp-speed">⚡ ×0.9</span>
+      </div>
+
+      <!-- Confirm button -->
+      <button class="confirm-btn">
+        다음 <span class="arrow">▶</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ==================== ANNOTATIONS (필수 3개) ==================== -->
+  <div class="annot-title">Sprint 7 Phase A — 디자인 결정 3가지</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>🎴 카드 4:5 NIKKE 구조</h3>
+      <p>정사각이 아닌 세로 카드(160×200). 5종 정보(속성·얼굴·이름·등급·CD)를 위계 있게 배치. 폭 130→160 + gap 14→22 — 5장 총 폭 888pt로 겹침 0 보장.</p>
+    </div>
+    <div class="annotation">
+      <h3>✨ 선택 = 떠오르기 + 글로우</h3>
+      <p>기존 scale 1.08 + translateY -12 + 코랄 stroke에 *하단 코랄 radial glow*(224×80) + *상단 "선택됨" 코랄 알약* 추가. 5장 중 시선이 즉시 잡힘.</p>
+    </div>
+    <div class="annotation">
+      <h3>📋 CD 미니칩</h3>
+      <p>스킬 cooldown을 1회/∞ 2단계로 단순화. 정확한 초 단위는 SkillExplanationScene 메타 칩이 담당 — 카드의 CD 미니칩은 *위계 신호*일 뿐.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
