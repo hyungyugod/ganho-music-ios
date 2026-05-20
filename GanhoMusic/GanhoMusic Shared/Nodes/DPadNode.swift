@@ -28,6 +28,12 @@ final class DPadNode: SKNode {
     /// 4방향 단일 정책 — 한 번에 .up/.down/.left/.right 중 하나.
     private(set) var currentDirection: CGVector = .zero
 
+    // MARK: - Callbacks (Sprint 7 Phase G)
+    /// 방향 입력이 *비-제로*로 갱신된 직후 발화되는 콜백.
+    /// .zero(touchesEnded/Cancelled)는 발화하지 않음 → 정지 시 마지막 방향 유지.
+    /// 구독자(GameScene)는 PlayerNode.facing(_:)에 위임 — 입력 매핑 알고리즘 변경 0.
+    var onDirectionChanged: ((Direction) -> Void)?
+
     // MARK: - Init
     override init() {
         let buttonSize = CGSize(
@@ -119,6 +125,12 @@ final class DPadNode: SKNode {
             currentDirection = CGVector(dx: location.x >= 0 ? 1 : -1, dy: 0)
         } else {
             currentDirection = CGVector(dx: 0, dy: location.y >= 0 ? 1 : -1)
+        }
+        // Sprint 7 Phase G — 방향 갱신 직후 콜백 발화 (currentDirection 알고리즘 0건 변경).
+        // .zero 입력은 Direction.init?(vector:)가 nil 반환 → 자연 noop. touchesEnded/Cancelled는
+        // 본 함수를 호출하지 않으므로(.zero set만 함) 정지 시 콜백 미발화 → 마지막 방향 유지.
+        if let dir = Direction(vector: currentDirection) {
+            onDirectionChanged?(dir)
         }
     }
 }

@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase F 합격 — 빌런 4종 + 박병장)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D·E·F ✅ / G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-20 (🎉 Sprint 7 전체 완료 — Phase A~G 모두 합격, 평균 9.62/10)
+**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5/6/7 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기. Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -46,7 +46,7 @@ Sprint 2 진행해줘
 | **7-D** | 결과창 + ScoreboardScene 신설 | ✅ 합격 | 9.83/10 | 1/3 |
 | **7-E** | 카운트다운 오버레이 | ✅ 합격 | 9.76/10 | 1/3 |
 | **7-F** | 빌런 4종 + 박병장 신규 | ✅ 합격 | 9.10/10 | 1/3 |
-| **7-G** | 플레이어 4방향 스프라이트 | ⏳ 대기 | - | 0/3 |
+| **7-G** | 플레이어 4방향 스프라이트 | ✅ 합격 | 9.58/10 | 1/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -103,6 +103,31 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase G — 플레이어 4방향 스프라이트 + Direction 입력 layer
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.58/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼 9.0 · UX 9.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 인게임 PlayerNode가 D-Pad 입력 시 캐릭터 얼굴이 해당 방향(front/back/left/right) 바라보도록. 신규 Direction enum(Models/Direction.swift)과 init?(vector:) 변환자(dx>0→.right/dx<0→.left/dy>0→.back/dy<0→.front, .zero→nil 정지 시 유지 정책, |dx|≥|dy| 우선 좌우). PlayerNode faceNodes dict + lastFacing 상태 + facing(_:) 동기 isHidden 토글 + lastFacing 가드(동일 방향 noop). apply 본문 끝에 buildFacingChildren 1줄 추가 — 5캐릭터 × 4방향 = 20 CharacterFaceNode child를 setScale 0.5 + zPos 1로 부착. CharacterFaceNode init(id:facing:) 신규 분기(5×4 switch) + convenience init(id:) → init(id:facing:.front) delegation(기존 호출자 0건 회귀). 신규 10 helper(buildBackFace + buildSideFace + buildXxxHairBack 5 + buildXxxSide 5). left/right 미러링(xScale=-1)로 path 코드 5×3 = 15 + 0 중복. DPadNode onDirectionChanged 클로저 + updateDirection 끝 1줄 if-let 호출. touchesEnded/Cancelled .zero set 콜백 미발화(정지 시 유지). GameScene+Setup setupDPad 콜백 등록 1줄([weak self] 캡처). GameConfig 상수 2개(playerFaceChildScale=0.5, playerFaceChildZPosition=1). Mockup 후반부 5×4 = 20셀 그리드 추가(villains-and-player-directions-v1.html). Xcode pbxproj 4줄(Direction.swift 등록). 보호 영역 git diff 0줄: Phase A·B·C·D·E·F 결과물(SkillExplanationScene/DifficultyCardNode/ResultScene/ScoreboardScene/4 villain nodes) + GameScene/GameState/PhysicsCategory/Managers/Repositories/Systems + NoteNode/ProjectileNode/StethoscopeNode. PlayerNode 이동/physicsBody/PixelSprite texture 시스템(loadTexture/refreshTexture/updatePixelDirection/tickWalkFrame) byte-identical. CharacterFaceNode 기존 5 build 본문(buildKimFace~buildLeeFace 576 lines) byte-identical. CharacterFaceNode.mini factory(ScoreboardScene 32px) byte-identical. DPad updateDirection if/else 알고리즘 byte-identical. 강제 언래핑 0, Timer 0, switch default 0(4 case exhaustive). 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (Sprint 7 전체 합격 영향 0)**: (1) CharacterFaceNode 1101 lines — +Front/+Back/+Side extension 3개 분리 후보. (2) back/side 헤어 색 hairBrown 단색 위주 — 캐릭터별 보강 후보. (3) PlayerNode PixelSprite + face child 하이브리드 정리 후보. (4) Phase F 시각 디테일 매직 넘버 8건 정리. (5) V3 상수 명명 규칙 일괄 정리.
+
+---
+
+## 🎉 Sprint 7 전체 완료 (2026-05-20)
+
+7개 Phase 모두 합격. 평균 점수 **9.62 / 10**. 합격률 100% (7/7).
+
+| Phase | 작업 | 점수 |
+|---|---|---|
+| A | 캐릭터 카드 NIKKE 4:5 리뉴얼 | 9.45 |
+| B | 스킬 설명 겹침 해소 | 9.77 |
+| C | 난이도 카드 색 위계 | 9.83 |
+| D | 결과창 정리 + ScoreboardScene 신설 | 9.83 |
+| E | 카운트다운 오버레이 | 9.76 |
+| F | 빌런 4종 + 박병장 신규 | 9.10 |
+| G | 플레이어 4방향 스프라이트 | 9.58 |
+| **평균** | | **9.62** |
 
 ### Sprint 7 Phase F — 빌런 4종 + 박병장 신규
 - 시작: 2026-05-19

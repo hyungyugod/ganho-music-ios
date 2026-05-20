@@ -59,6 +59,14 @@ final class PlayerNode: SKSpriteNode {
     /// init 직후 .kim — apply 호출 전에도 그래픽이 깨지지 않도록 graceful default.
     private var currentCharacterID: CharacterID = .kim
 
+    // MARK: - Properties — Facing (Sprint 7 Phase G)
+    /// 4방향 CharacterFaceNode child 캐시. apply(_:) 호출 시 일괄 재생성.
+    /// dict lookup으로 facing(_:) noop 가드(.zero 시 미발화)와 즉시 토글 비용 0.
+    private var faceNodes: [Direction: CharacterFaceNode] = [:]
+    /// 직전 facing 방향. facing(_:)이 같은 값이면 noop — 매 프레임 호출에도 비용 0.
+    /// 초기값 .front — 정지 상태에서 정면 보는 자연 톤(D-Pad 미입력 시).
+    private var lastFacing: Direction = .front
+
     // MARK: - Init
     init() {
         // Phase 8-1 — physicsBody 크기는 원래대로 16×20 (게임 로직 회귀 0).
@@ -109,6 +117,9 @@ final class PlayerNode: SKSpriteNode {
         currentCharacterID = characterID
         speedMultiplier = characterID.playerSpeedMultiplier
         refreshTexture()
+        // Sprint 7 Phase G — 4방향 face child 일괄 재생성 (캐릭터 전환 안전).
+        // PixelSprite texture/physicsBody/이동 로직 0건 변경.
+        buildFacingChildren(for: characterID)
     }
 
     /// Phase 7-1 — 난이도 정체성 단일 진입점.
@@ -118,6 +129,38 @@ final class PlayerNode: SKSpriteNode {
     func apply(_ difficulty: Difficulty) {
         baseSpeedStart = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
         baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
+    }
+
+    // MARK: - Facing (Sprint 7 Phase G)
+    /// D-Pad 입력 방향 → 시각 child 토글. isHidden만 다루므로 다음 SK 프레임(~16ms) 안 전환.
+    /// lastFacing 가드 — 같은 방향 재호출 시 noop(매 프레임 호출에도 비용 0).
+    /// 게임 로직(velocity·position·hitbox·skill) 0건 변경 — 순수 시각 layer.
+    func facing(_ direction: Direction) {
+        if direction == lastFacing { return }
+        lastFacing = direction
+        for (dir, node) in faceNodes {
+            node.isHidden = (dir != direction)
+        }
+    }
+
+    /// apply(_ characterID:)에서 1회 호출. 4 CharacterFaceNode를 미리 부착 + 초기 가시성 set.
+    /// 캐릭터 전환 시 기존 child 정리(removeFromParent) — 누수 0.
+    /// face child는 zPos=playerFaceChildZPosition로 PixelSprite texture(zPos 0) 위에 자연 오버레이.
+    /// CharacterFaceNode 본래 좌표계(±50)를 playerFaceChildScale=0.5로 축소 → player visual(32×40) 정합.
+    private func buildFacingChildren(for characterID: CharacterID) {
+        // 기존 child 정리 — 캐릭터 전환 시 누적 방지.
+        for (_, node) in faceNodes { node.removeFromParent() }
+        faceNodes.removeAll()
+
+        let scale = GameConfig.playerFaceChildScale
+        for direction in [Direction.front, .back, .left, .right] {
+            let face = CharacterFaceNode(id: characterID, facing: direction)
+            face.setScale(scale)
+            face.zPosition = GameConfig.playerFaceChildZPosition
+            face.isHidden = (direction != lastFacing)
+            addChild(face)
+            faceNodes[direction] = face
+        }
     }
 
     // MARK: - Update (Movement)

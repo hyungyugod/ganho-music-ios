@@ -2237,4 +2237,15 @@ enum GameConfig {
     static let sergeantChevronHeight: CGFloat = 2.5
     /// chevron 선 굵기(1.0pt) — 골드 stroke.
     static let sergeantChevronLineWidth: CGFloat = 1.0
+
+    // MARK: - Sprint 7 Phase G · Player Facing (4방향 child)
+    //
+    // PlayerNode가 4 CharacterFaceNode child를 미리 부착해두고 isHidden 토글로 즉시 전환.
+    // CharacterFaceNode 본래 좌표계(±50)와 PlayerNode 시각 크기(32×40)의 정합용.
+
+    /// PlayerNode 4 CharacterFaceNode child의 scale (0.5).
+    /// CharacterFaceNode head ellipse는 ±32~±34 좌표계 → 0.5 → ±16~±17pt 폭, player visual 32×40과 자연 정합.
+    static let playerFaceChildScale: CGFloat = 0.5
+    /// PlayerNode 자체 텍스처(zPos 0) 위에 face child를 얹기 위한 작은 양수 zPosition.
+    static let playerFaceChildZPosition: CGFloat = 1
 }

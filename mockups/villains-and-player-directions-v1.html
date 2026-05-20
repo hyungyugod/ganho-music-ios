@@ -311,10 +311,285 @@
 
   </section>
 
-  <!-- ── 후반부 메모 ───────────────────────────────────── -->
+  <!-- ── Phase G 헤더 ─────────────────────────────────── -->
+  <header class="page-head" style="margin-top: 56px;">
+    <div class="accent-line"></div>
+    <h1>플레이어 4방향 스프라이트 시안</h1>
+    <div class="sub">Sprint 7 · Phase G — 5캐릭터 × 4방향(front/back/left/right) = 20셀</div>
+  </header>
+
+  <style>
+    /* ── 5×4 Player Direction Grid ─────────────────── */
+    .player-grid {
+      max-width: 1024px;
+      margin: 0 auto 32px;
+      display: grid;
+      grid-template-columns: 80px repeat(4, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+    .player-grid .col-header {
+      font-family: 'Jua', sans-serif;
+      font-size: 13px;
+      color: #5A5670;
+      text-align: center;
+      padding: 6px 0;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+    }
+    .player-grid .row-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+    }
+    .player-grid .row-header .chip {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(45, 42, 74, 0.2);
+    }
+    .player-grid .row-header .name {
+      font-family: 'Jua', sans-serif;
+      font-size: 14px;
+      color: #2D2A4A;
+    }
+    .player-grid .cell {
+      width: 100px;
+      height: 110px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(45, 42, 74, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .player-grid .cell svg {
+      width: 84px;
+      height: 92px;
+    }
+  </style>
+
+  <section class="player-grid" aria-label="5캐릭터 × 4방향 시안">
+
+    <!-- 헤더 행 -->
+    <div></div>
+    <div class="col-header">front</div>
+    <div class="col-header">back</div>
+    <div class="col-header">left</div>
+    <div class="col-header">right</div>
+
+    <!-- ── 김간호 ───────────────────────────────────── -->
+    <div class="row-header">
+      <span class="chip" style="background:#FF8E80;"></span>
+      <span class="name">김</span>
+    </div>
+    <!-- kim front -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -28 -12 Q -32 -28 -18 -32 Q -10 -34 0 -32 Q 10 -34 18 -32 Q 32 -28 28 -12 Q 20 -22 10 -20 Q 0 -22 -10 -20 Q -20 -22 -28 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -34 -2 Q -34 -38 0 -38 Q 34 -38 34 -2" stroke="#FF6B5B" stroke-width="5" fill="none"/>
+      <ellipse cx="-34" cy="-2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="34" cy="-2" rx="7" ry="10" fill="#FF6B5B" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -14 -2 Q -10 -6 -6 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M 14 -2 Q 10 -6 6 -2" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M -5 12 Q 0 16 5 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg></div>
+    <!-- kim back -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -28 -12 Q -32 -28 -18 -32 Q 0 -36 18 -32 Q 32 -28 28 -12 Q 30 10 0 18 Q -30 10 -28 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#fff" stroke="#2D2A4A" stroke-width="2"/>
+    </svg></div>
+    <!-- kim left -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -12 Q -26 -28 -12 -30 Q 4 -36 18 -32 Q 32 -24 28 -8 Q 28 6 18 10 L -10 -16 Q -18 -14 -22 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="-8" cy="-2" rx="2.5" ry="3" fill="#2D2A4A"/>
+    </svg></div>
+    <!-- kim right (mirror left) -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <g transform="scale(-1, 1)">
+        <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -22 -12 Q -26 -28 -12 -30 Q 4 -36 18 -32 Q 32 -24 28 -8 Q 28 6 18 10 L -10 -16 Q -18 -14 -22 -12 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+        <ellipse cx="-8" cy="-2" rx="2.5" ry="3" fill="#2D2A4A"/>
+      </g>
+    </svg></div>
+
+    <!-- ── 정간호 ───────────────────────────────────── -->
+    <div class="row-header">
+      <span class="chip" style="background:#9BE0CC;"></span>
+      <span class="name">정</span>
+    </div>
+    <!-- jung front -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -22 Q -22 -38 0 -38 Q 22 -38 22 -22 L 18 -18 L -18 -18 Z" fill="#FF8E80" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -30 -16 Q -20 -22 0 -22 Q 20 -22 30 -16 L 26 -12 L -26 -12 Z" fill="#C44A3D" stroke="#2D2A4A" stroke-width="2"/>
+      <circle cx="-12" cy="-2" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="3"/>
+      <circle cx="12" cy="-2" r="9" fill="rgba(220,230,255,0.4)" stroke="#2D2A4A" stroke-width="3"/>
+      <circle cx="-12" cy="-1" r="2" fill="#2D2A4A"/>
+      <circle cx="12" cy="-1" r="2" fill="#2D2A4A"/>
+      <path d="M -4 11 Q 0 16 4 11" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg></div>
+    <!-- jung back -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -28 -10 Q -30 -32 0 -36 Q 30 -32 28 -10 Q 26 8 0 16 Q -26 8 -28 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -22 -22 Q -22 -38 0 -38 Q 22 -38 22 -22 L 18 -18 L -18 -18 Z" fill="#FF8E80" stroke="#2D2A4A" stroke-width="2.5"/>
+    </svg></div>
+    <!-- jung left -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -10 Q 0 -30 18 -22 Q 30 -14 28 0 L -10 -14 Q -18 -12 -22 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -20 -22 Q -8 -34 14 -30 L 22 -20 L -18 -18 Z" fill="#FF8E80" stroke="#2D2A4A" stroke-width="2"/>
+      <rect x="-22" y="-18" width="14" height="3" fill="#C44A3D" stroke="#2D2A4A" stroke-width="1.5"/>
+      <circle cx="-10" cy="-2" r="2" fill="#2D2A4A"/>
+    </svg></div>
+    <!-- jung right -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <g transform="scale(-1, 1)">
+        <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -22 -10 Q 0 -30 18 -22 Q 30 -14 28 0 L -10 -14 Q -18 -12 -22 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2"/>
+        <path d="M -20 -22 Q -8 -34 14 -30 L 22 -20 L -18 -18 Z" fill="#FF8E80" stroke="#2D2A4A" stroke-width="2"/>
+        <rect x="-22" y="-18" width="14" height="3" fill="#C44A3D" stroke="#2D2A4A" stroke-width="1.5"/>
+        <circle cx="-10" cy="-2" r="2" fill="#2D2A4A"/>
+      </g>
+    </svg></div>
+
+    <!-- ── 건간호 ───────────────────────────────────── -->
+    <div class="row-header">
+      <span class="chip" style="background:#B89DD9;"></span>
+      <span class="name">건</span>
+    </div>
+    <!-- geon front -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -32 -10 Q -38 -38 -16 -38 Q 0 -42 16 -38 Q 38 -38 32 -10 Q 24 -24 0 -22 Q -24 -24 -32 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#fff" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="-11" cy="-1" rx="4.5" ry="6" fill="#2D2A4A"/>
+      <ellipse cx="11" cy="-1" rx="4.5" ry="6" fill="#2D2A4A"/>
+      <circle cx="-12" cy="-3" r="1.8" fill="#fff"/>
+      <circle cx="10" cy="-3" r="1.8" fill="#fff"/>
+      <path d="M -4 14 Q 0 17 4 14" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg></div>
+    <!-- geon back -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -32 -10 Q -38 -38 0 -38 Q 38 -38 32 -10 Q 30 8 0 18 Q -30 8 -32 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#fff" stroke="#2D2A4A" stroke-width="2"/>
+    </svg></div>
+    <!-- geon left -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -10 Q 0 -38 18 -32 Q 34 -24 30 -6 L -10 -14 Q -18 -12 -22 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#fff" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="-8" cy="-2" rx="4" ry="5" fill="#2D2A4A"/>
+      <circle cx="-9" cy="-4" r="1.5" fill="#fff"/>
+    </svg></div>
+    <!-- geon right -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <g transform="scale(-1, 1)">
+        <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -22 -10 Q 0 -38 18 -32 Q 34 -24 30 -6 L -10 -14 Q -18 -12 -22 -10 Z" fill="#1F1410" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -15 -28 Q -15 -42 0 -44 Q 15 -42 15 -28 L 12 -25 L -12 -25 Z" fill="#fff" stroke="#2D2A4A" stroke-width="2"/>
+        <ellipse cx="-8" cy="-2" rx="4" ry="5" fill="#2D2A4A"/>
+        <circle cx="-9" cy="-4" r="1.5" fill="#fff"/>
+      </g>
+    </svg></div>
+
+    <!-- ── 임간호 ───────────────────────────────────── -->
+    <div class="row-header">
+      <span class="chip" style="background:#FFD27A;"></span>
+      <span class="name">임</span>
+    </div>
+    <!-- im front -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -28 -10 Q -36 22 -28 42 Q -20 38 -22 14 Q -28 -10 -28 -10 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M 28 -10 Q 36 22 28 42 Q 20 38 22 14 Q 28 -10 28 -10 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -20 -34 L -14 -22 L -8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M 20 -34 L 14 -22 L 8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="-11" cy="-1" rx="5" ry="6.5" fill="#2D2A4A"/>
+      <ellipse cx="11" cy="-1" rx="5" ry="6.5" fill="#2D2A4A"/>
+      <circle cx="-12" cy="-3" r="2" fill="#fff"/>
+      <circle cx="10" cy="-3" r="2" fill="#fff"/>
+      <ellipse cx="0" cy="7" rx="1.5" ry="1.2" fill="#FF8E80"/>
+    </svg></div>
+    <!-- im back -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -34 -8 Q -44 28 -22 48 L 22 48 Q 44 28 34 -8 Q 36 -32 0 -36 Q -36 -32 -34 -8 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M -20 -34 L -14 -22 L -8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M 20 -34 L 14 -22 L 8 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+    </svg></div>
+    <!-- im left -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -8 Q 0 -36 22 -34 Q 38 -28 30 -8 Q 32 28 14 32 Q -10 16 -22 -8 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <path d="M 6 -34 L 12 -22 L 18 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <ellipse cx="-8" cy="-2" rx="4" ry="5.5" fill="#2D2A4A"/>
+      <circle cx="-9" cy="-4" r="1.8" fill="#fff"/>
+    </svg></div>
+    <!-- im right -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <g transform="scale(-1, 1)">
+        <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -22 -8 Q 0 -36 22 -34 Q 38 -28 30 -8 Q 32 28 14 32 Q -10 16 -22 -8 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+        <path d="M 6 -34 L 12 -22 L 18 -34 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+        <ellipse cx="-8" cy="-2" rx="4" ry="5.5" fill="#2D2A4A"/>
+        <circle cx="-9" cy="-4" r="1.8" fill="#fff"/>
+      </g>
+    </svg></div>
+
+    <!-- ── 이간호 ───────────────────────────────────── -->
+    <div class="row-header">
+      <span class="chip" style="background:#FF8E80;"></span>
+      <span class="name">이</span>
+    </div>
+    <!-- lee front -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -28 -14 Q -32 -32 -16 -34 L -8 -28 L -2 -32 L 2 -32 L 8 -28 L 16 -34 Q 32 -32 28 -14 Q 18 -22 0 -22 Q -18 -22 -28 -14 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <circle cx="-30" cy="20" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+      <circle cx="30" cy="20" r="4" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+      <path d="M -16 -2 Q -10 -8 -6 -1" stroke="#2D2A4A" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M 16 -2 Q 10 -8 6 -1" stroke="#2D2A4A" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M -6 12 Q 0 18 6 12" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg></div>
+    <!-- lee back -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -30 -10 Q -32 -32 0 -36 Q 32 -32 30 -10 Q 28 12 0 16 Q -28 12 -30 -10 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <circle cx="-22" cy="0" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+      <circle cx="22" cy="0" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+    </svg></div>
+    <!-- lee left -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+      <path d="M -22 -10 Q 0 -34 16 -32 Q 34 -24 30 -8 Q 30 16 20 16 L -10 -14 Q -18 -12 -22 -10 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+      <circle cx="22" cy="10" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+      <path d="M -12 -2 Q -8 -7 -4 -1" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg></div>
+    <!-- lee right -->
+    <div class="cell"><svg viewBox="-50 -55 100 110" xmlns="http://www.w3.org/2000/svg">
+      <g transform="scale(-1, 1)">
+        <ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>
+        <path d="M -22 -10 Q 0 -34 16 -32 Q 34 -24 30 -8 Q 30 16 20 16 L -10 -14 Q -18 -12 -22 -10 Z" fill="#3A2418" stroke="#2D2A4A" stroke-width="2"/>
+        <circle cx="22" cy="10" r="3" fill="#3A2418" stroke="#2D2A4A" stroke-width="1.5"/>
+        <path d="M -12 -2 Q -8 -7 -4 -1" stroke="#2D2A4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg></div>
+
+  </section>
+
+  <!-- ── 메모 ─────────────────────────────────────── -->
   <section class="future-note">
-    <strong>Phase G 예정</strong> — 본 시안 후반부에서 <em>플레이어 5명(김·이·정·건·임) × 4방향(front/back/left/right)</em>
-    스프라이트가 추가됩니다. 본 HTML 한 파일에 후속 행을 이어 붙일 예정.
+    <strong>Phase G 완료</strong> — 5캐릭터 × 4방향 = 20셀 SVG 시안.
+    <em>front</em>는 CharacterFaceNode 기존 5 build path 재사용,
+    <em>back</em>은 헤어 silhouette만, <em>side(left)</em>는 헤어 한쪽 + 눈 1개,
+    <em>right</em>는 left의 <code>scaleX(-1)</code> 미러링.
   </section>
 
 </body>

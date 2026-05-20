@@ -46,17 +46,37 @@ final class CharacterFaceNode: SKNode {
     private static let pinkNose = UIColor.ganhoCoralLight
 
     // MARK: - Init
-    /// 5 캐릭터 분기 — 단일 진입점. 카드 외부에서 `.position`만 잡으면 된다.
-    init(id: CharacterID) {
+    /// Sprint 7 Phase G — 5 캐릭터 × 4방향 분기. 단일 진입점.
+    /// `.front` 케이스는 *기존 5 build 메서드를 그대로 재호출* → 정면 결과 byte-identical(회귀 0).
+    /// `.back`/`.left`/`.right`는 신규 build{Back,Side} 헬퍼 — 머리 외곽 + 헤어 silhouette + (side: 한쪽 눈).
+    /// `.right`는 `.left`를 그린 뒤 xScale = -1로 미러링 — path 중복 0.
+    init(id: CharacterID, facing: Direction) {
         super.init()
-        name = "characterFace_\(id.rawValue)"
-        switch id {
-        case .kim:  buildKimFace()
-        case .jung: buildJungFace()
-        case .geon: buildGeonFace()
-        case .im:   buildImFace()
-        case .lee:  buildLeeFace()
+        name = "characterFace_\(id.rawValue)_\(facing.rawValue)"
+        switch facing {
+        case .front:
+            // 기존 5 build 본문 byte-identical 재호출 — 정면 결과 회귀 0.
+            switch id {
+            case .kim:  buildKimFace()
+            case .jung: buildJungFace()
+            case .geon: buildGeonFace()
+            case .im:   buildImFace()
+            case .lee:  buildLeeFace()
+            }
+        case .back:
+            buildBackFace(id: id)
+        case .left:
+            buildSideFace(id: id)
+        case .right:
+            buildSideFace(id: id)
+            xScale = -1  // 좌측 path 미러링 — 우측 전용 path 0 (코드 중복 회피).
         }
+    }
+
+    /// 5 캐릭터 분기 — 기존 호출자 시그니처 보존(CharacterSelectScene 등 회귀 0).
+    /// `.front` 결과로 위임 → 본 init이 단순 1줄 delegation이라 기존 호출 결과 byte-identical.
+    convenience init(id: CharacterID) {
+        self.init(id: id, facing: .front)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -724,5 +744,358 @@ final class CharacterFaceNode: SKNode {
 
         // 강한 볼터치(따뜻한·축제 느낌) — SVG `<ellipse cx="-44" cy="20" rx="14" ry="8" alpha 0.75"/>` 축소 → rx=7, ry=4.
         buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
+    }
+
+    // MARK: - Sprint 7 Phase G · Back Face (5 캐릭터 뒤통수)
+    /// 뒷모습 — 머리 외곽(공유 head ellipse) + 헤어 silhouette만. 눈/입 없음(자연 톤).
+    /// 5 캐릭터 헤어 색은 동일(hairBrown) — 실루엣 차이는 후속 sprint에서 보강 후보.
+    /// front 5 build 본문 byte-identical 보존(주의사항 5) — 본 분기는 *별도 path*를 그림.
+    private func buildBackFace(id: CharacterID) {
+        buildHeadBase()
+        switch id {
+        case .kim:  buildKimHairBack()
+        case .jung: buildJungHairBack()
+        case .geon: buildGeonHairBack()
+        case .im:   buildImHairBack()
+        case .lee:  buildLeeHairBack()
+        }
+    }
+
+    /// 측면 — 머리 외곽 + 헤어 한쪽 + 눈 1개(앞쪽).
+    /// .left 호출 시만 그려지고, .right는 init(id:facing:)에서 xScale=-1로 미러링.
+    private func buildSideFace(id: CharacterID) {
+        buildHeadBase()
+        switch id {
+        case .kim:  buildKimSide()
+        case .jung: buildJungSide()
+        case .geon: buildGeonSide()
+        case .im:   buildImSide()
+        case .lee:  buildLeeSide()
+        }
+    }
+
+    // MARK: - Helpers — Back Hair (5 캐릭터)
+    /// 김간호 뒷모습 — 번머리 silhouette 큰 path. 모자(흰 너스캡)는 표시.
+    private func buildKimHairBack() {
+        // 큰 뒤통수 헤어 — front bun과 유사한 외곽이지만 *얼굴 디테일 0*.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -28, y: 12))
+        hair.addQuadCurve(to: CGPoint(x: -18, y: 32), control: CGPoint(x: -32, y: 28))
+        hair.addQuadCurve(to: CGPoint(x: 18, y: 32), control: CGPoint(x: 0, y: 36))
+        hair.addQuadCurve(to: CGPoint(x: 28, y: 12), control: CGPoint(x: 32, y: 28))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: -18), control: CGPoint(x: 30, y: -10))
+        hair.addQuadCurve(to: CGPoint(x: -28, y: 12), control: CGPoint(x: -30, y: -10))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 너스캡은 뒤에서도 보임 (윗부분).
+        buildNurseCap()
+    }
+
+    /// 정간호 뒷모습 — 핑크 러닝캡 뒤 + 짧은 머리. 캡 뒷부분(둥근 윗면).
+    private func buildJungHairBack() {
+        // 짧은 머리 silhouette.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -28, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 36), control: CGPoint(x: -30, y: 32))
+        hair.addQuadCurve(to: CGPoint(x: 28, y: 10), control: CGPoint(x: 30, y: 32))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: -16), control: CGPoint(x: 26, y: -8))
+        hair.addQuadCurve(to: CGPoint(x: -28, y: 10), control: CGPoint(x: -26, y: -8))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = UIColor(hex: "#1F1410")
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 핑크 러닝캡 뒷부분 (둥근 윗부분만).
+        let cap = CGMutablePath()
+        cap.move(to: CGPoint(x: -22, y: 22))
+        cap.addQuadCurve(to: CGPoint(x: 0, y: 38), control: CGPoint(x: -22, y: 36))
+        cap.addQuadCurve(to: CGPoint(x: 22, y: 22), control: CGPoint(x: 22, y: 36))
+        cap.addLine(to: CGPoint(x: 18, y: 18))
+        cap.addLine(to: CGPoint(x: -18, y: 18))
+        cap.closeSubpath()
+        let capNode = SKShapeNode(path: cap)
+        capNode.fillColor = UIColor(hex: "#FF8E80")
+        capNode.strokeColor = Self.navy
+        capNode.lineWidth = 2.5
+        capNode.lineJoin = .round
+        capNode.zPosition = 20
+        addChild(capNode)
+    }
+
+    /// 건간호 뒷모습 — 너스캡 뒤 + 어두운 머리.
+    private func buildGeonHairBack() {
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -32, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 38), control: CGPoint(x: -38, y: 38))
+        hair.addQuadCurve(to: CGPoint(x: 32, y: 10), control: CGPoint(x: 38, y: 38))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: -18), control: CGPoint(x: 30, y: -8))
+        hair.addQuadCurve(to: CGPoint(x: -32, y: 10), control: CGPoint(x: -30, y: -8))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = UIColor(hex: "#1F1410")
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2.5
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        buildNurseCap()
+    }
+
+    /// 임간호 뒷모습 — 긴머리 전체 silhouette.
+    private func buildImHairBack() {
+        // 큰 긴머리 — 어깨까지 흘러내림(타원형 큰 silhouette).
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -34, y: 8))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: -48), control: CGPoint(x: -44, y: -28))
+        hair.addLine(to: CGPoint(x: 22, y: -48))
+        hair.addQuadCurve(to: CGPoint(x: 34, y: 8), control: CGPoint(x: 44, y: -28))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 36), control: CGPoint(x: 36, y: 32))
+        hair.addQuadCurve(to: CGPoint(x: -34, y: 8), control: CGPoint(x: -36, y: 32))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+    }
+
+    /// 이간호 뒷모습 — 곱슬 단발 silhouette + 작은 컬 디테일 dot 2개.
+    private func buildLeeHairBack() {
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -30, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: 36), control: CGPoint(x: -32, y: 32))
+        hair.addQuadCurve(to: CGPoint(x: 30, y: 10), control: CGPoint(x: 32, y: 32))
+        hair.addQuadCurve(to: CGPoint(x: 0, y: -22), control: CGPoint(x: 28, y: -10))
+        hair.addQuadCurve(to: CGPoint(x: -30, y: 10), control: CGPoint(x: -28, y: -10))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 컬 디테일 dot 2개(어깨선 위치).
+        for sign in [-1.0, 1.0] {
+            let dot = SKShapeNode(circleOfRadius: 3)
+            dot.fillColor = Self.hairBrown
+            dot.strokeColor = Self.navy
+            dot.lineWidth = 1.5
+            dot.position = CGPoint(x: 22 * CGFloat(sign), y: 0)
+            dot.zPosition = 11
+            addChild(dot)
+        }
+    }
+
+    // MARK: - Helpers — Side Face (5 캐릭터, .left 기준)
+    /// 김간호 측면 — 번머리 한쪽 + 눈 1개(앞쪽).
+    /// 좌측 향 기준: 머리·헤어 silhouette이 *좌측*으로 살짝 기울고, 눈은 *얼굴 우측(0~+10)* 1개.
+    /// path는 .left 기준으로 그리고, init(id:facing:)에서 .right일 때만 xScale=-1.
+    private func buildKimSide() {
+        // 헤어 — 뒤쪽(우측) 절반에 번머리. 좌측은 얼굴 윤곽 따라 흘러내림.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -22, y: 12))
+        hair.addQuadCurve(to: CGPoint(x: -12, y: 30), control: CGPoint(x: -26, y: 28))
+        hair.addQuadCurve(to: CGPoint(x: 18, y: 32), control: CGPoint(x: 4, y: 36))
+        hair.addQuadCurve(to: CGPoint(x: 28, y: 8), control: CGPoint(x: 32, y: 24))
+        hair.addQuadCurve(to: CGPoint(x: 18, y: -10), control: CGPoint(x: 28, y: -6))
+        hair.addLine(to: CGPoint(x: -10, y: 16))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: 12), control: CGPoint(x: -18, y: 14))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+
+        // 눈 1개(앞쪽 = 좌측 향이므로 화면 좌측, 좌표 x=-8).
+        let eye = SKShapeNode(ellipseOf: CGSize(width: 5, height: 6))
+        eye.fillColor = Self.navy
+        eye.strokeColor = .clear
+        eye.position = CGPoint(x: -8, y: 2)
+        eye.zPosition = 30
+        addChild(eye)
+    }
+
+    /// 정간호 측면 — 핑크 캡 + 짧은 머리 한쪽 + 눈 1개.
+    private func buildJungSide() {
+        // 짧은 머리.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -22, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 18, y: 22), control: CGPoint(x: 0, y: 30))
+        hair.addQuadCurve(to: CGPoint(x: 28, y: 0), control: CGPoint(x: 30, y: 14))
+        hair.addLine(to: CGPoint(x: -10, y: 14))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: 10), control: CGPoint(x: -18, y: 12))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = UIColor(hex: "#1F1410")
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 핑크 러닝캡 (옆에서 보면 챙 + 크라운 한쪽 윤곽).
+        let cap = CGMutablePath()
+        cap.move(to: CGPoint(x: -20, y: 22))
+        cap.addQuadCurve(to: CGPoint(x: 14, y: 30), control: CGPoint(x: -8, y: 34))
+        cap.addLine(to: CGPoint(x: 22, y: 20))
+        cap.addLine(to: CGPoint(x: -18, y: 18))
+        cap.closeSubpath()
+        let capNode = SKShapeNode(path: cap)
+        capNode.fillColor = UIColor(hex: "#FF8E80")
+        capNode.strokeColor = Self.navy
+        capNode.lineWidth = 2
+        capNode.lineJoin = .round
+        capNode.zPosition = 20
+        addChild(capNode)
+        // 캡 챙 (앞쪽으로 살짝 튀어나옴 — 좌측 향이므로 화면 좌측).
+        let brim = SKShapeNode(rectOf: CGSize(width: 14, height: 3))
+        brim.fillColor = UIColor(hex: "#C44A3D")
+        brim.strokeColor = Self.navy
+        brim.lineWidth = 1.5
+        brim.position = CGPoint(x: -16, y: 16)
+        brim.zPosition = 21
+        addChild(brim)
+        // 눈 1개(앞쪽).
+        let eye = SKShapeNode(circleOfRadius: 2)
+        eye.fillColor = Self.navy
+        eye.strokeColor = .clear
+        eye.position = CGPoint(x: -10, y: 2)
+        eye.zPosition = 30
+        addChild(eye)
+    }
+
+    /// 건간호 측면 — 어두운 머리 + 너스캡 + 둥근 큰 눈 1개.
+    private func buildGeonSide() {
+        // 어두운 머리 한쪽.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -22, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 18, y: 32), control: CGPoint(x: 0, y: 38))
+        hair.addQuadCurve(to: CGPoint(x: 30, y: 6), control: CGPoint(x: 34, y: 24))
+        hair.addLine(to: CGPoint(x: -10, y: 14))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: 10), control: CGPoint(x: -18, y: 12))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = UIColor(hex: "#1F1410")
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2.5
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        buildNurseCap()
+        // 큰 둥근 검은 눈 1개(앞쪽).
+        let eye = SKShapeNode(ellipseOf: CGSize(width: 8, height: 10))
+        eye.fillColor = Self.navy
+        eye.strokeColor = .clear
+        eye.position = CGPoint(x: -8, y: 2)
+        eye.zPosition = 30
+        addChild(eye)
+        // 흰 highlight.
+        let hl = SKShapeNode(circleOfRadius: 1.5)
+        hl.fillColor = .white
+        hl.strokeColor = .clear
+        hl.position = CGPoint(x: -9, y: 4)
+        hl.zPosition = 31
+        addChild(hl)
+    }
+
+    /// 임간호 측면 — 긴머리 한쪽 + 고양이귀 1개 + 큰 둥근 눈 1개.
+    private func buildImSide() {
+        // 긴머리 한쪽 — 어깨까지 흘러내림(좌측 향이라 머리 뒤쪽 = 우측).
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -22, y: 8))
+        hair.addQuadCurve(to: CGPoint(x: 14, y: -42), control: CGPoint(x: 38, y: -28))
+        hair.addLine(to: CGPoint(x: 22, y: -42))
+        hair.addQuadCurve(to: CGPoint(x: 30, y: 8), control: CGPoint(x: 40, y: -20))
+        hair.addQuadCurve(to: CGPoint(x: 14, y: 32), control: CGPoint(x: 30, y: 28))
+        hair.addQuadCurve(to: CGPoint(x: -10, y: 16), control: CGPoint(x: 0, y: 22))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: 8), control: CGPoint(x: -16, y: 10))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 고양이 귀 1개(뒤쪽).
+        let ear = CGMutablePath()
+        ear.move(to: CGPoint(x: 18, y: 34))
+        ear.addLine(to: CGPoint(x: 12, y: 22))
+        ear.addLine(to: CGPoint(x: 6, y: 34))
+        ear.closeSubpath()
+        let earNode = SKShapeNode(path: ear)
+        earNode.fillColor = Self.hairBrown
+        earNode.strokeColor = Self.navy
+        earNode.lineWidth = 2
+        earNode.lineJoin = .round
+        earNode.zPosition = 20
+        addChild(earNode)
+        // 큰 둥근 눈 1개(앞쪽).
+        let eye = SKShapeNode(ellipseOf: CGSize(width: 8, height: 11))
+        eye.fillColor = Self.navy
+        eye.strokeColor = .clear
+        eye.position = CGPoint(x: -8, y: 2)
+        eye.zPosition = 30
+        addChild(eye)
+        // 흰 highlight.
+        let hl = SKShapeNode(circleOfRadius: 1.8)
+        hl.fillColor = .white
+        hl.strokeColor = .clear
+        hl.position = CGPoint(x: -9, y: 4)
+        hl.zPosition = 31
+        addChild(hl)
+    }
+
+    /// 이간호 측면 — 곱슬 단발 한쪽 + 닫힌 눈 미소 1개.
+    private func buildLeeSide() {
+        // 곱슬 단발 한쪽.
+        let hair = CGMutablePath()
+        hair.move(to: CGPoint(x: -22, y: 10))
+        hair.addQuadCurve(to: CGPoint(x: 16, y: 32), control: CGPoint(x: 0, y: 34))
+        hair.addQuadCurve(to: CGPoint(x: 30, y: 8), control: CGPoint(x: 34, y: 24))
+        hair.addQuadCurve(to: CGPoint(x: 20, y: -16), control: CGPoint(x: 30, y: -6))
+        hair.addLine(to: CGPoint(x: -10, y: 14))
+        hair.addQuadCurve(to: CGPoint(x: -22, y: 10), control: CGPoint(x: -18, y: 12))
+        hair.closeSubpath()
+        let hairNode = SKShapeNode(path: hair)
+        hairNode.fillColor = Self.hairBrown
+        hairNode.strokeColor = Self.navy
+        hairNode.lineWidth = 2
+        hairNode.lineJoin = .round
+        hairNode.zPosition = 10
+        addChild(hairNode)
+        // 컬 디테일 dot 1개(뒷부분).
+        let dot = SKShapeNode(circleOfRadius: 3)
+        dot.fillColor = Self.hairBrown
+        dot.strokeColor = Self.navy
+        dot.lineWidth = 1.5
+        dot.position = CGPoint(x: 22, y: -10)
+        dot.zPosition = 11
+        addChild(dot)
+        // 닫힌 눈 미소 1개(앞쪽 — SVG 시그너처).
+        let eye = CGMutablePath()
+        eye.move(to: CGPoint(x: -12, y: 2))
+        eye.addQuadCurve(to: CGPoint(x: -4, y: 1), control: CGPoint(x: -8, y: 7))
+        let eyeNode = SKShapeNode(path: eye)
+        eyeNode.strokeColor = Self.navy
+        eyeNode.lineWidth = 2.5
+        eyeNode.fillColor = .clear
+        eyeNode.lineCap = .round
+        eyeNode.zPosition = 30
+        addChild(eyeNode)
     }
 }

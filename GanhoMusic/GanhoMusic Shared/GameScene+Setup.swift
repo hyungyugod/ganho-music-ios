@@ -339,6 +339,11 @@ extension GameScene {
     func setupDPad() {
         // 1-3 신설 — DPadNode를 cameraNode 자식으로 추가. 위치는 layoutDPad가 담당.
         cameraNode.addChild(dpad)
+        // Sprint 7 Phase G — DPad 입력 방향 → PlayerNode.facing(_:) 위임.
+        // [weak self] 캡처 — 콜백 진행 중 씬 전환 가능성 대비(주의사항 5).
+        dpad.onDirectionChanged = { [weak self] direction in
+            self?.player.facing(direction)
+        }
         layoutDPad()
     }
 

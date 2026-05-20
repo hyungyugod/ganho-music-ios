@@ -82,6 +82,7 @@
 		A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000072 /* DifficultySelectScene.swift */; };
 		A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000074 /* ScoreboardScene.swift */; };
 		A1C0F1B00000000000000075 /* SergeantParkNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000075 /* SergeantParkNode.swift */; };
+		A1C0F1B00000000000000076 /* Direction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000076 /* Direction.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -160,6 +161,7 @@
 		A1C0F1A00000000000000072 /* DifficultySelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultySelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000074 /* ScoreboardScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreboardScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000075 /* SergeantParkNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SergeantParkNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000076 /* Direction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Direction.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -387,6 +389,7 @@
 				A1C0F1A00000000000000042 /* PixelSprite.swift */,
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
 				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
+				A1C0F1A00000000000000076 /* Direction.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -656,6 +659,7 @@
 				A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */,
 				A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */,
 				A1C0F1B00000000000000075 /* SergeantParkNode.swift in Sources */,
+				A1C0F1B00000000000000076 /* Direction.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
