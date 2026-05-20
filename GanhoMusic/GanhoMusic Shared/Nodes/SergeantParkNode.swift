@@ -145,4 +145,16 @@ final class SergeantParkNode: SKSpriteNode {
         shape.fillColor   = .clear
         return shape
     }
+
+    // MARK: - Intro Closeup (Sprint 8 Phase G)
+    /// 컷씬용 큰 사이즈 단독 클로즈업 factory.
+    /// 인스턴스를 생성하되 setScale로 확대, physicsBody는 nil(컷씬 시각만, 충돌/이동 비대상).
+    /// 정적 메서드로 호출자 시그니처 단순화 — GameScene+Setup이 1줄 호출.
+    /// 기존 init(시각 자식 6개)은 byte-identical 보존 — 시각 자식 자동 확대.
+    static func makeIntroCloseup() -> SergeantParkNode {
+        let node = SergeantParkNode()
+        node.physicsBody = nil   // 컷씬용 시각 노드 — 충돌/이동 비대상
+        node.setScale(2.0)       // 클로즈업 — 본체 시각 자식 자동 확대
+        return node
+    }
 }

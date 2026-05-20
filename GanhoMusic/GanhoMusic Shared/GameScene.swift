@@ -106,6 +106,11 @@ class GameScene: SKScene {
     /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
     /// `airforceTriggered` 1회 가드 패턴 답습 — 단순/안전/회귀 0.
     private var tensionStarted: Bool = false
+
+    /// Sprint 8 Phase G — 박병장 hard 난이도 데뷔 1회 발화 플래그.
+    /// false → 트리거 조건(30s OR 50점) 만족 시 spawnSergeantPark + 컷씬 발화 + true 토글.
+    /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
+    var sergeantParkDebuted: Bool = false
     /// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
     /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
     /// HUD timeLabel이 보여주는 `Int(ceil(remainingTime))`과 정확히 같은 식으로 계산 → *눈에 보이는 숫자가 바뀐 순간* 햅틱 발화.
@@ -275,6 +280,8 @@ class GameScene: SKScene {
     /// 3) onComplete에서 0.2s 페이드아웃 → removeFromParent → startGameProperly
     ///    → 총 4.0s = 3·2·1 단계 3.0s + GO! 0.8s + dim fadeOut 0.2s
     private func showCountdown() {
+        // Sprint 8 Phase E — 진단 print: showCountdown 진입 시점.
+        print("[Phase E] showCountdown invoked at gameState=\(gameState)")
         // 1) dim 오버레이 — cameraNode 자식. CountdownNode(zPosition 250)보다 아래(240)로 깔아 숫자가 또렷.
         //    color는 navyDeep, alpha는 0 시작 → fadeIn으로 0.32 도달 (자연 어두워짐).
         let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
@@ -282,22 +289,35 @@ class GameScene: SKScene {
         dim.zPosition = GameConfig.countdownDimZPosition
         dim.name = GameConfig.countdownDimNodeName
         cameraNode.addChild(dim)
+        // Sprint 8 Phase E — 진단 print: dim attach 후 트리 부착 여부 확인.
+        print("[Phase E] dim attached. zPos=\(dim.zPosition) parent=\(dim.parent != nil)")
         dim.run(.fadeAlpha(to: GameConfig.countdownDimAlpha,
                            duration: GameConfig.countdownDimFadeInDuration))
 
         // 2) 기존 CountdownNode attach + start (시그니처 byte-identical).
         let node = CountdownNode()
         cameraNode.addChild(node)
+        // Sprint 8 Phase E — 방어 보강: 기본값과 동일하지만 외부 영향(이전 씬 잔존 등) 대비 명시 set.
+        node.isHidden = false
+        node.alpha = 1.0
+        // Sprint 8 Phase E — 진단 print: CountdownNode attach 후 가시성 확인.
+        print("[Phase E] CountdownNode attached. zPos=\(node.zPosition) parent=\(node.parent != nil) hidden=\(node.isHidden) alpha=\(node.alpha)")
         node.start(
-            onTick: { [weak self] _ in
+            onTick: { [weak self] tick in
+                // Sprint 8 Phase E — 진단 print: 매 tick(3/2/1) 발화 확인.
+                print("[Phase E] onTick \(tick)")
                 self?.haptics.light()
             },
             onGo: { [weak self] in
+                // Sprint 8 Phase E — 진단 print: GO! 발화 확인.
+                print("[Phase E] onGo")
                 guard let self = self else { return }
                 self.haptics.heavy()
                 self.audio.play(.comboMilestoneStrong)
             },
             onComplete: { [weak self] in
+                // Sprint 8 Phase E — 진단 print: onComplete 발화 확인 (가장 중요한 지점).
+                print("[Phase E] onComplete")
                 guard let self = self else { return }
                 // 3) dim 페이드아웃 → 자가 제거 → startGameProperly.
                 //    startGameProperly 호출이 0.2s 미뤄지지만 총 4.0s = 3·2·1(3.0) + GO!(0.8) + dim(0.2) 일치.
@@ -387,6 +407,18 @@ class GameScene: SKScene {
         if remainingTime <= 0 {
             endGame()
             return
+        }
+
+        // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
+        // 가드: hard 난이도 + 미발화. 트리거 만족 시 즉시 sergeantParkDebuted=true → 재진입 차단.
+        // spawnSergeantPark는 컷씬+노드 부착을 GameScene+Setup으로 위임 — update는 조건 분기만.
+        if difficulty == .hard && !sergeantParkDebuted {
+            let elapsed = GameConfig.gameDuration - remainingTime
+            if elapsed >= GameConfig.sergeantParkDebutTimeV4
+                || scoreSystem.score >= GameConfig.sergeantParkDebutScoreV4 {
+                sergeantParkDebuted = true
+                spawnSergeantPark()
+            }
         }
 
         // Phase 6-14 — 5초 긴박감 폴링 (.playing 상태에서만, 위 guard 통과 후).

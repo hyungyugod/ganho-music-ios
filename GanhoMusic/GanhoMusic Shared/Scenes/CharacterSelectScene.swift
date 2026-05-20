@@ -50,6 +50,16 @@ final class CharacterSelectScene: SKScene {
     /// Sprint 2 — 그라데이션 배경 노드. didChangeSize 시 재생성을 위해 참조 보관.
     private var gradientBackground: GradientBackgroundNode?
 
+    // Sprint 8 Phase B — 스와이프 페이지 상태 (4 properties).
+    /// 5장 카드 중 현재 중앙 카드 인덱스. didMove에서 selectedCharacterID 기준으로 초기화.
+    private var currentIndex: Int = 0
+    /// 카드 순서 고정. CharacterID.allCases 그대로(.kim/.jung/.geon/.im/.lee).
+    private let characters: [CharacterID] = CharacterID.allCases
+    /// 스와이프 시작 x 좌표. touchesBegan에서 기록.
+    private var swipeStartX: CGFloat = 0
+    /// 한 터치 사이클당 1회만 스와이프 트리거 — 중복 swipeTo 방지.
+    private var didSwipeInCurrentTouch: Bool = false
+
     // MARK: - Factory
     /// Sprint 6 — 인자 제거. StartScene이 유일 호출자.
     class func newCharacterSelectScene() -> CharacterSelectScene {
@@ -75,6 +85,8 @@ final class CharacterSelectScene: SKScene {
         setupHeader()                       // Sprint 2 — AccentLine + Jua + Gowun Dodum 부제.
         setupTopBar()                       // Sprint 6 — GlassPill 뒤로만 (난이도 칩 제거).
         selectedCharacterID = preferenceRepo.current
+        // Sprint 8 Phase B — 복원된 캐릭터의 인덱스로 currentIndex 동기화.
+        currentIndex = characters.firstIndex(of: selectedCharacterID) ?? 0
         setupCardContainers()               // Sprint 2 — 카드 외곽 글래스 5개.
         setupCharacterCards()
         setupCharacterFaces()               // Sprint 6 — 얼굴 노드 5개.
@@ -83,6 +95,8 @@ final class CharacterSelectScene: SKScene {
         applyGlassContainerSelection(id: selectedCharacterID)
         setupConfirmButton()
         rebuildSkillInfoPanel(for: selectedCharacterID)
+        // Sprint 8 Phase B — 스와이프 페이지 초기 배치(애니메이션 없이).
+        layoutCards(animated: false)
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -97,6 +111,8 @@ final class CharacterSelectScene: SKScene {
         layoutTagLabels()
         layoutConfirmButton()
         layoutSkillInfoChip()
+        // Sprint 8 Phase B — 회전/사이즈 변경 시 카드 즉시 재배치(애니메이션 없이).
+        layoutCards(animated: false)
     }
 
     // MARK: - Setup (Sprint 2 · Background)
@@ -213,11 +229,11 @@ final class CharacterSelectScene: SKScene {
         }
     }
 
-    /// 5 카드 setup + 초기 선택 상태 적용. TitleScene 5-1 패턴 답습.
+    /// 5 카드 setup. Sprint 8 Phase B — 초기 선택 상태는 setPageState로 일괄 적용(layoutCards).
+    /// setSelected는 byte-identical 보존되어 있지만 *호출하지 않음* (alpha/scale 충돌 방지).
     private func setupCharacterCards() {
         for id in CharacterID.allCases {
             let card = CharacterCardNode(id: id)
-            card.setSelected(id == selectedCharacterID)
             characterCards.append(card)
             addChild(card)
         }
@@ -395,45 +411,89 @@ final class CharacterSelectScene: SKScene {
         return String(format: "%.2f", Double(value))
     }
 
-    // MARK: - Card Geometry Helpers (Sprint 2 · §Q5)
-    /// 카드 5장 가로 정렬 — 기존 layoutCharacterCards 좌표식과 동일 구조.
-    /// 헬퍼로 분리 — 카드/컨테이너/색 점/태그 라벨/얼굴이 모두 같은 헬퍼를 호출하여 좌표 동기화.
-    /// Sprint 7+ — *동적 spacing*으로 교체. 화면 폭에 비례해 자동 확장, min/max clamp.
-    ///   - 좁은 디바이스(iPhone SE): rawSpacing < 28 → 최소 28pt 보장.
-    ///   - 넓은 디바이스(iPhone Pro Max): rawSpacing > 56 → 최대 56pt clamp.
-    ///   - 좌우 safeArea.left/.right + adaptiveHorizontalMargin 회피로 노치 안전.
-    /// 기존 characterSelectCardSpacingV3(22)는 다른 사용처 참조 가능성을 위해 값 보존.
+    // MARK: - Card Geometry Helpers (Sprint 8 Phase B · 스와이프 페이지)
+    /// 카드 x 좌표 — currentIndex 기준 ±N offset. 중앙(diff=0)은 frame.midX,
+    /// 좌측(diff=-1)은 -180, 우측(diff=+1)은 +180. offscreen은 ±360 이상.
+    /// 헬퍼로 분리되어 카드/컨테이너/색 점/태그 라벨/얼굴이 모두 같은 좌표를 공유한다.
+    /// 기존 동적 spacing/zigzag 식은 폐기 — 스와이프 페이지에서는 *중앙 1장 단일 시선*이 단일 진실 원천.
+    /// (characterSelectCardSpacingV3 / characterSelectCardZigzagOffsetV3 등 상수는 값 보존)
     private func cardBaseX(for id: CharacterID) -> CGFloat {
-        let allCases = CharacterID.allCases
-        let count = allCases.count
-        // Sprint 7 Phase A — v3 카드 폭(160)으로 교체. 기존 characterCardWidth(76) 값 보존.
-        let width = GameConfig.characterCardWidthV3
-        let safe = SceneSafeArea.insets(for: self)
-        // 좌우 안전 마진을 뺀 사용 가능한 폭.
-        let usable = frame.width
-            - safe.left - safe.right
-            - 2 * GameConfig.adaptiveHorizontalMargin
-        // 카드 N장 자체 폭을 뺀 잔여를 (N-1) 간격에 균등 분배.
-        let rawSpacing = (usable - width * CGFloat(count)) / CGFloat(count - 1)
-        let spacing = min(
-            GameConfig.characterSelectMaxCardSpacing,
-            max(GameConfig.characterSelectMinCardSpacing, rawSpacing)
-        )
-        let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
-        let startX = frame.midX - totalWidth / 2 + width / 2
-        guard let index = allCases.firstIndex(of: id) else { return startX }
-        return startX + CGFloat(index) * (width + spacing)
+        guard let index = characters.firstIndex(of: id) else { return frame.midX }
+        let offset = CGFloat(index - currentIndex) * GameConfig.characterSwipeOffsetXV4
+        return frame.midX + offset
     }
 
-    /// Sprint 7 — 카드별 미세 y 오프셋(지그재그). 짝수 인덱스(0/2/4)는 +zigzag, 홀수(1/3)는 -zigzag.
-    /// 정렬되지 않은 자연스러운 부유감을 만든다. z-rotation은 hit test/외곽 형상 회귀 위험이 있어 *제외*.
+    /// 카드 y 좌표 — 모든 카드가 동일한 y(scene.height × 0.50). 헤더(0.80 위) ↔ 카드(0.50) 사이
+    /// 30% 비율(~80pt 이상 가로 844pt 기준)의 safe gap 확보. zigzag 폐기.
     private func cardBaseY(for id: CharacterID) -> CGFloat {
-        let baseY = frame.midY + GameConfig.characterSelectCardOffsetY
-        let allCases = CharacterID.allCases
-        guard let index = allCases.firstIndex(of: id) else { return baseY }
-        let zigzag = GameConfig.characterSelectCardZigzagOffsetV3
-        let signedOffset: CGFloat = (index % 2 == 0) ? zigzag : -zigzag
-        return baseY + signedOffset
+        return frame.minY + frame.height * GameConfig.characterCardCenterYV4
+    }
+
+    // MARK: - Sprint 8 Phase B · 스와이프 페이지 layout
+    /// 5장 카드의 위치/scale/alpha/zPosition을 currentIndex 기준 일괄 산출.
+    /// 카드/컨테이너/얼굴 모두 같은 좌표로 동기화 — 안 하면 시각 잔존.
+    /// - Parameter animated: true → SKAction 0.22s easeInEaseOut / false → 즉시 적용.
+    private func layoutCards(animated: Bool) {
+        let duration = GameConfig.characterSwipeAnimationDurationV4
+        for (index, id) in characters.enumerated() {
+            let diff = index - currentIndex
+            let role: CharacterCardPageRole
+            switch diff {
+            case 0:  role = .center
+            case -1: role = .left
+            case 1:  role = .right
+            default: role = .offscreen
+            }
+            guard let card = characterCards.first(where: { $0.id == id }) else { continue }
+            card.setPageState(role: role, animated: animated, duration: duration)
+
+            let targetPos = CGPoint(x: cardBaseX(for: id), y: cardBaseY(for: id))
+            card.removeAction(forKey: "swipeMove")
+            if animated {
+                let move = SKAction.move(to: targetPos, duration: duration)
+                move.timingMode = .easeInEaseOut
+                card.run(move, withKey: "swipeMove")
+            } else {
+                card.position = targetPos
+            }
+            // 컨테이너 / 얼굴도 같은 좌표로 동기화(시각 잔존 방지).
+            cardContainers[id]?.position = targetPos
+            characterFaces[id]?.position = CGPoint(
+                x: targetPos.x,
+                y: targetPos.y + GameConfig.characterFaceOffsetYWithinCard
+            )
+            // 색점 / 태그 라벨도 카드 좌표 따라 같이 이동(isHidden=true이지만 회귀 안전).
+            cardColorDots[id]?.position = CGPoint(
+                x: targetPos.x + GameConfig.characterCardWidthV3 / 2
+                    - GameConfig.characterCardColorDotInsetX,
+                y: targetPos.y + GameConfig.characterCardHeightV3 / 2
+                    - GameConfig.characterCardColorDotInsetY
+            )
+            tagLabels[id]?.position = CGPoint(
+                x: targetPos.x,
+                y: targetPos.y + GameConfig.characterSelectTagOffsetY
+            )
+        }
+        // zPosition 적층: center=110 / side(±1)=105 / offscreen=100.
+        for card in characterCards {
+            guard let index = characters.firstIndex(of: card.id) else { continue }
+            let diff = index - currentIndex
+            card.zPosition = (diff == 0) ? 110 : (abs(diff) == 1 ? 105 : 100)
+        }
+    }
+
+    /// 스와이프(또는 양옆 카드 탭)로 중앙 카드 변경.
+    /// clamp(0...characters.count-1) — 끝에서는 더 이상 안 넘어감.
+    /// currentIndex/selectedCharacterID/preferenceRepo 갱신 + layoutCards(animated: true) + 스킬 패널 갱신.
+    private func swipeTo(index: Int) {
+        let clamped = max(0, min(characters.count - 1, index))
+        guard clamped != currentIndex else { return }
+        currentIndex = clamped
+        let newID = characters[clamped]
+        selectedCharacterID = newID
+        preferenceRepo.save(newID)
+        layoutCards(animated: true)
+        rebuildSkillInfoPanel(for: newID)
     }
 
     // MARK: - Selection
@@ -481,16 +541,22 @@ final class CharacterSelectScene: SKScene {
         }
     }
 
-    // MARK: - Touch
-    /// 우선순위: 캐릭터 카드 → 뒤로 → confirm. (외 영역 무동작)
+    // MARK: - Touch (Sprint 8 Phase B · 스와이프 페이지)
+    /// 우선순위: 양옆(±1) 카드 탭 → 뒤로 → confirm. (중앙 카드/외 영역 무동작 — 스와이프는 touchesMoved)
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        // 1) 카드 hit test.
-        for card in characterCards {
+        swipeStartX = location.x
+        didSwipeInCurrentTouch = false
+
+        // 1) 양옆(±1) 카드 탭 → 해당 인덱스로 스와이프.
+        for (index, id) in characters.enumerated() {
+            let diff = index - currentIndex
+            guard abs(diff) == 1 else { continue }
+            guard let card = characterCards.first(where: { $0.id == id }) else { continue }
             if card.contains(location) {
-                select(card.id)
+                swipeTo(index: currentIndex + diff)
                 return
             }
         }
@@ -503,6 +569,29 @@ final class CharacterSelectScene: SKScene {
         if confirmButton.contains(location) {
             transitionToNext()
         }
+    }
+
+    /// 드래그 누적 dx — 40pt 임계 초과 시 currentIndex ±1 스와이프(터치 사이클당 1회).
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !isTransitioning, !didSwipeInCurrentTouch else { return }
+        guard let touch = touches.first else { return }
+        let dx = touch.location(in: self).x - swipeStartX
+        let threshold: CGFloat = 40
+        if dx > threshold {
+            didSwipeInCurrentTouch = true
+            swipeTo(index: currentIndex - 1)
+        } else if dx < -threshold {
+            didSwipeInCurrentTouch = true
+            swipeTo(index: currentIndex + 1)
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        didSwipeInCurrentTouch = false
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        didSwipeInCurrentTouch = false
     }
 
     /// 뒤로 가기 — StartScene으로.

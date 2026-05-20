@@ -115,10 +115,12 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         let callback = onDismiss
         onDismiss = nil
         let fadeOut = SKAction.fadeOut(withDuration: GameConfig.cutsceneFadeOutDuration)
-        let cleanup = SKAction.removeFromParent()
         // notify는 self 미사용 — [weak self] 불필요. CountdownNode.start 패턴 답습.
         let notify = SKAction.run { callback?() }
-        run(.sequence([fadeOut, cleanup, notify]))
+        let cleanup = SKAction.removeFromParent()
+        // Sprint 8 Phase E — notify를 cleanup 전에 둔다. SKAction.sequence 안 removeFromParent
+        // 이후 액션이 미발화될 위험을 회피해 onDismiss 콜백이 *반드시* 호출되도록 보장.
+        run(.sequence([fadeOut, notify, cleanup]))
     }
 
     // MARK: - Configure (private)

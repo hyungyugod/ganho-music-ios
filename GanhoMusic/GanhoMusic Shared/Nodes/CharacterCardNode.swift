@@ -384,3 +384,92 @@ final class CharacterCardNode: SKNode {
         return String(format: "%.2f", Double(value))
     }
 }
+
+// MARK: - Sprint 8 Phase B · Page Role
+//
+// 스와이프 페이지에서 카드의 *역할*을 표현. center=중앙(scale 1.08 + alpha 1.0 + glow/알약),
+// left/right=±1 위치(scale 0.85 + alpha 0.55, 데코 숨김), offscreen=화면 밖(alpha 0).
+//
+// setPageState(role:animated:duration:)는 setSelected와 *대체* 관계 — 스와이프 모드에서는
+// setPageState가 단일 진실 원천. CharacterSelectScene이 setSelected를 직접 호출하지 않으므로
+// alpha/scale 충돌은 발생하지 않는다.
+//
+// **기존 init/setSelected/attach* 시그니처는 byte-identical** — 본 enum/extension은 *추가*만.
+
+/// 카드 페이지 역할.
+enum CharacterCardPageRole {
+    /// 중앙 카드 — scale 1.08 + alpha 1.0 + glow/알약 표시.
+    case center
+    /// 좌측 ±1 카드 — scale 0.85 + alpha 0.55, 데코 숨김.
+    case left
+    /// 우측 ±1 카드 — scale 0.85 + alpha 0.55, 데코 숨김.
+    case right
+    /// 화면 밖 카드 — scale 0.85 + alpha 0, 데코 숨김.
+    case offscreen
+}
+
+extension CharacterCardNode {
+
+    /// 페이지 역할 적용 — scale/alpha + 카드 톤(배경/보더/이름색) + 글로우/알약 표시 일괄 토글.
+    /// - Parameters:
+    ///   - role: 카드 역할(center/left/right/offscreen).
+    ///   - animated: true → SKAction 보간 / false → 즉시 적용.
+    ///   - duration: animated=true일 때 SKAction 지속 시간(초). 권장: 0.22s.
+    ///
+    /// setSelected와 코드 중복 허용(SPEC §284). 스와이프 모드에서는 setSelected를 *호출하지 않음* —
+    /// 본 메서드가 단일 진실 원천. 같은 파일 안 extension이므로 private property 접근 가능.
+    func setPageState(role: CharacterCardPageRole,
+                      animated: Bool,
+                      duration: TimeInterval) {
+        let targetScale: CGFloat
+        let targetAlpha: CGFloat
+        let isCenter: Bool
+        switch role {
+        case .center:
+            targetScale = GameConfig.characterSwipeCardScaleCenterV4
+            targetAlpha = 1.0
+            isCenter = true
+        case .left, .right:
+            targetScale = GameConfig.characterSwipeCardScaleSideV4
+            targetAlpha = GameConfig.characterSwipeCardAlphaSideV4
+            isCenter = false
+        case .offscreen:
+            targetScale = GameConfig.characterSwipeCardScaleSideV4
+            targetAlpha = 0
+            isCenter = false
+        }
+
+        removeAction(forKey: "pageScale")
+        removeAction(forKey: "pageAlpha")
+        // 기존 setSelected가 사용하던 cardScale 액션과 충돌 방지 — 스와이프 모드에서는 우리가 단일 소유.
+        removeAction(forKey: "cardScale")
+
+        if animated {
+            let scaleAct = SKAction.scale(to: targetScale, duration: duration)
+            let alphaAct = SKAction.fadeAlpha(to: targetAlpha, duration: duration)
+            scaleAct.timingMode = .easeInEaseOut
+            alphaAct.timingMode = .easeInEaseOut
+            run(scaleAct, withKey: "pageScale")
+            run(alphaAct, withKey: "pageAlpha")
+        } else {
+            setScale(targetScale)
+            alpha = targetAlpha
+        }
+
+        applyCenterDecor(isCenter)
+    }
+
+    /// 중앙 카드 데코(글로우/알약/이름 톤/배경 톤) 토글.
+    /// setSelected(true/false)와 동일한 토큰 — 코드 중복 허용(setSelected byte-identical 보존).
+    private func applyCenterDecor(_ isCenter: Bool) {
+        // 배경/보더/이름 톤 — setSelected와 동일 매핑.
+        background.color = isCenter ? .ganhoUIBrand12 : .ganhoUIBgCard
+        border.strokeColor = isCenter ? .ganhoCoralPrimary : .ganhoUIBorder
+        nameLabel.fontColor = isCenter ? .ganhoNavyDeep : .ganhoNavyMuted
+
+        // 선택 데코 표시/숨김.
+        selectedGlow.isHidden = !isCenter
+        selectedPill.isHidden = !isCenter
+        selectedPillLabel.isHidden = !isCenter
+    }
+}

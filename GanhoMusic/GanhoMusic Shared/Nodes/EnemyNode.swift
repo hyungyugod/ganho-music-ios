@@ -79,6 +79,13 @@ final class EnemyNode: SKSpriteNode {
         // Sprint 7 Phase F — 시각 보강 자식 노드 부착(헬로/차트/클립).
         // physicsBody·AI·이동·texture 0줄 영향 — 자식 SKShapeNode만 추가.
         setupVisualOverlay()
+
+        // Sprint 8 Phase G — 본체 PixelSprite 시각 차단(노드 트리/texture 갱신은 보존, color로 투명).
+        // refreshTexture()는 매 프레임 호출되지만 colorBlendFactor=1.0 + color=.clear 조합으로
+        // texture가 *완전히 투명*하게 합성됨 → AI/이동/충돌 본문 0줄 변경 보장.
+        // 시각 자식(Phase 7-F SKShapeNode 헬로/차트/클립)은 본체 color와 무관하게 그대로 노출.
+        self.color = .clear
+        self.colorBlendFactor = 1.0
     }
 
     required init?(coder aDecoder: NSCoder) {

@@ -362,12 +362,14 @@ final class DifficultySelectScene: SKScene {
     }
 
     /// 3 카드 가로 일렬 — 화면 우측 영역 중앙(midX + offset).
-    /// Sprint 7 — width/spacing 모두 V3 상수(112 / 22) 참조. 기존 상수는 보존(다른 사용처 회귀 방지).
+    /// Sprint 8 Phase D — width/spacing 모두 V4 상수(130 / 22) 참조. V3 상수는 byte-identical 보존
+    /// (다른 사용처 회귀 방지 + GameConfig 토큰 그대로 유지).
+    /// 합산 폭 = 130×3 + 22×2 = 434pt < 화면 폭 844pt(landscape) → 잘림 0 보장.
     private func layoutDifficultyCards() {
         let count = difficultyCards.count
         guard count > 0 else { return }
-        let width = GameConfig.difficultyCardWidthV3
-        let spacing = GameConfig.difficultyCardSpacingV3
+        let width = GameConfig.difficultyCardWidthV4
+        let spacing = GameConfig.difficultyCardGapV4
         let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
         let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetX
         let startX = centerX - totalWidth / 2 + width / 2
@@ -417,11 +419,22 @@ final class DifficultySelectScene: SKScene {
         layoutStartButton()
     }
 
+    /// Sprint 8 Phase D — 카드 V4(200pt) 확대로 V3 startButtonOffsetY(-160)가 카드와 가까워짐.
+    /// 카드 bottom edge로부터 36pt+ 호흡을 보장하기 위해 카드 bottom과 V3 offset 산식 중 *더 아래쪽*을 채택.
+    /// V3 offset 산식 미흡 시 동적 보정 — V4 시각 합격선 §5.5 항목 4 충족.
     private func layoutStartButton() {
-        let pos = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.difficultySelectStartButtonOffsetY
-        )
+        // V3 기존 산식 — 다른 화면(StartScene 등) 정책 회귀 0.
+        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetY
+        // V4 카드 bottom edge로부터 호흡 확보.
+        let cardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY
+        let cardBottomY = cardCenterY - GameConfig.difficultyCardHeightV4 / 2
+        // 시작 버튼 halfHeight 보정 — primaryButtonHeight(48) 가정. 카드 bottom과 버튼 top 사이 36pt+ 보장.
+        let buttonHalfHeight: CGFloat = 24
+        let breathingGap: CGFloat = 36
+        let v4Y = cardBottomY - breathingGap - buttonHalfHeight
+        // 더 아래쪽(작은 y) 채택 — V3 산식 그대로 충분하면 그것을, V4가 더 아래면 V4 채택.
+        let buttonY = min(v3Y, v4Y)
+        let pos = CGPoint(x: frame.midX, y: buttonY)
         startButton.position = pos
         startButtonHalo?.position = CGPoint(
             x: pos.x,

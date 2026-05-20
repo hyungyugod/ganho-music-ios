@@ -2150,6 +2150,111 @@ enum GameConfig {
     /// stat 라벨 폰트 크기(Gowun Dodum 12pt).
     static let scoreboardStatFontSize: CGFloat = 12
 
+    // MARK: - Sprint 8 — Layout V4 (겹침 해소 + 카드 확대)
+    //
+    // Phase A — Scoreboard zone 분리(타이틀 zone / 매트릭스 zone / stat zone).
+    // V3 상수(~40개)는 byte-identical 보존. V4 상수는 *덧셈/교체* 형태로만 사용.
+
+    // Phase A — Scoreboard
+    /// 타이틀 zone을 매트릭스 zone과 분리하기 위한 추가 상향 오프셋(+40pt).
+    /// 타이틀·부제 y 좌표에 더해, 우상단 GlassPill·매트릭스 첫 행과의 0px 겹침 보장.
+    static let scoreboardTitleYOffsetV4: CGFloat = 40
+
+    /// 열 헤더(하/중/상) ↔ 매트릭스 첫 데이터 행 사이 추가 gap(18pt).
+    /// V3의 scoreboardCellGap(4pt)이 너무 좁아 헤더와 본문이 한 덩어리로 보이던 문제 해소.
+    static let scoreboardHeaderRowGapV4: CGFloat = 18
+
+    /// 데이터 행 사이 vertical pitch(38pt). 행 사이 호흡 확보.
+    /// V3의 (cellHeight 36 + cellGap 4) = 40pt 대비 -2pt — 행 간격을 조금 좁혀 매트릭스 총 높이 감소.
+    static let scoreboardCellPitchYV4: CGFloat = 38
+
+    /// 매트릭스 bottom ↔ stat 라벨 사이 최소 gap(24pt).
+    /// "총 플레이 N회 · 졸업장 N장 보유" 라벨이 별도 정보 layer로 인식되도록 분리.
+    static let scoreboardStatBottomGapV4: CGFloat = 24
+
+    /// 열 헤더(하/중/상) 폰트 크기 V4(16pt). V3(15pt)에서 1pt 상향.
+    /// 매트릭스 zone 헤더 시각 무게를 데이터 셀(18pt)과 균형화. cellWidth(80) 안에 안전.
+    static let scoreboardColumnHeaderFontSizeV4: CGFloat = 16
+
+    // MARK: - Sprint 8 Phase B · Character Select 스와이프 페이지 V4
+    //
+    // 5장 카드 동시 노출(폭 912pt > 화면 844pt) → 중앙 1장 + 양옆 반쯤 보이는 2장으로 전환.
+    // V3 카드 폭(160) / 높이(200) / cornerRadius(22) 등 시각 토큰은 byte-identical 보존.
+    // 본 V4 상수는 *위치/scale/alpha 산출식*에만 사용.
+
+    /// 중앙(center) 카드 scale — Phase 7-A characterCardSelectedScale(1.08)와 동일 톤.
+    static let characterSwipeCardScaleCenterV4: CGFloat = 1.08
+    /// 양옆(side, ±1) 카드 scale — 시선 분산 차단용 축소.
+    static let characterSwipeCardScaleSideV4: CGFloat = 0.85
+    /// 양옆 카드 alpha — 반쯤 보이는 시각.
+    static let characterSwipeCardAlphaSideV4: CGFloat = 0.55
+    /// 인접 카드 사이 x 간격(180pt) — center↔side 거리. 양옆 카드 절반이 화면 안에 들어오도록.
+    static let characterSwipeOffsetXV4: CGFloat = 180
+    /// 스와이프 트랜지션 SKAction 지속 시간(0.22s) — 부드럽지만 즉각.
+    static let characterSwipeAnimationDurationV4: TimeInterval = 0.22
+    /// 헤더 영역 하단 Y bound (scene.height 비율) — 헤더는 이 비율 *위*에만 존재.
+    static let characterHeaderBottomYBoundV4: CGFloat = 0.80
+    /// 중앙 카드 Y 중심 (scene.height 비율). 헤더와 40pt safe gap 보장.
+    static let characterCardCenterYV4: CGFloat = 0.50
+
+    // MARK: - Sprint 8 Phase C · Skill Explanation 힌트↔버튼 분리 V4
+    //
+    // Sprint 7-B(`bottomButtonGapV3=18`) 시각 gap이 실측 좁음 — controlHint container와
+    // PrimaryButton "다음 ▶"이 거의 붙어 보여 두 요소가 한 덩어리로 인식되던 결함 해소.
+    // V4는 controlHint container를 startButton top 위로 28pt 띄우고, container 내부
+    // vertical padding을 6→8pt로 확장(height 32→36)해 두 요소 사이 명확한 호흡 확보.
+    //
+    // V3 상수(skillExplanationControlHintContainerOffsetY=-120,
+    //         skillExplanationControlHintContainerHeight=32,
+    //         skillExplanationButtonRowOffsetY=-160,
+    //         skillExplanationBottomButtonGapV3=18) 모두 byte-identical 보존.
+    // 적용 위치: SkillExplanationScene.setupControlHint(height) + layoutControlHint(containerY 동적 산출).
+    //
+    // 산술 검증 — primaryButtonHeight=48 → halfHeight=24.
+    //   startButtonY  = frame.midY + skillExplanationButtonRowOffsetY            // midY - 160
+    //   startButtonTop = startButtonY + 24                                       // midY - 136
+    //   containerY    = startButtonTop + bottomButtonGapV4(28) + height/2(18)    // midY -  90
+    //   containerBottom = containerY - 18                                        // midY - 108
+    //   visual gap    = containerBottom - startButtonTop = (-108) - (-136) = 28pt ✅
+
+    /// controlHint container bottom ↔ startButton top visual gap(28pt).
+    /// V3 0pt(붙어 보임) → V4 28pt 분리. layoutControlHint() 안 containerY 산출에 사용.
+    static let skillExplanationBottomButtonGapV4: CGFloat = 28
+
+    /// controlHint container 내부 vertical padding(8pt). V3 6pt → V4 8pt(+2pt).
+    /// 참조용 — 실제 적용은 container height(skillExplanationControlHintContainerHeightV4)로 표현.
+    static let skillExplanationHintChipPaddingYV4: CGFloat = 8
+
+    /// controlHint container 신규 height(36pt). V3 32pt + padding 4pt 확장 반영.
+    /// setupControlHint() containerSize.height에 사용. V3 상수는 byte-identical 보존.
+    static let skillExplanationControlHintContainerHeightV4: CGFloat = 36
+
+    // MARK: - Sprint 8 Phase D · Difficulty Card V4
+    //
+    // V3 카드(112×82) 좁아 한글 텍스트 2~3줄 줄바꿈 답답 → V4 130×200 + line height 1.4.
+    // V3 색 위계(EasyMint/MidGold/HardCoral)는 byte-identical 보존.
+    // 적용 위치: DifficultyCardNode(카드 본체 size + 내부 layout) + DifficultySelectScene.layoutDifficultyCards
+    // (width/spacing 교체). V3 상수(difficultyCardWidthV3=112, HeightV3=82, SpacingV3=22,
+    //  SubtitleFontSizeV3=12, SubtitleOffsetYV3=4, StrokeLineWidthV3=1.5)는 byte-identical 보존 —
+    // 사용처만 V4로 교체.
+
+    /// Phase D 카드 폭(130pt). V3=112.
+    static let difficultyCardWidthV4: CGFloat = 130
+    /// Phase D 카드 높이(200pt). V3=82.
+    static let difficultyCardHeightV4: CGFloat = 200
+    /// Phase D 카드 사이 spacing(22pt). V3 SpacingV3와 동일 — V4 알리아스.
+    static let difficultyCardGapV4: CGFloat = 22
+    /// Phase D 카드 내부 top/bottom padding(14pt). V3는 명시 상수 없음(8pt 추정).
+    static let difficultyCardPaddingV4: CGFloat = 14
+    /// Phase D 부제 ↔ 보조 라벨 사이 vertical gap(10pt). V3=4pt(SubtitleOffsetYV3).
+    static let difficultyCardSubtitleGapV4: CGFloat = 10
+    /// Phase D 헤더(하/중/상) ↔ 부제 사이 gap(12pt). V3=6pt 추정.
+    static let difficultyCardHeaderGapV4: CGFloat = 12
+    /// Phase D 보조 라벨 line height multiplier(1.4). V3=1.15. attributedString paragraphStyle 사용.
+    static let difficultyCardSubtitleLineHeightV4: CGFloat = 1.4
+    /// Phase D 보조 라벨 fontSize(12pt). V3=12pt와 동일 — V4 알리아스(명시화).
+    static let difficultyCardSubtitleFontSizeV4: CGFloat = 12
+
     // MARK: - Sprint 7 Phase F · Villain Visual V3
     //
     // 4종 빌런 시각 강화 V3 상수 묶음. **모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준**이며
@@ -2248,4 +2353,54 @@ enum GameConfig {
     static let playerFaceChildScale: CGFloat = 0.5
     /// PlayerNode 자체 텍스처(zPos 0) 위에 face child를 얹기 위한 작은 양수 zPosition.
     static let playerFaceChildZPosition: CGFloat = 1
+
+    // MARK: - Sprint 8 Phase F · HUD zPos V4
+    //
+    // 좌하단 영역 시각 적층 명확화: HUDSkillSlotNode 라벨 > HUD 일반 라벨 > SkillButton 본체.
+    // 슬롯 라벨이 가장 위(110) — 스킬 이름·CD 단일 진실 원천.
+    // HUD 일반 라벨(100) — 점수/타이머/콤보 등.
+    // SkillButton 본체(80) — 좌하단 큰 코랄 원, "B" 칩만 노출.
+
+    /// HUD 일반 라벨 zPosition(100). HUDNode 점수/타이머/콤보 라벨에 적용.
+    static let hudLabelZPositionV4: CGFloat = 100
+    /// SkillButtonNode 본체 zPosition(80). HUDSkillSlotNode(110)·HUD 라벨(100) 아래.
+    static let skillButtonZPositionV4: CGFloat = 80
+    /// HUDSkillSlotNode 슬롯 라벨 zPosition(110). 스킬 이름/CD 단일 진실 원천 — 가장 위.
+    static let hudSkillSlotLabelZPositionV4: CGFloat = 110
+
+    // MARK: - Sprint 8 Phase G · 인게임 시각 통합 V4
+    //
+    // 박병장 hard 난이도 데뷔(30s OR 50점) + 2.2s 컷씬 + 8s 등장.
+    // 비행기 6 자식(fuselage/wings/tail/cockpit/propeller/contrail) 시각 — 노란 사각형 → 비행기 형상.
+    // 플레이어 풀바디(CharacterFullBodyNode) — D-Pad 입력 시 팔다리 보이는 캐릭터.
+    // physicsBody/AI/이동 *0줄 변경* — 시각 layer만 강화.
+
+    // 박병장 데뷔
+    /// 박병장 hard 난이도 데뷔 트리거 시간(30s). score 기준과 OR.
+    static let sergeantParkDebutTimeV4: Double = 30.0
+    /// 박병장 hard 난이도 데뷔 트리거 점수(50pt). time 기준과 OR.
+    static let sergeantParkDebutScoreV4: Int = 50
+    /// 박병장 데뷔 컷씬 총 길이(2.2s).
+    static let sergeantParkIntroDurationV4: Double = 2.2
+    /// 박병장 등장 후 화면 머무는 시간(8.0s).
+    static let sergeantParkOnStageDurationV4: Double = 8.0
+
+    // 비행기 시각
+    /// 비행기 조종석 알파(0.6). attachCockpit에서 ganhoNavyDeep × alpha.
+    static let airplaneCockpitColorAlphaV4: CGFloat = 0.6
+    /// 비행기 프로펠러 1회전 시간(0.15s). SKAction.rotate × repeatForever.
+    static let airplanePropellerRotateDurationV4: Double = 0.15
+
+    // 플레이어 풀바디
+    /// 플레이어 팔 폭(4pt). CharacterFullBodyNode arm rect.
+    static let playerArmWidthV4: CGFloat = 4
+    /// 플레이어 다리 폭(5pt). CharacterFullBodyNode leg rect.
+    static let playerLegWidthV4: CGFloat = 5
+    /// 걷기 다리 cycle 1회 시간(0.20s). 현재는 idle/breath만 — 후속 보강 대상.
+    static let playerWalkCycleDurationV4: Double = 0.20
+    /// 정지 호흡 cycle(1.50s). 몸통 scaleY 1.0 ↔ 1.02.
+    static let playerIdleBreathDurationV4: Double = 1.50
+    /// CharacterFullBodyNode → PlayerNode hitbox fit scale(0.35).
+    /// CharacterFullBodyNode 자체 좌표계(약 ±60pt) × 0.35 ≈ PlayerNode 시각(32×40pt) 정합.
+    static let playerFullBodyScaleV4: CGFloat = 0.35
 }

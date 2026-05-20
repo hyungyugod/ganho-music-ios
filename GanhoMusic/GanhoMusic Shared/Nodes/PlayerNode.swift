@@ -59,13 +59,17 @@ final class PlayerNode: SKSpriteNode {
     /// init 직후 .kim — apply 호출 전에도 그래픽이 깨지지 않도록 graceful default.
     private var currentCharacterID: CharacterID = .kim
 
-    // MARK: - Properties — Facing (Sprint 7 Phase G)
+    // MARK: - Properties — Facing (Sprint 7 Phase G / Sprint 8 Phase G 풀바디 교체)
     /// 4방향 CharacterFaceNode child 캐시. apply(_:) 호출 시 일괄 재생성.
+    /// Sprint 8 Phase G — 신규 캐릭터 적용 시 정리만 하고, *재부착 안 함*(fullBody로 교체).
     /// dict lookup으로 facing(_:) noop 가드(.zero 시 미발화)와 즉시 토글 비용 0.
     private var faceNodes: [Direction: CharacterFaceNode] = [:]
     /// 직전 facing 방향. facing(_:)이 같은 값이면 noop — 매 프레임 호출에도 비용 0.
     /// 초기값 .front — 정지 상태에서 정면 보는 자연 톤(D-Pad 미입력 시).
     private var lastFacing: Direction = .front
+    /// Sprint 8 Phase G — 인게임 풀바디 child. apply(_:)에서 부착, facing(_:)에서 위임.
+    /// CharacterFaceNode 4-child 패턴 대체 — *팔다리 보이는 캐릭터* 정체성.
+    private var fullBody: CharacterFullBodyNode?
 
     // MARK: - Init
     init() {
@@ -117,9 +121,9 @@ final class PlayerNode: SKSpriteNode {
         currentCharacterID = characterID
         speedMultiplier = characterID.playerSpeedMultiplier
         refreshTexture()
-        // Sprint 7 Phase G — 4방향 face child 일괄 재생성 (캐릭터 전환 안전).
-        // PixelSprite texture/physicsBody/이동 로직 0건 변경.
-        buildFacingChildren(for: characterID)
+        // Sprint 8 Phase G — buildFacingChildren(face 4-child)을 CharacterFullBodyNode 부착으로 교체.
+        // PixelSprite texture/physicsBody/이동 로직 0건 변경 — 시각만.
+        attachFullBody(for: characterID)
     }
 
     /// Phase 7-1 — 난이도 정체성 단일 진입점.
@@ -131,36 +135,39 @@ final class PlayerNode: SKSpriteNode {
         baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
     }
 
-    // MARK: - Facing (Sprint 7 Phase G)
+    // MARK: - Facing (Sprint 7 Phase G / Sprint 8 Phase G 풀바디 교체)
     /// D-Pad 입력 방향 → 시각 child 토글. isHidden만 다루므로 다음 SK 프레임(~16ms) 안 전환.
     /// lastFacing 가드 — 같은 방향 재호출 시 noop(매 프레임 호출에도 비용 0).
     /// 게임 로직(velocity·position·hitbox·skill) 0건 변경 — 순수 시각 layer.
+    /// Sprint 8 Phase G — fullBody?.facing(_:)으로 위임 (CharacterFaceNode 4-child 폐기).
     func facing(_ direction: Direction) {
         if direction == lastFacing { return }
         lastFacing = direction
-        for (dir, node) in faceNodes {
-            node.isHidden = (dir != direction)
-        }
+        fullBody?.facing(direction)
     }
 
-    /// apply(_ characterID:)에서 1회 호출. 4 CharacterFaceNode를 미리 부착 + 초기 가시성 set.
-    /// 캐릭터 전환 시 기존 child 정리(removeFromParent) — 누수 0.
-    /// face child는 zPos=playerFaceChildZPosition로 PixelSprite texture(zPos 0) 위에 자연 오버레이.
-    /// CharacterFaceNode 본래 좌표계(±50)를 playerFaceChildScale=0.5로 축소 → player visual(32×40) 정합.
-    private func buildFacingChildren(for characterID: CharacterID) {
-        // 기존 child 정리 — 캐릭터 전환 시 누적 방지.
+    /// Sprint 8 Phase G — apply(_ characterID:)에서 1회 호출.
+    /// 기존 face child 4개 정리(누수 0) + 새 CharacterFullBodyNode 부착.
+    /// fullBody는 *PlayerNode visual(32×40)에 맞춰* playerFullBodyScaleV4(0.35) 축소.
+    /// zPosition은 playerFaceChildZPosition(1) — PixelSprite texture(zPos 0) 위 자연 오버레이.
+    /// PixelSprite 본체 시각은 *그대로 노출* — 풀바디 위에 겹쳐 보이지만 풀바디가 더 크고 명확.
+    /// 추후 보강 sprint에서 PixelSprite 본체도 차단(빌런 3종 패턴) 후보.
+    private func attachFullBody(for characterID: CharacterID) {
+        // Sprint 7 Phase G face child 4개 정리 — 누수 0 + 시각 중첩 0.
         for (_, node) in faceNodes { node.removeFromParent() }
         faceNodes.removeAll()
 
-        let scale = GameConfig.playerFaceChildScale
-        for direction in [Direction.front, .back, .left, .right] {
-            let face = CharacterFaceNode(id: characterID, facing: direction)
-            face.setScale(scale)
-            face.zPosition = GameConfig.playerFaceChildZPosition
-            face.isHidden = (direction != lastFacing)
-            addChild(face)
-            faceNodes[direction] = face
-        }
+        // 기존 fullBody 정리 — 캐릭터 전환 시 누적 방지.
+        fullBody?.removeFromParent()
+
+        let body = CharacterFullBodyNode(id: characterID)
+        body.name = "fullBody"
+        body.setScale(GameConfig.playerFullBodyScaleV4)
+        body.zPosition = GameConfig.playerFaceChildZPosition
+        // 초기 facing 노출 일치 — apply 직후 lastFacing이 .front라면 .front 노출 이미 set됨.
+        body.facing(lastFacing)
+        addChild(body)
+        self.fullBody = body
     }
 
     // MARK: - Update (Movement)

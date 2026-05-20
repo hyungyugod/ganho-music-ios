@@ -61,6 +61,12 @@ final class ProfessorNode: SKSpriteNode {
         // **StethoscopeNode 투사체와 완전 무관 — 액세서리 시각만**. AI/이동/투척 0줄 영향.
         setupVisualOverlay()
 
+        // Sprint 8 Phase G — 본체 PixelSprite 시각 차단(노드 트리/texture 갱신은 보존, color로 투명).
+        // refreshTexture()는 SKAction.move 진행 시 호출되지만 colorBlendFactor=1.0 + color=.clear
+        // 조합으로 texture가 *완전히 투명*하게 합성됨 → AI/이동/투척 본문 0줄 변경 보장.
+        self.color = .clear
+        self.colorBlendFactor = 1.0
+
         startPatrol()
     }
 

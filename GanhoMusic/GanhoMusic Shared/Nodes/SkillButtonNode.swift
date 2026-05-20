@@ -70,6 +70,11 @@ final class SkillButtonNode: SKNode {
         addChild(labelNode)
         addChild(keyLabelChip)
 
+        // Sprint 8 Phase F — 본체 스킬 이름 라벨 시각 차단. HUDSkillSlotNode가 단일 진실 원천.
+        // 노드 트리 보존 (Sprint 4 PNG 통합 대비 — 의사결정 #6 패턴) — isHidden만 토글.
+        // labelNode는 isUserInteractionEnabled = false default → hit-test 영향 0.
+        labelNode.isHidden = true
+
         alpha = GameConfig.skillButtonActiveAlpha
         isUserInteractionEnabled = true   // SKNode는 default false — 명시 필수.
     }
@@ -92,6 +97,9 @@ final class SkillButtonNode: SKNode {
         let chip = DarkContextChipNode(label: chipLabel)
         chip.position = CGPoint(x: 0, y: GameConfig.skillButtonNameChipOffsetY)
         chip.zPosition = 102
+        // Sprint 8 Phase F — 본체 아래 스킬 이름 칩 시각 차단. HUDSkillSlotNode가 단일 진실 원천.
+        // 노드 트리 보존(addChild 유지) + isHidden=true로 시각만 차단.
+        chip.isHidden = true
         addChild(chip)
         nameTagChip = chip
     }

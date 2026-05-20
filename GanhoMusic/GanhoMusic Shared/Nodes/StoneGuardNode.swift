@@ -45,6 +45,13 @@ final class StoneGuardNode: SKSpriteNode {
         // physicsBody.size 인자(GameConfig.stoneGuardWidth/Height) 변경 0 — hitbox byte-identical.
         setupVisualOverlay()
 
+        // Sprint 8 Phase G — 본체 단색 시각 차단(physicsBody/패트롤은 보존, color로 투명).
+        // texture는 nil이지만 color=.ganhoStoneGuardLight로 *돌상 무채색*이 보였음.
+        // color=.clear로 본체를 투명하게 → 시각 자식(Phase 7-F 갑옷+일자눈)만 노출.
+        // colorBlendFactor=1.0은 texture 합성 정책 명시 — texture nil이라 시각 영향은 color에만.
+        self.color = .clear
+        self.colorBlendFactor = 1.0
+
         startPatrol()
     }
 

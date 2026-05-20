@@ -412,6 +412,8 @@ extension GameScene {
             self?.skillSystem.tryActivate()
         }
         layoutSkillButton()
+        // Sprint 8 Phase F — 본체 zPos 80 명시. HUD 라벨(100)·슬롯 라벨(110) 아래에 적층.
+        skillButton.zPosition = GameConfig.skillButtonZPositionV4
     }
 
     // MARK: - HUD Skill Slot (Phase 9-5)
@@ -463,5 +465,80 @@ extension GameScene {
             x: +(halfW - GameConfig.pauseButtonMarginX),
             y: +(halfH - GameConfig.pauseButtonMarginY)
         )
+    }
+
+    // MARK: - Sergeant Park Debut (Sprint 8 Phase G)
+    /// 박병장 hard 난이도 데뷔 흐름.
+    /// GameScene.update에서 조건(30s OR 50점) 만족 시 1회 호출.
+    /// 1) 컷씬 2.2초(얼굴 클로즈업 + "박병장 등장!" 토스트) 발화
+    /// 2) 컷씬 종료 콜백에서 실제 SergeantParkNode를 worldNode에 부착
+    /// 3) 화면 우측에서 들어와 중앙에서 8초 머무름 → 좌측으로 퇴장 → 자가 소멸
+    /// gameState 전환 없음 — 컷씬 노드는 cameraNode 자식(zPos 300) 위에 깔리고 게임은 계속 진행.
+    func spawnSergeantPark() {
+        // 컷씬 먼저 → 콜백에서 본 노드 부착. [weak self] 캡처 — 컷씬 진행 중 씬 전환 가능성 대비.
+        presentSergeantParkIntro { [weak self] in
+            guard let self = self else { return }
+            let park = SergeantParkNode()
+            // 화면 우측 바깥에서 출발 → 좌로 진입.
+            park.position = CGPoint(
+                x: self.size.width + 100,
+                y: self.size.height * 0.5
+            )
+            park.zPosition = 5
+            self.worldNode.addChild(park)
+
+            // 등장(1.2s) → 머무름(8.0s) → 퇴장(1.5s) → 자가 소멸.
+            // SKAction.sequence 5단계 — DispatchQueue/Timer 금지(주의사항).
+            let enter = SKAction.moveTo(x: self.size.width * 0.5,
+                                        duration: 1.2)
+            let stay  = SKAction.wait(forDuration: GameConfig.sergeantParkOnStageDurationV4)
+            let exit  = SKAction.moveTo(x: -100, duration: 1.5)
+            let cleanup = SKAction.removeFromParent()
+            park.run(.sequence([enter, stay, exit, cleanup]))
+        }
+    }
+
+    /// 박병장 컷씬 2.2초 (얼굴 클로즈업 + "박병장 등장!" 토스트).
+    /// CutsceneOverlayNode 재사용 안 함 — 본 컷씬은 짧고 시각 단일하므로 inline overlay.
+    /// 0.0~0.4s fadeIn → 0.4~1.8s hold → 1.8~2.2s fadeOut → completion 호출.
+    /// [weak self] 캡처는 호출자(spawnSergeantPark)가 이미 처리.
+    private func presentSergeantParkIntro(then completion: @escaping () -> Void) {
+        let overlay = SKNode()
+        overlay.zPosition = 300
+
+        // dim — 화면 전체 어두운 반투명 layer (코드 가독성 위해 size 명시).
+        let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
+        dim.alpha = 0
+        overlay.addChild(dim)
+
+        // 박병장 큰 얼굴 — physicsBody nil, scale 2.0배 클로즈업.
+        let closeup = SergeantParkNode.makeIntroCloseup()
+        closeup.alpha = 0
+        overlay.addChild(closeup)
+
+        // 토스트 "박병장 등장!" — fontDisplay 36pt, coralPrimary.
+        let toast = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        toast.text = "박병장 등장!"
+        toast.fontSize = 36
+        toast.fontColor = .ganhoCoralPrimary
+        toast.position = CGPoint(x: 0, y: -120)
+        toast.alpha = 0
+        overlay.addChild(toast)
+
+        cameraNode.addChild(overlay)
+
+        // 0.4s fadeIn / 1.4s hold / 0.4s fadeOut = 2.2s 총 길이.
+        // sergeantParkIntroDurationV4(2.2s)와 정확히 일치.
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.4)
+        let hold = SKAction.wait(forDuration: 1.4)
+        let fadeOut = SKAction.fadeAlpha(to: 0, duration: 0.4)
+        let dimFadeIn = SKAction.fadeAlpha(to: 0.5, duration: 0.4)
+
+        dim.run(.sequence([dimFadeIn, hold, fadeOut]))
+        closeup.run(.sequence([fadeIn, hold, fadeOut]))
+        toast.run(.sequence([fadeIn, hold, fadeOut, .run {
+            overlay.removeFromParent()
+            completion()
+        }]))
     }
 }

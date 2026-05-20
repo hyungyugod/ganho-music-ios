@@ -484,10 +484,13 @@ final class SkillExplanationScene: SKScene {
     }
 
     // MARK: - Setup (Sprint 2 · Control Hint with "B" Key)
+    // Sprint 8 Phase C — container height만 V4(36pt) 교체.
+    // V3 상수 skillExplanationControlHintContainerHeight(=32)는 GameConfig 안 값 byte-identical 보존,
+    // 사용처만 V4로 이동. 내부 padding 6→8pt 확장에 대응하는 호흡 강화.
     private func setupControlHint() {
         let containerSize = CGSize(
             width: GameConfig.skillExplanationControlHintContainerWidth,
-            height: GameConfig.skillExplanationControlHintContainerHeight
+            height: GameConfig.skillExplanationControlHintContainerHeightV4
         )
         let container = SKShapeNode(
             rectOf: containerSize,
@@ -528,9 +531,24 @@ final class SkillExplanationScene: SKScene {
 
     private func layoutControlHint() {
         let container = controlHintContainer
+        // Sprint 8 Phase C — containerY 동적 산출(V4).
+        // V3 상수 skillExplanationControlHintContainerOffsetY(=-120)는 GameConfig 값 byte-identical 보존,
+        // 사용처만 startButton 기준 동적 계산으로 교체. PrimaryButtonNode 본체 정의(GameConfig.primaryButtonHeight=48)
+        // 참조 — Generator 자율 결정 1에 따라 fileprivate 보조 상수 추가 없이 GameConfig 직접 참조.
+        //
+        // 산식: startButtonTop + V4 gap(28) + container height/2 → container 중심 y
+        //      = (midY + ButtonRowOffsetY) + (primaryButtonHeight/2) + bottomButtonGapV4 + (containerHeightV4/2)
+        //      = (midY - 160) + 24 + 28 + 18 = midY - 90  (V3는 midY - 120 → 30pt 상향, visual gap 0 → 28pt).
+        let startButtonY = frame.midY + GameConfig.skillExplanationButtonRowOffsetY
+        let primaryButtonHalfHeight = GameConfig.primaryButtonHeight / 2
+        let containerHalfHeight = GameConfig.skillExplanationControlHintContainerHeightV4 / 2
+        let containerY = startButtonY
+            + primaryButtonHalfHeight
+            + GameConfig.skillExplanationBottomButtonGapV4
+            + containerHalfHeight
         container?.position = CGPoint(
             x: frame.midX + GameConfig.skillExplanationStoryBoxOffsetX,
-            y: frame.midY + GameConfig.skillExplanationControlHintContainerOffsetY
+            y: containerY
         )
         let containerWidth = GameConfig.skillExplanationControlHintContainerWidth
         let padding = GameConfig.skillExplanationControlHintHorizontalPadding

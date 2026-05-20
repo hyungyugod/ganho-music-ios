@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-20 (🎉 Sprint 7 전체 완료 — Phase A~G 모두 합격, 평균 9.62/10)
-**현재 진행 중인 Sprint**: 없음. Sprint 1/2/3/5/6/7 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기. Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-20 (🎉 Sprint 8 전체 합격 — Phase A~G 7개 모두 완료. 평균 9.21/10)
+**현재 진행 중인 Sprint**: **Sprint 8 완료**. Sprint 1/2/3/5/6/7/8 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -47,6 +47,13 @@ Sprint 2 진행해줘
 | **7-E** | 카운트다운 오버레이 | ✅ 합격 | 9.76/10 | 1/3 |
 | **7-F** | 빌런 4종 + 박병장 신규 | ✅ 합격 | 9.10/10 | 1/3 |
 | **7-G** | 플레이어 4방향 스프라이트 | ✅ 합격 | 9.58/10 | 1/3 |
+| **8-A** | 스코어보드 겹침 해소 | ✅ 합격 | 9.05/10 | 1/3 |
+| **8-B** | 캐릭터 선택 스와이프 페이지 | ✅ 합격 | 9.31/10 | 1/3 |
+| **8-C** | 스킬 설명 힌트 ↔ 시작 버튼 분리 | ✅ 합격 | 9.68/10 | 1/3 |
+| **8-D** | 난이도 카드 크기·여백 확대 | ✅ 합격 | 9.03/10 | 1/3 |
+| **8-E** | 카운트다운 표시 버그 수정 | ✅ 합격 | 9.24/10 | 1/3 |
+| **8-F** | 인게임 HUD/스킬 zPos 정리 | ✅ 합격 | 9.43/10 | 1/3 |
+| **8-G** | 빌런 가시화 + 박병장 데뷔 + 비행기 + 플레이어 팔다리·좌우 | ✅ 합격 | 8.78/10 | 1/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -111,6 +118,97 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: 인게임 PlayerNode가 D-Pad 입력 시 캐릭터 얼굴이 해당 방향(front/back/left/right) 바라보도록. 신규 Direction enum(Models/Direction.swift)과 init?(vector:) 변환자(dx>0→.right/dx<0→.left/dy>0→.back/dy<0→.front, .zero→nil 정지 시 유지 정책, |dx|≥|dy| 우선 좌우). PlayerNode faceNodes dict + lastFacing 상태 + facing(_:) 동기 isHidden 토글 + lastFacing 가드(동일 방향 noop). apply 본문 끝에 buildFacingChildren 1줄 추가 — 5캐릭터 × 4방향 = 20 CharacterFaceNode child를 setScale 0.5 + zPos 1로 부착. CharacterFaceNode init(id:facing:) 신규 분기(5×4 switch) + convenience init(id:) → init(id:facing:.front) delegation(기존 호출자 0건 회귀). 신규 10 helper(buildBackFace + buildSideFace + buildXxxHairBack 5 + buildXxxSide 5). left/right 미러링(xScale=-1)로 path 코드 5×3 = 15 + 0 중복. DPadNode onDirectionChanged 클로저 + updateDirection 끝 1줄 if-let 호출. touchesEnded/Cancelled .zero set 콜백 미발화(정지 시 유지). GameScene+Setup setupDPad 콜백 등록 1줄([weak self] 캡처). GameConfig 상수 2개(playerFaceChildScale=0.5, playerFaceChildZPosition=1). Mockup 후반부 5×4 = 20셀 그리드 추가(villains-and-player-directions-v1.html). Xcode pbxproj 4줄(Direction.swift 등록). 보호 영역 git diff 0줄: Phase A·B·C·D·E·F 결과물(SkillExplanationScene/DifficultyCardNode/ResultScene/ScoreboardScene/4 villain nodes) + GameScene/GameState/PhysicsCategory/Managers/Repositories/Systems + NoteNode/ProjectileNode/StethoscopeNode. PlayerNode 이동/physicsBody/PixelSprite texture 시스템(loadTexture/refreshTexture/updatePixelDirection/tickWalkFrame) byte-identical. CharacterFaceNode 기존 5 build 본문(buildKimFace~buildLeeFace 576 lines) byte-identical. CharacterFaceNode.mini factory(ScoreboardScene 32px) byte-identical. DPad updateDirection if/else 알고리즘 byte-identical. 강제 언래핑 0, Timer 0, switch default 0(4 case exhaustive). 빌드 SUCCEEDED 신규 워닝 0.
 - **잔존 P2 (Sprint 7 전체 합격 영향 0)**: (1) CharacterFaceNode 1101 lines — +Front/+Back/+Side extension 3개 분리 후보. (2) back/side 헤어 색 hairBrown 단색 위주 — 캐릭터별 보강 후보. (3) PlayerNode PixelSprite + face child 하이브리드 정리 후보. (4) Phase F 시각 디테일 매직 넘버 8건 정리. (5) V3 상수 명명 규칙 일괄 정리.
+
+---
+
+## 🎉 Sprint 8 전체 완료 (2026-05-20)
+
+7개 Phase 모두 합격. 평균 점수 **9.21 / 10**. 합격률 100% (7/7).
+
+| Phase | 작업 | 점수 |
+|---|---|---|
+| A | 스코어보드 겹침 해소 | 9.05 |
+| B | 캐릭터 선택 스와이프 페이지 | 9.31 |
+| C | 스킬 설명 힌트 ↔ 시작 버튼 분리 | 9.68 |
+| D | 난이도 카드 크기·여백 확대 | 9.03 |
+| E | 카운트다운 표시 버그 수정 | 9.24 |
+| F | 인게임 HUD/스킬 zPos 정리 | 9.43 |
+| G | 빌런/박병장/비행기/플레이어 인게임 완성 | 8.78 |
+| **평균** | | **9.22** |
+
+### Sprint 8 Phase G — 빌런 가시화 + 박병장 데뷔 + 비행기 + 플레이어 팔다리·좌우
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **8.78/10** (게임로직 9.5 · Swift패턴 8.5 · 비주얼 8.0 · UX 8.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 실기 검증에서 드러난 5건 인게임 시각 결함 해소 + 사용자 의사결정 핵심 8건(#2/#3/#4/#5/#6/#7/#8/#10) 정확 적용. V4 신규 상수 11종(sergeantParkDebutTimeV4=30/ScoreV4=50/IntroDurationV4=2.2/OnStageDurationV4=8.0, airplaneCockpitColorAlphaV4=0.6/PropellerRotateDurationV4=0.15, playerArmWidthV4=4/LegWidthV4=5/WalkCycleDurationV4=0.20/IdleBreathDurationV4=1.5/FullBodyScaleV4=0.35) sub-MARK. CharacterFullBodyNode 신규 343 LOC — 5캐릭터(kim/jung/geon/im/lee) × 4방향(front/back/left/right) = 20셀 별도 path, xScale=-1 mirroring 0건, buildLeftBody/buildRightBody 별도 메서드, 1차는 body path 공유 + color palette(scrub/hair/cap) 차별. NurseAvatarNode 패턴 차용(독립 코드). 빌런 3종 PixelSprite 시각 차단 — EnemyNode/ProfessorNode/StoneGuardNode init 또는 setupVisualOverlay 끝에 `self.color = .clear; self.colorBlendFactor = 1.0` 2줄 × 3 = 6줄 추가. 빌런 9 func(update/startFleeing/apply/startPatrol/startThrowingStethoscopes/scheduleNextThrow/throwStethoscope/stopThrowing/updatePixelAnimation) 시그니처+본문 byte-identical(`-func` 0건 + `-` 삭제 라인 0건). 박병장 데뷔: GameScene.update에 hard 난이도 + (30s OR 50점) + sergeantParkDebuted=false 조건 1 블록 → spawnSergeantPark + presentSergeantParkIntro 2.2s 컷씬(fadeIn 0.4 + hold 1.4 + fadeOut 0.4) + "박병장 등장!" 토스트 fontDisplay 36pt coralPrimary + 등장-머무름-퇴장 SKAction sequence. SergeantParkNode.makeIntroCloseup() static factory(physicsBody nil + setScale 2.0). 비행기 6 자식: AirplaneNode 본체 color .ganhoYellowF → .clear + attachFuselage/Wings/Tail/Cockpit/Propeller/Contrail 모두 구현, `crossScreen(sceneWidth:atY:)` 시그니처 보존. PlayerNode: apply 안 buildFacingChildren → attachFullBody 1줄 교체(시각만), facing 안 fullBody?.facing(direction) 위임, physicsBody/category/collision/velocity/이동 로직 0줄 변경. GameScene sergeantParkDebuted: Bool 프로퍼티 1줄(GameState enum이라 GameScene Properties 섹션으로 이전). Xcode pbxproj CharacterFullBodyNode 등록 4줄. CharacterFaceNode.swift git diff 0줄 + NurseAvatarNode.swift git diff 0줄 — 의사결정 #10 절대 사수. update 핵심 가드 `guard gameState == .playing else { return }` byte-identical. DPad/velocity 입력 매핑 0줄. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: (1) CharacterFullBodyNode 캐릭터별 정체성 요소(안경/캡/사이드테일) 미구현 — 후속 Sprint 보강 대상. (2) 걷기 cycle SKAction 부재 — 상수만 추가, 다리 scaleY 토글 미구현. (3) dim alpha 0.5 vs SPEC 0.32 — 통일 권장. (4) PlayerNode PixelSprite 본체 미차단 — 풀바디 scale 0.35 가장자리 픽셀 노출 가능성. (5) Phase E 진단 print 7건 잔존(GameScene.showCountdown) — `#if DEBUG` wrap 또는 제거 권장.
+
+### Sprint 8 Phase F — 인게임 HUD/스킬 zPos 정리
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.43/10** (게임로직 9.6 · Swift패턴 9.0 · 비주얼 9.5 · UX 9.4)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 실기에서 좌하단 영역 "북클럽" 라벨이 SkillButtonNode 본체(labelNode + nameTagChip)와 HUDSkillSlotNode 모두에서 표시되어 한 라벨이 2번 보이던 결함 해소. 사용자 의사결정 #9 핵심 적용: HUDSkillSlotNode를 *단일 진실 원천*으로 정하고 SkillButtonNode 본체의 두 라벨을 시각만 차단(`isHidden=true`). 의사결정 #6 패턴(빌런 PixelSprite alpha 0) 답습 — 노드 트리 보존(addChild 호출 유지) + 시각만 차단으로 Sprint 4 PNG 통합 대비. V4 3종(hudLabelZPositionV4=100, skillButtonZPositionV4=80, hudSkillSlotLabelZPositionV4=110) GameConfig sub-MARK 추가. 변경 5개 파일: GameConfig +14 / SkillButtonNode init L76 + configure L102 isHidden 2줄(+8) / HUDNode bg/labelNode/valueNode/fill zPos V4 교체 값 보존(+8/-4) / HUDSkillSlotNode labelNode·valueNode 100→110 +10 상향(+4/-2) / GameScene+Setup setupSkillButton 끝 zPos 1줄(+2). zPos 적층 80<100<110 명확화 — 슬롯 라벨이 가장 위. SkillButtonNode 시그니처(onTap/isEnabled/configure/setEnabled/touchesBegan) byte-identical. HUDNode/HUDSkillSlotNode init·update·configure byte-identical. SkillSystem.tryActivate / PhysicsCategory / DPad 입력 매핑 0건 변경. keyLabelChip("B") 보존 — *입력 안내* 단독 책임. `git diff | grep "^[+-].*func "` 빈 출력. 다른 파일(Models/Systems/ColorTokens) git diff 0줄. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: (1) Phase E 진단 print 6줄(GameScene.swift L278/287/293/298/301 등) Phase G 시작 전 cleanup 또는 `#if DEBUG` wrap 권장. (2) HUDNode L164 `hudLabelZPositionV4 + 1` 산술 직접 노출 → 후속 Sprint에서 `hudLabelFillZPositionV4 = 101` 분리 검토. (3) SkillButtonNode labelNode.text 잔존 — isHidden=true라 시각 영향 0이지만 트리 보존 원칙으로 유지(변경 권장 0).
+
+### Sprint 8 Phase E — 카운트다운 표시 버그 수정
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.24/10** (게임로직 9.6 · Swift패턴 8.5 · 비주얼 9.5 · UX 8.8)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: Sprint 7-E 합격(9.76) 후 실기에서 카운트다운 미표시 결함의 핵심 후보 fix — CutsceneOverlayNode.dismiss SKAction.sequence 순서 `[fadeOut, cleanup, notify]` → `[fadeOut, notify, cleanup]`로 reorder해 removeFromParent 이후 callback?() 미발화 위험 회피. notify가 노드 트리에 *남아 있는 상태에서* 발화 보장 → showCountdown 진입 보장. 변경 2개 파일: CutsceneOverlayNode.swift(+4/-2, sequence reorder + 의도 주석 2줄) + GameScene.swift(+13/-1, showCountdown 안 진단 print 6줄 `[Phase E]` prefix + 방어 보강 `node.isHidden=false; node.alpha=1.0`). CountdownNode.swift git diff 0줄(본체 보호 — init/start/stepAction/goAction/configureLabel byte-identical). V3 상수 9종 byte-identical: countdownNumberFontSizeV3=120, GoFontSizeV3=140, GoStartScaleV3=1.2, GoEndScaleV3=1.8, DimAlpha=0.32, DimFadeInDuration=0.2, DimFadeOutDuration=0.2, DimZPosition=240, DimNodeName="countdownDim". 시그니처 byte-identical(`git diff | grep "^[+-].*func "` 빈 출력). dim onComplete sequence `[fadeOut, cleanup, startGame]`는 의도적으로 1차 fix 범위 외 유지(실기에서 startGameProperly 미발화 발견 시 후속 적용). gameState 전환 그래프(.cutscene → .countdown → .playing) + spawnSystem.start 호출 시점 + 입력 4초 게이트 보존. 다른 모든 Swift 파일 git diff 0줄. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: (1) CutsceneOverlayNode line 110 주석 "*이미 빠진* 상태에서" 문구가 이전 순서 가정 — After 반영해 "*남아 있는* 상태에서"로 수정 권장. (2) 진단 print 6줄 → Phase F 시작 전 별도 cleanup commit 또는 `#if DEBUG` wrap 권장. (3) dim sequence reorder 보류 — 실기 미발화 발견 시 동일 패턴 적용.
+
+### Sprint 8 Phase D — 난이도 카드 크기·여백 확대
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.03/10** (게임로직 9.6 · Swift패턴 8.8 · 비주얼 8.6 · UX 8.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: Sprint 7-C 합격(9.83) 후 실기 검증에서 카드 폭(112) 좁아 한글 텍스트 2~3줄 답답 결함 해소. V4 신규 상수 8종(difficultyCardWidthV4=130, HeightV4=200, GapV4=22, PaddingV4=14, SubtitleGapV4=10, HeaderGapV4=12, SubtitleLineHeightV4=1.4, SubtitleFontSizeV4=12) sub-MARK 추가. DifficultyCardNode: 카드 size V3(112×82)→V4(130×200), configureLabels V4 산식, subtitleLabel/descriptionLabel attributedText + NSMutableParagraphStyle.lineHeightMultiple=1.4 + preferredMaxLayoutWidth=102. 신규 private helper 2종(makeSubtitleAttributedText/makeDescriptionAttributedText). setSelected 호출 시 attributedText 재구성으로 색 토글 보존. DifficultySelectScene layoutDifficultyCards width/spacing V4 2줄 교체 + layoutStartButton 동적 보정(`buttonY = min(v3Y, v4Y)`)로 카드 bottom↔버튼 top 36pt 호흡 정확 확보. V3 상수 6종(WidthV3=112/HeightV3=82/SpacingV3=22/StrokeLineWidthV3=1.5/SubtitleFontSizeV3=12/SubtitleOffsetYV3=4) byte-identical. ColorTokens.swift git diff 0줄(Phase 7-C 6종 보호). 시그니처 byte-identical(`-func` 0건, `+func` 2건은 private helper). 좌측 미니 캐릭터 카드 layoutSummaryCard/setupSummaryCard git diff 0줄. 합산 폭 130×3+22×2=434pt < 844pt 화면 폭. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: layoutStartButton 지역 매직 넘버 2개(24/36) → GameConfig V4 분리 권장. cardCenterY 산식 중복(layoutDifficultyCards + layoutStartButton) → private helper 추출 권장. 시뮬레이터 실측 캡처 미수행 — fontDisplay(Jua) 특성으로 headerGap 12pt 시각 검증 필요.
+
+### Sprint 8 Phase C — 스킬 설명 힌트 ↔ 시작 버튼 분리
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.68/10** (게임로직 10.0 · Swift패턴 9.5 · 비주얼 9.5 · UX 9.5)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: Sprint 7-B 합격(9.77) 후 실기 검증에서 controlHint("좌하단 스킬 버튼을 1번 탭하면 발동" + "B" 키)와 PrimaryButton "다음 ▶"가 거의 붙어 보이는 결함 해소. V4 신규 상수 3종(skillExplanationBottomButtonGapV4=28, HintChipPaddingYV4=8, ControlHintContainerHeightV4=36) GameConfig sub-MARK 추가. SkillExplanationScene 변경: setupControlHint() height 32→36(=H V4) 1줄 + layoutControlHint() containerY를 startButton 기준 동적 산출(startButtonY + buttonHalfHeight(24) + V4 gap(28) + hintHeightHalf(18) = midY - 90, hint bottom = midY - 108, startButton top = midY - 136 → visual gap 정확 28pt). primaryButtonHeight=48 GameConfig 기존 상수 직접 참조로 fileprivate 보조 상수 불필요(매직 넘버 0). V3 상수 5종 byte-identical: skillExplanationControlHintContainerOffsetY=-120 / ContainerHeight=32 / ButtonRowOffsetY=-160 / BottomButtonGapV3=18 / QuoteBoxWidthV3=332. DarkContextChipNode.swift git diff 0줄(Phase 7-B 결과물 보호). 시그니처 byte-identical(`git diff | grep "^[+-].*func "` 빈 출력). 사용자 의사결정 10건 모두 회귀 0. Phase 7-B 모든 setup/layout 메서드(breadcrumbChip/topBackPill/skillQuoteBox/avatarCard/statChips) git diff 0줄. didChangeSize(_:) 안 layoutControlHint() 호출 보존으로 회전·사이즈 변경 시 V4 산식 재실행. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: GameConfig V4 sub-MARK 주석 분량(~25줄) — 산술 검증이 SELF_CHECK/SPEC에 이미 있어 본문은 1~2줄 요약 가능. 가독성 +이므로 강제 수정 불필요.
+
+### Sprint 8 Phase B — 캐릭터 선택 스와이프 페이지
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.31/10** (게임로직 9.6 · Swift패턴 9.4 · 비주얼 9.2 · UX 8.6)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: Sprint 7-A NIKKE 4:5 카드(160×200) 5장이 iPhone 12 Pro 가로 844pt에서 912pt 초과 → 양 끝 카드 잘림 + 헤더 겹침 P0 해소. **5장 동시 노출 → 중앙 1장 + 양옆 반쯤 보이는 2장 스와이프 페이지** 전환(사용자 의사결정 #1 핵심). V4 신규 상수 7종(characterSwipeCardScaleCenterV4=1.08, ScaleSideV4=0.85, AlphaSideV4=0.55, OffsetXV4=180, AnimationDurationV4=0.22, characterHeaderBottomYBoundV4=0.80, characterCardCenterYV4=0.50). CharacterSelectScene 신규 properties 4(currentIndex/characters/swipeStartX/didSwipeInCurrentTouch) + neue 메서드 4(layoutCards/swipeTo/touchesMoved/touchesEnded/touchesCancelled) + touchesBegan 양옆 탭 분기 + cardBaseX/Y 식 swipe 좌표로 교체. CharacterCardNode 신규 CharacterCardPageRole enum(center/left/right/offscreen) + extension setPageState(role:animated:duration:) + applyCenterDecor 2 메서드 — 기존 init/setSelected/attach* 모두 byte-identical. V3 상수 5종(WidthV3=160/HeightV3=200/GapV3=22/CornerRadiusV3=22/SelectedScale=1.08) byte-identical. CharacterFaceNode.swift git diff 0줄(사용자 의사결정 #10 완전 준수 — "캐릭터 선택은 얼굴만" 정체성 유지). 보호 영역 git diff 0줄: 다른 모든 Scenes/GameScene/GameState/PhysicsCategory/Managers/Repositories/Systems/Nodes 외/Models/ColorTokens. `.kim → DifficultySelectScene` / 그 외 → `SkillExplanationScene` 분기 byte-identical. preferenceRepo.save가 swipeTo 안 즉시 호출 — 트랜지션 중 다음 버튼 탭에도 정확한 ID 전달. SKAction 0.22s `.easeInEaseOut` 3종(move/scale/fadeAlpha) + removeAction(forKey:) cancellable. zPosition 적층 명확 110/105/100. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: (1) `touchesMoved` threshold 40pt 매직 넘버 → `characterSwipeThresholdXV4` V4 8개째 상수로 분리 권장. (2) iPhone 12 Pro 가로(390pt height)에서 헤더↔카드 safe gap 17pt — 실기 시각 검증 후 layoutHeader에 max() clamp 추가 검토. (3) Phase A ScoreboardScene 결과물이 Phase B 시작 시점 unstaged 상태 — 정리 필요.
+
+### Sprint 8 Phase A — 스코어보드 겹침 해소
+- 시작: 2026-05-20
+- 완료: 2026-05-20
+- 점수: **9.05/10** (게임로직 9.8 · Swift패턴 9.2 · 비주얼 8.5 · UX 8.8)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: ScoreboardScene 시각 충돌 4건(타이틀↔열헤더 세로 겹침, 우상단 GlassPill↔매트릭스 첫 행 가로 겹침, 행 헤더↔점수 셀 과밀, 하단 stat 매트릭스 근접) 해소. V4 신규 상수 5종 추가(scoreboardTitleYOffsetV4=40, scoreboardHeaderRowGapV4=18, scoreboardCellPitchYV4=38, scoreboardStatBottomGapV4=24, scoreboardColumnHeaderFontSizeV4=16). 적용 결과: 타이틀 Y +95→+135 (V3 +40 합산) · 부제 Y +72→+112 · AccentLine Y +130→+90 (타이틀과 매트릭스 사이 구분선 역할 회복) · 매트릭스 헤더↔첫 데이터 행 gap 4→18pt · 데이터 행 pitch 40→38pt · stat 라벨 lastRowBottom-24pt 동적 산출. V3 상수 ~40개 값 byte-identical 보존(scoreboardTitleOffsetY=95/SubtitleOffsetY=72/AccentLineOffsetY=130/CellGap=4/StatOffsetY=-150 grep 검증). ScoreboardScene 10개 메서드 시그니처 byte-identical(`git diff | grep "^[+-].*func "` 빈 출력). 매트릭스 15셀 데이터 매핑·★ 마커(lastUpdatedKey) 판정 로직·Repository 호출 0줄 변경. 보호 영역 git diff 0줄: 다른 모든 Scenes/GameScene/GameState/PhysicsCategory/Managers/Repositories/Systems/Nodes/Models. 사용자 의사결정 10건(Phase B~G) 모두 회귀 0건. GameConfig +26줄 / ScoreboardScene +16줄 순증. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: AccentLine Y(+90)이 부제(+112)·헤더(+110)보다 아래라 시각적으로 "헤더 아래 + 데이터 위" 구분선처럼 보일 가능성. SPEC §기능 2 코드 예시 정확 일치이나 실기 시각 확인 후 V4 미세 조정 검토 여지.
+
+---
+
+## ⏳ Sprint 8 작업지시서 작성 완료 (2026-05-20) — Phase B~G 대기
+
+`SPRINT_8_REQUEST.md` 신규 작성. Sprint 7 합격 후 실기 검증에서 드러난 **7건 결함**을 Phase A~G에 1:1 매핑.
+
+| Phase | 작업 | 매핑 이슈 (스크린샷) |
+|---|---|---|
+| A | 스코어보드 겹침 해소 | #1 기록보기 타이틀↔표↔칩 겹침 |
+| B | 캐릭터 선택 스와이프 페이지 | #2 카드 잘림 + 헤더 충돌 |
+| C | 스킬 설명 힌트 ↔ 시작 버튼 분리 | #3 스킬 발동 글자가 시작 버튼에 붙음 |
+| D | 난이도 카드 크기·여백 확대 | #4 카드 좁고 line spacing 답답 |
+| E | 카운트다운 표시 버그 수정 | #5 카운트다운 미표시 |
+| F | 인게임 HUD/스킬 zPos 정리 | #6 좌하단 글자 다 겹침 |
+| G | 빌런 가시화 + 박병장 데뷔 + 비행기 + 플레이어 팔다리·좌우 | #7 빌런 픽셀 잔존 + 박병장 미등장 + 비행기 사각형 + 팔다리 부재 + 좌우 동일 |
+
+**실행 트리거**: `Sprint 8 진행해줘` 또는 `Sprint 8 Phase A 진행해줘`
 
 ---
 

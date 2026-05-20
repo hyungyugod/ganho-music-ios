@@ -152,14 +152,16 @@ final class HUDSlotNode: SKNode {
                 x: -barSize.width / 2,
                 y: -chipSize.height / 2 + GameConfig.hudTimeBarHeight / 2 + GameConfig.hudTimeBarTopGap
             )
-            bg.zPosition = 100
+            // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
+            bg.zPosition = GameConfig.hudLabelZPositionV4
             timeBarBg = bg
 
             let fill = SKSpriteNode(color: .white, size: barSize)
             fill.alpha = 0.95
             fill.anchorPoint = CGPoint(x: 0, y: 0.5)
             fill.position = bg.position
-            fill.zPosition = 101
+            // Sprint 8 Phase F — V4 zPos +1 (값 101 보존, fill이 bg 위).
+            fill.zPosition = GameConfig.hudLabelZPositionV4 + 1
             // 시작 시 가득 찬 상태. setTimeBar(progress:)로 매 프레임 갱신.
             fill.xScale = 1.0
             timeBarFill = fill
@@ -175,7 +177,8 @@ final class HUDSlotNode: SKNode {
         labelNode.fontColor = .ganhoMusicGold
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
-        labelNode.zPosition = 100
+        // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
+        labelNode.zPosition = GameConfig.hudLabelZPositionV4
         labelNode.position = CGPoint(
             x: 0,
             y: GameConfig.hudSlotV2ValueFontSize / 2 + GameConfig.hudSlotInnerGap
@@ -186,7 +189,8 @@ final class HUDSlotNode: SKNode {
         valueNode.fontColor = .white
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
-        valueNode.zPosition = 100
+        // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
+        valueNode.zPosition = GameConfig.hudLabelZPositionV4
         valueNode.position = CGPoint(
             x: 0,
             y: -GameConfig.hudSlotV2LabelFontSize / 2 - GameConfig.hudSlotInnerGap

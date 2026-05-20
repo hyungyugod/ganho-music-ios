@@ -194,7 +194,7 @@ final class ScoreboardScene: SKScene {
         for (col, diff) in difficulties.enumerated() {
             let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
             label.text = diff.displayName
-            label.fontSize = GameConfig.scoreboardColumnHeaderFontSize
+            label.fontSize = GameConfig.scoreboardColumnHeaderFontSizeV4
             label.fontColor = diff.cardStrokeColor
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
@@ -295,17 +295,22 @@ final class ScoreboardScene: SKScene {
     private func layoutAll() {
         gradientBg?.position = CGPoint(x: frame.midX, y: frame.midY)
 
+        // V4 — 타이틀 zone(타이틀·부제)을 +40pt 상향해 매트릭스 zone과 분리.
+        // AccentLine은 V3 위치(+130)에서 -40 = +90으로 내려 *타이틀 아래 + 헤더 위* 시각 구분선 역할.
         accentLine.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.scoreboardAccentLineOffsetY
+                          - GameConfig.scoreboardTitleYOffsetV4
         )
         titleLabel.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.scoreboardTitleOffsetY
+                          + GameConfig.scoreboardTitleYOffsetV4
         )
         subtitleLabel.position = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.scoreboardSubtitleOffsetY
+                          + GameConfig.scoreboardTitleYOffsetV4
         )
 
         // 백 버튼 / 브레드크럼 — safe area를 흡수해 노치/Dynamic Island 회피.
@@ -322,9 +327,13 @@ final class ScoreboardScene: SKScene {
             y: topY
         )
 
+        // V4 — stat 라벨을 매트릭스 마지막 행 bottom으로부터 24pt 아래에 동적 배치.
+        // V3 상수 scoreboardStatOffsetY(-150) 값은 byte-identical 보존 — 사용처만 동적 계산으로 교체.
+        let lastRowCenterY = dataRowCenterY(row: GameConfig.scoreboardMatrixRowCount - 1)
+        let lastRowBottomY = lastRowCenterY - GameConfig.scoreboardCellHeight / 2
         statLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.scoreboardStatOffsetY
+            y: lastRowBottomY - GameConfig.scoreboardStatBottomGapV4
         )
 
         // 매트릭스 자식 좌표 재계산 — 헬퍼 함수가 frame.midX/midY를 직접 참조하므로
@@ -433,12 +442,15 @@ final class ScoreboardScene: SKScene {
     }
 
     /// row(0~4)의 셀 중심 y. 열 헤더 행 아래에서 시작.
+    /// V4 — 헤더↔본문 gap을 scoreboardCellGap(4pt) → scoreboardHeaderRowGapV4(18pt)로 확장하고,
+    /// 행 사이 pitch를 (cellHeight+cellGap=40pt) → scoreboardCellPitchYV4(38pt)로 균형화.
+    /// 시그니처(`row: Int -> CGFloat`)는 byte-identical 보존 — 본문 안 상수만 V4 토큰으로 교체.
     private func dataRowCenterY(row: Int) -> CGFloat {
         let firstDataRowTop = matrixOriginTopY
             - GameConfig.scoreboardCellHeight
-            - GameConfig.scoreboardCellGap
+            - GameConfig.scoreboardHeaderRowGapV4
         return firstDataRowTop - GameConfig.scoreboardCellHeight / 2
-            - CGFloat(row) * (GameConfig.scoreboardCellHeight + GameConfig.scoreboardCellGap)
+            - CGFloat(row) * GameConfig.scoreboardCellPitchYV4
     }
 
     // MARK: - Touch

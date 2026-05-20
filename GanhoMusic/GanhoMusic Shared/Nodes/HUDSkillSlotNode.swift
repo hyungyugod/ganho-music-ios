@@ -39,7 +39,8 @@ final class HUDSkillSlotNode: SKNode {
         labelNode.fontColor = .ganhoMusicGold
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
-        labelNode.zPosition = 100
+        // Sprint 8 Phase F — 스킬 이름 단일 진실 원천. 110(컨테이너 99~101 위에 표시).
+        labelNode.zPosition = GameConfig.hudSkillSlotLabelZPositionV4
         labelNode.position = CGPoint(
             x: 0,
             y: GameConfig.hudSkillSlotRingRadius + 10
@@ -65,7 +66,8 @@ final class HUDSkillSlotNode: SKNode {
         valueNode.fontColor = .white
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
-        valueNode.zPosition = 100
+        // Sprint 8 Phase F — CD/상태 텍스트 단일 진실 원천. 110(컨테이너 99~101 위에 표시).
+        valueNode.zPosition = GameConfig.hudSkillSlotLabelZPositionV4
         valueNode.position = CGPoint(
             x: 0,
             y: -GameConfig.hudSkillSlotRingRadius - 10

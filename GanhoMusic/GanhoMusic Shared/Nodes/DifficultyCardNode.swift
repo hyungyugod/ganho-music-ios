@@ -17,6 +17,12 @@
 //             - nameLabel 폰트 22pt → 30pt + nameLabelStroke 베이스 라벨로 stroke 외곽선 표현.
 //             - 선택 시 position.y +8 lift 액션 — liftCurrentOffset 증분 추적(중복 호출 안전).
 //             - setSelected / init 시그니처 byte-identical.
+//  Sprint 8 Phase D · 카드 크기/여백 V4 (130×200 + line height 1.4)
+//             - V3 카드(112×82) 좁아 한글 텍스트 2~3줄 줄바꿈 답답 → V4 130×200으로 확대.
+//             - 내부 padding 14pt / headerGap 12pt / subtitleGap 10pt로 호흡 확보.
+//             - subtitleLabel을 NSAttributedString + lineHeightMultiple 1.4로 재구성
+//               (numberOfLines=0, preferredMaxLayoutWidth = cardWidth - padding*2 = 102pt).
+//             - 색 위계(EasyMint/MidGold/HardCoral) 및 시그니처 byte-identical 보존.
 //
 
 import SpriteKit
@@ -52,10 +58,11 @@ final class DifficultyCardNode: SKNode {
     // MARK: - Init
     init(id: Difficulty) {
         self.id = id
-        // Sprint 7 — V3 카드 크기(112 × 82) + V3 코너 반경(20).
+        // Sprint 8 Phase D — V4 카드 크기(130 × 200) + V3 코너 반경(20pt) 보존.
+        // V3 size 상수(difficultyCardWidthV3=112, HeightV3=82)는 GameConfig에 byte-identical 보존.
         let cardSize = CGSize(
-            width: GameConfig.difficultyCardWidthV3,
-            height: GameConfig.difficultyCardHeightV3
+            width: GameConfig.difficultyCardWidthV4,
+            height: GameConfig.difficultyCardHeightV4
         )
         background = SKShapeNode(
             rectOf: cardSize,
@@ -156,8 +163,17 @@ final class DifficultyCardNode: SKNode {
 
         // Sprint 7 — 라벨 색 동기화. 선택 시 진한 네이비, 미선택 시 muted 네이비.
         nameLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
-        subtitleLabel.fontColor = .ganhoNavyMuted
-        descriptionLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
+        // Sprint 8 Phase D — subtitleLabel/descriptionLabel은 attributedText로 line height 1.4를
+        // 적용하기 때문에 fontColor 직접 설정이 무시됨. 색 변경은 attributedText 재구성으로 처리.
+        subtitleLabel.attributedText = makeSubtitleAttributedText(
+            text: id.subtitle,
+            alignment: .center
+        )
+        descriptionLabel.attributedText = makeDescriptionAttributedText(
+            text: id.description,
+            color: selected ? .ganhoNavyDeep : .ganhoNavyMuted,
+            alignment: .center
+        )
         // Sprint 7 Phase C — strokeLabel 색은 항상 id.cardStrokeColor(외곽선 정색 유지).
         nameLabelStroke.fontColor = id.cardStrokeColor
 
@@ -192,17 +208,43 @@ final class DifficultyCardNode: SKNode {
 
     // MARK: - Configure
     /// 이름(상단) + 부제(중단) + 설명(하단) 3행 스타일.
-    /// 카드 내부 *상대 좌표*(background 중심 기준)로 배치 — y 오프셋은 GameConfig V3 상수.
-    /// description 라벨은 numberOfLines = 0 + preferredMaxLayoutWidth로 카드 안에서 wrap.
+    /// 카드 내부 *상대 좌표*(background 중심 기준)로 배치 — Sprint 8 Phase D V4 layout.
+    ///
+    /// V4 산식 (카드 200pt 높이, 위/아래 padding 14pt):
+    ///   - cardTop = +100, innerTop = +100 - 14 = +86
+    ///   - nameLabel.y = +86 - nameFontSize/2(15) = +71 (verticalAlignmentMode=.center)
+    ///   - nameBottom = +71 - 15 = +56
+    ///   - subtitleLabel.y = nameBottom - headerGap(12) - subtitleFontSize/2(6) = +38 (center anchor)
+    ///   - subtitleBottom = +38 - 6 = +32
+    ///   - descriptionLabel top.y = subtitleBottom - subtitleGap(10) = +22 (top anchor)
+    ///
+    /// Sprint 8 Phase D — subtitleLabel과 descriptionLabel은 NSAttributedString +
+    ///   lineHeightMultiple 1.4 적용. preferredMaxLayoutWidth = cardWidthV4(130) - padding*2(28) = 102pt.
     /// Sprint 7 Phase C — nameLabel 30pt + nameLabelStroke(폰트 = 30 + 1×2 = 32pt) 2-라벨 stroke.
     private func configureLabels() {
+        // V4 layout 산출 — 카드 내부 상대 좌표.
+        let cardTopY: CGFloat = GameConfig.difficultyCardHeightV4 / 2
+        let innerTopY: CGFloat = cardTopY - GameConfig.difficultyCardPaddingV4
+        let nameHalfHeight: CGFloat = GameConfig.difficultyCardNameFontSizePhaseC / 2
+        let nameCenterY: CGFloat = innerTopY - nameHalfHeight
+        let nameBottomY: CGFloat = nameCenterY - nameHalfHeight
+        let subtitleHalfHeight: CGFloat = GameConfig.difficultyCardSubtitleFontSizeV4 / 2
+        let subtitleCenterY: CGFloat = nameBottomY
+            - GameConfig.difficultyCardHeaderGapV4
+            - subtitleHalfHeight
+        let subtitleBottomY: CGFloat = subtitleCenterY - subtitleHalfHeight
+        let descriptionTopY: CGFloat = subtitleBottomY - GameConfig.difficultyCardSubtitleGapV4
+        // V4 wrap 폭 = cardWidth(130) - padding(14) × 2 = 102pt.
+        let wrapWidth: CGFloat = GameConfig.difficultyCardWidthV4
+            - GameConfig.difficultyCardPaddingV4 * 2
+
         // 이름 라벨 — 카드 상단. Sprint 7 Phase C: 22 → 30pt + navyDeep fill.
         nameLabel.fontName = GameConfig.fontDisplay
         nameLabel.fontSize = GameConfig.difficultyCardNameFontSizePhaseC
         nameLabel.fontColor = .ganhoNavyDeep
         nameLabel.horizontalAlignmentMode = .center
         nameLabel.verticalAlignmentMode = .center
-        nameLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardNameOffsetYV3)
+        nameLabel.position = CGPoint(x: 0, y: nameCenterY)
         nameLabel.zPosition = 5
 
         // Sprint 7 Phase C — stroke 라벨. nameLabel과 같은 텍스트, 폰트는 nameFontSize + stroke×2,
@@ -215,25 +257,81 @@ final class DifficultyCardNode: SKNode {
         nameLabelStroke.fontColor = id.cardStrokeColor
         nameLabelStroke.horizontalAlignmentMode = .center
         nameLabelStroke.verticalAlignmentMode = .center
-        nameLabelStroke.position = CGPoint(x: 0, y: GameConfig.difficultyCardNameOffsetYV3)
+        nameLabelStroke.position = CGPoint(x: 0, y: nameCenterY)
         nameLabelStroke.zPosition = nameLabel.zPosition - 0.1
 
-        // 부제 — 중단.
+        // 부제 — 중단. Sprint 8 Phase D — attributedText + lineHeightMultiple 1.4.
         subtitleLabel.fontName = GameConfig.fontBody
-        subtitleLabel.fontSize = GameConfig.difficultyCardSubtitleFontSizeV3
+        subtitleLabel.fontSize = GameConfig.difficultyCardSubtitleFontSizeV4
         subtitleLabel.fontColor = .ganhoNavyMuted
         subtitleLabel.horizontalAlignmentMode = .center
         subtitleLabel.verticalAlignmentMode = .center
-        subtitleLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardSubtitleOffsetYV3)
+        subtitleLabel.numberOfLines = 0
+        subtitleLabel.preferredMaxLayoutWidth = wrapWidth
+        subtitleLabel.position = CGPoint(x: 0, y: subtitleCenterY)
+        subtitleLabel.attributedText = makeSubtitleAttributedText(
+            text: id.subtitle,
+            alignment: .center
+        )
 
-        // 설명 — 하단(Sprint 7 신규).
+        // 설명 — 하단(Sprint 7 신규). Sprint 8 Phase D — attributedText + line height 1.4 + .top anchor.
         descriptionLabel.fontName = GameConfig.fontBody
         descriptionLabel.fontSize = GameConfig.difficultyCardDescriptionFontSizeV3
         descriptionLabel.fontColor = .ganhoNavyMuted
         descriptionLabel.horizontalAlignmentMode = .center
-        descriptionLabel.verticalAlignmentMode = .center
+        descriptionLabel.verticalAlignmentMode = .top
         descriptionLabel.numberOfLines = 0
-        descriptionLabel.preferredMaxLayoutWidth = GameConfig.difficultyCardDescriptionMaxWidthV3
-        descriptionLabel.position = CGPoint(x: 0, y: GameConfig.difficultyCardDescriptionOffsetYV3)
+        descriptionLabel.preferredMaxLayoutWidth = wrapWidth
+        descriptionLabel.position = CGPoint(x: 0, y: descriptionTopY)
+        // 초기 미선택 색은 navyMuted — setSelected가 init 직후 호출되어 다시 갱신됨.
+        descriptionLabel.attributedText = makeDescriptionAttributedText(
+            text: id.description,
+            color: .ganhoNavyMuted,
+            alignment: .center
+        )
+    }
+
+    // MARK: - Attributed Text (Sprint 8 Phase D — line height 1.4)
+    /// 부제 라벨용 attributedString. lineHeightMultiple = 1.4 적용.
+    /// UIFont 옵셔널은 nil-coalescing으로 systemFont fallback.
+    private func makeSubtitleAttributedText(
+        text: String,
+        alignment: NSTextAlignment
+    ) -> NSAttributedString {
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = GameConfig.difficultyCardSubtitleLineHeightV4
+        style.alignment = alignment
+        let font: UIFont = UIFont(
+            name: GameConfig.fontBody,
+            size: GameConfig.difficultyCardSubtitleFontSizeV4
+        ) ?? UIFont.systemFont(ofSize: GameConfig.difficultyCardSubtitleFontSizeV4)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.ganhoNavyMuted,
+            .paragraphStyle: style
+        ]
+        return NSAttributedString(string: text, attributes: attributes)
+    }
+
+    /// 설명 라벨용 attributedString. lineHeightMultiple = 1.4 + V3 descriptionFontSize(10pt).
+    /// setSelected에 따라 색이 navyDeep / navyMuted로 토글되므로 color를 외부 주입.
+    private func makeDescriptionAttributedText(
+        text: String,
+        color: UIColor,
+        alignment: NSTextAlignment
+    ) -> NSAttributedString {
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = GameConfig.difficultyCardSubtitleLineHeightV4
+        style.alignment = alignment
+        let font: UIFont = UIFont(
+            name: GameConfig.fontBody,
+            size: GameConfig.difficultyCardDescriptionFontSizeV3
+        ) ?? UIFont.systemFont(ofSize: GameConfig.difficultyCardDescriptionFontSizeV3)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: style
+        ]
+        return NSAttributedString(string: text, attributes: attributes)
     }
 }
