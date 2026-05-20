@@ -1,343 +1,409 @@
-# Sprint 7 Phase C — 난이도 카드 색 위계 (V3)
+# Sprint 7 Phase D — 결과창 정리 + 하이스코어 화면 신설
 
 ## 개요
-난이도 선택 화면(`DifficultySelectScene`)의 3장 카드에 **색 위계**를 부여한다. v2까지는 모든 카드가 동일 톤(피치)이었으나, v3에서는 하=민트 / 중=골드 / 상=코랄 그라데이션으로 *카드 배경 자체가* 난이도 강도를 전달한다. 선택 카드 뒤에 라디얼 글로우 + 미선택 카드 opacity 0.78로 시선을 유도하고, 시작 버튼은 입체 그림자 +halo로 "마지막 결정"임을 시각적으로 약속한다.
+ResultScene 시각 정보 5요소(♪·점수·SCORE 라벨·BEST 칩·캐릭터/난이도)가 같은 좌표 근처에 몰려 시각 우선순위가 모호한 상태를 해소한다. 점수가 시각 주인공이 되도록 ♪를 24pt로 줄여 점수 좌측에 부속시키고, SCORE 라벨을 점수 아래로, BEST를 점수 우측 GlassPill로 분리하며, 캐릭터·난이도 헤더 칩을 타이틀 위로 끌어올린다. "📊 기록 보기" GlassPill 신규 추가 → 1탭 ScoreboardScene 진입.
+
+ScoreboardScene은 5(캐릭터)×3(난이도) = 15셀 매트릭스를 `PerDifficultyScoreRepository` 기반으로 그리고, 직전 게임 셀에 ★ 마커 부착. 좌상단 "← 결과로" GlassPill 탭 시 ResultScene 새 인스턴스 fade 복귀(졸업장 재표시 차단).
 
 ## 변경 유형
-**비주얼**
+**비주얼 + 신규 씬** (저장·갱신 0, 읽기 전용)
 
 ## 게임 경험 의도
-1. 사용자가 난이도 선택 화면에 들어선 첫 0.5초 안에 "하=민트 / 중=골드 / 상=코랄"이 카드 색만으로 즉시 보이게 한다 — 라벨 안 읽어도 강도가 느껴진다.
-2. 선택한 카드 한 장이 *글로우 + 상승 + opacity 1.0*으로 화면에서 가장 강한 시선 자석이 되고, 나머지 두 장은 0.78로 자연스럽게 물러난다.
-3. 시작 버튼이 화면 중앙 하단에서 입체 그림자 + halo(선택 시)로 "이게 마지막 탭"임을 약속한다.
+- 결과 화면에서 점수가 시각 주인공이 되어 0.3초 안에 "내가 몇 점 받았는가" 인지
+- "내 다른 캐릭터·난이도 기록은?" 호기심을 한 번의 탭으로 해소
+- 매트릭스에서 직전 게임이 갱신한 셀에 ★이 박혀 진척 시각 보상
 
-## Sprint 7 Phase C 범위 계약
+## Sprint 7 Phase D 범위 계약
 
 ### 허용
-- `Nodes/DifficultyCardNode.swift`: 카드별 색 lookup 적용, 미선택/선택 fill·stroke를 난이도별 색으로 분기, 선택 글로우(radial blur 80% effect) 색을 카드별 강조색으로 갱신, 헤더 폰트 30pt + stroke 카드별 색 동기화, 선택 시 position.y 액션 추가
-- `Scenes/DifficultySelectScene.swift`: 시작 버튼 뒤에 halo SKShapeNode 부착, 좌측 미니 캐릭터 영역 속도배율 칩 stroke 추가
-- `Config/ColorTokens.swift`: 신규 6 토큰 추가
-- `Config/GameConfig.swift`: 신규 V3 상수 14종 추가
-- `Models/Difficulty.swift`: 카드별 색 lookup 4개 computed property 추가 (3 case exhaustive switch, default 미사용)
+1. ResultScene 내부 레이아웃·라벨 텍스트 재배치 (GameConfig V3 상수 신규 추가만)
+2. ResultScene에 "기록 보기" GlassPill 신규 자식 1개 + touchesBegan 분기
+3. 신규 파일 `Scenes/ScoreboardScene.swift` 작성
+4. `CharacterFaceNode`에 mini 32pt 팩토리 1개 추가
+5. `GameConfig` Phase D V3 상수 신규 추가
+6. 신규 mockup 2개: `result-screen-v3.html`, `highscore-board-v1.html`
 
 ### 금지 (0줄 변경)
-- `Difficulty` enum 값 / case 이름 / raw value("easy", "normal", "hard")
-- `Difficulty` 기존 `color` computed property 값(.ganhoMint/.ganhoYellowF/.ganhoBloodAccent)
-- `DifficultySelectScene.init(characterID:)` 시그니처
-- `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` 호출 시그니처
-- `transitionBack()` 분기 로직 (.kim vs 그 외)
-- `difficultyRepo.current` / `difficultyRepo.save(id)` 호출 패턴
-- `selectDifficulty(_:)`의 `card.id` 비교 + 일괄 `setSelected` 호출 순서
-- `PrimaryButtonNode` **내부 0줄** — halo는 Scene이 외부에서 별도 SKShapeNode 부착
-- Phase A·B 결과물 (CharacterCardNode / CharacterSelectScene / CharacterID / PlayerSkill / SkillExplanationScene / `skillExplanation*V3` 상수)
-- ResultScene / GameScene / GameState / PhysicsCategory / Managers / Repositories / Systems / 게임 로직 일체
-- 기존 `difficultyCard*` 상수 값 (V3 접미사 없는 것 모두). V3 신규 상수만 추가
+1. `ResultScene.newResultScene(...)` 9개 인자 시그니처
+2. `ResultScene.init(...)` 시그니처
+3. ResultScene → StartScene 1탭 전이 정책 (탭 분기만 추가 — Scoreboard 탭은 ScoreboardScene으로, 그 외는 그대로 StartScene)
+4. HighScoreRepository / StatisticsRepository / PerDifficultyScoreRepository / GraduationRepository 모든 저장·갱신 로직 (읽기 전용)
+5. 졸업장 분기 `DiplomaOverlayNode` 시각·텍스트·자가 소멸 패턴
+6. 신기록 분기 sparkle 5발 / heavy 햅틱 / NewMail 사운드 발화 조건
+7. Phase A·B·C 결과물 0줄
+8. GameScene / GameState / PhysicsCategory / Managers / Systems 0줄
+9. 게임 로직 일체
 
-## 신규 mockup HTML 시각 사양 (`mockups/difficulty-select-v3.html`)
+## 변경 범위
 
-배경·폰트·상단 바·좌측 미니 캐릭터 골격은 v2와 동일하되, **3장 카드와 시작 버튼만 v3로 갱신**한다. Phase A·B v3 mockup과 톤 일관성 유지.
+### 수정 파일
 
-### 디바이스 프레임
-- aspect-ratio 19.5/9, border-radius 52, padding 14
-- phone-screen radial gradient (Phase A·B와 동일 3-stop)
-- 좌측 Dynamic Island
+| 파일 | 변경 |
+|---|---|
+| `Scenes/ResultScene.swift` | 레이아웃 재배치(♪ 24pt 좌측, SCORE 아래, BEST 우측 GlassPill, headerChip 타이틀 위) + "📊 기록 보기" GlassPill 신규 자식 + touchesBegan 탭 분기 |
+| `Nodes/CharacterFaceNode.swift` | `static func mini(id: CharacterID) -> CharacterFaceNode` 팩토리 추가 (setScale 0.47) |
+| `Config/GameConfig.swift` | Phase D V3 상수 ~40개 신규 추가 |
 
-### 상단 바 (v2 그대로)
-- 좌상단: `← 스킬 다시` 또는 `← 캐릭터 다시` GlassPill
-- 우상단: `캐릭터 · 스킬 · 난이도` DarkContextChip, `난이도` 코랄 알약
+### 추가 파일
 
-### 헤더 (v2 그대로)
-- AccentLine 32×3 코랄 + Jua 26pt "난이도를 골라요" + Gowun 12pt 부제
-
-### 좌측 미니 캐릭터 글래스 카드 (Phase C 보강)
-- 폭 200 × 높이 260, border-radius 22, padding 16/14/14
-- 배경 `rgba(255,255,255,0.85)` + backdrop blur 12, stroke `rgba(255,107,91,0.3)` 2pt
-- 상단 -12 코랄 이름 뱃지
-- CharacterFaceNode mini 90×90 가운데
-- Jua 14pt 스킬명
-- **속도 칩 강조**: 배경 `rgba(155,224,204,0.4)` + **stroke 1pt `#5EBFA3`** + box-shadow `0 2px 6px rgba(94,191,163,0.3)`
-
-### 우측 난이도 3장 카드 (Phase C 핵심)
-각 카드 폭 110 × 높이 약 124, border-radius 18, padding 14/8/16. 카드 간 gap 14.
-
-**카드 배경 — 카드별 그라데이션**
-- **하 (.easy)**: `linear-gradient(160deg, #9BE0CC, #5EBFA3)`
-- **중 (.normal)**: `linear-gradient(160deg, #FFD27A, #E5A647)`
-- **상 (.hard)**: `linear-gradient(160deg, #FF8E80, #FF6B5B)`
-- stroke 미선택 시 카드별 stroke × 0.4, 선택 시 정색
-- 미선택 alpha 0.78 / 선택 alpha 1.0
-
-**카드 헤더 (이름)**
-- v2 22pt → **v3 30pt** Jua, navy fill, 카드별 강조색 stroke 1pt (SpriteKit은 nameLabelStroke + nameLabel 2개 겹쳐 표현)
-
-**카드 부제** v2 동일 (Gowun 11pt navy muted)
-
-**카드 보조 라벨** v2 description Gowun 11pt 줄간격 1.4
-
-**선택 상태**
-- `transform: translateY(-8px) scale(1.05)` — 미세 상승 (v2 -6 → v3 **-8**)
-- 카드 뒤 radial glow: 158 × 116, `id.cardGlowColor` α 0.8, filter blur 20px (SpriteKit은 SKShape ellipse + glowWidth 12pt 근사)
-- 카드 stroke 미선택 0.4α → 선택 1.0
-- 카드 alpha 0.78 → 1.0
-
-### 시작 버튼 (Phase C 보강)
-- 입체 그림자 6 → **8** (`0 8px 0 #C44A3D`)
-- **halo 신규**: 240 × 90 ellipse, `#FF6B5B` α 0.35, filter blur 24px, 페이드 인 0.25s
-
-### 음표 deco · annotation 박스 4개
-1. "하·중·상 색만으로 강도 즉시 인지"
-2. "선택 글로우 80% · 미선택 0.78 — 시선 자석"
-3. "시작 버튼 halo = 마지막 결정"
-4. SpriteKit 매핑 — Difficulty 4 lookup + Scene halo SKShape (PrimaryButtonNode 0줄)
+| 파일 | 역할 |
+|---|---|
+| `Scenes/ScoreboardScene.swift` | 신규 씬 — 15셀 매트릭스 + 미니 얼굴 + ★ + 하단 stat + 백 버튼. ~340 LOC |
+| `mockups/result-screen-v3.html` | v2 카피 + §5.2 표 매칭 |
+| `mockups/highscore-board-v1.html` | 신규 매트릭스 시각 사양 |
 
 ## 기능 상세
 
-### 기능 1: `Difficulty` 카드별 색 lookup 4개 computed property
-**위치**: `Models/Difficulty.swift` 파일 끝 `// MARK: - Sprint 7 Phase C · Card hierarchy colors`
+### 기능 1: ResultScene 결과창 레이아웃 재배치
+
+**Before → After 좌표 변경표 (midY 기준)**
+
+| 노드 | Before | After |
+|---|---|---|
+| `headerChip` | +100 | **+115** |
+| `titleLabel` "실습 종료" | +70 | **+85** |
+| `subtitleLabel` | +44 | **+58** |
+| `accentLine` | +130 | **+148** |
+| `scoreLabel` "♪ N" | -2 | **-2** (텍스트 ♪ 제거 → "\(finalScore)"만) |
+| **신규 `scoreNoteIconLabel` "♪"** | — | **scoreLabel.x - 60, y -2** Jua 24pt |
+| `scoreSubLabel` SCORE | -32 | **-44** |
+| `bestLabel` → **신규 `bestPill`** | -60 중앙 | **scoreLabel.x + 120, y -2** GlassPill "🏆 BEST N" / "★ NEW BEST!" |
+| `divider` | -90 | **-78** |
+| `playsValueLabel` / `playsTitleLabel` | -110 / -124 | **-98 / -112** |
+| `restartButton` / `shareButton` | bottom 56 | 그대로 |
+| **신규 `scoreboardButton`** | — | **shareButton.x - 110, y = buttonY** GlassPill "📊 기록 보기" 110×36 |
+
+**신규 프로퍼티 3종**
+```swift
+/// Sprint 7 Phase D — scoreLabel("0") 좌측 작은 ♪ 아이콘. scoreLabel에서 ♪ 분리.
+private let scoreNoteIconLabel = SKLabelNode(text: "♪")
+/// Sprint 7 Phase D — "📊 기록 보기" GlassPill. 탭 → ScoreboardScene 전이.
+private var scoreboardButton: GlassPillNode?
+/// Sprint 7 Phase D — bestLabel 시각 대체 GlassPill (bestLabel.alpha = 0 차단).
+private var bestPill: GlassPillNode?
+```
+
+**touchesBegan 분기 추가**
+```swift
+override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    guard !isTransitioning else { return }
+    if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
+    guard let view = self.view, let touch = touches.first else { return }
+    let location = touch.location(in: self)
+
+    // Sprint 7 Phase D — 기록 보기 칩 분기
+    if let pill = scoreboardButton, pill.contains(location) {
+        isTransitioning = true
+        let lastUpdatedKey: (CharacterID, Difficulty)? = {
+            guard isNewBest, let charID = inferredCharacterID else { return nil }
+            return (charID, difficulty)
+        }()
+        let ctx = ResultReturnContext(
+            finalScore: finalScore, bestScore: bestScore, isNewBest: isNewBest,
+            stats: stats, characterName: characterName, difficulty: difficulty,
+            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt
+        )
+        let scoreboard = ScoreboardScene.newScoreboardScene(
+            lastUpdatedKey: lastUpdatedKey, returnContext: ctx
+        )
+        let transition = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        view.presentScene(scoreboard, transition: transition)
+        return
+    }
+
+    // 기존 — StartScene 전이
+    isTransitioning = true
+    let startScene = StartScene.newStartScene()
+    view.presentScene(startScene, transition: SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration))
+}
+
+/// Sprint 7 Phase D — characterName → CharacterID 역변환 헬퍼.
+/// allCases에 5명 displayName 모두 유일 → 안전.
+private var inferredCharacterID: CharacterID? {
+    CharacterID.allCases.first { $0.displayName == characterName }
+}
+```
+
+### 기능 2: CharacterFaceNode.mini 32pt 팩토리
 
 ```swift
-/// Sprint 7 Phase C — 카드 그라데이션 상단 색. lookup용. 게임 로직 분기 0.
-var cardFillTop: UIColor {
-    switch self {
-    case .easy:   return .ganhoDifficultyEasyMint
-    case .normal: return .ganhoDifficultyMidGold
-    case .hard:   return .ganhoDifficultyHardCoral
+// MARK: - Mini Factory (Sprint 7 Phase D)
+/// Sprint 7 Phase D — Scoreboard 좌측 행 헤더용 32pt 미니 얼굴.
+/// 기존 init(id:) 결과를 0.47x로 축소(32/68 ≈ 0.47). 신규 시각 자식 0건.
+static func mini(id: CharacterID) -> CharacterFaceNode {
+    let face = CharacterFaceNode(id: id)
+    face.setScale(GameConfig.scoreboardMiniFaceScale)
+    face.name = "miniFace_\(id.rawValue)"
+    return face
+}
+```
+
+### 기능 3: ScoreboardScene 신규 씬
+
+**파일**: `Scenes/ScoreboardScene.swift` (신규 ~340 LOC)
+
+**노드 트리**
+```
+ScoreboardScene
+├── gradientBg (GradientBackgroundNode.threeStop, zPos -20)
+├── backButton (GlassPillNode "← 결과로", zPos 100, top-left)
+├── breadcrumbChip (DarkContextChipNode "캐릭터별 기록", zPos 100, top-right)
+├── accentLine (AccentLineNode, zPos 5, midY+130)
+├── titleLabel ("기록 보기", Jua 30pt, midY+95)
+├── subtitleLabel ("캐릭터·난이도별 최고점수", Gowun 12pt, midY+72)
+├── matrixContainer (SKNode, midY+10)
+│   ├── 열 헤더 3개 (하·중·상 SKLabel + Phase C 색)
+│   ├── 행 헤더 5개 (mini face + 약칭)
+│   ├── 15 셀 (Jua 18pt navy / "—" Gowun 14pt 회색 alpha 0.4)
+│   └── ★ 마커 (lastUpdatedKey 셀, gold)
+└── statLabel ("총 플레이 N회 · 졸업장 N장 보유", midY-150)
+```
+
+**핵심 구조**
+```swift
+final class ScoreboardScene: SKScene {
+    private let lastUpdatedKey: (CharacterID, Difficulty)?
+    private let returnContext: ResultReturnContext?
+    private var isTransitioning = false
+
+    private let perDiffRepo = PerDifficultyScoreRepository()
+    private let statsRepo = StatisticsRepository()
+    private let graduationRepo = GraduationRepository()
+
+    // 자식 노드들...
+    private let matrixContainer = SKNode()
+
+    class func newScoreboardScene(
+        lastUpdatedKey: (CharacterID, Difficulty)? = nil,
+        returnContext: ResultReturnContext? = nil
+    ) -> ScoreboardScene {
+        let scene = ScoreboardScene(
+            size: CGSize(width: 1024, height: 768),
+            lastUpdatedKey: lastUpdatedKey,
+            returnContext: returnContext
+        )
+        scene.scaleMode = .resizeFill
+        return scene
+    }
+
+    private init(size: CGSize, lastUpdatedKey: (CharacterID, Difficulty)?, returnContext: ResultReturnContext?) {
+        self.lastUpdatedKey = lastUpdatedKey
+        self.returnContext = returnContext
+        super.init(size: size)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func didMove(to view: SKView) {
+        backgroundColor = .clear
+        setupBackgroundGradient()
+        setupHeader()
+        setupBackButton()
+        setupBreadcrumbChip()
+        setupMatrix()
+        setupStatLabel()
+    }
+
+    override func didChangeSize(_ oldSize: CGSize) {
+        super.didChangeSize(oldSize)
+        layoutAll()
+    }
+
+    // 매트릭스 셀 좌표 계산
+    private func cellPosition(row: Int, col: Int) -> CGPoint {
+        let totalWidth = GameConfig.scoreboardRowHeaderWidth
+            + CGFloat(GameConfig.scoreboardMatrixColumnCount) * GameConfig.scoreboardCellWidth
+            + CGFloat(GameConfig.scoreboardMatrixColumnCount - 1) * GameConfig.scoreboardCellGap
+        let originX = frame.midX - totalWidth / 2
+        let cellX = originX + GameConfig.scoreboardRowHeaderWidth
+            + CGFloat(col) * (GameConfig.scoreboardCellWidth + GameConfig.scoreboardCellGap)
+            + GameConfig.scoreboardCellWidth / 2
+
+        let matrixHeight = CGFloat(GameConfig.scoreboardMatrixRowCount) * GameConfig.scoreboardCellHeight
+            + CGFloat(GameConfig.scoreboardMatrixRowCount - 1) * GameConfig.scoreboardCellGap
+        let originY = frame.midY + GameConfig.scoreboardMatrixOffsetY + matrixHeight / 2
+        let cellY = originY - GameConfig.scoreboardCellHeight / 2
+            - CGFloat(row) * (GameConfig.scoreboardCellHeight + GameConfig.scoreboardCellGap)
+
+        return CGPoint(x: cellX, y: cellY)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !isTransitioning, let view = self.view, let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        if let back = backButton, back.contains(location) {
+            isTransitioning = true
+            returnToResultOrStart(view: view)
+        }
+    }
+
+    private func returnToResultOrStart(view: SKView) {
+        let nextScene: SKScene
+        if let ctx = returnContext {
+            nextScene = ResultScene.newResultScene(
+                score: ctx.finalScore, bestScore: ctx.bestScore, isNewBest: ctx.isNewBest,
+                stats: ctx.stats, characterName: ctx.characterName, difficulty: ctx.difficulty,
+                isNewGraduation: false,    // 졸업장 재표시 차단
+                graduatedAt: nil
+            )
+        } else {
+            nextScene = StartScene.newStartScene()
+        }
+        view.presentScene(nextScene, transition: SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration))
     }
 }
 
-/// Sprint 7 Phase C — 카드 그라데이션 하단 색.
-var cardFillBottom: UIColor {
-    switch self {
-    case .easy:   return .ganhoDifficultyEasyDeep
-    case .normal: return .ganhoDifficultyMidDeep
-    case .hard:   return .ganhoDifficultyHardDeep
-    }
-}
-
-/// Sprint 7 Phase C — 카드 stroke 정색 (선택 시).
-var cardStrokeColor: UIColor {
-    switch self {
-    case .easy:   return .ganhoDifficultyEasyDeep
-    case .normal: return .ganhoDifficultyMidDeep
-    case .hard:   return .ganhoDifficultyHardDeep
-    }
-}
-
-/// Sprint 7 Phase C — 선택 카드 뒤 라디얼 글로우 색.
-var cardGlowColor: UIColor {
-    switch self {
-    case .easy:   return .ganhoDifficultyEasyMint
-    case .normal: return .ganhoDifficultyMidGold
-    case .hard:   return .ganhoDifficultyHardCoral
-    }
+/// ResultScene → ScoreboardScene → ResultScene 라운드트립용 9-인자 컨텍스트.
+struct ResultReturnContext {
+    let finalScore: Int
+    let bestScore: Int
+    let isNewBest: Bool
+    let stats: GameStats
+    let characterName: String
+    let difficulty: Difficulty
+    let isNewGraduation: Bool
+    let graduatedAt: Date?
 }
 ```
 
-> Difficulty enum case 실제 이름은 코드에서 확인. easy/normal/hard가 아니라면 그에 맞게 3 case exhaustive switch.
+> **주의**: `ResultScene.newResultScene` 실제 시그니처는 Generator가 코드에서 grep으로 확인 후 정확한 인자 순서·이름 매핑.
 
-### 기능 2: `ColorTokens.swift` 신규 6 토큰
-**위치**: 파일 끝 새 MARK 섹션 `// MARK: - Sprint 7 Phase C · Difficulty hierarchy`
+### 기능 4: GameConfig Phase D V3 상수 신규
 
+**위치**: `Config/GameConfig.swift` 파일 끝, `// MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene` 새 섹션
+
+**상수 ~40개** (값 일부 발췌):
 ```swift
-static let ganhoDifficultyEasyMint   = UIColor(hex: "#9BE0CC")
-static let ganhoDifficultyEasyDeep   = UIColor(hex: "#5EBFA3")
-static let ganhoDifficultyMidGold    = UIColor(hex: "#FFD27A")
-static let ganhoDifficultyMidDeep    = UIColor(hex: "#E5A647")
-static let ganhoDifficultyHardCoral  = UIColor(hex: "#FF6B5B")
-static let ganhoDifficultyHardDeep   = UIColor(hex: "#C44A3D")
+// ResultScene V3
+static let resultScoreNoteIconFontSizeV3: CGFloat = 24
+static let resultScoreNoteIconOffsetXV3: CGFloat = -60
+static let resultScoreRowOffsetYV3: CGFloat = -2
+static let resultBestPillWidthV3: CGFloat = 120
+static let resultBestPillHeightV3: CGFloat = 28
+static let resultBestPillOffsetXV3: CGFloat = 120
+static let resultHeaderChipOffsetYV3: CGFloat = 115
+static let resultTitleOffsetYV3: CGFloat = 85
+static let resultSubtitleOffsetYV3: CGFloat = 58
+static let resultAccentLineOffsetYV3: CGFloat = 148
+static let resultScoreSubOffsetYV3: CGFloat = -44
+static let resultDividerOffsetYV3: CGFloat = -78
+static let resultStatValueOffsetYV3: CGFloat = -98
+static let resultStatTitleOffsetYV3: CGFloat = -112
+static let resultScoreboardButtonWidthV3: CGFloat = 110
+static let resultScoreboardButtonOffsetXFromShareV3: CGFloat = -110
+static let resultScoreboardButtonText: String = "📊 기록 보기"
+static let resultBestPillTextNormalV3: String = "🏆 BEST"
+static let resultBestPillTextNewV3: String = "★ NEW BEST!"
+
+// ScoreboardScene 매트릭스
+static let scoreboardMatrixColumnCount: Int = 3
+static let scoreboardMatrixRowCount: Int = 5
+static let scoreboardCellWidth: CGFloat = 80
+static let scoreboardCellHeight: CGFloat = 36
+static let scoreboardCellGap: CGFloat = 4
+static let scoreboardRowHeaderWidth: CGFloat = 60
+static let scoreboardMatrixOffsetY: CGFloat = 10
+static let scoreboardMiniFaceScale: CGFloat = 0.47
+static let scoreboardCellScoreFontSize: CGFloat = 18
+static let scoreboardCellEmptyFontSize: CGFloat = 14
+static let scoreboardCellEmptyText: String = "—"
+static let scoreboardCellEmptyAlpha: CGFloat = 0.4
+static let scoreboardColumnHeaderFontSize: CGFloat = 15
+static let scoreboardRowHeaderShortNameFontSize: CGFloat = 13
+static let scoreboardRowHeaderShortNameOffsetX: CGFloat = 22
+static let scoreboardStarMarkerText: String = "★"
+static let scoreboardStarMarkerFontSize: CGFloat = 12
+static let scoreboardStarMarkerOffsetX: CGFloat = 28
+static let scoreboardStarMarkerOffsetY: CGFloat = 12
+
+// ScoreboardScene 헤더 + stat + 백 버튼
+static let scoreboardTitleOffsetY: CGFloat = 95
+static let scoreboardTitleFontSize: CGFloat = 30
+static let scoreboardSubtitleOffsetY: CGFloat = 72
+static let scoreboardSubtitleFontSize: CGFloat = 12
+static let scoreboardSubtitleText: String = "캐릭터·난이도별 최고점수"
+static let scoreboardTitleText: String = "기록 보기"
+static let scoreboardAccentLineOffsetY: CGFloat = 130
+static let scoreboardBackButtonWidth: CGFloat = 110
+static let scoreboardBackButtonHeight: CGFloat = 36
+static let scoreboardBackButtonText: String = "← 결과로"
+static let scoreboardBackButtonInsetX: CGFloat = 20
+static let scoreboardBackButtonInsetY: CGFloat = 32
+static let scoreboardBreadcrumbInsetX: CGFloat = 20
+static let scoreboardBreadcrumbInsetY: CGFloat = 32
+static let scoreboardBreadcrumbText: String = "캐릭터별 기록"
+static let scoreboardStatOffsetY: CGFloat = -150
+static let scoreboardStatFontSize: CGFloat = 12
 ```
 
-### 기능 3: `GameConfig.swift` Phase C V3 상수 14종
-**위치**: 파일 끝 새 MARK 섹션 `// MARK: - Sprint 7 Phase C · Difficulty hierarchy v3`
+### 기능 5: 신규 mockup HTML 2개
 
-```swift
-static let difficultyCardNameFontSizePhaseC: CGFloat = 30
-static let difficultyCardNameStrokeWidthPhaseC: CGFloat = 1.0
-static let difficultyCardSelectedLiftY: CGFloat = 8
-static let difficultyCardSelectedLiftDuration: TimeInterval = 0.18
-static let difficultyCardSelectedGlowWidthPhaseC: CGFloat = 158
-static let difficultyCardSelectedGlowHeightPhaseC: CGFloat = 116
-static let difficultyCardSelectedGlowAlphaPhaseC: CGFloat = 0.80
-static let difficultyCardSelectedGlowSpreadPhaseC: CGFloat = 12
-static let difficultySelectStartButtonHaloWidth: CGFloat = 240
-static let difficultySelectStartButtonHaloHeight: CGFloat = 90
-static let difficultySelectStartButtonHaloAlpha: CGFloat = 0.35
-static let difficultySelectStartButtonHaloSpread: CGFloat = 24
-static let difficultySelectStartButtonHaloFadeInDuration: TimeInterval = 0.25
-static let difficultySelectStartButtonHaloOffsetY: CGFloat = 0
-```
+**파일 1**: `mockups/result-screen-v3.html`
+- v2 카피 → "♪" 분리(별도 .score-note-icon 24pt 좌측 absolute) / BEST GlassPill 우측 +120px / headerChip top +15 / 새 .btn-scoreboard 좌측 추가
+- annotation: "Sprint 7 Phase D — SPRINT_7_REQUEST.md §5.2 매칭"
 
-### 기능 4: `DifficultyCardNode.setSelected(_:)` 카드별 색 lookup
-- init / setSelected에서 `id.color` 일색 분기를 `id.cardFillTop`/`cardStrokeColor`/`cardGlowColor` 패턴으로 교체
-- ringGlow.strokeColor를 `id.cardGlowColor` 사용
-- 선택 시 position.y +8 lift 액션 — `liftCurrentOffset` 증분 추적
-- 시그니처(`init(id:)`/`setSelected(_:)`) byte-identical
+**파일 2**: `mockups/highscore-board-v1.html`
+- 1024×768 .phone-frame, 3-stop warm gradient
+- 좌상단 GlassPill "← 결과로", 우상단 DarkContextChip "캐릭터별 기록"
+- 중앙 accentLine + Jua 30pt "기록 보기" + 부제
+- 매트릭스 5×3: 헤더 행(하/중/상 Phase C 색) + 5행(mini SVG 32px + 약칭 + 3 셀)
+- 4행(건간호) 1열(하)에 ★ + 큰 점수 200
+- 빈 셀 "—" 회색
+- 하단 "총 플레이 N회 · 졸업장 N장 보유"
 
-```swift
-// 신규 프로퍼티
-private let nameLabelStroke = SKLabelNode()
-private var liftCurrentOffset: CGFloat = 0
+## 합격 기준 (SPRINT_7_REQUEST.md §5.6)
 
-// setSelected 핵심
-background.fillColor = selected
-    ? id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardSelectedFillAlphaV3)
-    : id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardDeselectedFillAlphaV3)
-background.strokeColor = selected
-    ? id.cardStrokeColor
-    : id.cardStrokeColor.withAlphaComponent(GameConfig.difficultyCardDeselectedStrokeAlphaV3)
+- 결과창 5개 정보 요소 시뮬레이터 0px 겹침
+- 기록 보기 칩 탭 → ScoreboardScene 0.25s fade
+- 15셀 매트릭스 값 PerDifficultyScoreRepository.best와 일치
+- "← 결과로" 탭 → 새 ResultScene 인스턴스, 졸업장 재표시 0, sparkle 재발화 0
+- ★ 마커 직전 게임 (캐릭터,난이도) 셀에 1개만
+- 빈 셀 "—" 회색
 
-ringGlow.strokeColor = id.cardGlowColor
-let targetAlpha: CGFloat = selected
-    ? GameConfig.difficultyCardSelectedGlowAlphaPhaseC : 0.0
-// ... ringGlow fade 액션 ...
-
-// lift 액션
-removeAction(forKey: "cardLift")
-let targetY: CGFloat = selected ? GameConfig.difficultyCardSelectedLiftY : 0
-let lift = SKAction.moveBy(x: 0, y: targetY - liftCurrentOffset,
-    duration: GameConfig.difficultyCardSelectedLiftDuration)
-lift.timingMode = .easeOut
-run(lift, withKey: "cardLift")
-liftCurrentOffset = targetY
-```
-
-> 기존 V3 상수(difficultyCardDeselectedFillAlphaV3, DeselectedStrokeAlphaV3, SelectedFillAlphaV3, StrokeLineWidthV3, RingGlowFadeIn/Out 등)는 코드에서 확인. 없는 상수면 SPEC §기능 3에 누락된 것 — Generator가 발견 시 GameConfig에 추가.
-
-### 기능 5: 헤더(nameLabel) 폰트 30pt + 카드별 stroke 외곽선
-- 베이스 stroke 라벨 + 위 nameLabel 2개 겹쳐 stroke 효과
-- nameLabelStroke 폰트 = `30 + strokeWidth × 2` = 32pt, fontColor `id.cardStrokeColor`
-- nameLabel 폰트 30pt, navy
-- nameLabelStroke.zPosition = nameLabel.zPosition - 0.1
-
-### 기능 6: `DifficultySelectScene` 시작 버튼 halo SKShapeNode
-**위치**: `Scenes/DifficultySelectScene.swift` — `setupStartButton()` + `layoutStartButton()`
-
-```swift
-private var startButtonHalo: SKShapeNode?
-
-private func setupStartButton() {
-    let halo = SKShapeNode(ellipseOf: CGSize(
-        width: GameConfig.difficultySelectStartButtonHaloWidth,
-        height: GameConfig.difficultySelectStartButtonHaloHeight))
-    halo.fillColor = UIColor.ganhoCoralPrimary
-        .withAlphaComponent(GameConfig.difficultySelectStartButtonHaloAlpha)
-    halo.strokeColor = .clear
-    halo.lineWidth = 0
-    halo.glowWidth = GameConfig.difficultySelectStartButtonHaloSpread
-    halo.alpha = 0
-    halo.zPosition = startButton.zPosition - 1
-    halo.name = "difficultySelectStartButtonHalo"
-    startButtonHalo = halo
-    addChild(halo)
-    halo.run(SKAction.fadeAlpha(to: 1.0,
-        duration: GameConfig.difficultySelectStartButtonHaloFadeInDuration))
-    addChild(startButton)
-    layoutStartButton()
-}
-
-private func layoutStartButton() {
-    let pos = CGPoint(x: frame.midX,
-        y: frame.midY + GameConfig.difficultySelectStartButtonOffsetY)
-    startButton.position = pos
-    startButtonHalo?.position = CGPoint(x: pos.x,
-        y: pos.y + GameConfig.difficultySelectStartButtonHaloOffsetY)
-}
-```
-
-### 기능 7: 좌측 미니 캐릭터 속도배율 칩 stroke 보강
-**위치**: `Scenes/DifficultySelectScene.swift` — `setupSummaryCard()` 안 속도 칩
-
-```swift
-chip.fillColor = UIColor.ganhoScrubMint
-    .withAlphaComponent(GameConfig.difficultySelectSummarySpeedChipFillAlpha)
-chip.strokeColor = .ganhoDifficultyEasyDeep   // = #5EBFA3
-chip.lineWidth = 1
-chip.zPosition = 110
-```
-
-## 합격 기준 (Sprint 7 Phase C 한정)
-
-### 시각 합격 기준 (SPRINT_7_REQUEST.md §4.4)
-- [ ] 시뮬레이터에서 .easy / .normal / .hard 3개 카드 fill 색이 즉시 구분됨
-- [ ] 카드 헤더 폰트 30pt + 카드별 stroke 외곽선 시각 인지
-- [ ] 미선택 카드 alpha 0.78 / 선택 카드 alpha 1.0 + 글로우 ON
-- [ ] 선택 카드 +8pt 상승 + scale 1.05
-- [ ] 시작 버튼 halo 페이드 인 0.25s 자연스러움
-- [ ] 시작 버튼 입체 그림자 +2pt 강화
-
-### 코드 합격 기준
-- [ ] `DifficultySelectScene.init(characterID:)` 시그니처 0줄 변경
-- [ ] `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` byte-identical
-- [ ] `transitionBack()` .kim 분기 byte-identical
-- [ ] `Difficulty` enum 기존 멤버(`color`/`displayName`/`subtitle`/`description`/`shortName`/raw value) 100% 보존
-- [ ] `PrimaryButtonNode` 내부 0줄
-- [ ] ResultScene / GameScene / Models 외 파일 / Managers / Repositories / Systems 0줄
-- [ ] Phase A·B 결과물 0줄
-- [ ] 강제 언래핑 0, Timer 0, update() 안 addChild 0, switch default 미사용
-- [ ] 매직 넘버 0 — 모든 신규 수치는 V3 상수 참조
-- [ ] 하드코딩 hex 0 — ColorTokens 경유
-
-### 평가 4-카테고리 통과선
 | 카테고리 | 가중치 | 통과선 |
 |---|---|---|
 | 게임 로직 회귀 0 | 40% | 9.0 |
 | Swift 패턴 | 20% | 7.0 |
-| 비주얼 일관성 (mockup) | 25% | 7.0 (difficulty-select-v3.html 매칭 ≥ 85%) |
+| 비주얼 일관성 | 25% | 7.0 |
 | 가독성 & UX | 15% | 7.0 |
 
-가중 평균 **7.5 이상**이면 ✅ 합격.
+가중 평균 7.5 이상 합격.
 
 ## 변경 LOC 추정치
 
-| 파일 | 신규 | 수정 | 합계 |
-|---|---|---|---|
-| `Config/ColorTokens.swift` | ~12 | 0 | ~12 |
-| `Config/GameConfig.swift` | ~38 | 0 | ~38 |
-| `Models/Difficulty.swift` | ~32 | 0 | ~32 |
-| `Nodes/DifficultyCardNode.swift` | ~25 | ~12 | ~37 |
-| `Scenes/DifficultySelectScene.swift` | ~28 | ~6 | ~34 |
-| `mockups/difficulty-select-v3.html` | ~350 | 0 | ~350 |
-| **Swift 합계** | **~135** | **~18** | **~153** |
-
-SPRINT_7_REQUEST.md §1 Phase C 예상치 ~200 — 합리적 범위 (-47).
+| 파일 | LOC |
+|---|---|
+| `Scenes/ResultScene.swift` | +60 |
+| `Scenes/ScoreboardScene.swift` (신규) | +340 |
+| `Nodes/CharacterFaceNode.swift` | +12 |
+| `Config/GameConfig.swift` | +95 |
+| `mockups/result-screen-v3.html` (신규) | +250 |
+| `mockups/highscore-board-v1.html` (신규) | +220 |
+| **합계** | **~975 LOC** (Swift만 ~500) |
 
 ## OPEN_QUESTION
 
-**OQ-1 (결정됨)**: `DifficultyCardNode`는 별도 파일 (`Nodes/DifficultyCardNode.swift` ~185 LOC). 기존 V3 1.4배 확장 완료. Phase C는 색 lookup 추가만.
+**OQ-1 (결정됨)**: ScoreboardScene → ResultScene 복귀는 옵션 A (새 인스턴스 생성, `ResultReturnContext` struct로 9-인자 전달, `isNewGraduation: false` 강제로 졸업장 재표시 차단). 1탭 정책은 각 화면 안에서 유지.
 
-**OQ-2 (결정됨)**: 좌측 미니 캐릭터 `CharacterFaceNode mini factory` 재사용 — 기존 `setScale(GameConfig.difficultySelectSummaryFaceScale = 0.65)` 패턴 그대로. mini factory 신설 0건. ScoreboardScene(Phase D) 가서 도입.
+**OQ-2 (결정됨)**: GraduationRepository API는 `graduationRepo.current.count` (`current: [CharacterID: Date]`의 keys 개수). `totalPlays`도 `statsRepo.current.playCount`.
 
-**OQ-3 (결정됨)**: 시작 버튼 halo는 **Scene에서 별도 SKShapeNode 부착**. PrimaryButtonNode 0줄 변경. 다른 화면 회귀 위험 0.
+**OQ-3 (결정됨)**: ★ 마커는 ResultScene이 `isNewBest + inferredCharacterID + difficulty`로 lastUpdatedKey 산출. 전역 isNewBest와 perDiff isNewBest 미세 차이는 근사 허용 (init 시그니처 변경 금지).
 
-**OQ-4 (결정됨)**: 선택 카드 -8pt 상승은 카드 노드 전체 position 이동 + `liftCurrentOffset` 증분 추적. mockup CSS `transform: translateY(-8px)`와 일관(모든 자식 함께 올라감).
+**OQ-4 (결정됨)**: CharacterFaceNode.mini 팩토리는 기존 `init(id:)` + `setScale(0.47)`. 신규 시각 자식 0.
 
 ## 주의사항
 
-### Phase C 특유 위험
-1. **`Difficulty.color` 기존 computed property 보존** — 새 `cardFillTop`은 별도. 기존 `.color` 사용처 회귀 0.
-2. **`liftCurrentOffset` 증분 패턴** — setSelected 중복 호출 시 position 누적 방지.
-3. **`ringGlow.strokeColor`는 setSelected에서 매번 재설정** — 카드 인스턴스 자체는 id 고정이라 init에서 1회로 충분하나 가독성 위해 명시.
-4. **`nameLabelStroke` zPosition** — nameLabel zPos 그대로(기존 5), strokeLabel은 z=4.9 (뒤).
-5. **시작 버튼 halo zPosition** — startButton보다 -1. hit-test는 startButton이 먼저 받음.
-6. **`SKShapeNode.glowWidth` 한계** — 진정한 Gaussian blur는 없음. stroke를 확장하는 효과. mockup `filter: blur(24px)`는 근사.
-
-### 일반 Swift / SpriteKit
-7. **`default` case 미사용** — 4개 신규 computed property 모두 3 case exhaustive.
-8. **하드코딩 hex 0** — 모든 색은 ColorTokens 경유.
-9. **클로저 self 캡처** — SKAction 안 self 접근 시 `[weak self]`. Phase C 신규 클로저 없음.
-
----
+1. **bestLabel 충돌**: 기존 `bestLabel`은 노드 트리 보존, `.alpha = 0`으로 시각만 차단. `startBestLabelGoldBlink()` fadeAlpha 액션은 0↔0.3 깜빡여도 시각 안 보임 (괜찮음).
+2. **isNewBest sparkle 5발**: `resultSparklePositionsV2` 좌표는 카드 주변이라 점수 위치 변경 영향 0.
+3. **졸업장 재진입 차단**: 복귀 시 `isNewGraduation: false` 명시.
+4. **CharacterID 역변환 안전**: 5 displayName 유일.
+5. **SceneSafeArea 적용**: ScoreboardScene도 백 버튼/브레드크럼 top inset 안전.
+6. **Repository 인스턴스**: 매번 new (기존 코드 패턴 동일, UserDefaults 기반).
+7. **★ zPosition**: 셀(2)보다 위(3).
+8. **`ResultReturnContext` struct**: ScoreboardScene.swift 같은 파일 내 정의 (Foundation 의존만).
 
 ## 관련 파일 (절대 경로)
 
-- 수정 대상:
-  - `GanhoMusic/GanhoMusic Shared/Models/Difficulty.swift`
-  - `GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift`
-  - `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
-  - `GanhoMusic/GanhoMusic Shared/Nodes/DifficultyCardNode.swift`
-  - `GanhoMusic/GanhoMusic Shared/Scenes/DifficultySelectScene.swift`
-- 신규:
-  - `mockups/difficulty-select-v3.html`
-- 시각 레퍼런스 (읽기):
-  - `mockups/difficulty-select-v2.html`
-  - `mockups/character-select-v3.html`, `mockups/skill-explanation-v3.html`
+- 수정: `GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift`, `Nodes/CharacterFaceNode.swift`, `Config/GameConfig.swift`
+- 신규: `Scenes/ScoreboardScene.swift`, `mockups/result-screen-v3.html`, `mockups/highscore-board-v1.html`
+- 참조: `Repositories/PerDifficultyScoreRepository.swift`, `StatisticsRepository.swift`, `GraduationRepository.swift`, `Models/CharacterID.swift`, `Models/Difficulty.swift`, `mockups/result-screen-v2.html`

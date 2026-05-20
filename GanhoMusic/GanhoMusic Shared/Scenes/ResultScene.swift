@@ -76,6 +76,17 @@ final class ResultScene: SKScene {
     private var shareButton: GlassPillNode?
     /// 다시 시작 PrimaryButton.
     private let restartButton = PrimaryButtonNode(text: "다시 시작")
+    /// Sprint 7 Phase D — scoreLabel("0") 좌측에 떨어진 작은 ♪ 아이콘(24pt).
+    /// V2에서 scoreLabel.text가 "♪ \(finalScore)"였지만, V3에서 ♪는 *분리된 노드*가 담당해
+    /// 점수 숫자만 거대하게 보이게 한다. scoreLabel.text는 "\(finalScore)"로 갱신.
+    private let scoreNoteIconLabel = SKLabelNode(text: "♪")
+    /// Sprint 7 Phase D — "📊 기록 보기" GlassPill. 탭 → ScoreboardScene 전이.
+    /// shareButton 좌측에 배치. 옵셔널 — didMove 전엔 nil.
+    private var scoreboardButton: GlassPillNode?
+    /// Sprint 7 Phase D — bestLabel 시각 대체 GlassPill. scoreLabel 우측 +120pt 위치.
+    /// bestLabel은 `.alpha = 0`으로 시각 차단(노드 트리 보존) + bestPill이 시각 담당.
+    /// 옵셔널 — didMove 전엔 nil.
+    private var bestPill: GlassPillNode?
     /// 헤더 DarkContextChip — "중 난이도 · 건간호" 한 줄 통합.
     private var headerChip: DarkContextChipNode?
     /// AccentLine 카드 상단 액센트.
@@ -232,6 +243,11 @@ final class ResultScene: SKScene {
         statsLabel.alpha = 0
         promptLabel.alpha = 0
 
+        // Sprint 7 Phase D — bestLabel은 *V3 bestPill*이 시각 대체. alpha=0으로 차단(노드 트리 보존).
+        // startBestLabelGoldBlink 액션이 0.5↔1.0 깜빡여도 bestLabel 위치(-60)는 V3에서 *비어 있는* 자리라
+        // 우상단 bestPill의 명확성에 영향 0. NewBest sparkle/heavy/사운드는 byte-identical 유지.
+        bestLabel.alpha = 0
+
         // 분기별 시각 토큰 — titleLabel / scoreLabel / bestLabel은 분기 결과 *덮어쓰기* 한 줄로 정리.
         configureTitleLabelV2()
         configureScoreLabelV2()
@@ -241,7 +257,9 @@ final class ResultScene: SKScene {
         configureDivider()
 
         // 데이터 합성.
-        scoreLabel.text = "♪ \(finalScore)"
+        // Sprint 7 Phase D — scoreLabel은 *숫자만*. ♪는 scoreNoteIconLabel(24pt)이 좌측에서 담당.
+        // configureScoreLabelV2()에서 "♪ \(finalScore)"로 세팅했지만 V3에서는 *숫자만* 덮어쓴다.
+        scoreLabel.text = "\(finalScore)"
         bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "🏆 BEST \(bestScore)"
         statsLabel.text = "PLAYS \(stats.playCount)  /  TOTAL \(stats.totalScore)"
         characterLabel.text = "🎮 \(characterName)"
@@ -273,6 +291,11 @@ final class ResultScene: SKScene {
         addChild(divider)
         setupStats()
         setupButtons()
+
+        // Sprint 7 Phase D — V3 신규 자식 3개 (♪ 좌측 아이콘 / BEST GlassPill / 기록 보기 GlassPill).
+        setupScoreNoteIcon()
+        setupBestPill()
+        setupScoreboardButton()
 
         layoutLabels()
 
@@ -459,6 +482,59 @@ final class ResultScene: SKScene {
         addChild(restartButton)
     }
 
+    // MARK: - Setup (Sprint 7 Phase D · V3 신규 자식 3개)
+
+    /// V3 — scoreLabel 좌측에 분리된 ♪ 24pt 아이콘. fontColor는 분기 A 코랄 / 분기 B 골드(scoreLabel과 톤 동기화).
+    /// 라벨 자체 위치는 layoutLabels()에서 scoreLabel.position + offset으로 계산.
+    private func setupScoreNoteIcon() {
+        scoreNoteIconLabel.fontName = GameConfig.fontDisplay
+        scoreNoteIconLabel.fontSize = GameConfig.resultScoreNoteIconFontSizeV3
+        scoreNoteIconLabel.fontColor = isNewBest ? .ganhoMusicGold : .ganhoCoralPrimary
+        scoreNoteIconLabel.horizontalAlignmentMode = .center
+        scoreNoteIconLabel.verticalAlignmentMode = .center
+        scoreNoteIconLabel.zPosition = 6
+        scoreNoteIconLabel.name = "scoreNoteIcon"
+        addChild(scoreNoteIconLabel)
+    }
+
+    /// V3 — bestLabel 시각 대체 GlassPill. 점수 우측 +120pt 위치에 nestled.
+    /// 텍스트는 분기 A("🏆 BEST 24") / 분기 B("★ NEW BEST!"). GlassPill 자체 fontColor는 navyDeep(기본) 유지.
+    private func setupBestPill() {
+        let text: String
+        if isNewBest {
+            text = GameConfig.resultBestPillTextNewV3
+        } else {
+            text = "\(GameConfig.resultBestPillTextNormalV3) \(bestScore)"
+        }
+        let pill = GlassPillNode(
+            text: text,
+            size: CGSize(
+                width: GameConfig.resultBestPillWidthV3,
+                height: GameConfig.resultBestPillHeightV3
+            )
+        )
+        pill.zPosition = 11
+        pill.name = "bestPill"
+        bestPill = pill
+        addChild(pill)
+    }
+
+    /// V3 — "📊 기록 보기" GlassPill. shareButton 좌측에 배치. 탭 시 ScoreboardScene 전이.
+    /// touchesBegan에서 contains(location) hit-test.
+    private func setupScoreboardButton() {
+        let pill = GlassPillNode(
+            text: GameConfig.resultScoreboardButtonText,
+            size: CGSize(
+                width: GameConfig.resultScoreboardButtonWidthV3,
+                height: GameConfig.resultShareButtonHeightV2
+            )
+        )
+        pill.zPosition = 10
+        pill.name = "scoreboardButton"
+        scoreboardButton = pill
+        addChild(pill)
+    }
+
     /// scene.size 기준 위치 재계산. didMove와 didChangeSize에서 공용.
     /// Sprint 5 — 신규 v2 자식 위치 추가. 기존 라벨은 alpha=0이지만 layout은 유지(보호 가드).
     private func layoutLabels() {
@@ -497,54 +573,73 @@ final class ResultScene: SKScene {
             y: frame.midY + GameConfig.newBestOffsetY
         )
 
-        // Sprint 5 신규 자식 — y offset 표(SPEC §파일별 변경 명세 / ResultScene layoutLabels).
+        // Sprint 7 Phase D — V3 신규 좌표. 기존 V2 라벨/divider 위치를 V3 offset으로 *시프트*만 한다.
+        // V2 상수는 보존 — bestLabel은 alpha=0이라 위치 표시 안 되지만 노드 트리는 유지.
         accentLine.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultAccentLineOffsetYV2
+            y: frame.midY + GameConfig.resultAccentLineOffsetYV3
         )
         headerChip?.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultHeaderChipOffsetYV2
+            y: frame.midY + GameConfig.resultHeaderChipOffsetYV3
         )
         subtitleLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultSubtitleOffsetYV2
+            y: frame.midY + GameConfig.resultSubtitleOffsetYV3
         )
         scoreSubLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultScoreSubOffsetYV2
+            y: frame.midY + GameConfig.resultScoreSubOffsetYV3
         )
         divider.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultDividerOffsetYV2
+            y: frame.midY + GameConfig.resultDividerOffsetYV3
         )
         playsValueLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatValueOffsetYV2
+            y: frame.midY + GameConfig.resultStatValueOffsetYV3
         )
         playsTitleLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatTitleOffsetYV2
+            y: frame.midY + GameConfig.resultStatTitleOffsetYV3
         )
         totalValueLabel.position = CGPoint(
             x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatValueOffsetYV2
+            y: frame.midY + GameConfig.resultStatValueOffsetYV3
         )
         totalTitleLabel.position = CGPoint(
             x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatTitleOffsetYV2
+            y: frame.midY + GameConfig.resultStatTitleOffsetYV3
+        )
+
+        // Sprint 7 Phase D — V3 신규 자식 3개 좌표.
+        // (1) scoreNoteIconLabel — scoreLabel.position 기준 -60 좌측 / y는 score row(-2)와 정렬.
+        scoreNoteIconLabel.position = CGPoint(
+            x: frame.midX + GameConfig.resultScoreNoteIconOffsetXV3,
+            y: frame.midY + GameConfig.resultScoreRowOffsetYV3
+        )
+        // (2) bestPill — scoreLabel.position 기준 +120 우측 / y는 score row(-2)와 정렬.
+        bestPill?.position = CGPoint(
+            x: frame.midX + GameConfig.resultBestPillOffsetXV3,
+            y: frame.midY + GameConfig.resultScoreRowOffsetYV3
         )
         // Sprint 7+ — safeArea.bottom 회피로 교체.
         // 기존 resultButtonOffsetYV2(-180)는 값 보존 — 다른 곳 참조 가능성.
         // frame.midY + offset 식은 디바이스에 따라 두 버튼이 잘렸다.
         let safe = SceneSafeArea.insets(for: self)
         let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInset
+        let shareX = frame.midX + GameConfig.resultShareButtonXOffsetV2
         shareButton?.position = CGPoint(
-            x: frame.midX + GameConfig.resultShareButtonXOffsetV2,
+            x: shareX,
             y: buttonY
         )
         restartButton.position = CGPoint(
             x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
+            y: buttonY
+        )
+        // Sprint 7 Phase D — V3 신규 "📊 기록 보기" GlassPill — shareButton 좌측 -110pt.
+        scoreboardButton?.position = CGPoint(
+            x: shareX + GameConfig.resultScoreboardButtonOffsetXFromShareV3,
             y: buttonY
         )
 
@@ -553,20 +648,62 @@ final class ResultScene: SKScene {
     }
 
     // MARK: - Touch
-    /// 화면 어디든 탭 1회 → StartScene 전환. 중복 탭은 isTransitioning으로 차단.
-    /// view 옵셔널은 강제 언래핑 금지 — guard let으로 안전 추출.
+    /// 화면 탭 1회 → 기록 보기 칩이면 ScoreboardScene, 그 외는 StartScene 전환.
+    /// 중복 탭은 isTransitioning으로 차단. view 옵셔널은 guard let으로 안전 추출.
+    /// Sprint 7 Phase D — scoreboardButton 탭 분기 추가(1탭 정책 유지 — 한 화면 안에서 한 번만 탭).
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         // Phase 7-5 — 졸업장 표시 중이면 StartScene 전환 차단. 졸업장 자체가 isUserInteractionEnabled=true로
         // 자기 터치를 흡수하므로 이 경로 도달 가능성은 낮지만 edge case 안전망.
         if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
-        guard let view = self.view else { return }
+        guard let view = self.view, let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        // Sprint 7 Phase D — 기록 보기 GlassPill 탭 분기 → ScoreboardScene 0.4s fade.
+        // ★ 마커 키: 신기록이고 캐릭터 역변환 성공한 경우만. 그 외 nil → 매트릭스에 ★ 미표시.
+        // ResultReturnContext에 9-인자 전달 — 졸업장 재진입 차단을 위해 isNewGraduation은 SPEC §주의사항 3에 따라
+        // ScoreboardScene.returnToResult* 단계에서 `false`로 강제 — 이 단계에서는 원본값 그대로 전달.
+        if let pill = scoreboardButton, pill.contains(location) {
+            isTransitioning = true
+            let lastUpdatedKey: (CharacterID, Difficulty)? = {
+                guard isNewBest, let charID = inferredCharacterID else { return nil }
+                return (charID, difficulty)
+            }()
+            let ctx = ResultReturnContext(
+                finalScore: finalScore,
+                bestScore: bestScore,
+                isNewBest: isNewBest,
+                stats: stats,
+                characterName: characterName,
+                difficulty: difficulty,
+                isNewGraduation: isNewGraduation,
+                graduatedAt: graduatedAt
+            )
+            let scoreboard = ScoreboardScene.newScoreboardScene(
+                lastUpdatedKey: lastUpdatedKey,
+                returnContext: ctx
+            )
+            let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+            view.presentScene(scoreboard, transition: fade)
+            return
+        }
+
         isTransitioning = true
         // Phase 10-1c — TitleScene 삭제 + StartScene 신설 따른 *필수 연동 변경* (1줄).
         // SPEC.md "ResultScene 0줄 변경" 정책은 *내부 로직* 보존 의도 — 외부 신호(타이틀 씬 진입점) 갱신은 회귀 0.
         let startScene = StartScene.newStartScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(startScene, transition: fade)
+    }
+
+    // MARK: - Helpers (Sprint 7 Phase D)
+
+    /// characterName(한글) → CharacterID 역변환. allCases.first {$0.displayName == characterName}.
+    /// 5명의 displayName이 모두 유일하므로 안전. 매칭 실패 시 nil 반환 — ★ 마커 미표시.
+    /// ResultScene.init 9-인자 시그니처를 *그대로 보존*하기 위한 우회 — characterID는 인자가 아니므로
+    /// characterName으로부터 역추론한다(SPEC §OQ-3).
+    private var inferredCharacterID: CharacterID? {
+        return CharacterID.allCases.first { $0.displayName == characterName }
     }
 
     // MARK: - New Best (Phase 6-15)

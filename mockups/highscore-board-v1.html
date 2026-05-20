@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 하이스코어 보드 v1 (Sprint 7 Phase D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  .variant-label {
+    font-family: 'Jua', sans-serif; color: #FF8E80; font-size: 14px;
+    margin: 28px 0 10px; padding-left: 12px;
+    border-left: 3px solid #FF6B5B; letter-spacing: 1px;
+  }
+
+  /* === Phone (1024x768 landscape) === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px; padding: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9; max-width: 920px; margin: 0 auto 12px; position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute; top: 50%; left: 18px; transform: translateY(-50%);
+    width: 8px; height: 90px; background: #0a0a0a; border-radius: 4px; z-index: 100;
+  }
+
+  /* === Top bar: 좌상단 GlassPill, 우상단 DarkContextChip === */
+  .back-pill {
+    position: absolute;
+    top: 18px; left: 32px;
+    width: 110px; height: 36px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #2D2A4A;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 20;
+  }
+  .breadcrumb {
+    position: absolute;
+    top: 18px; right: 32px;
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFB347;
+    padding: 6px 16px; border-radius: 999px;
+    font-family: 'Jua', sans-serif; font-size: 12px;
+    z-index: 20;
+  }
+
+  /* === Header (accent-line + title + subtitle) === */
+  .header {
+    position: absolute;
+    top: 14%;
+    left: 0; right: 0;
+    text-align: center;
+    z-index: 5;
+  }
+  .accent-line {
+    width: 32px; height: 3px; background: #FF6B5B; border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+  .title-label {
+    font-family: 'Jua', sans-serif;
+    font-size: 30px;
+    color: #2D2A4A;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px;
+    color: #5A5670;
+    letter-spacing: 1px;
+  }
+
+  /* === Matrix === */
+  .matrix-wrap {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: 60px repeat(3, 80px);
+    gap: 4px;
+  }
+  .matrix .col-header, .matrix .row-header, .matrix .cell {
+    height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Jua', sans-serif;
+  }
+  /* 좌상단 모서리 셀(빈 공간) */
+  .matrix .corner { background: transparent; }
+  .matrix .col-header {
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .matrix .col-header.easy { background: rgba(155, 224, 204, 0.45); color: #5EBFA3; }
+  .matrix .col-header.normal { background: rgba(255, 210, 122, 0.45); color: #E5A647; }
+  .matrix .col-header.hard { background: rgba(255, 107, 91, 0.30); color: #C44A3D; }
+
+  .matrix .row-header {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: 8px;
+    gap: 6px;
+    padding: 0 6px;
+    font-size: 13px;
+    color: #2D2A4A;
+  }
+  .row-header .face {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #FFE2C6;
+    border: 1.2px solid #2D2A4A;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Noto Sans KR', sans-serif; font-size: 11px;
+  }
+  /* 캐릭터별 미니 얼굴 살짝 다른 색 (시안 — 실제 SpriteKit은 CharacterFaceNode.mini SVG) */
+  .row-header .face.kim { background: #FFD9B8; }
+  .row-header .face.jung { background: #C8E8D8; }
+  .row-header .face.geon { background: #E0DDF4; }
+  .row-header .face.im { background: #FFE5D0; }
+  .row-header .face.lee { background: #FFB6B0; }
+
+  .matrix .cell {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    font-size: 18px;
+    color: #2D2A4A;
+    position: relative;
+  }
+  .matrix .cell.empty {
+    color: rgba(90, 86, 112, 0.4);
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 14px;
+  }
+  .matrix .cell .star {
+    position: absolute;
+    top: 4px; right: 6px;
+    color: #FFB347;
+    font-family: 'Jua', sans-serif;
+    font-size: 12px;
+  }
+
+  /* === Bottom stat === */
+  .stat-row {
+    position: absolute;
+    bottom: 10%;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: #5A5670;
+    font-size: 12px;
+    z-index: 4;
+  }
+
+  /* === Annotation === */
+  .annot-title {
+    font-family: 'Jua', sans-serif; color: #fff; font-size: 18px;
+    margin: 24px 0 14px;
+  }
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .annotation {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .annotation p { font-size: 13px; color: #b5b5bd; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 하이스코어 보드 v1</h1>
+  <p class="sub">Sprint 7 Phase D · ScoreboardScene — 5(캐릭터)×3(난이도) 매트릭스 + ★ 마커 + 하단 stat</p>
+
+  <div class="variant-label">기록 보기 (Scoreboard) — ResultScene "📊 기록 보기" 탭에서만 진입</div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <!-- 좌상단 백 버튼 / 우상단 브레드크럼 -->
+      <div class="back-pill">← 결과로</div>
+      <div class="breadcrumb">캐릭터별 기록</div>
+
+      <!-- 헤더: AccentLine + Title + Subtitle -->
+      <div class="header">
+        <div class="accent-line"></div>
+        <div class="title-label">기록 보기</div>
+        <div class="subtitle">캐릭터·난이도별 최고점수</div>
+      </div>
+
+      <!-- 매트릭스 5×3 + 헤더 행 -->
+      <div class="matrix-wrap">
+        <div class="matrix">
+          <!-- 헤더 행: 모서리 / 하 / 중 / 상 -->
+          <div class="corner"></div>
+          <div class="col-header easy">하</div>
+          <div class="col-header normal">중</div>
+          <div class="col-header hard">상</div>
+
+          <!-- 김간호 행 -->
+          <div class="row-header"><span class="face kim"></span><span>김</span></div>
+          <div class="cell">142</div>
+          <div class="cell">98</div>
+          <div class="cell empty">—</div>
+
+          <!-- 정간호 행 -->
+          <div class="row-header"><span class="face jung"></span><span>정</span></div>
+          <div class="cell empty">—</div>
+          <div class="cell">76</div>
+          <div class="cell">120</div>
+
+          <!-- 건간호 행 — ★ 데모 (하·신기록 갱신) -->
+          <div class="row-header"><span class="face geon"></span><span>건</span></div>
+          <div class="cell">200<span class="star">★</span></div>
+          <div class="cell">150</div>
+          <div class="cell">60</div>
+
+          <!-- 임간호 행 -->
+          <div class="row-header"><span class="face im"></span><span>임</span></div>
+          <div class="cell">88</div>
+          <div class="cell empty">—</div>
+          <div class="cell empty">—</div>
+
+          <!-- 이간호 행 -->
+          <div class="row-header"><span class="face lee"></span><span>이</span></div>
+          <div class="cell">120</div>
+          <div class="cell">95</div>
+          <div class="cell empty">—</div>
+        </div>
+      </div>
+
+      <!-- 하단 stat -->
+      <div class="stat-row">총 플레이 47회 · 졸업장 2장 보유</div>
+    </div>
+  </div>
+
+  <!-- ============= 핵심 결정 ============= -->
+  <div class="annot-title">Sprint 7 Phase D — ScoreboardScene 핵심 결정</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>5×3 매트릭스</h3>
+      <p>캐릭터 5명(김·정·건·임·이) × 난이도 3종(하·중·상) = 15셀. PerDifficultyScoreRepository.best 그대로 표시.</p>
+    </div>
+    <div class="annotation">
+      <h3>★ 마커 1개</h3>
+      <p>직전 게임이 신기록 갱신한 (캐릭터, 난이도) 셀에만 ★. ResultScene이 lastUpdatedKey로 전달.</p>
+    </div>
+    <div class="annotation">
+      <h3>빈 셀 "—" 회색</h3>
+      <p>아직 안 한 (캐릭터, 난이도) 조합. Gowun Dodum 14pt alpha 0.4 — 시각적으로 살짝 빠짐.</p>
+    </div>
+    <div class="annotation">
+      <h3>열 헤더 Phase C 색</h3>
+      <p>하 = 민트 stroke / 중 = 골드 stroke / 상 = 코랄 stroke. Phase C와 시각 일관성.</p>
+    </div>
+    <div class="annotation">
+      <h3>← 결과로 1탭</h3>
+      <p>좌상단 GlassPill 1탭 → ResultScene 새 인스턴스 fade 0.4s. 졸업장은 재표시 차단 (isNewGraduation=false 강제).</p>
+    </div>
+    <div class="annotation">
+      <h3>하단 stat</h3>
+      <p>StatisticsRepository.current.playCount + GraduationRepository.current.count. 저장·갱신 0건 — 읽기 전용.</p>
+    </div>
+  </div>
+
+  <!-- SpriteKit 매핑 -->
+  <div class="annot-title">SpriteKit 구현 매핑</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>매트릭스 컨테이너</h3>
+      <p>matrixContainer = SKNode() · 자식 = 열 헤더 3 + 행 헤더 5 (face + name) + 셀 15 + ★ 마커 1. zPosition 2~6 분리.</p>
+    </div>
+    <div class="annotation">
+      <h3>미니 얼굴 32px</h3>
+      <p>CharacterFaceNode.mini(id:) — 기존 init(id:) + setScale(0.47). 신규 시각 자식 0건.</p>
+    </div>
+    <div class="annotation">
+      <h3>repo 인스턴스</h3>
+      <p>매 씬 new — PerDifficultyScoreRepository / StatisticsRepository / GraduationRepository. UserDefaults 기반 stateless.</p>
+    </div>
+    <div class="annotation">
+      <h3>safeArea 회피</h3>
+      <p>좌상단 백 버튼 / 우상단 브레드크럼은 SceneSafeArea.insets로 노치 회피 inset 적용.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

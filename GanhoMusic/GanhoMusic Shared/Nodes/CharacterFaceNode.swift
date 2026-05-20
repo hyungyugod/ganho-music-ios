@@ -63,6 +63,17 @@ final class CharacterFaceNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Mini Factory (Sprint 7 Phase D)
+    /// ScoreboardScene 행 헤더용 32pt 미니 얼굴 — 기존 `init(id:)` 결과를 0.47x로 축소.
+    /// 신규 시각 자식 0건 — `setScale`만 적용해 코드 재사용. 카드 외부 부착 안전.
+    /// `0.47 ≈ 32 / 68`(CharacterFaceNode head ellipse ry 34 × 2 = 68 → 32pt 목표).
+    static func mini(id: CharacterID) -> CharacterFaceNode {
+        let face = CharacterFaceNode(id: id)
+        face.setScale(GameConfig.scoreboardMiniFaceScale)
+        face.name = "miniFace_\(id.rawValue)"
+        return face
+    }
+
     // MARK: - Common Builders
     /// 5명 공통 머리 베이스 타원. mockup `<ellipse cx="0" cy="0" rx="32" ry="34" fill="#FFE2C6" stroke="#2D2A4A" stroke-width="2.5"/>`.
     /// zPosition 0 — 가장 안쪽.

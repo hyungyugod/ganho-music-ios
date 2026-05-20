@@ -1979,4 +1979,153 @@ enum GameConfig {
     static let difficultySelectStartButtonHaloFadeInDuration: TimeInterval = 0.25
     /// Phase C — 시작 버튼 halo y offset (0pt — 버튼 정중앙 뒤). 별도 보정 필요 시 사용.
     static let difficultySelectStartButtonHaloOffsetY: CGFloat = 0
+
+    // MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene
+    //
+    // 결과창 시각 정보 5요소(♪·점수·SCORE 라벨·BEST 칩·캐릭터/난이도)가 같은 좌표 근처에
+    // 몰리던 V2 문제를 해소. V3는 점수가 시각 주인공이 되도록 ♪를 24pt로 줄이고,
+    // SCORE 라벨을 점수 아래로, BEST를 점수 우측 GlassPill로 분리하며, headerChip은
+    // 타이틀 위로 끌어올린다. "📊 기록 보기" GlassPill 신규로 ScoreboardScene 진입.
+    //
+    // V2 상수는 *모두 보존* — bestLabel/scoreSubLabel/divider/playsValueLabel 등 노드 트리는
+    // alpha=0 차단으로 살아 있고, 좌표 시프트만 V3 상수로 한다.
+
+    // ResultScene V3 — 점수 좌측 ♪ 아이콘 (scoreLabel과 분리)
+    /// scoreLabel("♪ 0")의 ♪를 제거 → 좌측 별도 라벨 24pt 부착. 점수가 시각 주인공.
+    static let resultScoreNoteIconFontSizeV3: CGFloat = 24
+    /// scoreLabel.position.x 기준 ♪ 라벨 x 오프셋(좌측 -60). 점수 중심에서 살짝 좌측.
+    static let resultScoreNoteIconOffsetXV3: CGFloat = -60
+    /// ♪ 라벨 y는 scoreLabel.position.y와 동일. V3는 scoreLabel y(-2)에 정렬.
+    static let resultScoreRowOffsetYV3: CGFloat = -2
+
+    // ResultScene V3 — BEST GlassPill (bestLabel 시각 대체)
+    /// BEST GlassPill 폭(120pt). "🏆 BEST 999" / "★ NEW BEST!" 두 텍스트 모두 수용.
+    static let resultBestPillWidthV3: CGFloat = 120
+    /// BEST GlassPill 높이(28pt). 점수 옆에 nestled.
+    static let resultBestPillHeightV3: CGFloat = 28
+    /// BEST GlassPill 중앙 x 오프셋(+120pt — scoreLabel 우측). frame.midX 기준.
+    static let resultBestPillOffsetXV3: CGFloat = 120
+
+    // ResultScene V3 — headerChip · title · subtitle · accentLine 위로 올림
+    /// headerChip y 오프셋(+115pt — V2의 +100보다 위). 타이틀 위쪽으로 끌어올림.
+    static let resultHeaderChipOffsetYV3: CGFloat = 115
+    /// 타이틀 y 오프셋(+85pt — V2의 +70보다 위). headerChip이 위로 올라가니 따라 올라감.
+    static let resultTitleOffsetYV3: CGFloat = 85
+    /// 부제 y 오프셋(+58pt — V2의 +44보다 위). 타이틀과 함께 위로.
+    static let resultSubtitleOffsetYV3: CGFloat = 58
+    /// AccentLine y 오프셋(+148pt — V2의 +130보다 위). headerChip 위 강조.
+    static let resultAccentLineOffsetYV3: CGFloat = 148
+
+    // ResultScene V3 — SCORE 라벨 점수 아래로
+    /// SCORE 부제 y 오프셋(-44pt — V2의 -32보다 아래). 점수 라벨 아래로 떨어뜨림.
+    static let resultScoreSubOffsetYV3: CGFloat = -44
+
+    // ResultScene V3 — divider · stat 라벨 위로 끌어올림 (bestLabel V2 자리 채움)
+    /// divider y 오프셋(-78pt — V2의 -90보다 위). bestLabel V2 자리(-60) 비워 위로.
+    static let resultDividerOffsetYV3: CGFloat = -78
+    /// stat 값(PLAYS/TOTAL 숫자) y 오프셋(-98pt — V2의 -110보다 위).
+    static let resultStatValueOffsetYV3: CGFloat = -98
+    /// stat 타이틀(PLAYS/TOTAL 텍스트) y 오프셋(-112pt — V2의 -124보다 위).
+    static let resultStatTitleOffsetYV3: CGFloat = -112
+
+    // ResultScene V3 — Scoreboard 진입 GlassPill ("📊 기록 보기")
+    /// 기록 보기 GlassPill 폭(110pt). shareButton(100) + 미세 여유 — 본문 4글자.
+    static let resultScoreboardButtonWidthV3: CGFloat = 110
+    /// shareButton 중심 x 기준 좌측 오프셋(-110pt). 공유 칩 좌측에 배치.
+    static let resultScoreboardButtonOffsetXFromShareV3: CGFloat = -110
+    /// 기록 보기 GlassPill 텍스트. 이모지 + 한글 4자.
+    static let resultScoreboardButtonText: String = "📊 기록 보기"
+
+    // ResultScene V3 — BEST GlassPill 텍스트 분기
+    /// 일반 분기 BEST 칩 텍스트 prefix("🏆 BEST"). 뒤에 ` \(bestScore)` 합성.
+    static let resultBestPillTextNormalV3: String = "🏆 BEST"
+    /// 신기록 분기 BEST 칩 텍스트("★ NEW BEST!"). 깜빡임은 기존 bestLabel(alpha=0)이 담당.
+    static let resultBestPillTextNewV3: String = "★ NEW BEST!"
+
+    // ScoreboardScene — 15셀 매트릭스 기본
+    /// 매트릭스 가로 셀 수(3 = 하/중/상).
+    static let scoreboardMatrixColumnCount: Int = 3
+    /// 매트릭스 세로 셀 수(5 = 5 캐릭터).
+    static let scoreboardMatrixRowCount: Int = 5
+    /// 셀 폭(80pt). 3자리 숫자 + 미세 여유.
+    static let scoreboardCellWidth: CGFloat = 80
+    /// 셀 높이(36pt). Jua 18pt + 패딩.
+    static let scoreboardCellHeight: CGFloat = 36
+    /// 셀 사이 가로/세로 간격(4pt). mockup grid-gap.
+    static let scoreboardCellGap: CGFloat = 4
+    /// 행 헤더 폭(60pt). mini face(32px) + 약칭(1자).
+    static let scoreboardRowHeaderWidth: CGFloat = 60
+    /// 매트릭스 전체의 frame.midY 기준 y 오프셋(+10pt). 헤더 아래 자연 배치.
+    static let scoreboardMatrixOffsetY: CGFloat = 10
+
+    // ScoreboardScene — 미니 얼굴 (CharacterFaceNode.mini)
+    /// 행 헤더 미니 얼굴 setScale 배율(0.47 ≈ 32/68 — CharacterFaceNode 기본 ~68 → ~32pt).
+    static let scoreboardMiniFaceScale: CGFloat = 0.47
+
+    // ScoreboardScene — 셀 라벨 폰트
+    /// 셀 점수 폰트 크기(Jua 18pt navy).
+    static let scoreboardCellScoreFontSize: CGFloat = 18
+    /// 빈 셀 "—" 폰트 크기(Gowun Dodum 14pt 회색).
+    static let scoreboardCellEmptyFontSize: CGFloat = 14
+    /// 빈 셀 텍스트("—" em dash).
+    static let scoreboardCellEmptyText: String = "—"
+    /// 빈 셀 alpha(0.4 — 회색 톤).
+    static let scoreboardCellEmptyAlpha: CGFloat = 0.4
+
+    // ScoreboardScene — 헤더 라벨
+    /// 열 헤더(하/중/상) 폰트 크기.
+    static let scoreboardColumnHeaderFontSize: CGFloat = 15
+    /// 행 헤더 약칭(1자) 폰트 크기.
+    static let scoreboardRowHeaderShortNameFontSize: CGFloat = 13
+    /// 행 헤더 약칭 x 오프셋(미니 얼굴 우측 +22pt).
+    static let scoreboardRowHeaderShortNameOffsetX: CGFloat = 22
+
+    // ScoreboardScene — ★ 마커
+    /// ★ 텍스트.
+    static let scoreboardStarMarkerText: String = "★"
+    /// ★ 폰트 크기(12pt).
+    static let scoreboardStarMarkerFontSize: CGFloat = 12
+    /// ★ 셀 중심 기준 x 오프셋(+28pt — 셀 우상단).
+    static let scoreboardStarMarkerOffsetX: CGFloat = 28
+    /// ★ 셀 중심 기준 y 오프셋(+12pt — 셀 우상단).
+    static let scoreboardStarMarkerOffsetY: CGFloat = 12
+
+    // ScoreboardScene — 헤더 + stat + 백 버튼
+    /// 타이틀 y 오프셋(+95pt — frame.midY 기준 위쪽).
+    static let scoreboardTitleOffsetY: CGFloat = 95
+    /// 타이틀 폰트 크기(Jua 30pt — 결과창 타이틀과 동급).
+    static let scoreboardTitleFontSize: CGFloat = 30
+    /// 부제 y 오프셋(+72pt).
+    static let scoreboardSubtitleOffsetY: CGFloat = 72
+    /// 부제 폰트 크기(Gowun Dodum 12pt).
+    static let scoreboardSubtitleFontSize: CGFloat = 12
+    /// 부제 텍스트.
+    static let scoreboardSubtitleText: String = "캐릭터·난이도별 최고점수"
+    /// 타이틀 텍스트.
+    static let scoreboardTitleText: String = "기록 보기"
+    /// AccentLine y 오프셋(+130pt — 타이틀 위쪽 강조).
+    static let scoreboardAccentLineOffsetY: CGFloat = 130
+
+    /// 백 버튼 GlassPill 폭(110pt).
+    static let scoreboardBackButtonWidth: CGFloat = 110
+    /// 백 버튼 GlassPill 높이(36pt).
+    static let scoreboardBackButtonHeight: CGFloat = 36
+    /// 백 버튼 텍스트("← 결과로").
+    static let scoreboardBackButtonText: String = "← 결과로"
+    /// 백 버튼 좌측 inset(safeArea 추가 +20pt).
+    static let scoreboardBackButtonInsetX: CGFloat = 20
+    /// 백 버튼 상단 inset(safeArea 추가 +32pt — 화면 상단에서 떨어뜨림).
+    static let scoreboardBackButtonInsetY: CGFloat = 32
+
+    /// 브레드크럼 DarkContextChip 우측 inset.
+    static let scoreboardBreadcrumbInsetX: CGFloat = 20
+    /// 브레드크럼 상단 inset.
+    static let scoreboardBreadcrumbInsetY: CGFloat = 32
+    /// 브레드크럼 라벨 텍스트.
+    static let scoreboardBreadcrumbText: String = "캐릭터별 기록"
+
+    /// stat 라벨 frame.midY 기준 y 오프셋(-150pt — 매트릭스 아래).
+    static let scoreboardStatOffsetY: CGFloat = -150
+    /// stat 라벨 폰트 크기(Gowun Dodum 12pt).
+    static let scoreboardStatFontSize: CGFloat = 12
 }

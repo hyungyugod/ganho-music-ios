@@ -1,161 +1,108 @@
-# 자체 점검 — Sprint 7 Phase C · 난이도 카드 색 위계
+# 자체 점검 — Sprint 7 Phase D
 
-## 변경된 파일
+전략: Case A — 최초 구현. SPEC 요구사항을 정밀하게 그대로 적용.
 
-| 파일 | 변경 종류 | LOC (현재) | 추가 LOC |
-|---|---|---|---|
-| `GanhoMusic Shared/Models/Difficulty.swift` | 수정 | 112 | +46 (4 computed property + MARK + 주석) |
-| `GanhoMusic Shared/Config/ColorTokens.swift` | 수정 | 320 | +22 (6 토큰 + MARK + 주석) |
-| `GanhoMusic Shared/Config/GameConfig.swift` | 수정 | 1982 | +47 (14 V3 상수 + MARK + 주석) |
-| `GanhoMusic Shared/Nodes/DifficultyCardNode.swift` | 수정 | 239 | +54 (nameLabelStroke + liftCurrentOffset + lift 액션 + 색 lookup 분기) |
-| `GanhoMusic Shared/Scenes/DifficultySelectScene.swift` | 수정 | 482 | +31 (halo SKShapeNode + 속도 칩 stroke) |
-| `mockups/difficulty-select-v3.html` | 신규 | 536 | +536 |
-| **합계** | | | **+736** |
+## 변경 파일 목록
 
-Swift만 보면 +200 LOC — SPEC §"변경 LOC 추정치" ~135 신규 + 18 수정 = 153 대비 +47. 주석량 + halo 구현 풀세트 + stroke 라벨 설정으로 자연스러운 범위.
+| 파일 | 변경 LOC | 비고 |
+|---|---|---|
+| `Scenes/ResultScene.swift` | +167 / -15 | 레이아웃 V3 시프트 + 신규 자식 3개 + touchesBegan 분기 + inferredCharacterID |
+| `Nodes/CharacterFaceNode.swift` | +11 | static func mini(id:) — setScale 0.47x |
+| `Config/GameConfig.swift` | +149 | Phase D V3 상수 ~40개 신규 (V2 상수 모두 보존) |
+| `GanhoMusic.xcodeproj/project.pbxproj` | +4 | ScoreboardScene.swift 등록 (BuildFile + FileReference + Scenes group + Sources phase) |
+| `Scenes/ScoreboardScene.swift` (신규) | +498 | 신규 씬 + ResultReturnContext struct |
+| `mockups/result-screen-v3.html` (신규) | +430 | v2 카피 + §5.2 표 매칭 |
+| `mockups/highscore-board-v1.html` (신규) | +323 | 5×3 매트릭스 + ★ 데모 + 빈 셀 + stat |
 
-## 보호 영역 git diff 0줄 확인
+**Swift 합계: 수정 ~313 LOC + 신규 498 LOC = 811 LOC.**  
+**Mockup 합계: 753 LOC.**
 
-- [x] `PrimaryButtonNode.swift` — **0줄** (`git diff HEAD -- .../PrimaryButtonNode.swift | wc -l` = 0)
-- [x] Phase A·B 결과물 — **0줄**:
-  - `Nodes/CharacterCardNode.swift`, `Nodes/CharacterFaceNode.swift`
-  - `Scenes/CharacterSelectScene.swift`, `Scenes/SkillExplanationScene.swift`
-  - `Models/CharacterID.swift`, `Models/PlayerSkill.swift`
-- [x] `ResultScene` / `GameScene` / `GameState` / `PhysicsCategory` / Managers / Repositories / Systems — **0줄** (`git status --short`에 미등장)
+## 보호 영역 git diff 검증 (0줄)
 
-## Difficulty enum 기존 멤버 byte-identical
+`git diff HEAD --` 검증 결과:
 
-`git diff HEAD -- .../Difficulty.swift`로 확인 — diff에 `-` (삭제/수정) 라인 0건, 순수 `+` 추가만:
-
-- [x] `case easy, normal, hard` — 위치/순서 보존
-- [x] `displayName` 값 ("하"/"중"/"상")
-- [x] `subtitle` 값 ("여유로운 실습"/"긴장의 병동"/"이교수의 청진기")
-- [x] `color` 값 (.ganhoMint / .ganhoYellowF / .ganhoBloodAccent) — Phase C 신규 4 lookup은 *별도* property
-- [x] `shortName` 값
-- [x] `description` 값
-- [x] raw value ("easy", "normal", "hard")
-
-## DifficultySelectScene 호출 시그니처 byte-identical
-
-- [x] `init(size: CGSize, characterID: CharacterID)` — 시그니처 0 변경
-- [x] `class func newDifficultySelectScene(characterID:)` — 0 변경
-- [x] `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` 호출 그대로
-- [x] `transitionBack()` `.kim` / `.jung/.geon/.im/.lee` 분기 byte-identical
-- [x] `selectDifficulty(_:)` — `card.id` 비교 + `setSelected` 일괄 호출 패턴 그대로
-- [x] `difficultyRepo.current` / `difficultyRepo.save(id)` 호출 패턴 그대로
-
-## 기존 V3 상수 값 변경 0
-
-- [x] `difficultyCardWidthV3` = 112 (유지)
-- [x] `difficultyCardHeightV3` = 82 (유지)
-- [x] `difficultyCardCornerRadiusV3` = 20 (유지)
-- [x] `difficultyCardSpacingV3` = 22 (유지)
-- [x] `difficultyCardStrokeLineWidthV3` = 1.5 (유지)
-- [x] `difficultyCardDeselectedAlphaV3` = 0.78 (유지)
-- [x] `difficultyCardDeselectedFillAlphaV3` = 0.08 (유지)
-- [x] `difficultyCardDeselectedStrokeAlphaV3` = 0.4 (유지)
-- [x] `difficultyCardSelectedFillAlphaV3` = 0.2 (유지)
-- [x] `difficultyCardNameFontSizeV3` = 22 (유지 — `*PhaseC`(30)는 별개)
-- [x] `difficultyCardSubtitleFontSizeV3` = 12 (유지)
-- [x] `difficultyCardDescriptionFontSizeV3` = 10 (유지)
-- [x] `difficultyCardRingGlowFadeInDuration` / `FadeOutDuration` — 유지
-
-신규 PhaseC 상수 (14종):
-1. `difficultyCardNameFontSizePhaseC` = 30
-2. `difficultyCardNameStrokeWidthPhaseC` = 1.0
-3. `difficultyCardSelectedLiftY` = 8
-4. `difficultyCardSelectedLiftDuration` = 0.18
-5. `difficultyCardSelectedGlowWidthPhaseC` = 158
-6. `difficultyCardSelectedGlowHeightPhaseC` = 116
-7. `difficultyCardSelectedGlowAlphaPhaseC` = 0.80
-8. `difficultyCardSelectedGlowSpreadPhaseC` = 12
-9. `difficultySelectStartButtonHaloWidth` = 240
-10. `difficultySelectStartButtonHaloHeight` = 90
-11. `difficultySelectStartButtonHaloAlpha` = 0.35
-12. `difficultySelectStartButtonHaloSpread` = 24
-13. `difficultySelectStartButtonHaloFadeInDuration` = 0.25
-14. `difficultySelectStartButtonHaloOffsetY` = 0
+| 영역 | git diff 라인 수 |
+|---|---|
+| Phase A·B·C 결과물 (CharacterCardNode/CharacterSelectScene/CharacterID/PlayerSkill/SkillExplanationScene/DifficultyCardNode/DifficultySelectScene/Difficulty/ColorTokens/GlassPillNode/DarkContextChipNode/PrimaryButtonNode/BackButtonNode/StoryBoxNode) | **0** |
+| GameScene / GameState / PhysicsCategory / Managers / Systems | **0** |
+| Repositories (HighScoreRepository / StatisticsRepository / PerDifficultyScoreRepository / GraduationRepository) | **0** (읽기 전용) |
 
 ## SPEC 기능 체크
 
-- [x] **기능 1**: `Difficulty` 4 computed property — `.easy/.normal/.hard` 3 case exhaustive switch, default 미사용. `cardFillTop` / `cardFillBottom` / `cardStrokeColor` / `cardGlowColor` 모두 추가.
-- [x] **기능 2**: `ColorTokens` 6 토큰 (`ganhoDifficultyEasyMint/Deep/MidGold/Deep/HardCoral/Deep`) — 별도 MARK 섹션.
-- [x] **기능 3**: `GameConfig` V3 상수 14종 — 별도 MARK 섹션 `Sprint 7 Phase C · Difficulty hierarchy v3`.
-- [x] **기능 4**: `DifficultyCardNode` init/setSelected에 카드별 색 lookup 적용 — `id.color` → `id.cardFillTop` / `id.cardStrokeColor` / `id.cardGlowColor` 분기. `liftCurrentOffset` 증분 패턴(setSelected 중복 호출 안전, `moveBy y: targetY - liftCurrentOffset`).
-- [x] **기능 5**: nameLabel 30pt + nameLabelStroke 외곽선 라벨 — 폰트 = 30 + 1×2 = 32pt, fontColor = `id.cardStrokeColor`. zPos = nameLabel(5) - 0.1 = 4.9. 2-라벨 겹침 stroke 효과.
-- [x] **기능 6**: `DifficultySelectScene` 시작 버튼 halo SKShapeNode — `ellipseOf` 240×90, `ganhoCoralPrimary` α 0.35, `glowWidth` 24, zPos = startButton -1. fade in 0.25s. `setupStartButton()`에서 부착 + `layoutStartButton()`에서 위치 동기화.
-- [x] **기능 7**: 좌측 미니 캐릭터 속도 칩 stroke 1pt — `chip.strokeColor = .ganhoDifficultyEasyDeep` (#5EBFA3), `chip.lineWidth = 1`.
+- [x] **기능 1**: ResultScene 레이아웃 V3 재배치 — headerChip(+115) / titleLabel(+85) / subtitleLabel(+58) / accentLine(+148) / scoreSub(-44) / divider(-78) / playsValue·totalValue(-98) / playsTitle·totalTitle(-112). `bestLabel.alpha = 0` 시각 차단(노드 트리 보존). scoreLabel.text = "\(finalScore)" (♪ 제거).
+- [x] **기능 1**: ResultScene 신규 자식 3개 — `scoreNoteIconLabel` (Jua 24pt, scoreLabel.x -60) / `bestPill` (GlassPillNode 120×28, scoreLabel.x +120) / `scoreboardButton` (GlassPillNode 110×36, shareButton.x -110). touchesBegan 분기 추가.
+- [x] **기능 1**: `inferredCharacterID` computed property — `CharacterID.allCases.first { $0.displayName == characterName }` 역변환.
+- [x] **기능 2**: `CharacterFaceNode.mini(id:)` static factory — 기존 `init(id:)` + `setScale(scoreboardMiniFaceScale = 0.47)`. 신규 시각 자식 0건.
+- [x] **기능 3**: `ScoreboardScene.swift` 신규 (~498 LOC) — `lastUpdatedKey: (CharacterID, Difficulty)?` + `returnContext: ResultReturnContext?`. 5×3 매트릭스 + ★ 마커 + 백 버튼 + 브레드크럼 + 하단 stat. `ResultReturnContext` struct 같은 파일에 정의.
+- [x] **기능 4**: `GameConfig` Phase D V3 상수 ~40개 — ResultScene V3 (note icon / best pill / scoreboard button / 오프셋 시프트) + ScoreboardScene (매트릭스 셀/헤더 좌표·폰트·★ 마커·백 버튼·브레드크럼·stat).
+- [x] **기능 5**: `mockups/result-screen-v3.html` — v2 카피 + ♪ 24pt 좌측 absolute + BEST GlassPill 우측 +120 + headerChip 위로 +15 + scoreboardButton 좌측 + annotation 박스.
+- [x] **기능 5**: `mockups/highscore-board-v1.html` — 5×3 매트릭스 (Phase C 색) + ★ 데모(건간호 하 200★) + 빈 셀 "—" + 하단 stat + annotation 박스.
 
-## 신규 mockup `difficulty-select-v3.html`
+## 핵심 검증
 
-- [x] aspect-ratio 19.5/9, border-radius 52, padding 14, phone-screen radial gradient 3-stop (Phase A·B 동일)
-- [x] 좌측 Dynamic Island
-- [x] 상단 바: GlassPill `← 스킬 다시` + DarkContextChip 브레드크럼 + 코랄 `난이도` 알약
-- [x] AccentLine 32×3 코랄 + Jua 26pt + Gowun 12pt 헤더 부제
-- [x] 좌측 미니 캐릭터 글래스 카드 200×260 + 상단 -12 코랄 이름 뱃지 + 90×90 SVG + Jua 14pt 스킬명 + **속도 칩 stroke 1pt #5EBFA3 + box-shadow**
-- [x] 3장 카드 110×124 cornerRadius 18 padding 14/8/16, gap 14, **카드별 그라데이션 (mint/gold/coral)**
-- [x] 카드 헤더 **30pt** Jua + **카드별 stroke** (`-webkit-text-stroke: 1px id.cardStrokeColor`)
-- [x] 미선택 카드 opacity **0.78** / 선택 카드 opacity 1.0
-- [x] 선택 카드 `translateY(-8px) scale(1.05)` + 라디얼 글로우 **158×116** filter blur 20px α 0.80
-- [x] 시작 버튼 그림자 6 → **8px** + halo **240×90** filter blur 24px α 0.35 페이드 인 0.25s
-- [x] 하단 annotation **4개**: (1) 색만으로 강도 인지 (2) 글로우 80%·미선택 0.78 (3) 시작 halo 마지막 결정 (4) SpriteKit 매핑
+- [x] `ResultScene.newResultScene(...)` 8개 인자(+ size 합 9개) 시그니처 **byte-identical** — score, bestScore, isNewBest, stats, characterName, difficulty, isNewGraduation, graduatedAt. 호출부 (GameScene.swift:755) 그대로 컴파일 OK.
+- [x] `ResultScene.init(...)` 9개 인자 시그니처 byte-identical.
+- [x] `bestLabel.alpha = 0` 시각만 차단 — 노드 트리 보존, addChild 후속 유지. `startBestLabelGoldBlink` 액션은 그대로 발화하지만 위치(-60)는 V3에서 비어있고 bestPill(점수 우측)이 BEST 시각 담당.
+- [x] **새 ResultScene 인스턴스 생성 시 (ScoreboardScene → ResultScene 복귀) `isNewGraduation: false` / `graduatedAt: nil` 명시** — 졸업장 재표시 차단 (SPEC §주의사항 3).
+- [x] `PerDifficultyScoreRepository.best(characterID:difficulty:)` 호출은 0건 — 대신 `current` dict로 매트릭스 일괄 조회 (성능 + 단순화).
+- [x] `StatisticsRepository.current.playCount` — 읽기만.
+- [x] `GraduationRepository.current.count` — 읽기만 (졸업장 보유 수).
+- [x] **저장·갱신 함수 호출 0건** — `recordPlay` / `record(characterID:date:)` / `record(characterID:difficulty:score:)` 호출 0.
+
+## 신기록·졸업장 분기 보존
+
+- [x] `DiplomaOverlayNode.present(...)` 발화 조건 byte-identical — `isNewGraduation && graduatedAt != nil` 가드 그대로.
+- [x] sparkle 5발 (`emitSparkleBurst`) 발화 조건 byte-identical — `isNewBest`일 때 `revealNewBest`에서 발화.
+- [x] heavy 햅틱 (`haptics.heavy()`) 발화 조건 byte-identical.
+- [x] NewMail 사운드 (`audio.play(.comboMilestoneStrong)`) 발화 조건 byte-identical.
+- [x] `startBestLabelGoldBlink` withKey 패턴 변경 0.
+- [x] `resultSparklePositionsV2` 좌표 변경 0.
 
 ## Swift 패턴 준수
 
-- [x] 강제 언래핑 미사용 — `if let view = self.view` / `guard let touch = touches.first` 등 옵셔널 처리만 사용. 신규 코드 `!` 0건.
-- [x] Timer 미사용 — halo 페이드 인 / lift 액션 모두 `SKAction.fadeAlpha` / `SKAction.moveBy`.
-- [x] GameConfig 상수 사용 — halo·lift·glow·stroke 모든 수치는 V3 상수 참조. 매직 넘버 0.
-- [x] hex 하드코딩 0 — 6 신규 토큰 모두 `UIColor(hex:)` 경유 ColorTokens 등록.
-- [x] update() 안 addChild 미사용 — halo/stroke 모두 `setupStartButton()` / `init()` 시점에 부착.
-- [x] switch default 미사용 — 4 computed property 모두 3 case exhaustive.
-- [x] `[weak self]` 캡처 — Phase C 신규 클로저 0건(SKAction에 self 캡처 없음).
-- [x] `defer` 또는 next-frame 처리 — 충돌·노드 삭제 변경 없음.
-- [x] MARK 섹션 구분 — 신규 코드 모두 `// MARK: - Sprint 7 Phase C ·` prefix.
+- 강제 언래핑 미사용: **준수** (`guard let view = self.view, let touch = touches.first` / `if let pill = scoreboardButton, pill.contains(...)` / `?? .zero` / `?? 0`).
+- guard let 옵셔널 처리: 준수.
+- MARK 섹션 구분: 준수 (`// MARK: - Setup (Sprint 7 Phase D · V3 신규 자식 3개)` / `// MARK: - Helpers (Sprint 7 Phase D)` 등).
+- GameConfig 상수 사용: 준수 — 매직 넘버 0. `resultScoreNoteIconFontSizeV3 = 24`, `resultBestPillWidthV3 = 120` 등 모든 좌표/크기/텍스트가 상수.
+- weak self 캡처: 신규 코드에서 클로저 sync (touchesBegan 안 즉시 실행) 사용 — `[weak self]` 불필요. 기존 `scheduleNewBestReveal` 클로저는 `[weak self]` 그대로 보존.
+- Timer 미사용: 준수 — `SKAction.wait(forDuration:)` 만 사용 (기존 코드).
+- switch default 미사용: 준수 — `Difficulty.allCases` / `CharacterID.allCases` iteration으로 처리.
 
 ## SpriteKit 패턴 준수
 
-- [x] `didMove(to:)`에서 초기화 — `setupStartButton()` / `setupSummaryCard()` 시점 그대로.
-- [x] dt 기반 이동 — 변경 없음 (lift는 `SKAction.moveBy` 액션).
-- [x] SKAction 스폰 패턴 — halo 페이드 / 카드 lift 모두 액션. action key(`cardLift`, `cardScale`, `ringFade`)로 중복 토글 안전.
-- [x] 충돌 후 노드 즉시 삭제 없음 — 충돌 로직 변경 없음.
-- [x] HUD 노드 분리 — halo는 별도 SKShapeNode, PrimaryButton 내부 0줄.
+- didMove(to:)에서 초기화: 준수 — `setupBackgroundGradient()` / `setupHeader()` / `setupBackButton()` / `setupBreadcrumbChip()` / `setupMatrix()` / `setupStatLabel()` 순서.
+- didChangeSize(_:)에서 layout 재계산: 준수 — `layoutAll()` 호출.
+- dt 기반 이동: 해당 사항 없음 (UI 씬).
+- SKAction 스폰 패턴: 해당 사항 없음 (정적 매트릭스).
+- 충돌 후 노드 즉시 삭제 없음: 해당 사항 없음 (물리 0).
+- HUD 노드 분리: 해당 사항 없음 (씬 자체가 정보 화면).
+- 액션 dispatch 0 — `update()` 안 `addChild()` 0건.
+- repo 인스턴스는 매 씬 new (UserDefaults 기반 stateless) — 기존 다른 씬 패턴 답습.
 
-## 빌드 상태
+## 빌드 결과
 
-- **결과**: `** BUILD SUCCEEDED **`
-- 명령: `xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" -scheme "GanhoMusic iOS" -destination "generic/platform=iOS Simulator" build`
-- 신규 컴파일 에러: **0건**
-- 신규 워닝: **0건** (출력된 3건은 기존 Font ttf 중복 빌드 파일 경고로 Phase A 이전부터 존재 — Phase C 변경과 무관)
+- **xcodebuild ... build → BUILD SUCCEEDED** (iOS Simulator 타겟, generic platform).
+- 컴파일 에러: **0**.
+- 신규 워닝: **0** (기존 폰트 중복 워닝만 — 폰트 리소스 중복 등록, 기존 상태).
+- Xcode 프로젝트에 `ScoreboardScene.swift` 등록 확인:
+  - `PBXBuildFile`: `A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */`
+  - `PBXFileReference`: `A1C0F1A00000000000000074 /* ScoreboardScene.swift */`
+  - Scenes group children: 추가됨
+  - PBXSourcesBuildPhase (iOS target): 추가됨
 
-## OPEN_QUESTION 4개 처리 상태
+## OPEN_QUESTION 처리 상태 (모두 SPEC에서 결정됨)
 
-- **OQ-1 (결정됨)**: DifficultyCardNode는 별도 파일 (`Nodes/DifficultyCardNode.swift` 239 LOC, +54). 색 lookup 추가만, 시그니처 byte-identical. ✅
-- **OQ-2 (결정됨)**: 좌측 미니 캐릭터 `CharacterFaceNode mini factory` 재사용 — `setScale(difficultySelectSummaryFaceScale = 0.65)` 패턴 그대로. mini factory 신설 0. ✅
-- **OQ-3 (결정됨)**: 시작 버튼 halo는 `DifficultySelectScene.setupStartButton()`에서 SKShapeNode 직접 부착. `PrimaryButtonNode.swift` 0줄. ✅
-- **OQ-4 (결정됨)**: 선택 카드 +8pt 상승 → 카드 노드 전체 position 이동 + `liftCurrentOffset` 증분 추적. setSelected 중복 호출 시 `targetY - liftCurrentOffset` 증분 이동으로 누적 방지. `moveBy(x: 0, y:...)`는 *현재 위치 상대 이동* — mockup CSS `transform: translateY(-8px)`와 일관(모든 자식 함께 올라감). ✅
+- **OQ-1**: ScoreboardScene → ResultScene 복귀는 **옵션 A** — 새 인스턴스 생성, `ResultReturnContext` struct로 9-인자 전달, `isNewGraduation: false` 강제. ✓ 적용됨.
+- **OQ-2**: GraduationRepository API는 `graduationRepo.current.count`, StatisticsRepository는 `statsRepo.current.playCount`. ✓ 적용됨.
+- **OQ-3**: ★ 마커는 `isNewBest && inferredCharacterID != nil`일 때만 (charID, difficulty) 튜플. 그 외 nil → 매트릭스에 ★ 미표시. ✓ 적용됨.
+- **OQ-4**: `CharacterFaceNode.mini` 팩토리는 기존 `init(id:)` + `setScale(0.47)`. 신규 시각 자식 0. ✓ 적용됨.
 
 ## 범위 외 미구현 항목
 
-없음. SPEC §"Sprint 7 Phase C 범위 계약"의 7가지 기능을 모두 구현, 보호 영역 0줄 위반 없음.
+- 없음.
 
-## 합격 기준 자체 점검
+## 주의사항 (Generator 자체 발견)
 
-### 시각 합격 기준 (SPRINT_7_REQUEST.md §4.4)
-- [x] `.easy/.normal/.hard` 3개 카드 fill 색 즉시 구분 — mockup에서 mint/gold/coral 그라데이션 명확히 분리
-- [x] 카드 헤더 30pt + 카드별 stroke 외곽선 — nameLabelStroke로 SpriteKit 구현
-- [x] 미선택 카드 alpha 0.78 / 선택 카드 alpha 1.0 + 글로우 ON — `difficultyCardDeselectedAlphaV3 = 0.78` + ringGlow α 0.80
-- [x] 선택 카드 +8pt 상승 + scale 1.05 — lift 액션 + 기존 `characterCardSelectedScale = 1.08`(spring settle)
-- [x] 시작 버튼 halo 페이드 인 0.25s — `SKAction.fadeAlpha(to: 1.0, duration: 0.25)`
-- [x] 시작 버튼 입체 그림자 +2pt 강화 — mockup에서 `box-shadow: 0 8px 0 #C44A3D` (8 vs v2 6). 실제 SpriteKit PrimaryButton 내부는 0 변경 — *시각 합격은 mockup 기준이며 PrimaryButtonNode 보호 영역 0줄 정책 우선*
-
-### 코드 합격 기준
-- [x] `DifficultySelectScene.init(characterID:)` 시그니처 0줄 변경
-- [x] `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` byte-identical
-- [x] `transitionBack()` `.kim` 분기 byte-identical
-- [x] `Difficulty` enum 기존 멤버 100% 보존
-- [x] `PrimaryButtonNode` 내부 0줄
-- [x] ResultScene / GameScene / Models 외 파일 / Managers / Repositories / Systems 0줄
-- [x] Phase A·B 결과물 0줄
-- [x] 강제 언래핑 0, Timer 0, update() 안 addChild 0, switch default 미사용
-- [x] 매직 넘버 0 — 모든 신규 수치는 V3 상수 참조
-- [x] 하드코딩 hex 0 — ColorTokens 경유
+1. **bestLabel `startBestLabelGoldBlink` 깜빡임 활동 중**: `bestLabel.alpha = 0`을 setupLabels에서 설정해도, 신기록 분기에서 `scheduleNewBestReveal` → `revealNewBest()` → `startBestLabelGoldBlink` 액션이 fadeAlpha 0.5↔1.0 cycle을 발화한다. 위치는 V3에서 비어있는 자리(midY -60)라 bestPill의 시각에 영향 없지만, *기술적으로는* alpha=0 이후 일정 시간 후(0.3s reveal delay) 위치에 흐릿한 텍스트가 가끔 나타날 수 있다. SPEC §주의사항 1이 "괜찮음"으로 명시 → 그대로 진행.
+2. **`breadcrumbChip` 폭 계산**: `calculateAccumulatedFrame().width / 2`로 우측 정렬 보정. DarkContextChipNode는 라벨 폭 기반 자동 크기이므로 chip마다 폭이 다를 수 있어 동적 계산 필요. layoutAll()에서 매번 재계산.
+3. **매트릭스 자식 좌표는 씬 좌표로 직접 계산**: `matrixContainer.position = .zero`로 두고 자식 노드들의 position을 frame.midX/midY 기준 절대 좌표로 부여. didChangeSize 시 `relayoutMatrixChildren()`로 일괄 갱신.

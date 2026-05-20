@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase C 합격 — 난이도 카드 색 위계)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C ✅ / D~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase D 합격 — 결과창 + ScoreboardScene 신설)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D ✅ / E·F·G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -43,8 +43,8 @@ Sprint 2 진행해줘
 | **7-A** | 캐릭터 선택 NIKKE 카드 리뉴얼 | ✅ 합격 | 9.45/10 | 1/3 |
 | **7-B** | 스킬 설명 겹침 해소 | ✅ 합격 | 9.77/10 | 1/3 |
 | **7-C** | 난이도 카드 색 위계 | ✅ 합격 | 9.83/10 | 1/3 |
-| **7-D** | 결과창 + ScoreboardScene 신설 | ⏳ 대기 | - | 0/3 |
-| **7-E** | 카운트다운 오버레이 | ⏸️ 미시작 | - | 0/3 |
+| **7-D** | 결과창 + ScoreboardScene 신설 | ✅ 합격 | 9.83/10 | 1/3 |
+| **7-E** | 카운트다운 오버레이 | ⏳ 대기 | - | 0/3 |
 | **7-F** | 빌런 4종 + 박병장 신규 | ⏸️ 미시작 | - | 0/3 |
 | **7-G** | 플레이어 4방향 스프라이트 | ⏸️ 미시작 | - | 0/3 |
 
@@ -103,6 +103,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase D — 결과창 + ScoreboardScene 신설
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.83/10** (게임로직 10.0 · Swift패턴 9.8 · 비주얼 9.7 · UX 9.6)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: ResultScene 5요소 0px 겹침 + 신규 ScoreboardScene 5×3 매트릭스. ResultScene 신규 자식 3종(scoreNoteIconLabel 24pt 좌측 / bestPill GlassPill 우측 +120 / scoreboardButton GlassPill 좌측 -110). scoreLabel "♪" 제거(텍스트만 "\(finalScore)"). bestLabel.alpha=0 시각 차단 + 노드 트리 보존. headerChip/titleLabel/subtitle/accentLine V3 +15/+15/+14/+18 시프트, divider/playsValue/playsTitle/totalValue/totalTitle V3 +12 동조 상승. touchesBegan에 scoreboard 칩 분기 추가(기존 StartScene 분기 보존, 1탭 정책 유지). inferredCharacterID computed property(characterName → CharacterID 역변환 — 5 displayName 유일성 안전). 신규 ScoreboardScene ~499 LOC: GradientBackgroundNode.threeStop + AccentLine + Jua 30 "기록 보기" + 매트릭스 15셀(CharacterID.allCases × Difficulty.allCases) + 행 헤더 5(CharacterFaceNode.mini 32px setScale 0.47 + 약칭 라벨) + 열 헤더 3(Phase C 색 토큰) + ★ 마커 lastUpdatedKey 셀(zPos 3) + 하단 stat("총 플레이 N회 · 졸업장 N장") + 좌상단 "← 결과로" GlassPill + 우상단 "캐릭터별 기록" DarkContextChip. ResultReturnContext struct 8필드(같은 파일 동봉, Foundation 의존만). 백 버튼 복귀 시 새 ResultScene 인스턴스 isNewGraduation:false/graduatedAt:nil 강제(졸업장 재표시 차단). CharacterFaceNode.mini 정적 팩토리 1개 추가(신규 시각 자식 0). GameConfig Phase D V3 상수 ~40개 신규. Xcode pbxproj 4줄 추가(ScoreboardScene 등록). 신규 mockup 2종(result-screen-v3.html ~430 / highscore-board-v1.html ~323). 보호 영역 git diff 0줄: Phase A·B·C 결과물 14파일 + GameScene/GameState/PhysicsCategory/Managers/Systems + Repositories(저장 호출 0건, 읽기 전용 — perDiffRepo.current·statsRepo.current.playCount·graduationRepo.current.count). DiplomaOverlayNode.present + isNewBest sparkle 5발/heavy 햅틱/NewMail 사운드 발화 조건 byte-identical. newResultScene 시그니처 byte-identical. 강제 언래핑 0, Timer 0, switch default 0, update()-내-addChild 0, 하드코딩 hex 0(Scenes). 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: bestLabel.alpha=0 직후 신기록 분기에서 startBestLabelGoldBlink 액션이 alpha 0.5↔1.0 깜빡일 수 있음. 차후 정리 Sprint에서 removeAction 또는 alpha 0 강제 유지 한 줄 추가 가능.
 
 ### Sprint 7 Phase C — 난이도 카드 색 위계
 - 시작: 2026-05-19

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 결과 화면 v3 (Sprint 7 Phase D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: 'Jua', sans-serif; font-size: 26px; color: #fff; margin-bottom: 6px; }
+  .sub { color: #999; font-size: 13px; margin-bottom: 28px; }
+
+  .variant-label {
+    font-family: 'Jua', sans-serif; color: #FF8E80; font-size: 14px;
+    margin: 28px 0 10px; padding-left: 12px;
+    border-left: 3px solid #FF6B5B; letter-spacing: 1px;
+  }
+  .variant-label .branch { color: #fff; font-size: 18px; margin-left: 8px; }
+  .variant-label .freq { color: #8a8a95; font-size: 11px; margin-left: 12px; font-family: 'Gowun Dodum', sans-serif; }
+
+  /* === Phone (1024x768 landscape — SpriteKit scene size 동일) === */
+  .phone-frame {
+    background: linear-gradient(145deg, #3a3a44 0%, #1f1f26 100%);
+    border-radius: 52px; padding: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.08);
+    aspect-ratio: 19.5 / 9; max-width: 920px; margin: 0 auto 12px; position: relative;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+  }
+  .island {
+    position: absolute; top: 50%; left: 18px; transform: translateY(-50%);
+    width: 8px; height: 90px; background: #0a0a0a; border-radius: 4px; z-index: 100;
+  }
+
+  /* === Center result card (v3 — 5 정보 분리) === */
+  .result-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px; max-width: 80%;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-radius: 22px;
+    padding: 22px 28px 24px;
+    box-shadow:
+      0 16px 40px rgba(45, 42, 74, 0.18),
+      0 4px 12px rgba(45, 42, 74, 0.08);
+    z-index: 5;
+    text-align: center;
+  }
+
+  /* v3 — AccentLine 위로 (midY +148) */
+  .accent-line {
+    width: 32px; height: 3px; background: #FF6B5B; border-radius: 2px;
+    margin: 0 auto 8px;
+  }
+
+  /* v3 — headerChip 타이틀 위로 (midY +115) */
+  .head-meta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(45, 42, 74, 0.92);
+    color: #FFE5D0;
+    padding: 5px 14px; border-radius: 999px;
+    font-size: 11px; margin-bottom: 14px;
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .head-meta .pip {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255, 229, 208, 0.5);
+  }
+
+  /* v3 — title (midY +85), subtitle (+58) */
+  .title-row {
+    font-family: 'Jua', sans-serif;
+    line-height: 1; letter-spacing: -1px;
+    margin-bottom: 18px;
+  }
+  .title-game-over { color: #2D2A4A; font-size: 30px; }
+  .title-new-best {
+    font-size: 32px;
+    background: linear-gradient(90deg, #FFB347 0%, #FF6B5B 50%, #FFB347 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 0 rgba(196, 74, 61, 0.15);
+  }
+  .title-row .sub {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 12px; color: #5A5670;
+    margin-top: 6px;
+  }
+
+  /* v3 — score row: ♪ 좌측 24pt absolute + 점수 중앙 + BEST 우측 GlassPill */
+  .score-row {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    height: 78px;
+    margin-top: 4px;
+  }
+  .score-note-icon {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(calc(-50% - 100px), -50%);
+    font-family: 'Jua', sans-serif;
+    font-size: 24px;
+    color: #FFB347;
+  }
+  .score-note-icon.gold { color: #FFB347; }
+  .score-num {
+    font-family: 'Jua', sans-serif;
+    font-size: 64px; line-height: 1;
+    color: #FF6B5B;
+    letter-spacing: -3px;
+    text-shadow: 0 4px 0 rgba(196, 74, 61, 0.15);
+  }
+  .score-num.gold {
+    background: linear-gradient(180deg, #FFD27A 0%, #FFB347 50%, #FF9224 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    text-shadow: 0 4px 0 rgba(196, 74, 61, 0.25);
+    filter: drop-shadow(0 0 12px rgba(255, 179, 71, 0.5));
+  }
+  .best-pill {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(calc(-50% + 120px), -50%);
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #2D2A4A;
+    padding: 4px 12px; border-radius: 999px;
+    font-family: 'Jua', sans-serif;
+    font-size: 13px;
+    width: 120px;
+    height: 28px;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .best-pill.new-best {
+    background: linear-gradient(90deg, #FFB347, #FFD27A, #FFB347);
+    background-size: 200% 100%;
+    color: #fff;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(255, 179, 71, 0.5);
+  }
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* v3 — SCORE 부제 점수 아래로 (midY -44) */
+  .score-label {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 11px; color: #5A5670;
+    letter-spacing: 2px;
+    margin-top: -4px;
+    margin-bottom: 6px;
+  }
+
+  /* v3 — divider 위로 (midY -78), stats 위로 (-98 / -112) */
+  .divider {
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(45, 42, 74, 0.18), transparent);
+    margin: 6px auto 8px;
+  }
+  .stats-row {
+    display: flex; justify-content: center; gap: 18px;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: #5A5670; font-size: 11px;
+    margin-bottom: 16px;
+  }
+  .stats-row .stat-num {
+    font-family: 'Jua', sans-serif;
+    color: #2D2A4A; font-size: 14px;
+    display: block;
+  }
+
+  /* v3 — 버튼 3개: 기록 보기 / 공유 / 다시 시작 */
+  .btn-row {
+    display: flex; justify-content: center; gap: 10px;
+  }
+  .btn {
+    font-family: 'Jua', sans-serif;
+    border: none; border-radius: 999px;
+    cursor: pointer; display: inline-flex;
+    align-items: center; gap: 8px;
+    transition: transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: #FF6B5B; color: #fff; font-size: 15px;
+    padding: 10px 22px 11px;
+    box-shadow: 0 5px 0 #C44A3D, 0 10px 20px rgba(255, 107, 91, 0.35);
+  }
+  .btn-primary .arrow {
+    background: rgba(255,255,255,0.25);
+    width: 20px; height: 20px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .btn-ghost {
+    background: rgba(45, 42, 74, 0.08); color: #2D2A4A;
+    font-size: 13px;
+    padding: 10px 18px;
+  }
+  .btn-scoreboard {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #2D2A4A; font-size: 13px;
+    padding: 10px 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* === Annotation === */
+  .annot-title {
+    font-family: 'Jua', sans-serif; color: #fff; font-size: 18px;
+    margin: 24px 0 14px;
+  }
+  .notes-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .annotation {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .annotation h3 {
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    color: #FF8E80; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .annotation p { font-size: 13px; color: #b5b5bd; line-height: 1.6; }
+
+  .compare-table {
+    background: #1f1f28; border: 1px solid #2e2e3a;
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 24px;
+  }
+  .compare-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .compare-table th {
+    text-align: left; color: #FF8E80;
+    font-family: 'Jua', sans-serif; font-weight: normal;
+    padding: 8px 8px; border-bottom: 1px solid #2e2e3a;
+  }
+  .compare-table th:not(:first-child) { text-align: center; }
+  .compare-table td {
+    color: #b5b5bd; padding: 8px 8px; border-bottom: 1px solid #25252e;
+  }
+  .compare-table td:not(:first-child) { text-align: center; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: #e8e8e8; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>김간호는 음악박사 — 결과 화면 v3</h1>
+  <p class="sub">Sprint 7 Phase D · ResultScene 시각 정보 5요소 분리 (♪ / 점수 / SCORE / BEST / 캐릭터·난이도)</p>
+
+  <!-- ================= VARIANT A: NORMAL (v3) ================= -->
+  <div class="variant-label">VARIANT A <span class="branch">일반 결과 (v3)</span> <span class="freq">isNewBest = false · 5요소 0px 겹침</span></div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <div class="result-card">
+        <!-- v3 — headerChip 타이틀 위로 -->
+        <div class="head-meta">
+          <span>중 난이도</span><span class="pip"></span>
+          <span>건간호</span>
+        </div>
+
+        <div class="accent-line"></div>
+
+        <div class="title-row">
+          <div class="title-game-over">실습 종료</div>
+          <div class="sub">수고했어요! 한 번 더 해볼까요?</div>
+        </div>
+
+        <!-- v3 — score row: ♪ 좌측 24pt absolute + 점수 중앙 + BEST 우측 GlassPill -->
+        <div class="score-row">
+          <span class="score-note-icon">♪</span>
+          <div class="score-num">18</div>
+          <span class="best-pill">🏆 BEST 24</span>
+        </div>
+        <div class="score-label">SCORE</div>
+
+        <div class="divider"></div>
+        <div class="stats-row">
+          <div><span class="stat-num">8</span>PLAYS</div>
+          <div><span class="stat-num">156</span>TOTAL</div>
+        </div>
+
+        <!-- v3 — 좌측 기록 보기 GlassPill + 공유 + 다시 시작 -->
+        <div class="btn-row">
+          <button class="btn btn-scoreboard">📊 기록 보기</button>
+          <button class="btn btn-ghost">📤 공유</button>
+          <button class="btn btn-primary">다시 시작 <span class="arrow">▶</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VARIANT B: NEW BEST (v3) ================= -->
+  <div class="variant-label">VARIANT B <span class="branch">신기록 (v3)</span> <span class="freq">isNewBest = true · BEST 칩 황금 shimmer + 점수 골드</span></div>
+
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <div class="result-card">
+        <div class="head-meta">
+          <span>중 난이도</span><span class="pip"></span>
+          <span>건간호</span>
+        </div>
+
+        <div class="accent-line"></div>
+
+        <div class="title-row">
+          <div class="title-new-best">✨ NEW BEST! ✨</div>
+          <div class="sub">최고 기록을 갱신했어요!</div>
+        </div>
+
+        <div class="score-row">
+          <span class="score-note-icon gold">♪</span>
+          <div class="score-num gold">32</div>
+          <span class="best-pill new-best">★ NEW BEST!</span>
+        </div>
+        <div class="score-label">NEW SCORE</div>
+
+        <div class="divider"></div>
+        <div class="stats-row">
+          <div><span class="stat-num">9</span>PLAYS</div>
+          <div><span class="stat-num">188</span>TOTAL</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-scoreboard">📊 기록 보기</button>
+          <button class="btn btn-ghost">📤 자랑하기</button>
+          <button class="btn btn-primary">다시 시작 <span class="arrow">▶</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============= Sprint 7 Phase D 핵심 결정 ============= -->
+  <div class="annot-title">Sprint 7 Phase D — SPRINT_7_REQUEST.md §5.2 매칭</div>
+  <div class="notes-grid">
+    <div class="annotation">
+      <h3>♪ 24pt 좌측 분리</h3>
+      <p>v2의 scoreLabel.text "♪ 18" → v3에서 ♪는 별도 24pt absolute 좌측, scoreLabel은 "18"만. 점수 숫자가 시각 주인공.</p>
+    </div>
+    <div class="annotation">
+      <h3>BEST = GlassPill 우측</h3>
+      <p>v2의 점수 아래 작은 칩(BEST 24) → v3에서 점수 우측 +120pt GlassPill 120×28. 명확한 독립 정보 영역.</p>
+    </div>
+    <div class="annotation">
+      <h3>SCORE 라벨 아래로</h3>
+      <p>점수 우측에서 점수 아래로(-44 offset). 점수를 가리지 않는 메타 라벨 톤.</p>
+    </div>
+    <div class="annotation">
+      <h3>headerChip 타이틀 위로</h3>
+      <p>v2의 +100 → v3의 +115. 컨텍스트(난이도·캐릭터)가 결과 위로 올라옴. AccentLine은 +148.</p>
+    </div>
+    <div class="annotation">
+      <h3>📊 기록 보기 GlassPill 신규</h3>
+      <p>shareButton 좌측 -110pt에 110×36 신규 GlassPill. 탭 1회 → ScoreboardScene fade 0.4s.</p>
+    </div>
+    <div class="annotation">
+      <h3>레이아웃 시프트 표</h3>
+      <p>divider -90 → -78 / stat -110·-124 → -98·-112. bestLabel v2 자리 비워지면서 stat 그룹 위로 이동.</p>
+    </div>
+  </div>
+
+  <!-- v2 → v3 좌표 비교 -->
+  <div class="annot-title">v2 → v3 midY 기준 y 오프셋</div>
+  <div class="compare-table">
+    <table>
+      <thead><tr><th>노드</th><th>v2</th><th>v3</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>accentLine</td><td>+130</td><td>+148</td><td>headerChip 따라 위로</td></tr>
+        <tr><td>headerChip</td><td>+100</td><td>+115</td><td>타이틀 위로</td></tr>
+        <tr><td>titleLabel</td><td>+70</td><td>+85</td><td>headerChip 따라 위로</td></tr>
+        <tr><td>subtitleLabel</td><td>+44</td><td>+58</td><td>title 따라 위로</td></tr>
+        <tr><td>scoreLabel</td><td>-2</td><td>-2</td><td>유지 (텍스트 ♪ 제거)</td></tr>
+        <tr><td>scoreNoteIcon (신규)</td><td>—</td><td>scoreLabel.x -60, y -2</td><td>24pt</td></tr>
+        <tr><td>bestPill (신규)</td><td>—</td><td>scoreLabel.x +120, y -2</td><td>120×28 GlassPill</td></tr>
+        <tr><td>bestLabel</td><td>-60 중앙</td><td>(alpha=0)</td><td>노드 트리 보존, 시각 차단</td></tr>
+        <tr><td>scoreSubLabel</td><td>-32</td><td>-44</td><td>점수 아래</td></tr>
+        <tr><td>divider</td><td>-90</td><td>-78</td><td>bestLabel 자리 채움 (위로)</td></tr>
+        <tr><td>playsValue/totalValue</td><td>-110</td><td>-98</td><td>divider 따라 위로</td></tr>
+        <tr><td>playsTitle/totalTitle</td><td>-124</td><td>-112</td><td>stat 그룹 위로</td></tr>
+        <tr><td>scoreboardButton (신규)</td><td>—</td><td>shareButton.x -110</td><td>110×36 GlassPill</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SpriteKit 매핑 -->
+  <div class="annot-title">SpriteKit 구현 매핑</div>
+  <div class="compare-table">
+    <table>
+      <thead><tr><th>HTML 요소</th><th>SpriteKit 매핑</th></tr></thead>
+      <tbody>
+        <tr><td>♪ 24pt 좌측</td><td>scoreNoteIconLabel = SKLabelNode (Jua 24pt, scoreLabel.position.x - 60)</td></tr>
+        <tr><td>점수 64pt</td><td>scoreLabel.text = "\(finalScore)" (v3 — ♪ 제거)</td></tr>
+        <tr><td>BEST GlassPill</td><td>bestPill = GlassPillNode(text: "🏆 BEST N" / "★ NEW BEST!", size: 120×28)</td></tr>
+        <tr><td>기록 보기 GlassPill</td><td>scoreboardButton = GlassPillNode(text: "📊 기록 보기", size: 110×36)</td></tr>
+        <tr><td>scoreboard 탭</td><td>touchesBegan 분기 — ScoreboardScene.newScoreboardScene(lastUpdatedKey, returnContext) fade</td></tr>
+        <tr><td>bestLabel 차단</td><td>bestLabel.alpha = 0 (노드 트리 보존, 시각만 차단 — sparkle/heavy/사운드 byte-identical)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>
