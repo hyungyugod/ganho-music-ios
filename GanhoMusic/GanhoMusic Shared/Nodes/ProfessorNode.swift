@@ -57,6 +57,10 @@ final class ProfessorNode: SKSpriteNode {
         // physicsBody 미부착 — *통과형* NPC. 위협은 청진기가 담당(SPEC.md §주의사항).
         // collision/contact 모두 0 = physicsBody 자체를 안 만드는 게 가장 단순/안전.
 
+        // Sprint 7 Phase F — 시각 보강 자식 노드 부착(청진기 mini disc + 튜브).
+        // **StethoscopeNode 투사체와 완전 무관 — 액세서리 시각만**. AI/이동/투척 0줄 영향.
+        setupVisualOverlay()
+
         startPatrol()
     }
 
@@ -219,5 +223,43 @@ final class ProfessorNode: SKSpriteNode {
             from: PixelSprite.professorData(direction: pixelDirection, frame: pixelFrame),
             palette: PixelPalette.professorPalette
         )
+    }
+
+    // MARK: - Visual Overlay (Sprint 7 Phase F)
+    /// 이교수 시각 단서 보강 — 청진기 mini disc + 튜브(코랄 액세서리).
+    /// init에서 1회 호출. AI/이동/투척/StethoscopeNode 0줄 영향 — 자식 SKShapeNode만 추가.
+    /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준.
+    private func setupVisualOverlay() {
+        attachStethoscopeDisc()
+        attachStethoscopeTube()
+    }
+
+    /// 청진기 disc — 좌측 옆구리 작은 코랄 원. coralShadow stroke로 *살아있는* 액센트.
+    /// zPos 0.1 → 부모(5) 위에 살짝 떠 보임.
+    private func attachStethoscopeDisc() {
+        let disc = SKShapeNode(circleOfRadius: GameConfig.professorStethoIconRadius)
+        disc.fillColor = .ganhoCoralPrimary
+        disc.strokeColor = .ganhoCoralShadow
+        disc.lineWidth = 0.4
+        disc.position = GameConfig.professorStethoIconOffset
+        disc.zPosition = 0.1
+        addChild(disc)
+    }
+
+    /// 청진기 튜브 — disc 위로 짧게 올라가는 가는 코랄 선.
+    /// 시각적으로 *청진기를 들고 있는 교수* 인상. zPos 0.15 → disc 옆에 살짝 떠 보임.
+    private func attachStethoscopeTube() {
+        let tube = SKShapeNode(rectOf: CGSize(
+            width:  GameConfig.professorStethoTubeWidth,
+            height: GameConfig.professorStethoTubeHeight
+        ))
+        tube.fillColor = .ganhoCoralLight
+        tube.strokeColor = .clear
+        tube.position = CGPoint(
+            x: GameConfig.professorStethoIconOffset.x,
+            y: GameConfig.professorStethoIconOffset.y + GameConfig.professorStethoTubeHeight / 2
+        )
+        tube.zPosition = 0.15
+        addChild(tube)
     }
 }

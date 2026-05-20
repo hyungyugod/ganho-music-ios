@@ -20,8 +20,10 @@ final class StoneGuardNode: SKSpriteNode {
             width:  GameConfig.stoneGuardWidth,
             height: GameConfig.stoneGuardHeight
         )
-        // 색상: 수간호사(.ganhoBloodAccent 빨강)와의 시각 대비. 새 ColorTokens 신설 금지 — .ganhoPaper 재사용.
-        super.init(texture: nil, color: .ganhoPaper, size: size)
+        // Sprint 7 Phase F — 색상: 따뜻한 종이톤(.ganhoPaper)에서 *돌상 무채색*(.ganhoStoneGuardLight)으로 교체.
+        // super.init 시그니처 byte-identical(texture: nil, color: _, size: size) — 값만 변경.
+        // 새 ColorTokens(ganhoStoneGuardLight #A0A0A8)는 Phase F에서 추가.
+        super.init(texture: nil, color: .ganhoStoneGuardLight, size: size)
         name = "stoneGuard"
         // EnemyNode와 동일한 zPosition 5 — 다른 노드(벽/음표/기둥) 위에 그려짐.
         zPosition = 5
@@ -38,6 +40,10 @@ final class StoneGuardNode: SKSpriteNode {
         body.collisionBitMask    = 0                            // 통과형 — 아무도 막지 않음
         body.contactTestBitMask  = PhysicsCategory.player       // player와 닿으면 알림
         physicsBody = body
+
+        // Sprint 7 Phase F — 시각 보강 자식 노드 부착(갑옷 + 일자눈).
+        // physicsBody.size 인자(GameConfig.stoneGuardWidth/Height) 변경 0 — hitbox byte-identical.
+        setupVisualOverlay()
 
         startPatrol()
     }
@@ -62,5 +68,46 @@ final class StoneGuardNode: SKSpriteNode {
         }
         let loop = SKAction.repeatForever(.sequence(moves))
         run(loop)
+    }
+
+    // MARK: - Visual Overlay (Sprint 7 Phase F)
+    /// 석조무사 시각 단서 보강 — 사각 갑옷(dark fill) + 일자눈 2개.
+    /// init에서 1회 호출. physicsBody/이동 0줄 영향 — 자식 SKShapeNode만 추가.
+    /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준.
+    private func setupVisualOverlay() {
+        attachArmor()
+        attachEyes()
+    }
+
+    /// 사각 갑옷 — stoneGuardDark fill + stoneGuardOutline stroke 0.8. 본체 위에 겹친 *돌상 갑옷판*.
+    /// 본체 크기보다 약간 작게(0.7배) → 외곽선이 본체를 살짝 보여줌. zPos 0.1.
+    private func attachArmor() {
+        let armorSize = CGSize(
+            width:  GameConfig.stoneGuardWidth  * 0.7,
+            height: GameConfig.stoneGuardHeight * 0.5
+        )
+        let armor = SKShapeNode(rectOf: armorSize, cornerRadius: 1.0)
+        armor.fillColor = .ganhoStoneGuardDark
+        armor.strokeColor = .ganhoStoneGuardOutline
+        armor.lineWidth = 0.8
+        armor.zPosition = 0.1
+        addChild(armor)
+    }
+
+    /// 일자눈 2개 — navyDeep 색의 가로 직사각형 좌우 대칭. *무뚝뚝한 돌상* 표정.
+    /// rectOf 2×0.8 → 가로로 긴 얇은 눈. zPos 0.2 → 갑옷(0.1) 위.
+    private func attachEyes() {
+        let eyeSize = CGSize(width: 2, height: 0.8)
+        for sign in [-1, 1] {
+            let eye = SKShapeNode(rectOf: eyeSize)
+            eye.fillColor = .ganhoNavyDeep
+            eye.strokeColor = .clear
+            eye.position = CGPoint(
+                x: CGFloat(sign) * GameConfig.stoneGuardEyeOffsetX,
+                y: GameConfig.stoneGuardEyeOffsetY
+            )
+            eye.zPosition = 0.2
+            addChild(eye)
+        }
     }
 }

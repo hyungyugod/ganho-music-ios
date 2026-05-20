@@ -2149,4 +2149,92 @@ enum GameConfig {
     static let scoreboardStatOffsetY: CGFloat = -150
     /// stat 라벨 폰트 크기(Gowun Dodum 12pt).
     static let scoreboardStatFontSize: CGFloat = 12
+
+    // MARK: - Sprint 7 Phase F · Villain Visual V3
+    //
+    // 4종 빌런 시각 강화 V3 상수 묶음. **모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준**이며
+    // zPosition은 부모 zPosition 5 기준의 *상대 오프셋*(0.1~0.4)이다.
+    // 매직 넘버 0 원칙: setupVisualOverlay 함수 안에서는 본 상수만 참조.
+    //
+    // **Hitbox 보존 계약**: 본 상수는 *시각 자식 노드*에만 쓰인다.
+    // physicsBody.size 인자는 기존 GameConfig.enemyWidth/Height 등을 그대로 사용 — *0줄 변경*.
+
+    // ── EnemyNode (수간호사) — 외곽 헬로 + 차트 + 클립 ──────────────
+    /// 외곽 헬로 SKShape 가로(22pt). 픽셀 텍스처(32×40) 살짝 안쪽의 부드러운 light bloom 표현.
+    static let enemyVisualHaloWidth: CGFloat  = 22
+    /// 외곽 헬로 SKShape 세로(28pt).
+    static let enemyVisualHaloHeight: CGFloat = 28
+    /// 외곽 헬로 alpha(0.18) — 픽셀 텍스처를 가리지 않는 *살짝 보이는* 정도.
+    static let enemyVisualHaloAlpha: CGFloat  = 0.18
+    /// 차트(클립보드) SKShape 크기 6×8pt — 픽셀 텍스처 옆구리에 작게 부착.
+    static let enemyVisualChartSize = CGSize(width: 6, height: 8)
+    /// 차트 위치 오프셋 — 우측 옆구리(x +10, y -2)에 작게 표시.
+    static let enemyVisualChartOffset = CGPoint(x: 10, y: -2)
+
+    // ── ProfessorNode (이교수) — 청진기 mini disc + 튜브 ──────────
+    /// 청진기 mini disc 반지름(2.2pt). 좌측 옆구리에 작게 부착.
+    /// **StethoscopeNode 투사체와 완전 무관 — 액세서리 시각만**.
+    static let professorStethoIconRadius: CGFloat = 2.2
+    /// 청진기 disc 위치 오프셋 — 좌측 옆구리(x -11, y -6).
+    static let professorStethoIconOffset = CGPoint(x: -11, y: -6)
+    /// 청진기 튜브 가로(1.2pt) — 얇은 코랄 선.
+    static let professorStethoTubeWidth: CGFloat  = 1.2
+    /// 청진기 튜브 세로(6pt) — disc 위로 짧게 올라감.
+    static let professorStethoTubeHeight: CGFloat = 6
+
+    // ── StoneGuardNode (석조무사) — 사각 갑옷 + 일자눈 ────────────
+    /// 일자눈 좌우 대칭 x 오프셋(±4pt). attachEyes에서 leftEye = -x, rightEye = +x.
+    static let stoneGuardEyeOffsetX: CGFloat = 4
+    /// 일자눈 y 오프셋(+5pt) — 중심 약간 위쪽에 위치.
+    static let stoneGuardEyeOffsetY: CGFloat = 5
+
+    // ── SergeantParkNode (박병장) — 신규 빌런 시각 시안 ───────────
+    /// 박병장 시각 크기 기본 가로(16pt). EnemyNode/PlayerNode 패턴 동형 — pixelSpriteScale로 2배 확대.
+    static let sergeantParkWidth: CGFloat  = 16
+    /// 박병장 시각 크기 기본 세로(20pt).
+    static let sergeantParkHeight: CGFloat = 20
+
+    /// 발 밑 ellipse 그림자 크기(18×4pt).
+    static let sergeantShadowSize = CGSize(width: 18, height: 4)
+    /// 그림자 y 오프셋(-18pt) — 발 밑.
+    static let sergeantShadowOffsetY: CGFloat = -18
+
+    /// 군복 몸통 사각형 크기(18×14pt).
+    static let sergeantBodySize = CGSize(width: 18, height: 14)
+    /// 군복 몸통 y 오프셋(-6pt) — 머리 아래.
+    static let sergeantBodyOffsetY: CGFloat = -6
+
+    /// 살구색 얼굴 반지름(6pt).
+    static let sergeantHeadRadius: CGFloat   = 6
+    /// 얼굴 y 오프셋(+6pt) — 몸통 위.
+    static let sergeantHeadOffsetY: CGFloat  = 6
+
+    /// 항공 캡 크라운(둥근 모자 윗부분) 크기(16×6pt).
+    static let sergeantCapCrownSize = CGSize(width: 16, height: 6)
+    /// 캡 크라운 y 오프셋(+13pt) — 머리 위.
+    static let sergeantCapCrownOffsetY: CGFloat = 13
+    /// 캡 차양(앞창) 크기(18×2pt).
+    static let sergeantCapVisorSize = CGSize(width: 18, height: 2)
+    /// 캡 차양 y 오프셋(+9pt) — 크라운 아래, 얼굴 위.
+    static let sergeantCapVisorOffsetY: CGFloat = 9
+
+    /// 선글라스 가로 직사각형 크기(11×3pt) — 눈 영역 전체 덮음.
+    static let sergeantSunglassesSize = CGSize(width: 11, height: 3)
+    /// 선글라스 y 오프셋(+5pt) — 얼굴 중심 약간 위.
+    static let sergeantSunglassesOffsetY: CGFloat = 5
+
+    /// 우측 어깨 v자 chevron 개수(2개 — 병장 계급장).
+    static let sergeantRankChevronCount: Int = 2
+    /// chevron x 오프셋(+6pt) — 우측 어깨.
+    static let sergeantRankOffsetX: CGFloat  = 6
+    /// chevron y 오프셋(-1pt) — 몸통 위쪽 어깨 위치.
+    static let sergeantRankOffsetY: CGFloat  = -1
+    /// chevron 사이 y 간격(+3pt) — 2개가 위아래로 살짝 띄움.
+    static let sergeantRankChevronGap: CGFloat = 3
+    /// 단일 chevron(v자) 폭(5pt).
+    static let sergeantChevronWidth: CGFloat = 5
+    /// 단일 chevron 높이(2.5pt) — v자 꼭짓점 깊이.
+    static let sergeantChevronHeight: CGFloat = 2.5
+    /// chevron 선 굵기(1.0pt) — 골드 stroke.
+    static let sergeantChevronLineWidth: CGFloat = 1.0
 }

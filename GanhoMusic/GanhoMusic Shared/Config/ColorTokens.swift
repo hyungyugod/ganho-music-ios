@@ -294,6 +294,30 @@ extension UIColor {
     static let ganhoDifficultyHardCoral  = UIColor(hex: "#FF6B5B")
     /// 상 난이도 카드 짙은 톤. 기존 ganhoCoralShadow(#C44A3D)와 동일 hex.
     static let ganhoDifficultyHardDeep   = UIColor(hex: "#C44A3D")
+
+    // MARK: - Sprint 7 Phase F · Airforce Sergeant + Stone Guard tonal
+    //
+    // 박병장(SergeantParkNode) 시각 시안 — 공군 청록 + 검정 선글라스 + 골드 계급장.
+    // 석조무사(StoneGuardNode) 톤 분리 — 단색 paper → light/dark/outline 3계 무채색 그라데이션 톤.
+    // 모두 SPRINT_7_REQUEST.md §10 / SPEC.md §기능5 hex 값과 byte-identical.
+    //
+    // 박병장:
+    /// 공군 청록(army teal). 박병장 군복 + 항공모자 본체. SPRINT_7_REQUEST.md §10.
+    static let ganhoAirforceTeal       = UIColor(hex: "#3A6F7F")
+    /// 공군 청록 하이라이트. 박병장 군복/모자 stroke + 광원 표현.
+    static let ganhoAirforceTealLight  = UIColor(hex: "#5A8F9F")
+    /// 박병장 선글라스 + 모자 차양 — 거의 검정. 순수 #000 대신 #1A1A1A로 미세한 깊이감.
+    static let ganhoSunglassesBlack    = UIColor(hex: "#1A1A1A")
+
+    // 석조무사:
+    /// 석조무사 본체 밝은 톤 — 회색 돌상. SPRINT_7_REQUEST.md §7.1 `#A0A0A8`.
+    /// 기존 단색 `.ganhoPaper`(#F4F1DE 따뜻한 종이) → 본 토큰으로 교체하면 *돌상 무채색* 정체성 부여.
+    static let ganhoStoneGuardLight    = UIColor(hex: "#A0A0A8")
+    /// 석조무사 갑옷 짙은 톤 — 무채색 그라데이션의 깊이. 기존 ganhoNavyMuted(#5A5670) hex 동일.
+    /// *의미 단위 분리*(석조무사 lookup용) — Difficulty/Brand 토큰 분리 규칙과 동일.
+    static let ganhoStoneGuardDark     = UIColor(hex: "#5A5670")
+    /// 석조무사 외곽선 — 따뜻한 회갈색. light 톤(#A0A0A8)과 명확히 분리된 stroke 색.
+    static let ganhoStoneGuardOutline  = UIColor(hex: "#7A7570")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

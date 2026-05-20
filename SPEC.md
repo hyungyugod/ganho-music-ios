@@ -1,248 +1,306 @@
-# Sprint 7 Phase E — 카운트다운 오버레이 + dim 배경 + 코랄 GO! + Jua 폰트
+# Sprint 7 Phase F — 빌런 4종 시각 리뉴얼 + 박병장 신규
 
 ## 개요
-게임 시작 직전 약 1~2초간 입력이 막혀 있는 동안 시각 피드백이 부족해 "멈춘 줄 알았다"는 인상이 나오는 문제를 해결한다. 기존 Phase 6-13에서 이미 구현되어 있는 `CountdownNode`(3 → 2 → 1 → GO!)를 v2 디자인 시스템(Jua 폰트 / navy 숫자 / 코랄 GO! / navyDeep dim 오버레이)에 맞춰 보강하고, GameScene 시작 시퀀스에 dim 오버레이를 추가하여 카운트다운이 명확히 "준비 시간"임을 시각적으로 표현한다. 입력 게이트는 이미 `gameState == .playing` 가드로 완벽히 차단되어 있으므로 *게이트 시점만* 카운트다운 종료 콜백에 정확히 정렬한다.
+수간호사(EnemyNode) · 이교수(ProfessorNode) · 석조무사(StoneGuardNode) 3종 빌런 시각만 강화하여 **5초 안에 누가 누군지 즉시 식별** 가능하게. 동시에 신규 빌런 **박병장(SergeantParkNode — 공군 청록 군복 + 항공 캡 + 검은 선글라스 + 골드 v자 계급장)** 노드 클래스 작성(시각 시안만, GameScene 등장 0건). **AI · 이동 · 충돌 · hitbox 코드는 0줄 손대지 않는다.**
 
 ## 변경 유형
-**비주얼 + 입력 게이트 보강** — 게임 로직(점수/물리/적 AI) 변경 0건.
+**비주얼 + 신규 노드 클래스 1개** (시각 자식 SKShapeNode 추가, physicsBody·AI 0줄)
 
 ## 게임 경험 의도
-- "지금은 준비 시간이다 — 입력은 곧 활성화된다"는 메시지가 즉시 전달
-- dim 오버레이(navyDeep alpha 0.32)가 화면을 살짝만 덮어 게임 월드는 보이되 "아직 시작 전"임을 명확히
-- 3·2·1은 차분한 navy 톤(긴장 누적), GO!는 따뜻한 코랄 톤(폭발적 시작)으로 색 대비를 통해 "준비 → 출발" 감정 전환
+- 빌런 4명이 시각 단서(차트/청진기/돌 갑옷/선글라스)만으로 즉시 판독
+- 박병장은 게임 등장 0건이지만 *공군 병장 + 선글라스* 정체성 시각 시안 준비
+- 4명 컨셉이 톤(권위자/교수/돌상/군인)과 색(navyDeep/코랄/회색/공군 청록)으로 충돌 0 식별
 
-## Sprint 7 Phase E 범위 계약
+## Sprint 7 Phase F 범위 계약
 
 ### 허용
-- CountdownNode 색/폰트/scale 갱신 (시그니처 byte-identical)
-- GameScene.showCountdown에 dim 오버레이 attach·페이드·자가 소멸 시퀀스 추가
-- GameConfig 신규 V3 상수 9개
-- 신규 mockup HTML 1개
+- EnemyNode/ProfessorNode/StoneGuardNode 시각 부착 코드만 갱신 (자식 SKShapeNode 추가)
+- 신규 `Nodes/SergeantParkNode.swift` (시각 시안 전용)
+- ColorTokens 박병장 3 + 석조무사 3 = 6 토큰 신규
+- GameConfig Phase F V3 상수 ~22개
+- 신규 `mockups/villains-and-player-directions-v1.html` 전반부 (4명 빌런 패널, 후반부 5명 4방향은 Phase G)
 
 ### 금지 (0줄)
-- 게임 루프 update / 물리 / 점수 / 입력 처리 함수 자체 / AI / 저장 / 사운드 발화 신호
-- DPadNode / SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem
-- Phase A·B·C·D 결과물 일체
-- GameState enum / PhysicsCategory / Managers (AudioManager 포함) / Repositories / Systems
-- 다른 Scenes (Character/Skill/Difficulty/Result/Scoreboard/Start)
+- EnemyNode/ProfessorNode/StoneGuardNode AI/이동/충돌 로직 (update/startPatrol/startThrowingStethoscopes/startFleeing/apply/stopThrowing 시그니처+본문)
+- physicsBody.size / categoryBitMask / collisionBitMask / contactTestBitMask
+- 속도·waypoint 상수 (baseSpeedStart/End, professorSpeed, stoneGuardSpeed, waypoints)
+- PhysicsCategory 비트마스크 추가/수정
+- GameScene setupEnemy/setupStoneGuard/setupProfessor/addNormalMap/addHardMap 호출
+- SergeantParkNode 게임 spawn (Sprint 8 후보)
+- Phase A·B·C·D·E 결과물
+- GameState/Managers/Repositories/Systems/SkillSystem/ScoreSystem/ContactRouter/SpawnSystem
+- PlayerNode/NoteNode/ProjectileNode/StethoscopeNode (Phase G에서 PlayerNode 별도)
 
-## 현황 파악 (Generator 필수)
-
-### 1) CountdownNode 현재 상태 — 이미 존재
-- 파일: `Nodes/CountdownNode.swift` (Phase 6-13에서 신설)
-- 시그니처: `init()` + `start(onTick:onGo:onComplete:)` — Sprint 7 사양과 가까움. **새로 만들지 말고 보강만**.
-- 호출부: `GameScene.showCountdown()` 안 `let node = CountdownNode(); cameraNode.addChild(node); node.start(...)` 패턴 이미 사용 중.
-- 현재 단점 4가지:
-  1. `SKLabelNode(text: "")` — fontName 0 → 시스템 폰트 (Jua 미적용)
-  2. 색 3=blood/2=yellow/1=pink/GO=mint — Sprint 7 v3 톤(navy + coral)과 불일치
-  3. fontSize 96 — Sprint 7 사양 숫자 120 / GO 140
-  4. GO scale 1.0→1.3 — Sprint 7 사양 1.2→1.8
-- 한 단계 총 1.0s (fadeIn 0.1 + hold 0.7 + fadeOut 0.2) — SPRINT_7_REQUEST §6.2 "0.0s~1.0s : 3"와 정확히 일치 ✅ 변경 불필요
-
-### 2) 입력 게이트 — 이미 차단됨
-- DPadNode: isUserInteractionEnabled true 유지
-- `GameScene.update()` 안 `guard gameState == .playing else { return }` 가드 — dpad→player 라인 차단
-- gameState 전이: .cutscene → .countdown → .playing (startGameProperly 안 마지막)
-- **결론**: 추가 게이트 코드 0줄. SPRINT_7_REQUEST §6.5 "D-pad 탭 무시" 이미 보장.
-
-### 3) GO! 종료 직후 음표 첫 발생 — 이미 일치
-- `startGameProperly()`가 CountdownNode onComplete에서 호출. 안에서 `spawnSystem.start(...)` 호출 후 `gameState = .playing` 전환.
-- **결론**: 시점 이미 정확. 호출 순서 0줄 변경.
-
-### 4) AudioManager tick/chime 키 — 부재
-- 현재 4개 키 (.noteCollected/.gameOver/.comboMilestoneSoft/.comboMilestoneStrong). tick/chime 0건.
-- SPRINT_7_REQUEST §6.3 "사운드 추가는 후속" 명시 → 본 Phase E 사운드 코드 변경 0.
+### 판단 기준
+- "이 변경이 EnemyNode hitbox/AI/이동을 바꾸는가?" → YES면 금지
+- "SergeantParkNode를 게임에 spawn시키는가?" → YES면 금지
+- "시각 자식 노드 path/color/zPosition만 건드리는가?" → YES면 허용
 
 ## 변경 범위
 
 ### 수정 파일
-- `Nodes/CountdownNode.swift` — 폰트(Jua) 부여 / 색 4개 갱신 / fontSize 분기 (숫자 120 / GO 140) / scale 1.2→1.8
-- `GameScene.swift` — `showCountdown()`에 dim 오버레이 attach + 페이드인 + onComplete에서 페이드아웃·제거·startGame 시퀀스
-- `Config/GameConfig.swift` — V3 신규 상수 9개
+- `Nodes/EnemyNode.swift` — setupVisualOverlay 신규 (외곽 헬로 + 차트 + 클립)
+- `Nodes/ProfessorNode.swift` — setupVisualOverlay 신규 (청진기 mini disc + 튜브)
+- `Nodes/StoneGuardNode.swift` — setupVisualOverlay 신규 + super.init color 변경(.ganhoPaper → .ganhoStoneGuardLight)
+- `Config/ColorTokens.swift` — Phase F 6 토큰 추가
+- `Config/GameConfig.swift` — Phase F V3 상수 ~22개
 
 ### 추가 파일
-- `mockups/countdown-overlay-v1.html` — 4프레임 시각 시안 (3·2·1·GO!)
-
-### 절대 변경 금지
-- DPadNode / SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem / GameScene+Setup
-- GameState / PhysicsCategory / 모든 Repositories / 모든 Managers
-- Phase A·B·C·D에서 만진 모든 Scenes·Nodes
+- `Nodes/SergeantParkNode.swift` — 신규 ~150 LOC, SKSpriteNode(.clear) 상속 + 6 attach 메서드
+- `mockups/villains-and-player-directions-v1.html` — 전반부 4 패널 (Phase G에서 후반부 추가)
 
 ## 기능 상세
 
-### 기능 1: CountdownNode 시각 v3 보강
+### 기능 1: EnemyNode 시각 보강 (수간호사)
+- 외곽 헬로 SKShape(navyMuted alpha 0.18, zPos -0.1)
+- 차트 SKShape(paper fill, navyDeep stroke, 우측 옆구리)
+- 클립 SKShape(coralPrimary, 차트 위)
+- `setupVisualOverlay()` 호출은 init 마지막 `zPosition = 5` 직후 1줄
 
-**변경점 4개**:
-1. init의 `SKLabelNode(text: "")`를 `SKLabelNode(fontNamed: GameConfig.fontDisplay)`로 교체 (Jua-Regular)
-2. `start(...)` 안 색 인자 3개: blood/yellow/pink → 모두 `.ganhoNavyDeep`
-3. `stepAction` setup 액션에 `self.label.fontSize = GameConfig.countdownNumberFontSizeV3` (120pt) 갱신 추가; `goAction` setup에 `self.label.fontSize = GameConfig.countdownGoFontSizeV3` (140pt) 갱신 추가
-4. `goAction`의 색 `.ganhoMint` → `.ganhoCoralPrimary`, setup의 `setScale(1.0)` → `setScale(GameConfig.countdownGoStartScaleV3)` (1.2), `SKAction.scale(to: ..., duration:)` 인자를 `GameConfig.countdownGoEndScaleV3` (1.8)로 교체
+### 기능 2: ProfessorNode 시각 보강 (이교수)
+- 청진기 mini disc SKShape(coralPrimary, coralShadow stroke, 좌측 옆구리)
+- 청진기 튜브 SKShape(coralLight, disc 위)
+- `setupVisualOverlay()` 호출은 init `startPatrol()` 직전 1줄
+- **StethoscopeNode 투사체와 완전 무관 — 액세서리 시각만**
 
-**핵심 코드 (의사코드)**:
-```swift
-// init() 변경
-override init() {
-    self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)  // Jua
-    super.init()
-    // ...
-}
+### 기능 3: StoneGuardNode 시각 보강 (석조무사)
+- super.init color: `.ganhoPaper` → `.ganhoStoneGuardLight` (값 변경만, 시그니처 byte-identical)
+- 사각 갑옷 SKShape(stoneGuardDark fill, stoneGuardOutline stroke 0.8)
+- 일자눈 2개 SKShape(navyDeep, rectOf 2×0.8, 좌우 대칭)
+- `setupVisualOverlay()` 호출은 init `startPatrol()` 직전 1줄
+- **physicsBody.size 인자 변경 0 — GameConfig.stoneGuardWidth/Height 그대로**
 
-// start(...) 안 — 색 3개 통일
-let step3 = stepAction(text: "3", color: .ganhoNavyDeep) { onTick(3) }
-let step2 = stepAction(text: "2", color: .ganhoNavyDeep) { onTick(2) }
-let step1 = stepAction(text: "1", color: .ganhoNavyDeep) { onTick(1) }
-
-// stepAction 안 setup 액션에 fontSize 갱신
-let setup = SKAction.run { [weak self] in
-    guard let self = self else { return }
-    self.label.text = text
-    self.label.fontColor = color
-    self.label.fontSize = GameConfig.countdownNumberFontSizeV3   // 신규 1줄
-    self.label.alpha = 0
-    self.label.setScale(1.0)
-    onTick()
-}
-
-// goAction 안 setup
-let setup = SKAction.run { [weak self] in
-    guard let self = self else { return }
-    self.label.text = "GO!"
-    self.label.fontColor = .ganhoCoralPrimary                      // 변경
-    self.label.fontSize = GameConfig.countdownGoFontSizeV3         // 신규
-    self.label.alpha = 0
-    self.label.setScale(GameConfig.countdownGoStartScaleV3)        // 1.2
-    onGo()
-}
-let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScaleV3, // 1.8
-                             duration: GameConfig.countdownGoHoldDuration)
-```
-
-### 기능 2: GameScene.showCountdown에 dim 오버레이
+### 기능 4: SergeantParkNode 신규 (박병장)
+- SKSpriteNode(.clear) 상속 (기존 빌런 3종 패턴 일관)
+- 6 attach 메서드:
+  - `attachShadow()` — 발 밑 ellipse, zPos -0.1
+  - `attachBody()` — 청록 군복 rect, zPos 0.1
+  - `attachHead()` — 살구색 circle, zPos 0.2
+  - `attachCap()` — 청록 crown + 검정 visor, zPos 0.3/0.35
+  - `attachSunglasses()` — 검정 rect, zPos 0.4 (얼굴 위)
+  - `attachRank()` — 골드 v자 2개 chevron path, zPos 0.25
+- **physicsBody/AI/SKAction/update 0건**
 
 ```swift
-private func showCountdown() {
-    // 1) dim 오버레이 — cameraNode 자식, navyDeep × 0.32, 자연 페이드인
-    let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
-    dim.alpha = 0
-    dim.zPosition = GameConfig.countdownDimZPosition  // 240 (CountdownNode 250 아래)
-    dim.name = GameConfig.countdownDimNodeName
-    cameraNode.addChild(dim)
-    dim.run(.fadeAlpha(to: GameConfig.countdownDimAlpha,
-                       duration: GameConfig.countdownDimFadeInDuration))
+final class SergeantParkNode: SKSpriteNode {
+    init() {
+        let visualSize = CGSize(
+            width:  GameConfig.sergeantParkWidth  * GameConfig.pixelSpriteScale,
+            height: GameConfig.sergeantParkHeight * GameConfig.pixelSpriteScale)
+        super.init(texture: nil, color: .clear, size: visualSize)
+        name = "sergeantPark"
+        zPosition = 5
+        attachShadow(); attachBody(); attachHead(); attachCap(); attachSunglasses(); attachRank()
+    }
 
-    // 2) 기존 CountdownNode attach + start
-    let node = CountdownNode()
-    cameraNode.addChild(node)
-    node.start(
-        onTick: { [weak self] _ in self?.haptics.light() },
-        onGo: { [weak self] in
-            guard let self = self else { return }
-            self.haptics.heavy()
-            self.audio.play(.comboMilestoneStrong)
-        },
-        onComplete: { [weak self] in
-            guard let self = self else { return }
-            // 3) dim 페이드아웃 → 제거 → startGameProperly
-            let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownDimFadeOutDuration)
-            let cleanup = SKAction.removeFromParent()
-            let startGame = SKAction.run { [weak self] in self?.startGameProperly() }
-            dim.run(.sequence([fadeOut, cleanup, startGame]))
+    required init?(coder aDecoder: NSCoder) { fatalError() }
+
+    private func attachShadow() {
+        let shadow = SKShapeNode(ellipseOf: GameConfig.sergeantShadowSize)
+        shadow.fillColor = .black.withAlphaComponent(0.18)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 0, y: GameConfig.sergeantShadowOffsetY)
+        shadow.zPosition = -0.1
+        addChild(shadow)
+    }
+
+    private func attachBody() {
+        let body = SKShapeNode(rectOf: GameConfig.sergeantBodySize, cornerRadius: 1.5)
+        body.fillColor = .ganhoAirforceTeal
+        body.strokeColor = .ganhoAirforceTealLight
+        body.lineWidth = 0.6
+        body.position = CGPoint(x: 0, y: GameConfig.sergeantBodyOffsetY)
+        body.zPosition = 0.1
+        addChild(body)
+    }
+
+    private func attachHead() {
+        let head = SKShapeNode(circleOfRadius: GameConfig.sergeantHeadRadius)
+        head.fillColor = .ganhoSkinTone
+        head.strokeColor = .ganhoCoralShadow
+        head.lineWidth = 0.4
+        head.position = CGPoint(x: 0, y: GameConfig.sergeantHeadOffsetY)
+        head.zPosition = 0.2
+        addChild(head)
+    }
+
+    private func attachCap() {
+        let crown = SKShapeNode(rectOf: GameConfig.sergeantCapCrownSize, cornerRadius: 1.5)
+        crown.fillColor = .ganhoAirforceTeal
+        crown.strokeColor = .ganhoAirforceTealLight
+        crown.lineWidth = 0.5
+        crown.position = CGPoint(x: 0, y: GameConfig.sergeantCapCrownOffsetY)
+        crown.zPosition = 0.3
+        addChild(crown)
+
+        let visor = SKShapeNode(rectOf: GameConfig.sergeantCapVisorSize)
+        visor.fillColor = .ganhoSunglassesBlack
+        visor.strokeColor = .clear
+        visor.position = CGPoint(x: 0, y: GameConfig.sergeantCapVisorOffsetY)
+        visor.zPosition = 0.35
+        addChild(visor)
+    }
+
+    private func attachSunglasses() {
+        let glasses = SKShapeNode(rectOf: GameConfig.sergeantSunglassesSize, cornerRadius: 0.6)
+        glasses.fillColor = .ganhoSunglassesBlack
+        glasses.strokeColor = .ganhoNavyDeep
+        glasses.lineWidth = 0.4
+        glasses.position = CGPoint(x: 0, y: GameConfig.sergeantSunglassesOffsetY)
+        glasses.zPosition = 0.4
+        addChild(glasses)
+    }
+
+    private func attachRank() {
+        for index in 0..<GameConfig.sergeantRankChevronCount {
+            let chevron = makeChevronNode()
+            chevron.position = CGPoint(
+                x: GameConfig.sergeantRankOffsetX,
+                y: GameConfig.sergeantRankOffsetY
+                    + CGFloat(index) * GameConfig.sergeantRankChevronGap)
+            chevron.zPosition = 0.25
+            addChild(chevron)
         }
-    )
+    }
+
+    private func makeChevronNode() -> SKShapeNode {
+        let path = UIBezierPath()
+        let w = GameConfig.sergeantChevronWidth
+        let h = GameConfig.sergeantChevronHeight
+        path.move(to: CGPoint(x: -w / 2, y: 0))
+        path.addLine(to: CGPoint(x: 0, y: -h))
+        path.addLine(to: CGPoint(x:  w / 2, y: 0))
+        let shape = SKShapeNode(path: path.cgPath)
+        shape.strokeColor = .ganhoMusicGold
+        shape.lineWidth = GameConfig.sergeantChevronLineWidth
+        shape.fillColor = .clear
+        return shape
+    }
 }
 ```
 
-**주의**: `startGameProperly()` 호출이 dim fadeOut *후*로 0.2초 미뤄지므로 총 카운트다운 4.0s = 1.0(3) + 1.0(2) + 1.0(1) + 0.8(GO!) + 0.2(dim) 일치. 첫 음표 spawn은 dim 사라진 직후로 시각 연속감 확보.
+### 기능 5: ColorTokens 신규 6 토큰
 
-### 기능 3: GameConfig V3 신규 상수 9개
-
-**위치**: `Config/GameConfig.swift` MARK `Countdown (Phase 6-13)` 아래 새 sub-section `// MARK: - Countdown V3 (Sprint 7 Phase E)`
-
+`// MARK: - Sprint 7 Phase F · Airforce Sergeant + Stone Guard tonal`:
 ```swift
-/// V3 카운트다운 숫자(3·2·1) 폰트 크기. V2 96 → 120 (화면 중앙 단독 강조).
-static let countdownNumberFontSizeV3: CGFloat = 120
-/// V3 GO! 폰트 크기. 숫자보다 큼 — "출발의 폭발" 톤.
-static let countdownGoFontSizeV3: CGFloat = 140
-/// V3 GO! scale 시작값. V2 1.0 → 1.2 — 등장부터 임팩트.
-static let countdownGoStartScaleV3: CGFloat = 1.2
-/// V3 GO! scale 끝값. V2 1.3 → 1.8 — 더 큰 펄스.
-static let countdownGoEndScaleV3: CGFloat = 1.8
-/// V3 dim 오버레이 알파. navyDeep × 0.32.
-static let countdownDimAlpha: CGFloat = 0.32
-/// V3 dim 페이드인 길이(초). 카운트다운 등장 동기.
-static let countdownDimFadeInDuration: TimeInterval = 0.2
-/// V3 dim 페이드아웃 길이(초). GO! 종료 직후 0.2초로 자연 밝아짐.
-static let countdownDimFadeOutDuration: TimeInterval = 0.2
-/// V3 dim zPosition. 240 (CountdownNode 250 아래, HUD/Combo/HitFlash 위).
-static let countdownDimZPosition: CGFloat = 240
-/// V3 dim 노드 name — 디버그/회귀 검증용.
-static let countdownDimNodeName: String = "countdownDim"
+static let ganhoAirforceTeal       = UIColor(hex: "#3A6F7F")
+static let ganhoAirforceTealLight  = UIColor(hex: "#5A8F9F")
+static let ganhoSunglassesBlack    = UIColor(hex: "#1A1A1A")
+static let ganhoStoneGuardLight    = UIColor(hex: "#A0A0A8")
+static let ganhoStoneGuardDark     = UIColor(hex: "#5A5670")  // hex 동일 → navyMuted (의미 분리)
+static let ganhoStoneGuardOutline  = UIColor(hex: "#7A7570")
 ```
 
-### 기능 4: mockups/countdown-overlay-v1.html
+> ganhoSkinTone이 ColorTokens에 없으면 Generator가 추가 (#FFD9B8 살구색 추정), 또는 기존 paperLight 등 재사용.
 
-**핵심 사양**:
-- 4프레임 (3·2·1·GO!) 가로 4열, 각 카드 240×135 (16:9 미니 게임 화면)
-- 각 카드 = "게임 월드 일부 + navyDeep alpha 0.32 dim + 중앙 숫자"
-- 폰트: Jua / fallback sans-serif
-- 색: 3·2·1 navy `#2D2A4A` / GO! 코랄 `#FF6B5B`
-- 사이즈: 숫자 72pt 축소 / GO! 84pt
-- 캡션: "0.0~1.0s : 3" / "1.0~2.0s : 2" / "2.0~3.0s : 1" / "3.0~3.8s : GO!"
-- 상단 타이틀 + 하단 메모 ("총 4.0s · 3.8~4.0s dim 페이드아웃 + 입력 활성화")
-- CSS 인라인, JS 0줄
+### 기능 6: GameConfig Phase F V3 상수 ~22개
 
-## 합격 기준 (SPRINT_7_REQUEST.md §6.5)
+`// MARK: - Sprint 7 Phase F · Villain Visual V3`:
+```swift
+// EnemyNode (수간호사)
+static let enemyVisualHaloWidth: CGFloat  = 22
+static let enemyVisualHaloHeight: CGFloat = 28
+static let enemyVisualHaloAlpha: CGFloat  = 0.18
+static let enemyVisualChartSize = CGSize(width: 6, height: 8)
+static let enemyVisualChartOffset = CGPoint(x: 10, y: -2)
 
-- 시뮬레이터에서 게임 시작 후 4초 안에 "3 → 2 → 1 → GO!" 4단계 모두 보임
-- GO! 종료 즉시(<0.2s) 음표 첫 발생 (이미 보장)
-- 카운트다운 도중 D-pad 탭 무시 (이미 보장)
-- dim 오버레이 navyDeep alpha 0.32 — GO! 종료 직후 0.2초로 자연 사라짐
-- 3·2·1 navy, GO! 코랄 색 대비
-- 폰트 Jua-Regular
-- 숫자 120pt, GO! 140pt
-- mockup 4프레임 시각 확인
+// ProfessorNode (이교수)
+static let professorStethoIconRadius: CGFloat = 2.2
+static let professorStethoIconOffset = CGPoint(x: -11, y: -6)
+static let professorStethoTubeWidth: CGFloat  = 1.2
+static let professorStethoTubeHeight: CGFloat = 6
 
-| 카테고리 | 가중치 | 통과선 |
+// StoneGuardNode (석조무사)
+static let stoneGuardEyeOffsetX: CGFloat = 4
+static let stoneGuardEyeOffsetY: CGFloat = 5
+
+// SergeantParkNode (박병장)
+static let sergeantParkWidth: CGFloat  = 16
+static let sergeantParkHeight: CGFloat = 20
+static let sergeantShadowSize = CGSize(width: 18, height: 4)
+static let sergeantShadowOffsetY: CGFloat = -18
+static let sergeantBodySize = CGSize(width: 18, height: 14)
+static let sergeantBodyOffsetY: CGFloat = -6
+static let sergeantHeadRadius: CGFloat   = 6
+static let sergeantHeadOffsetY: CGFloat  = 6
+static let sergeantCapCrownSize = CGSize(width: 16, height: 6)
+static let sergeantCapCrownOffsetY: CGFloat = 13
+static let sergeantCapVisorSize = CGSize(width: 18, height: 2)
+static let sergeantCapVisorOffsetY: CGFloat = 9
+static let sergeantSunglassesSize = CGSize(width: 11, height: 3)
+static let sergeantSunglassesOffsetY: CGFloat = 5
+static let sergeantRankChevronCount: Int = 2
+static let sergeantRankOffsetX: CGFloat  = 6
+static let sergeantRankOffsetY: CGFloat  = -1
+static let sergeantRankChevronGap: CGFloat = 3
+static let sergeantChevronWidth: CGFloat = 5
+static let sergeantChevronHeight: CGFloat = 2.5
+static let sergeantChevronLineWidth: CGFloat = 1.0
+```
+
+### 기능 7: mockups/villains-and-player-directions-v1.html (전반부)
+- 폭 1024 × 높이 768
+- 4 패널 가로 정렬 (각 220×320, gap 16)
+- 각 패널: SVG 96×120 + 핵심 시각 요소 라벨 + 색 키 hex
+- 폰트 Jua + Gowun Dodum
+- 배경 warm gradient
+- Phase G에서 후반부 5명 4방향 추가 예정 (HTML 한 파일)
+
+## 합격 기준 (SPRINT_7_REQUEST.md §7.4)
+
+- 4명 빌런 5초 안에 시각 식별
+- SergeantParkNode 컴파일 OK + mockup 시각 그려짐
+- 기존 3종 hitbox byte-identical (physicsBody.size/categoryBitMask/collisionBitMask/contactTestBitMask)
+- AI/이동/충돌 0줄 (update/startPatrol/startThrowingStethoscopes/scheduleNextThrow/throwStethoscope/apply 본문)
+- GameScene 0줄 (addNormalMap/addHardMap/setupEnemy/setupStoneGuard/setupProfessor)
+- 강제 언래핑 0, Timer 0, 매직 넘버 0
+- mockup ↔ Swift 시각 85% 일치
+
+| 카테고리 | 가중 | 통과선 |
 |---|---|---|
 | 게임 로직 회귀 0 | 40% | 9.0 |
 | Swift 패턴 | 20% | 7.0 |
-| 비주얼 일관성 | 25% | 7.0 (mockup 매칭 ≥ 85%) |
+| 비주얼 일관성 | 25% | 7.0 |
 | 가독성 & UX | 15% | 7.0 |
 
 가중 평균 7.5 이상 합격.
 
 ## 변경 LOC 추정치
 
-| 파일 | LOC | 비고 |
-|---|---|---|
-| `CountdownNode.swift` | ~12 | init 1 / setup fontSize 2 / start 색 3 / goAction 색·scale 3 |
-| `GameScene.swift` | ~20 | showCountdown dim 시퀀스 |
-| `GameConfig.swift` | ~30 | V3 상수 9개 + MARK |
-| `mockups/countdown-overlay-v1.html` | ~140 | 4프레임 CSS + SVG 미니 |
-| **합계** | **~200** | Swift만 ~62 (사양 ~100 부합) |
+| 파일 | LOC |
+|---|---|
+| EnemyNode.swift | ~26 |
+| ProfessorNode.swift | ~21 |
+| StoneGuardNode.swift | ~32 |
+| SergeantParkNode.swift (신규) | ~150 |
+| ColorTokens.swift | ~20 |
+| GameConfig.swift | ~90 |
+| mockups/villains-and-player-directions-v1.html (신규) | ~200 |
+| **합계** | **~540** |
+
+SPRINT_7_REQUEST.md §1 추정 ~500 ±10%.
 
 ## OPEN_QUESTION (모두 결정됨)
 
-**OQ-1**: CountdownNode 시그니처 — 기존 `init()` + `start(onTick:onGo:onComplete:)` 그대로 유지. Sprint 7 사양 "static func bigCenter / func start(completion:)"는 기존이 *더 풍부*하므로 채택 안 함.
+**OQ-1**: SergeantParkNode 부모 클래스 — **SKSpriteNode(.clear, size) + 자식 SKShapeNode 6종** 채택. 기존 빌런 3종 패턴 일관성. SPRINT_7_REQUEST.md §7.2 "SKShapeNode" 명시는 *추후 변경 가능*하나 본 SPEC은 일관성 우선.
 
-**OQ-2**: 입력 게이트 — 이미 `gameState == .playing` 가드 차단. 추가 코드 0줄.
+**OQ-2**: EnemyNode 픽셀 텍스처 톤 흐림 — **자식 SKShapeNode 추가만**(차트 + 헬로). 픽셀 텍스처 완전 교체는 회귀 위험 크고 Phase F 범위 초과 (Sprint 8 후보).
 
-**OQ-3**: GO! 종료 직후 첫 음표 — 이미 정확. dim fadeOut 0.2s가 startGameProperly 직전이라 첫 spawn은 dim 사라진 직후.
+**OQ-3**: StoneGuardNode 단색 박스 → 신규 PixelSprite 변환 — **현 단색 + 자식 SKShape 부착으로 충분**. PixelSprite stoneGuardData 정식 변환은 Sprint 8 후보.
 
-**OQ-4**: AudioManager 키 — tick/chime 부재. 본 Phase E 사운드 코드 변경 0.
+**OQ-4**: hitbox 보존 검증 — Evaluator는 `SKPhysicsBody(rectangleOf: size)` size 인자 (GameConfig.enemyWidth/Height 등)가 byte-identical인지 grep 비교.
 
 ## 주의사항
 
-- 회귀 0 1순위: CountdownNode.start 시그니처 변경 금지.
-- dim zPosition 정합: 240 (CountdownNode 250 아래).
-- CountdownNode 자가 소멸 + dim 자가 소멸 별도 보장.
-- `.run { [weak self] in self?.startGameProperly() }` weak self 캡처 필수.
-- fontName 누락 시 SKLabelNode 시스템 폰트 fallback — Jua-Regular ttf 번들 의존.
-- `.ganhoNavyDeep`은 ColorTokens.swift 정의.
-- Phase E 절대 금기 재확인: SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem / 모든 Repositories / AudioManager / GameState / PhysicsCategory / 다른 Scenes — 0줄.
+- 강제 언래핑 0, 매직 넘버 0 (모든 사이즈는 GameConfig V3)
+- update() 안 addChild 0 — setupVisualOverlay는 init에서 1회만
+- weak self 클로저 미사용 (정적 부착)
+- 자식 SKShapeNode position은 부모 SKSpriteNode 중심 (0,0) 기준, zPos는 부모 zPos 5 기준 상대값
+- EnemyNode 픽셀 텍스처와 시각 자식 겹침: offset 신중 (sprite center 기준 우측 옆구리), zPos 0.1~0.2로 텍스처 위
+- mockup vs SpriteKit 차이: mockup HTML SVG는 자유로운 path, SpriteKit은 rectOf/circleOf/path 추상화 — 85% 일치 합격선
 
-## 관련 파일 (절대 경로)
+## 관련 파일
 
-- 수정: `GanhoMusic/GanhoMusic Shared/Nodes/CountdownNode.swift`, `GameScene.swift`, `Config/GameConfig.swift`
-- 신규: `mockups/countdown-overlay-v1.html`
-- 참조: `Config/ColorTokens.swift`, `mockups/game-map-v2.html`
+- 수정: `Nodes/EnemyNode.swift`, `Nodes/ProfessorNode.swift`, `Nodes/StoneGuardNode.swift`, `Config/ColorTokens.swift`, `Config/GameConfig.swift`
+- 신규: `Nodes/SergeantParkNode.swift`, `mockups/villains-and-player-directions-v1.html`
+- 참조: `Config/PhysicsCategory.swift`, `GameScene.swift` (호출 위치 확인용, 0줄 변경)

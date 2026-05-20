@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 빌런 4종 + 플레이어 4방향 시안 v1 (Sprint 7 Phase F + G)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Gowun Dodum', sans-serif;
+    background:
+      radial-gradient(ellipse at 80% 20%, #FFD9B8 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, #E5C8E8 0%, transparent 60%),
+      linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 45%, #DCC9E8 100%);
+    color: #2D2A4A;
+    min-height: 100vh;
+    padding: 32px 24px 80px;
+    line-height: 1.5;
+  }
+
+  /* ── Header ───────────────────────────────────────────── */
+  .page-head {
+    max-width: 1024px;
+    margin: 0 auto 28px;
+    text-align: center;
+  }
+  .page-head h1 {
+    font-family: 'Jua', sans-serif;
+    font-size: 32px;
+    color: #2D2A4A;
+    margin-bottom: 6px;
+  }
+  .page-head .sub {
+    color: #5A5670;
+    font-size: 14px;
+  }
+  .accent-line {
+    width: 40px; height: 4px;
+    background: #FF6B5B;
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+
+  /* ── 4 panels (전반부 — Phase F) ──────────────────────── */
+  .villain-row {
+    max-width: 1024px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding-bottom: 32px;
+  }
+  .villain-card {
+    width: 220px;
+    height: 320px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px;
+    box-shadow:
+      0 12px 28px rgba(45, 42, 74, 0.14),
+      0 2px 8px rgba(45, 42, 74, 0.08);
+    padding: 16px 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .villain-card.new::after {
+    content: "✨ NEW";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #FF6B5B;
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(255, 107, 91, 0.4);
+  }
+  .villain-card .concept-label {
+    font-family: 'Jua', sans-serif;
+    font-size: 11px;
+    color: #FF6B5B;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 4px;
+  }
+  .villain-card .name-label {
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: #2D2A4A;
+    margin-bottom: 12px;
+  }
+  .villain-card svg {
+    width: 96px;
+    height: 120px;
+    margin-bottom: 14px;
+    background:
+      radial-gradient(ellipse at center, #FFE5D0 0%, transparent 65%);
+    border-radius: 10px;
+  }
+  .villain-card .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    color: #5A5670;
+    width: 100%;
+  }
+  .villain-card .feature-list li {
+    margin-bottom: 3px;
+    padding-left: 10px;
+    position: relative;
+  }
+  .villain-card .feature-list li::before {
+    content: "•";
+    color: #FF6B5B;
+    position: absolute;
+    left: 0;
+  }
+  .villain-card .color-keys {
+    display: flex;
+    gap: 4px;
+    margin-top: auto;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .color-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(45, 42, 74, 0.06);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 9px;
+    color: #2D2A4A;
+    font-family: monospace;
+  }
+  .color-chip .swatch {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(45, 42, 74, 0.15);
+  }
+
+  /* ── Footer note ──────────────────────────────────────── */
+  .future-note {
+    max-width: 1024px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 18px 24px;
+    background: rgba(45, 42, 74, 0.06);
+    border-radius: 14px;
+    color: #5A5670;
+    font-size: 13px;
+    border-left: 4px solid #FF6B5B;
+  }
+  .future-note strong {
+    color: #2D2A4A;
+    font-family: 'Jua', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+  <header class="page-head">
+    <div class="accent-line"></div>
+    <h1>빌런 4종 + 플레이어 4방향 시안</h1>
+    <div class="sub">Sprint 7 · Phase F (현재) → 4명 빌런 시각 정비 + 박병장 신규</div>
+  </header>
+
+  <!-- ── 4 패널 (전반부) ─────────────────────────────────── -->
+  <section class="villain-row">
+
+    <!-- ① 수간호사 (EnemyNode) -->
+    <div class="villain-card">
+      <div class="concept-label">권위자</div>
+      <div class="name-label">수간호사</div>
+      <svg viewBox="0 0 96 120" xmlns="http://www.w3.org/2000/svg" aria-label="수간호사 시안">
+        <!-- 외곽 헬로 -->
+        <ellipse cx="48" cy="60" rx="38" ry="50" fill="#5A5670" opacity="0.18"/>
+        <!-- 몸통 흰 가운 -->
+        <rect x="28" y="50" width="40" height="48" rx="6" fill="#F4F1DE" stroke="#2D2A4A" stroke-width="1.6"/>
+        <!-- 얼굴 -->
+        <circle cx="48" cy="38" r="14" fill="#FFE2C6" stroke="#C44A3D" stroke-width="0.6"/>
+        <!-- 백발 -->
+        <path d="M34 30 Q48 18 62 30 L62 36 L34 36 Z" fill="#E8E4E8"/>
+        <!-- 안경 -->
+        <circle cx="42" cy="40" r="3.5" fill="none" stroke="#1F1A1F" stroke-width="1.2"/>
+        <circle cx="54" cy="40" r="3.5" fill="none" stroke="#1F1A1F" stroke-width="1.2"/>
+        <line x1="45.5" y1="40" x2="50.5" y2="40" stroke="#1F1A1F" stroke-width="1"/>
+        <!-- 차트 클립보드 (우측 옆구리) -->
+        <rect x="72" y="62" width="12" height="16" rx="1.5" fill="#F4F1DE" stroke="#2D2A4A" stroke-width="1"/>
+        <rect x="75" y="60" width="6" height="3" fill="#FF6B5B"/>
+      </svg>
+      <ul class="feature-list">
+        <li>외곽 헬로 (권위감)</li>
+        <li>흰 가운 + 둥근 안경</li>
+        <li>옆구리 차트(클립보드)</li>
+        <li>코랄 클립 액센트</li>
+      </ul>
+      <div class="color-keys">
+        <span class="color-chip"><span class="swatch" style="background:#2D2A4A;"></span>navyDeep</span>
+        <span class="color-chip"><span class="swatch" style="background:#5A5670;"></span>navyMuted</span>
+        <span class="color-chip"><span class="swatch" style="background:#FF6B5B;"></span>coral</span>
+      </div>
+    </div>
+
+    <!-- ② 이교수 (ProfessorNode) -->
+    <div class="villain-card">
+      <div class="concept-label">교수</div>
+      <div class="name-label">이교수</div>
+      <svg viewBox="0 0 96 120" xmlns="http://www.w3.org/2000/svg" aria-label="이교수 시안">
+        <!-- 몸통 흰 가운 -->
+        <rect x="28" y="50" width="40" height="48" rx="6" fill="#F4F1DE" stroke="#7A7570" stroke-width="1.6"/>
+        <!-- 검은 바지 -->
+        <rect x="32" y="92" width="32" height="10" fill="#1F1A1F"/>
+        <!-- 얼굴 -->
+        <circle cx="48" cy="38" r="14" fill="#FFE2C6" stroke="#C44A3D" stroke-width="0.6"/>
+        <!-- 회색 머리 -->
+        <path d="M34 28 Q48 18 62 30 L62 34 L34 32 Z" fill="#7A7570"/>
+        <!-- 안경 -->
+        <circle cx="42" cy="40" r="3.5" fill="none" stroke="#1F1A1F" stroke-width="1.2"/>
+        <circle cx="54" cy="40" r="3.5" fill="none" stroke="#1F1A1F" stroke-width="1.2"/>
+        <!-- 콧수염 -->
+        <path d="M44 46 L48 47 L52 46" stroke="#2A2025" stroke-width="1.5" fill="none"/>
+        <!-- 청진기 (좌측 옆구리, 코랄) -->
+        <circle cx="24" cy="68" r="4" fill="#FF6B5B" stroke="#C44A3D" stroke-width="0.8"/>
+        <path d="M24 64 Q22 56 28 52" stroke="#FF8E80" stroke-width="2" fill="none"/>
+      </svg>
+      <ul class="feature-list">
+        <li>회색 머리 + 콧수염</li>
+        <li>안경 + 흰 가운</li>
+        <li>좌측 청진기 (코랄)</li>
+        <li>검은 정장 바지</li>
+      </ul>
+      <div class="color-keys">
+        <span class="color-chip"><span class="swatch" style="background:#7A7570;"></span>profHair</span>
+        <span class="color-chip"><span class="swatch" style="background:#FF6B5B;"></span>coral</span>
+        <span class="color-chip"><span class="swatch" style="background:#1F1A1F;"></span>profPants</span>
+      </div>
+    </div>
+
+    <!-- ③ 석조무사 (StoneGuardNode) -->
+    <div class="villain-card">
+      <div class="concept-label">돌상</div>
+      <div class="name-label">석조무사</div>
+      <svg viewBox="0 0 96 120" xmlns="http://www.w3.org/2000/svg" aria-label="석조무사 시안">
+        <!-- 본체 단색 회색 -->
+        <rect x="20" y="22" width="56" height="80" rx="4" fill="#A0A0A8" stroke="#7A7570" stroke-width="1.4"/>
+        <!-- 사각 갑옷 (가운데 짙은 판) -->
+        <rect x="28" y="44" width="40" height="36" rx="3" fill="#5A5670" stroke="#7A7570" stroke-width="1.2"/>
+        <!-- 일자눈 좌우 -->
+        <rect x="32" y="34" width="10" height="4" fill="#2D2A4A"/>
+        <rect x="54" y="34" width="10" height="4" fill="#2D2A4A"/>
+        <!-- 갑옷 중앙 어두운 슬릿 -->
+        <line x1="48" y1="50" x2="48" y2="74" stroke="#3A3650" stroke-width="2"/>
+      </svg>
+      <ul class="feature-list">
+        <li>무채색 그라데이션</li>
+        <li>사각 갑옷 (짙은 회색)</li>
+        <li>무뚝뚝한 일자눈 2개</li>
+        <li>외곽선 따뜻한 회갈색</li>
+      </ul>
+      <div class="color-keys">
+        <span class="color-chip"><span class="swatch" style="background:#A0A0A8;"></span>stoneLight</span>
+        <span class="color-chip"><span class="swatch" style="background:#5A5670;"></span>stoneDark</span>
+        <span class="color-chip"><span class="swatch" style="background:#7A7570;"></span>stoneOutline</span>
+      </div>
+    </div>
+
+    <!-- ④ 박병장 (SergeantParkNode 신규) -->
+    <div class="villain-card new">
+      <div class="concept-label">군인 · 공군 병장</div>
+      <div class="name-label">박병장</div>
+      <svg viewBox="0 0 96 120" xmlns="http://www.w3.org/2000/svg" aria-label="박병장 시안">
+        <!-- 발 밑 그림자 -->
+        <ellipse cx="48" cy="104" rx="22" ry="4" fill="#000" opacity="0.18"/>
+        <!-- 군복 몸통 (공군 청록) -->
+        <rect x="22" y="50" width="52" height="50" rx="4" fill="#3A6F7F" stroke="#5A8F9F" stroke-width="1.4"/>
+        <!-- 얼굴 (살구색) -->
+        <circle cx="48" cy="40" r="14" fill="#FFE2C6" stroke="#C44A3D" stroke-width="0.6"/>
+        <!-- 항공 캡 크라운 -->
+        <rect x="24" y="20" width="48" height="14" rx="3" fill="#3A6F7F" stroke="#5A8F9F" stroke-width="1.2"/>
+        <!-- 캡 차양 -->
+        <rect x="20" y="32" width="56" height="5" fill="#1A1A1A"/>
+        <!-- 선글라스 (얼굴 위, 검정) -->
+        <rect x="30" y="38" width="36" height="8" rx="1.5" fill="#1A1A1A" stroke="#2D2A4A" stroke-width="0.6"/>
+        <!-- 골드 v자 계급장 (우측 어깨, 2개) -->
+        <path d="M58 62 L62 58 L66 62" stroke="#FFB347" stroke-width="2" fill="none"/>
+        <path d="M58 70 L62 66 L66 70" stroke="#FFB347" stroke-width="2" fill="none"/>
+      </svg>
+      <ul class="feature-list">
+        <li>공군 청록 군복 + 캡</li>
+        <li>검정 선글라스 (정체성 핵심)</li>
+        <li>골드 v자 계급장 2개</li>
+        <li>발 밑 그림자 (안정감)</li>
+      </ul>
+      <div class="color-keys">
+        <span class="color-chip"><span class="swatch" style="background:#3A6F7F;"></span>airTeal</span>
+        <span class="color-chip"><span class="swatch" style="background:#1A1A1A;"></span>sunglasses</span>
+        <span class="color-chip"><span class="swatch" style="background:#FFB347;"></span>musicGold</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── 후반부 메모 ───────────────────────────────────── -->
+  <section class="future-note">
+    <strong>Phase G 예정</strong> — 본 시안 후반부에서 <em>플레이어 5명(김·이·정·건·임) × 4방향(front/back/left/right)</em>
+    스프라이트가 추가됩니다. 본 HTML 한 파일에 후속 행을 이어 붙일 예정.
+  </section>
+
+</body>
+</html>

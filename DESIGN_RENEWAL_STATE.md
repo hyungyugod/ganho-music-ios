@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase E 합격 — 카운트다운 오버레이)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D·E ✅ / F·G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase F 합격 — 빌런 4종 + 박병장)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D·E·F ✅ / G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -45,8 +45,8 @@ Sprint 2 진행해줘
 | **7-C** | 난이도 카드 색 위계 | ✅ 합격 | 9.83/10 | 1/3 |
 | **7-D** | 결과창 + ScoreboardScene 신설 | ✅ 합격 | 9.83/10 | 1/3 |
 | **7-E** | 카운트다운 오버레이 | ✅ 합격 | 9.76/10 | 1/3 |
-| **7-F** | 빌런 4종 + 박병장 신규 | ⏳ 대기 | - | 0/3 |
-| **7-G** | 플레이어 4방향 스프라이트 | ⏸️ 미시작 | - | 0/3 |
+| **7-F** | 빌런 4종 + 박병장 신규 | ✅ 합격 | 9.10/10 | 1/3 |
+| **7-G** | 플레이어 4방향 스프라이트 | ⏳ 대기 | - | 0/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -103,6 +103,15 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase F — 빌런 4종 + 박병장 신규
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.10/10** (게임로직 10.0 · Swift패턴 7.5 · 비주얼 9.0 · UX 9.0)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 3 기존 빌런(EnemyNode 수간호사/ProfessorNode 이교수/StoneGuardNode 석조무사) 시각 자식 SKShapeNode 부착 + 신규 SergeantParkNode(박병장 공군 청록+선글라스) ~148 LOC. 3 기존 빌런 AI/이동/충돌 시그니처 9개(update/startFleeing/apply, startPatrol/startThrowingStethoscopes/scheduleNextThrow/throwStethoscope/stopThrowing) byte-identical, 본문 0줄 변경. physicsBody.size 인자/categoryBitMask/collisionBitMask/contactTestBitMask 0줄. 속도·waypoint 상수 0줄. StoneGuardNode super.init color 값만 .ganhoPaper → .ganhoStoneGuardLight 교체(시그니처 byte-identical). setupVisualOverlay 호출은 EnemyNode init 마지막, ProfessorNode/StoneGuardNode startPatrol 직전 1줄. EnemyNode 자식 3개(halo+chart+clip zPos -0.1/0.1/0.2), ProfessorNode 자식 2개(stethoDisc+tube zPos 0.1/0.15), StoneGuardNode 자식 3개(armor+eye×2 zPos 0.05/0.2). SergeantParkNode SKSpriteNode(.clear) 상속 + 6 attach 메서드(Shadow/Body/Head/Cap/Sunglasses/Rank) zPos -0.1~0.4 — physicsBody/update/SKAction 0건(시각 시안만, GameScene spawn 0건). ColorTokens 6 신규(AirforceTeal #3A6F7F, AirforceTealLight #5A8F9F, SunglassesBlack #1A1A1A, StoneGuardLight #A0A0A8, StoneGuardDark #5A5670, StoneGuardOutline #7A7570). GameConfig Phase F V3 상수 29개 신규(enemyVisualHalo/Chart 5 + professorStetho 4 + stoneGuardEye 2 + sergeant 18). Xcode pbxproj 4줄(SergeantParkNode 등록). 신규 mockup villains-and-player-directions-v1.html ~321 LOC(4 패널 가로 정렬 + SVG 96×120 + 색 chip + 박병장 ✨NEW + Phase G 후반부 5명 4방향 메모). 보호 영역 git diff 0줄: GameScene/GameScene+Setup/PhysicsCategory/Models/Systems/Repositories/Managers/PlayerNode/NoteNode/ProjectileNode/StethoscopeNode/Phase A·B·C·D·E 결과물. 강제 언래핑 0, Timer 0, switch default 0, as! 0, update()-내-addChild 0. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P1 (합격 영향 0)**: 시각 디테일 매직 넘버 8건(stroke/cornerRadius/비율 리터럴) — Phase G 시작 시 enemyVisualChart*StrokeWidth/stoneGuardArmorCornerRadius/sergeantBodyCornerRadius 등 추가 7~10개 상수로 묶어 정리 권장.
+- **잔존 P2 (합격 영향 0)**: StoneGuardNode `let eyeSize = CGSize(width: 2, height: 0.8)` → GameConfig `stoneGuardEyeSize` 토큰화.
 
 ### Sprint 7 Phase E — 카운트다운 오버레이
 - 시작: 2026-05-19

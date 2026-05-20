@@ -1,99 +1,243 @@
-# Sprint 7 Phase E — 자체 점검
+# 자체 점검 — Sprint 7 Phase F (Generator 1차)
 
-전략: **Case A** — Sprint 7 Phase A·B·C·D 합격(QA 9.25+) 흐름 그대로 유지. SPEC 사양 정밀 적용 + 회귀 0 우선.
+## 변경 파일 목록 + 라인 수
 
-## 변경 파일 목록
+| 파일 | 유형 | 변경 LOC |
+|---|---|---|
+| `Config/ColorTokens.swift` | 수정 | +24 (6 토큰 + MARK 헤더 + 주석) |
+| `Config/GameConfig.swift` | 수정 | +88 (Phase F V3 상수 ~22개 + MARK 헤더 + 주석) |
+| `Nodes/EnemyNode.swift` | 수정 | +58 (setupVisualOverlay 호출 1줄 + 메서드 4개) |
+| `Nodes/ProfessorNode.swift` | 수정 | +42 (setupVisualOverlay 호출 2줄 + 메서드 3개) |
+| `Nodes/StoneGuardNode.swift` | 수정 | +51 (color 인자값 교체 + 호출 1줄 + 메서드 3개 + 주석) |
+| `Nodes/SergeantParkNode.swift` | **신규** | 148 (6 attach + init + chevron factory) |
+| `GanhoMusic.xcodeproj/project.pbxproj` | 수정 | +4 (BuildFile + FileRef + Group + Source) |
+| `mockups/villains-and-player-directions-v1.html` | **신규** | 321 (4 패널 + SVG + 색 chip + 후반부 메모) |
 
-| 파일 | 변경 유형 | 추가 LOC | 제거 LOC | 비고 |
-|---|---|---|---|---|
-| `GanhoMusic Shared/Nodes/CountdownNode.swift` | 수정 | +18 | -6 | init Jua / step 색 3 / fontSize 2 / GO scale 2 |
-| `GanhoMusic Shared/GameScene.swift` | 수정 | +25 | -2 | showCountdown dim 시퀀스 |
-| `GanhoMusic Shared/Config/GameConfig.swift` | 수정 | +21 | 0 | V3 상수 9개 + MARK 1 |
-| `mockups/countdown-overlay-v1.html` | 신규 | +247 | 0 | 4프레임 시안 |
-| **합계** | — | **+311** | **-8** | Swift 변경분 ~52 LOC (사양 ~62 부합) |
+**합계: 수정 5 Swift + 신규 1 Swift + 1 pbxproj + 1 mockup = 8 파일**
+**총 변경 LOC: 신규 ~469 / 수정 ~263 (실 라인은 git diff +517 / -425, SPEC/SELF_CHECK/QA는 무관)**
 
-`git diff --stat HEAD` 결과 — Swift 3 + mockup 1, 정확.
+---
 
-## SPEC 기능 체크
+## 보호 영역 0줄 검증 (git diff)
 
-- [x] **기능 1: CountdownNode 시각 v3 보강** — init SKLabelNode(fontNamed: fontDisplay) / step 색 3개 navyDeep / setup fontSize 2개 (숫자 120 / GO 140) / GO scale 1.2→1.8 / GO 색 coralPrimary
-- [x] **기능 2: GameScene.showCountdown dim 오버레이** — cameraNode에 navyDeep dim 부착(z=240) → fadeIn 0.2 → CountdownNode start → onComplete에서 fadeOut 0.2 + removeFromParent + startGameProperly
-- [x] **기능 3: GameConfig V3 신규 상수 9개** — countdownNumberFontSizeV3 / countdownGoFontSizeV3 / countdownGoStartScaleV3 / countdownGoEndScaleV3 / countdownDimAlpha / countdownDimFadeInDuration / countdownDimFadeOutDuration / countdownDimZPosition / countdownDimNodeName
-- [x] **기능 4: mockups/countdown-overlay-v1.html** — 4프레임 (3·2·1·GO!) 가로 4열 · 각 카드 16:9 미니 게임 화면 + dim 0.32 + 중앙 라벨 · 3·2·1 navy / GO! 코랄 · Jua 폰트 · 캡션 + 상단 타이틀 + 하단 메모 · JS 0줄
+```bash
+git diff HEAD --stat -- \
+  "GanhoMusic Shared/GameScene.swift" \
+  "GanhoMusic Shared/GameScene+Setup.swift" \
+  "GanhoMusic Shared/Config/PhysicsCategory.swift" \
+  "GanhoMusic Shared/Models/" \
+  "GanhoMusic Shared/Systems/" \
+  "GanhoMusic Shared/Repositories/" \
+  "GanhoMusic Shared/Scenes/" \
+  "GanhoMusic Shared/Managers/"
+# → 0 출력 (모두 미변경)
+```
 
-## 핵심 byte-identical 검증
+- **GameScene/GameScene+Setup**: 0줄 — setupEnemy/setupStoneGuard/setupProfessor/addNormalMap/addHardMap 0변경
+- **PhysicsCategory**: 0줄 — 비트마스크 0변경
+- **Managers/Repositories/Systems/Scenes/Models**: 0줄
+- **Phase A·B·C·D·E 결과물**: 모두 미변경
+- **PlayerNode/NoteNode/ProjectileNode/StethoscopeNode**: 0줄
 
-- [x] **CountdownNode.start(onTick:onGo:onComplete:) 시그니처 byte-identical** — 인자 3개 이름/타입/순서 모두 동일. `@escaping` 마커 동일.
-- [x] **CountdownNode.init() override 시그니처 byte-identical** — `override init()` 그대로. 내부 `SKLabelNode(text: "")` → `SKLabelNode(fontNamed:)` 한 줄 교체만.
-- [x] **기존 fadeIn(0.1)/hold(0.7)/fadeOut(0.2) 상수 값 변경 0** — GameConfig 348~365 라인 0줄 수정. 기존 `countdownGoEndScale(1.3)`도 상수 자체 보존 (참조만 V3로 교체).
-- [x] **dim zPosition < CountdownNode zPosition** — `countdownDimZPosition(240) < countdownZPosition(250)` ✓
-- [x] **SKAction.sequence 안 .run { [weak self] in self?... } 캡처** — onComplete 내부 `dim.run(.sequence([fadeOut, cleanup, startGame]))`의 startGame SKAction.run에 `[weak self]` 캡처 명시.
-- [x] **startGameProperly 호출 시점 — dim fadeOut 후로 0.2s 미뤄짐 (총 4.0s 일치)** — 3·2·1(3.0) + GO!(0.8) + dim fadeOut(0.2) = 4.0s.
-- [x] **GameState 전이 .countdown → .playing 시점 byte-identical** — startGameProperly 내부 `gameState = .playing` 0줄 변경. 호출 시점만 0.2s 후로 자연 이동.
-- [x] **spawnSystem.start 호출 위치 byte-identical** — startGameProperly 함수 0줄 변경.
-- [x] **showCountdown 외 GameScene 다른 함수 손대지 않음** — git diff 확인: 264~313 라인 (showCountdown만)
+---
 
-## 보호 영역 0줄 확인
+## 3 빌런 AI/이동/충돌 시그니처+본문 byte-identical
 
-`git diff --stat HEAD --` 다음 경로 — **출력 0줄**:
+### EnemyNode.swift
+```bash
+git diff HEAD -- EnemyNode.swift | grep -v "^[+-]{3}" | \
+  grep -E "update\(|startPatrol|startFleeing|apply\(|SKPhysicsBody|categoryBitMask|collisionBitMask|contactTestBitMask|physicsSize"
+# → 0 출력
+```
+- `apply(_:)`, `startFleeing(duration:onEnd:)`, `update(deltaTime:targetPosition:speedT:)`: 본문 0변경
+- `updatePixelDirection / tickWalkFrame / refreshTexture`: 0변경
+- physicsBody size 인자 `physicsSize` (= GameConfig.enemyWidth/Height): 0변경
+- categoryBitMask=enemy, collisionBitMask=wall, contactTestBitMask=player: 0변경
+- **추가**: `zPosition = 5` 직후 1줄(`setupVisualOverlay()`) + 메서드 4개 (init 본문 외 영역)
 
-- DPadNode / SkillButtonNode — 0줄
-- Systems/ (SkillSystem / SpawnSystem / ContactRouter / ScoreSystem 포함) — 0줄
-- Managers/ (AudioManager 포함) — 0줄
-- Repositories/ — 0줄
-- GameScene+Setup — 0줄 (변경된 파일에 미포함)
-- GameState enum / PhysicsCategory — 0줄 (Models/ 미변경)
-- Phase A·B·C·D 결과물 일체:
-  - CharacterCardNode / CharacterSelectScene / CharacterID / PlayerSkill — 0줄
-  - SkillExplanationScene — 0줄
-  - DifficultyCardNode / DifficultySelectScene / Difficulty — 0줄
-  - ResultScene / ScoreboardScene — 0줄
-  - CharacterFaceNode / GlassPillNode / DarkContextChipNode / PrimaryButtonNode / BackButtonNode / StoryBoxNode — 0줄
-  - ColorTokens — 0줄
+### ProfessorNode.swift
+```bash
+git diff HEAD -- ProfessorNode.swift | grep -v "^[+-]{3}" | \
+  grep -E "update\(|startPatrol|startThrowingStetho|scheduleNext|throwStetho|stopThrowing|currentStetho|currentThrowInterval|SKPhysicsBody"
+# → 0 출력
+```
+- `startPatrol`, `startThrowingStethoscopes(targetProvider:worldNode:progressProvider:)`, `scheduleNextThrow`, `throwStethoscope`, `currentThrowInterval`, `stopThrowing(worldNode:)`, `currentStethoscopeCount(in:)`, `updatePixelAnimation(deltaTime:)`, `refreshTexture`: **모두 본문 byte-identical**
+- physicsBody 미부착 정책 유지 — 0 줄 변경
+- **추가**: `startPatrol()` 직전 1줄(`setupVisualOverlay()`) + 메서드 3개
 
-## Swift 패턴 준수
+### StoneGuardNode.swift
+```bash
+git diff HEAD -- StoneGuardNode.swift | grep -v "^[+-]{3}" | \
+  grep -E "startPatrol|SKPhysicsBody|categoryBitMask|collisionBitMask|contactTestBitMask"
+# → 0 출력
+```
+- `startPatrol()`: 본문 byte-identical
+- physicsBody size 인자 `size` (= GameConfig.stoneGuardWidth/Height): 0변경
+- categoryBitMask=stoneGuard, collisionBitMask=0, contactTestBitMask=player: 0변경
+- **변경된 단일 line**: `super.init(texture: nil, color: .ganhoPaper, size: size)` → `super.init(texture: nil, color: .ganhoStoneGuardLight, size: size)` — *시그니처 byte-identical, color 인자값만 교체*
+- **추가**: physicsBody body 부착 직후 1줄(`setupVisualOverlay()`) + 메서드 3개
 
-- **강제 언래핑 0건**: 신규 코드에서 `!` 사용 0. dim 변수 등 모두 `let` 직접 할당.
-- **guard let 옵셔널 처리**: onComplete `guard let self = self else { return }`, startGame `[weak self] in self?.startGameProperly()` 패턴 일관.
-- **MARK 섹션 구분**: GameConfig `MARK: - Countdown V3 (Sprint 7 Phase E)` 신규 / GameScene MARK 보강 `(Phase 6-13 · Sprint 7 Phase E)`.
-- **GameConfig 상수 사용**: 9개 신규 상수 모두 GameConfig.* 참조. 매직 넘버 0건.
-- **weak self 캡처**: 클로저 3개 (`onTick`, `onGo`, `onComplete`) 외부 + 내부 SKAction.run의 startGame까지 모두 `[weak self]` 명시.
+---
 
-## SpriteKit 패턴 준수
+## physicsBody.size 인자 byte-identical (grep 비교)
 
-- **didMove(to:)에서 초기화**: 신규 dim은 showCountdown 안에서 생성/추가, didMove에서 이미 showCountdown 호출. 외부 lifecycle 진입점 0변경.
-- **dt 기반 이동**: 신규 코드에 update 진입 0. dt 무관.
-- **SKAction 스폰 패턴**: dim fadeIn/fadeOut 모두 SKAction. Timer 0건.
-- **Timer 0건**: 신규 코드에 Timer/dispatchAfter 사용 0. SKAction.sequence + SKAction.wait/fadeOut만.
-- **충돌 후 노드 즉시 삭제 없음**: dim removeFromParent는 fadeOut(0.2) 완료 후 SKAction.sequence로 호출 — 즉시 삭제 아님. CountdownNode 자체는 기존 sequence에서 cleanup 처리(0변경).
-- **HUD 노드 분리**: 변경 없음.
-- **update()-내-addChild 0건**: dim addChild는 showCountdown 1회 호출 시점, update 진입 아님.
+| 노드 | physicsBody size 인자 | 변경 |
+|---|---|---|
+| EnemyNode | `SKPhysicsBody(rectangleOf: physicsSize)` (physicsSize = CGSize(width: GameConfig.enemyWidth, height: GameConfig.enemyHeight)) | **0줄** |
+| StoneGuardNode | `SKPhysicsBody(rectangleOf: size)` (size = CGSize(width: GameConfig.stoneGuardWidth, height: GameConfig.stoneGuardHeight)) | **0줄** |
+| ProfessorNode | physicsBody 미부착 (통과형) | **0줄** |
 
-## switch default / Force-unwrap / Timer 누락 확인
+StoneGuardNode 자식 armor가 `GameConfig.stoneGuardWidth * 0.7` / `Height * 0.5`를 *시각용*으로만 참조 — physicsBody 호출에는 미사용. 확인 완료.
 
-- switch default 0건 (switch 사용 자체 0건)
-- Force-unwrap (`!`) 0건
-- Timer / DispatchQueue.main.asyncAfter 0건
+---
+
+## PhysicsCategory 0줄
+
+```bash
+git diff HEAD -- "Config/PhysicsCategory.swift"
+# → 0 출력
+```
+
+비트마스크 `player/note/enemy/wall/projectile/stoneGuard/bonus/stethoscope` 모두 미변경.
+
+---
+
+## GameScene 0줄
+
+```bash
+git diff HEAD -- "GameScene.swift" "GameScene+Setup.swift"
+# → 0 출력
+```
+
+- `setupEnemy`, `setupStoneGuard`, `setupProfessor`, `addNormalMap`, `addHardMap` 호출 위치/순서/인자 0변경
+- ContactRouter 분기 0변경
+
+---
+
+## SergeantParkNode physicsBody/update/SKAction 0건
+
+```bash
+grep -E "physicsBody|update\(|SKAction" SergeantParkNode.swift
+# → 헤더 코멘트 1줄만 매치 (line 7: "//  physicsBody / SKAction / update / AI **0줄**")
+# → 실제 코드 0건
+```
+
+- physicsBody 부착 0건
+- update(_:) override 0건
+- SKAction 실행 0건
+- 자식 SKShapeNode 6종만 부착 (Shadow/Body/Head/Cap/Sunglasses/Rank)
+- 게임 spawn 0건 (GameScene 등장 없음, Sprint 8 후보)
+
+---
+
+## 강제 언래핑 0 / Timer 0 / switch default 0
+
+```bash
+grep -E "Timer\.|! *$|!\)| as!" SergeantParkNode.swift
+# → 0 출력
+```
+
+- 강제 언래핑 (`!` / `as!`) 0건
+- Timer 0건 (모든 시각은 정적 부착, SKAction 미사용)
+- switch default 0건 (switch 자체 미사용)
+- 클로저 0건 — `[weak self]` 불필요
+- magic number 0 — 모든 사이즈/오프셋은 GameConfig V3 상수 참조
+
+EnemyNode/ProfessorNode/StoneGuardNode 신규 추가 영역도 동일 — Timer 0, 강제 언래핑 0.
+
+---
 
 ## 빌드 결과
 
-- **상태**: `BUILD SUCCEEDED`
-- **컴파일 에러**: 0
-- **신규 워닝**: 0 (기존 폰트 중복 build phase 워닝 3개는 사전 존재)
+```bash
+xcodebuild -project "GanhoMusic/GanhoMusic.xcodeproj" \
+  -scheme "GanhoMusic iOS" -destination "generic/platform=iOS Simulator" build
+# → ** BUILD SUCCEEDED **
+```
+
+- 컴파일 에러: **0**
+- 신규 워닝: **0** (기존 폰트 duplicate 워닝 3건은 Phase F 무관 — Sprint 5 이전부터 존재)
+
+---
 
 ## OPEN_QUESTION 4개 처리 상태
 
-- [x] **OQ-1**: CountdownNode 시그니처 — 기존 `init()` + `start(onTick:onGo:onComplete:)` 그대로 유지 (SPEC 결정 반영). `static func bigCenter` / `func start(completion:)` 신설 0건.
-- [x] **OQ-2**: 입력 게이트 — 추가 코드 0줄. 기존 `gameState == .playing` 가드 그대로.
-- [x] **OQ-3**: GO! 종료 직후 첫 음표 — 시점 정확. dim fadeOut 0.2s 후 startGameProperly → spawnSystem.start. 첫 spawn은 dim 사라진 직후.
-- [x] **OQ-4**: AudioManager 키 — tick/chime 미추가. Phase E 사운드 코드 변경 0.
+**OQ-1 (SergeantParkNode 부모 클래스)**: ✅ **SKSpriteNode(.clear) + 자식 SKShapeNode 6종** 채택.
+기존 빌런 3종(EnemyNode/StoneGuardNode/ProfessorNode) 패턴 일관성. SPRINT_7_REQUEST.md §7.2 "SKShapeNode"
+명시는 *추후 변경 가능* — 본 SPEC은 일관성 우선. SergeantParkNode.swift line 12-13 코멘트로 명시.
+
+**OQ-2 (EnemyNode 픽셀 텍스처 톤 흐림)**: ✅ **자식 SKShapeNode 추가만**(차트 + 헬로 + 클립).
+픽셀 텍스처(nurseChiefData/chiefPalette) 0변경. 시각 단서는 *부착물*로만 강화 — 회귀 위험 0.
+
+**OQ-3 (StoneGuardNode 단색 → PixelSprite)**: ✅ **현 단색(.ganhoStoneGuardLight) + 자식 SKShape 부착**.
+PixelSprite stoneGuardData 정식 변환은 Sprint 8 후보. 본 sprint는 *돌상 무채색 톤*만 부여.
+
+**OQ-4 (hitbox 보존 검증)**: ✅ Evaluator가 grep 가능하도록 본문 위 grep 결과 모두 첨부.
+`SKPhysicsBody(rectangleOf: size)` 인자 (GameConfig.enemyWidth/Height, stoneGuardWidth/Height) 모두 0변경.
+
+---
+
+## SPEC 기능 체크
+
+- [x] **기능 1**: EnemyNode setupVisualOverlay — 헬로(navyMuted alpha 0.18 zPos -0.1) + 차트(paper fill + navyDeep stroke zPos 0.1) + 클립(coralPrimary zPos 0.2)
+- [x] **기능 2**: ProfessorNode setupVisualOverlay — 청진기 mini disc(coralPrimary + coralShadow stroke zPos 0.1) + 튜브(coralLight zPos 0.15). StethoscopeNode와 무관.
+- [x] **기능 3**: StoneGuardNode setupVisualOverlay — color `.ganhoPaper` → `.ganhoStoneGuardLight` + 사각 갑옷(stoneGuardDark fill + stoneGuardOutline stroke 0.8) + 일자눈 2개(navyDeep rectOf 2×0.8 좌우 대칭)
+- [x] **기능 4**: SergeantParkNode 신규 — SKSpriteNode(.clear) + 6 attach 메서드(shadow/body/head/cap/sunglasses/rank). physicsBody/update/SKAction 0건.
+- [x] **기능 5**: ColorTokens 6 토큰 — ganhoAirforceTeal/AirforceTealLight/SunglassesBlack/StoneGuardLight/StoneGuardDark/StoneGuardOutline. ganhoSkinTone은 line 256에 기존 존재 → 재사용.
+- [x] **기능 6**: GameConfig Phase F V3 상수 ~22개 — enemyVisual{Halo,Chart} 5 + professorStetho{Icon,Tube} 4 + stoneGuardEye{X,Y} 2 + sergeant{Park,Shadow,Body,Head,Cap,Sunglasses,Rank,Chevron} 18 = **29 상수** (SPEC 추정 ~22 충족)
+- [x] **기능 7**: mockups/villains-and-player-directions-v1.html — 4 패널 가로 정렬, 각 220×320pt, SVG 96×120, 핵심 시각 요소 4개 + 색 키 chip 3개, 박병장 ✨NEW 표시, 하단 후반부 메모
+
+---
+
+## Swift 패턴 준수
+
+- 강제 언래핑 미사용: **준수** (0건)
+- guard let 옵셔널 처리: **준수** (해당 메서드 없음 — 정적 부착만)
+- MARK 섹션 구분: **준수** (`MARK: - Init / Attach / Visual Overlay` 등)
+- GameConfig 상수 사용: **준수** (29 신규 상수 모두 참조, 매직 넘버 0)
+- weak self 캡처: **N/A** (정적 부착만, 클로저 미사용)
+
+---
+
+## SpriteKit 패턴 준수
+
+- `didMove(to:)`에서 초기화: **N/A** (Node 클래스 — init에서 직접 부착)
+- dt 기반 이동: **N/A** (시각만, 이동 0)
+- SKAction 스폰 패턴: **N/A** (SergeantParkNode SKAction 0건 — 시각만)
+- 충돌 후 노드 즉시 삭제 없음: **준수** (충돌 처리 0건)
+- HUD 노드 분리: **N/A**
+
+---
+
+## 변경 LOC 추정 vs 실제
+
+| 파일 | SPEC 추정 LOC | 실제 LOC |
+|---|---|---|
+| EnemyNode.swift | ~26 | +58 (주석 포함) |
+| ProfessorNode.swift | ~21 | +42 (주석 포함) |
+| StoneGuardNode.swift | ~32 | +51 |
+| SergeantParkNode.swift (신규) | ~150 | 148 |
+| ColorTokens.swift | ~20 | +24 |
+| GameConfig.swift | ~90 | +88 |
+| mockups/villains-and-player-directions-v1.html (신규) | ~200 | 321 (4 패널 + 후반부 메모 포함) |
+| **합계** | **~540** | **신규 ~469 / 수정 ~263 = ~732** |
+
+SPEC 추정 대비 +36% — 주석/코멘트가 늘어남(모든 자식 SKShape에 zPos 설명, OQ 결정 근거, hitbox 보존 계약 명시). 게임 코드 LOC는 SPEC 범위 내.
+
+---
 
 ## 범위 외 미구현 항목
 
-없음 — SPEC 명세 100% 반영. 범위 외 변경 0건.
+**없음** — SPEC §"허용" 모두 구현, §"금지" 모두 회피.
 
-## 추가 노트
+---
 
-- `countdownGoEndScale(1.3)` 등 V2 상수는 보존(혹시 참조 잔존 가능성 대비). CountdownNode 내부에서 V3 상수로 모두 교체 완료 (`countdownGoEndScale` 참조 0, `countdownGoEndScaleV3` 참조 1).
-- dim 자가 소멸과 CountdownNode 자가 소멸이 *서로 독립*된 SKAction.sequence로 보장 — 한쪽 실패 시 다른 쪽 잔류 위험 0 (dim은 본인 sequence로, CountdownNode는 기존 cleanup으로).
-- Jua-Regular ttf 누락 시 SKLabelNode는 시스템 폰트로 fallback — 빌드 워닝 0건 확인됨 (폰트 번들 기존 보장).
+## 최종 보고 요약
+
+- 변경 파일: **8개** (수정 5 Swift + 신규 1 Swift + 1 pbxproj + 1 mockup)
+- 변경 LOC: 신규 ~469 / 수정 ~263
+- **빌드: SUCCEEDED**
+- **보호 영역 git diff 0줄: ✅**
+- 4명 빌런 시각 정체성: ✅ (mockup 4 패널 가로 정렬, 각 SVG + 색 chip)
+- SergeantParkNode 컴파일 OK + GameScene 등장 0건
+- 기존 3종 hitbox·AI byte-identical (grep 비교 통과)

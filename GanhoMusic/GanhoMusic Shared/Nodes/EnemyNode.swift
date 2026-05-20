@@ -75,6 +75,10 @@ final class EnemyNode: SKSpriteNode {
         // Phase 2-6 hotfix 1 — 다른 노드(벽/음표/기둥) 위에 항상 그려지도록 zPosition 명시.
         // HUD(100)/D-Pad(기본 0이지만 cameraNode 자식이라 별도 트리)보다 낮음 — UI를 가리지 않음.
         zPosition = 5
+
+        // Sprint 7 Phase F — 시각 보강 자식 노드 부착(헬로/차트/클립).
+        // physicsBody·AI·이동·texture 0줄 영향 — 자식 SKShapeNode만 추가.
+        setupVisualOverlay()
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -197,5 +201,59 @@ final class EnemyNode: SKSpriteNode {
                                               frame: pixelFrame),
             palette: PixelPalette.chiefPalette
         )
+    }
+
+    // MARK: - Visual Overlay (Sprint 7 Phase F)
+    /// 수간호사 시각 단서 보강 — 외곽 헬로(권위감) + 차트(클립보드) + 코랄 클립.
+    /// init에서 1회 호출. physicsBody/AI/이동/texture 0줄 영향 — 자식 SKShapeNode만 추가.
+    /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준, zPosition은 부모(5) 기준 상대값.
+    private func setupVisualOverlay() {
+        attachHalo()
+        attachChart()
+        attachClip()
+    }
+
+    /// 외곽 헬로 — navyMuted ellipse alpha 0.18. 픽셀 텍스처 뒤에서 살짝 보이는 *권위감 light bloom*.
+    /// zPos -0.1 → 부모 zPos 5 기준 4.9. 픽셀 텍스처(자식 미지정 = 0) 뒤로 배치.
+    private func attachHalo() {
+        let halo = SKShapeNode(ellipseOf: CGSize(
+            width:  GameConfig.enemyVisualHaloWidth,
+            height: GameConfig.enemyVisualHaloHeight
+        ))
+        halo.fillColor = .ganhoNavyMuted
+        halo.strokeColor = .clear
+        halo.alpha = GameConfig.enemyVisualHaloAlpha
+        halo.zPosition = -0.1
+        addChild(halo)
+    }
+
+    /// 차트(클립보드) — paper fill + navyDeep stroke. 우측 옆구리에 작게 부착.
+    /// zPos 0.1 → 픽셀 텍스처 위에 살짝 떠 보이게.
+    private func attachChart() {
+        let chart = SKShapeNode(rectOf: GameConfig.enemyVisualChartSize, cornerRadius: 0.6)
+        chart.fillColor = .ganhoPaper
+        chart.strokeColor = .ganhoNavyDeep
+        chart.lineWidth = 0.5
+        chart.position = GameConfig.enemyVisualChartOffset
+        chart.zPosition = 0.1
+        addChild(chart)
+    }
+
+    /// 차트 상단 코랄 클립 — 코랄 액센트로 *수간호사 권위* 정체성 강화.
+    /// 차트 위쪽 가장자리에 살짝 부착. zPos 0.2 → 차트(0.1) 위.
+    private func attachClip() {
+        let clipSize = CGSize(
+            width:  GameConfig.enemyVisualChartSize.width * 0.7,
+            height: 1.6
+        )
+        let clip = SKShapeNode(rectOf: clipSize)
+        clip.fillColor = .ganhoCoralPrimary
+        clip.strokeColor = .clear
+        clip.position = CGPoint(
+            x: GameConfig.enemyVisualChartOffset.x,
+            y: GameConfig.enemyVisualChartOffset.y + GameConfig.enemyVisualChartSize.height / 2
+        )
+        clip.zPosition = 0.2
+        addChild(clip)
     }
 }
