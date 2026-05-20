@@ -364,6 +364,27 @@ enum GameConfig {
     /// 카운트다운 동안 어떤 UI도 덮는다 — 게임이 아직 시작 안 했으므로.
     static let countdownZPosition: CGFloat = 250
 
+    // MARK: - Countdown V3 (Sprint 7 Phase E)
+    /// V3 카운트다운 숫자(3·2·1) 폰트 크기 (pt). V2 96 → 120 — 화면 중앙 단독 강조 + v3 위계 강화.
+    static let countdownNumberFontSizeV3: CGFloat = 120
+    /// V3 GO! 폰트 크기 (pt). 숫자(120)보다 큼 — "출발의 폭발" 톤, 마지막 단계 임팩트.
+    static let countdownGoFontSizeV3: CGFloat = 140
+    /// V3 GO! scale 시작값. V2 1.0 → 1.2 — 등장부터 임팩트.
+    static let countdownGoStartScaleV3: CGFloat = 1.2
+    /// V3 GO! scale 끝값. V2 1.3 → 1.8 — 더 큰 펄스 (시작의 잔향).
+    static let countdownGoEndScaleV3: CGFloat = 1.8
+    /// V3 dim 오버레이 알파 (navyDeep × 0.32). 게임 월드는 보이되 "아직 시작 전" 시각화.
+    static let countdownDimAlpha: CGFloat = 0.32
+    /// V3 dim 페이드인 길이 (초). 카운트다운 등장과 동기 — 0.2s 자연 어두워짐.
+    static let countdownDimFadeInDuration: TimeInterval = 0.2
+    /// V3 dim 페이드아웃 길이 (초). GO! 종료 직후 0.2s 자연 밝아짐 → startGameProperly 진입.
+    static let countdownDimFadeOutDuration: TimeInterval = 0.2
+    /// V3 dim zPosition. 240 — CountdownNode(250) 아래, HUD/Combo/HitFlash 위.
+    /// 카운트다운 숫자가 dim 위에 또렷이 보이도록 zPosition 분리.
+    static let countdownDimZPosition: CGFloat = 240
+    /// V3 dim 노드 name — 디버그/회귀 검증/명시적 lookup용.
+    static let countdownDimNodeName: String = "countdownDim"
+
     // MARK: - Tension (Phase 6-14)
     /// 5초 긴박감 발화 시작 임계값 (초). remainingTime이 이 값 이하로 떨어지면 폴링 진입.
     /// 6-13 카운트다운(출발의 개봉감)과 시간 대칭 — 시작·끝의 톤이 짝을 이룬다.

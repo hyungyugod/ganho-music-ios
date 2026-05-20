@@ -26,8 +26,9 @@ final class CountdownNode: SKNode, SelfDismissingNode {
     // MARK: - Init
     /// 라벨 1개 자식으로 부착. text는 빈 문자열로 시작 — start() 안 첫 setup 액션에서 "3"으로 갱신됨.
     /// zPosition = 250 (HitFlash 200 위) — 카운트다운 동안 어떤 UI도 덮는다.
+    /// Sprint 7 Phase E — fontDisplay(Jua-Regular) 부여. 시스템 폰트 fallback 제거 → v3 톤(타이틀과 동일 패밀리).
     override init() {
-        self.label = SKLabelNode(text: "")
+        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
         super.init()
         name = "countdown"
         zPosition = GameConfig.countdownZPosition
@@ -52,9 +53,11 @@ final class CountdownNode: SKNode, SelfDismissingNode {
         onGo: @escaping () -> Void,
         onComplete: @escaping () -> Void
     ) {
-        let step3 = stepAction(text: "3", color: .ganhoBloodAccent) { onTick(3) }
-        let step2 = stepAction(text: "2", color: .ganhoYellowF) { onTick(2) }
-        let step1 = stepAction(text: "1", color: .ganhoPinkNote) { onTick(1) }
+        // Sprint 7 Phase E — 3/2/1 모두 navyDeep 통일. "차분한 긴장 누적" 톤.
+        // GO!의 코랄과 색 대비를 통해 "준비 → 출발" 감정 전환 강조.
+        let step3 = stepAction(text: "3", color: .ganhoNavyDeep) { onTick(3) }
+        let step2 = stepAction(text: "2", color: .ganhoNavyDeep) { onTick(2) }
+        let step1 = stepAction(text: "1", color: .ganhoNavyDeep) { onTick(1) }
         let stepGo = goAction(onGo: onGo)
         let cleanup = SKAction.removeFromParent()
         let notify = SKAction.run(onComplete)
@@ -73,6 +76,8 @@ final class CountdownNode: SKNode, SelfDismissingNode {
             guard let self = self else { return }
             self.label.text = text
             self.label.fontColor = color
+            // Sprint 7 Phase E — 매 단계 fontSize 갱신 (숫자 120pt). GO! 단계에서 140pt로 바뀐 후 다시 1로 돌아올 때도 안정.
+            self.label.fontSize = GameConfig.countdownNumberFontSizeV3
             self.label.alpha = 0
             self.label.setScale(1.0)
             onTick()
@@ -91,13 +96,18 @@ final class CountdownNode: SKNode, SelfDismissingNode {
         let setup = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.label.text = "GO!"
-            self.label.fontColor = .ganhoMint
+            // Sprint 7 Phase E — mint → coralPrimary. "출발의 폭발" 따뜻한 톤.
+            self.label.fontColor = .ganhoCoralPrimary
+            // Sprint 7 Phase E — GO! fontSize 140pt (숫자 120pt보다 큼). "더 큰 임팩트" 위계.
+            self.label.fontSize = GameConfig.countdownGoFontSizeV3
             self.label.alpha = 0
-            self.label.setScale(1.0)
+            // Sprint 7 Phase E — 시작 scale 1.0 → 1.2. 등장부터 임팩트 확보.
+            self.label.setScale(GameConfig.countdownGoStartScaleV3)
             onGo()
         }
         let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.countdownFadeInDuration)
-        let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScale,
+        // Sprint 7 Phase E — 끝 scale 1.3 → 1.8. 더 큰 펄스.
+        let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScaleV3,
                                      duration: GameConfig.countdownGoHoldDuration)
         let hold    = SKAction.wait(forDuration: GameConfig.countdownGoHoldDuration)
         // hold와 scaleUp을 group으로 동시 — *커지면서 잠시 홀딩*. 둘 다 같은 duration이라 동기 종료.

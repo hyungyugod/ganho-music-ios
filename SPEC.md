@@ -1,409 +1,248 @@
-# Sprint 7 Phase D — 결과창 정리 + 하이스코어 화면 신설
+# Sprint 7 Phase E — 카운트다운 오버레이 + dim 배경 + 코랄 GO! + Jua 폰트
 
 ## 개요
-ResultScene 시각 정보 5요소(♪·점수·SCORE 라벨·BEST 칩·캐릭터/난이도)가 같은 좌표 근처에 몰려 시각 우선순위가 모호한 상태를 해소한다. 점수가 시각 주인공이 되도록 ♪를 24pt로 줄여 점수 좌측에 부속시키고, SCORE 라벨을 점수 아래로, BEST를 점수 우측 GlassPill로 분리하며, 캐릭터·난이도 헤더 칩을 타이틀 위로 끌어올린다. "📊 기록 보기" GlassPill 신규 추가 → 1탭 ScoreboardScene 진입.
-
-ScoreboardScene은 5(캐릭터)×3(난이도) = 15셀 매트릭스를 `PerDifficultyScoreRepository` 기반으로 그리고, 직전 게임 셀에 ★ 마커 부착. 좌상단 "← 결과로" GlassPill 탭 시 ResultScene 새 인스턴스 fade 복귀(졸업장 재표시 차단).
+게임 시작 직전 약 1~2초간 입력이 막혀 있는 동안 시각 피드백이 부족해 "멈춘 줄 알았다"는 인상이 나오는 문제를 해결한다. 기존 Phase 6-13에서 이미 구현되어 있는 `CountdownNode`(3 → 2 → 1 → GO!)를 v2 디자인 시스템(Jua 폰트 / navy 숫자 / 코랄 GO! / navyDeep dim 오버레이)에 맞춰 보강하고, GameScene 시작 시퀀스에 dim 오버레이를 추가하여 카운트다운이 명확히 "준비 시간"임을 시각적으로 표현한다. 입력 게이트는 이미 `gameState == .playing` 가드로 완벽히 차단되어 있으므로 *게이트 시점만* 카운트다운 종료 콜백에 정확히 정렬한다.
 
 ## 변경 유형
-**비주얼 + 신규 씬** (저장·갱신 0, 읽기 전용)
+**비주얼 + 입력 게이트 보강** — 게임 로직(점수/물리/적 AI) 변경 0건.
 
 ## 게임 경험 의도
-- 결과 화면에서 점수가 시각 주인공이 되어 0.3초 안에 "내가 몇 점 받았는가" 인지
-- "내 다른 캐릭터·난이도 기록은?" 호기심을 한 번의 탭으로 해소
-- 매트릭스에서 직전 게임이 갱신한 셀에 ★이 박혀 진척 시각 보상
+- "지금은 준비 시간이다 — 입력은 곧 활성화된다"는 메시지가 즉시 전달
+- dim 오버레이(navyDeep alpha 0.32)가 화면을 살짝만 덮어 게임 월드는 보이되 "아직 시작 전"임을 명확히
+- 3·2·1은 차분한 navy 톤(긴장 누적), GO!는 따뜻한 코랄 톤(폭발적 시작)으로 색 대비를 통해 "준비 → 출발" 감정 전환
 
-## Sprint 7 Phase D 범위 계약
+## Sprint 7 Phase E 범위 계약
 
 ### 허용
-1. ResultScene 내부 레이아웃·라벨 텍스트 재배치 (GameConfig V3 상수 신규 추가만)
-2. ResultScene에 "기록 보기" GlassPill 신규 자식 1개 + touchesBegan 분기
-3. 신규 파일 `Scenes/ScoreboardScene.swift` 작성
-4. `CharacterFaceNode`에 mini 32pt 팩토리 1개 추가
-5. `GameConfig` Phase D V3 상수 신규 추가
-6. 신규 mockup 2개: `result-screen-v3.html`, `highscore-board-v1.html`
+- CountdownNode 색/폰트/scale 갱신 (시그니처 byte-identical)
+- GameScene.showCountdown에 dim 오버레이 attach·페이드·자가 소멸 시퀀스 추가
+- GameConfig 신규 V3 상수 9개
+- 신규 mockup HTML 1개
 
-### 금지 (0줄 변경)
-1. `ResultScene.newResultScene(...)` 9개 인자 시그니처
-2. `ResultScene.init(...)` 시그니처
-3. ResultScene → StartScene 1탭 전이 정책 (탭 분기만 추가 — Scoreboard 탭은 ScoreboardScene으로, 그 외는 그대로 StartScene)
-4. HighScoreRepository / StatisticsRepository / PerDifficultyScoreRepository / GraduationRepository 모든 저장·갱신 로직 (읽기 전용)
-5. 졸업장 분기 `DiplomaOverlayNode` 시각·텍스트·자가 소멸 패턴
-6. 신기록 분기 sparkle 5발 / heavy 햅틱 / NewMail 사운드 발화 조건
-7. Phase A·B·C 결과물 0줄
-8. GameScene / GameState / PhysicsCategory / Managers / Systems 0줄
-9. 게임 로직 일체
+### 금지 (0줄)
+- 게임 루프 update / 물리 / 점수 / 입력 처리 함수 자체 / AI / 저장 / 사운드 발화 신호
+- DPadNode / SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem
+- Phase A·B·C·D 결과물 일체
+- GameState enum / PhysicsCategory / Managers (AudioManager 포함) / Repositories / Systems
+- 다른 Scenes (Character/Skill/Difficulty/Result/Scoreboard/Start)
+
+## 현황 파악 (Generator 필수)
+
+### 1) CountdownNode 현재 상태 — 이미 존재
+- 파일: `Nodes/CountdownNode.swift` (Phase 6-13에서 신설)
+- 시그니처: `init()` + `start(onTick:onGo:onComplete:)` — Sprint 7 사양과 가까움. **새로 만들지 말고 보강만**.
+- 호출부: `GameScene.showCountdown()` 안 `let node = CountdownNode(); cameraNode.addChild(node); node.start(...)` 패턴 이미 사용 중.
+- 현재 단점 4가지:
+  1. `SKLabelNode(text: "")` — fontName 0 → 시스템 폰트 (Jua 미적용)
+  2. 색 3=blood/2=yellow/1=pink/GO=mint — Sprint 7 v3 톤(navy + coral)과 불일치
+  3. fontSize 96 — Sprint 7 사양 숫자 120 / GO 140
+  4. GO scale 1.0→1.3 — Sprint 7 사양 1.2→1.8
+- 한 단계 총 1.0s (fadeIn 0.1 + hold 0.7 + fadeOut 0.2) — SPRINT_7_REQUEST §6.2 "0.0s~1.0s : 3"와 정확히 일치 ✅ 변경 불필요
+
+### 2) 입력 게이트 — 이미 차단됨
+- DPadNode: isUserInteractionEnabled true 유지
+- `GameScene.update()` 안 `guard gameState == .playing else { return }` 가드 — dpad→player 라인 차단
+- gameState 전이: .cutscene → .countdown → .playing (startGameProperly 안 마지막)
+- **결론**: 추가 게이트 코드 0줄. SPRINT_7_REQUEST §6.5 "D-pad 탭 무시" 이미 보장.
+
+### 3) GO! 종료 직후 음표 첫 발생 — 이미 일치
+- `startGameProperly()`가 CountdownNode onComplete에서 호출. 안에서 `spawnSystem.start(...)` 호출 후 `gameState = .playing` 전환.
+- **결론**: 시점 이미 정확. 호출 순서 0줄 변경.
+
+### 4) AudioManager tick/chime 키 — 부재
+- 현재 4개 키 (.noteCollected/.gameOver/.comboMilestoneSoft/.comboMilestoneStrong). tick/chime 0건.
+- SPRINT_7_REQUEST §6.3 "사운드 추가는 후속" 명시 → 본 Phase E 사운드 코드 변경 0.
 
 ## 변경 범위
 
 ### 수정 파일
-
-| 파일 | 변경 |
-|---|---|
-| `Scenes/ResultScene.swift` | 레이아웃 재배치(♪ 24pt 좌측, SCORE 아래, BEST 우측 GlassPill, headerChip 타이틀 위) + "📊 기록 보기" GlassPill 신규 자식 + touchesBegan 탭 분기 |
-| `Nodes/CharacterFaceNode.swift` | `static func mini(id: CharacterID) -> CharacterFaceNode` 팩토리 추가 (setScale 0.47) |
-| `Config/GameConfig.swift` | Phase D V3 상수 ~40개 신규 추가 |
+- `Nodes/CountdownNode.swift` — 폰트(Jua) 부여 / 색 4개 갱신 / fontSize 분기 (숫자 120 / GO 140) / scale 1.2→1.8
+- `GameScene.swift` — `showCountdown()`에 dim 오버레이 attach + 페이드인 + onComplete에서 페이드아웃·제거·startGame 시퀀스
+- `Config/GameConfig.swift` — V3 신규 상수 9개
 
 ### 추가 파일
+- `mockups/countdown-overlay-v1.html` — 4프레임 시각 시안 (3·2·1·GO!)
 
-| 파일 | 역할 |
-|---|---|
-| `Scenes/ScoreboardScene.swift` | 신규 씬 — 15셀 매트릭스 + 미니 얼굴 + ★ + 하단 stat + 백 버튼. ~340 LOC |
-| `mockups/result-screen-v3.html` | v2 카피 + §5.2 표 매칭 |
-| `mockups/highscore-board-v1.html` | 신규 매트릭스 시각 사양 |
+### 절대 변경 금지
+- DPadNode / SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem / GameScene+Setup
+- GameState / PhysicsCategory / 모든 Repositories / 모든 Managers
+- Phase A·B·C·D에서 만진 모든 Scenes·Nodes
 
 ## 기능 상세
 
-### 기능 1: ResultScene 결과창 레이아웃 재배치
+### 기능 1: CountdownNode 시각 v3 보강
 
-**Before → After 좌표 변경표 (midY 기준)**
+**변경점 4개**:
+1. init의 `SKLabelNode(text: "")`를 `SKLabelNode(fontNamed: GameConfig.fontDisplay)`로 교체 (Jua-Regular)
+2. `start(...)` 안 색 인자 3개: blood/yellow/pink → 모두 `.ganhoNavyDeep`
+3. `stepAction` setup 액션에 `self.label.fontSize = GameConfig.countdownNumberFontSizeV3` (120pt) 갱신 추가; `goAction` setup에 `self.label.fontSize = GameConfig.countdownGoFontSizeV3` (140pt) 갱신 추가
+4. `goAction`의 색 `.ganhoMint` → `.ganhoCoralPrimary`, setup의 `setScale(1.0)` → `setScale(GameConfig.countdownGoStartScaleV3)` (1.2), `SKAction.scale(to: ..., duration:)` 인자를 `GameConfig.countdownGoEndScaleV3` (1.8)로 교체
 
-| 노드 | Before | After |
-|---|---|---|
-| `headerChip` | +100 | **+115** |
-| `titleLabel` "실습 종료" | +70 | **+85** |
-| `subtitleLabel` | +44 | **+58** |
-| `accentLine` | +130 | **+148** |
-| `scoreLabel` "♪ N" | -2 | **-2** (텍스트 ♪ 제거 → "\(finalScore)"만) |
-| **신규 `scoreNoteIconLabel` "♪"** | — | **scoreLabel.x - 60, y -2** Jua 24pt |
-| `scoreSubLabel` SCORE | -32 | **-44** |
-| `bestLabel` → **신규 `bestPill`** | -60 중앙 | **scoreLabel.x + 120, y -2** GlassPill "🏆 BEST N" / "★ NEW BEST!" |
-| `divider` | -90 | **-78** |
-| `playsValueLabel` / `playsTitleLabel` | -110 / -124 | **-98 / -112** |
-| `restartButton` / `shareButton` | bottom 56 | 그대로 |
-| **신규 `scoreboardButton`** | — | **shareButton.x - 110, y = buttonY** GlassPill "📊 기록 보기" 110×36 |
-
-**신규 프로퍼티 3종**
+**핵심 코드 (의사코드)**:
 ```swift
-/// Sprint 7 Phase D — scoreLabel("0") 좌측 작은 ♪ 아이콘. scoreLabel에서 ♪ 분리.
-private let scoreNoteIconLabel = SKLabelNode(text: "♪")
-/// Sprint 7 Phase D — "📊 기록 보기" GlassPill. 탭 → ScoreboardScene 전이.
-private var scoreboardButton: GlassPillNode?
-/// Sprint 7 Phase D — bestLabel 시각 대체 GlassPill (bestLabel.alpha = 0 차단).
-private var bestPill: GlassPillNode?
-```
-
-**touchesBegan 분기 추가**
-```swift
-override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    guard !isTransitioning else { return }
-    if children.contains(where: { $0.name == "diplomaOverlay" }) { return }
-    guard let view = self.view, let touch = touches.first else { return }
-    let location = touch.location(in: self)
-
-    // Sprint 7 Phase D — 기록 보기 칩 분기
-    if let pill = scoreboardButton, pill.contains(location) {
-        isTransitioning = true
-        let lastUpdatedKey: (CharacterID, Difficulty)? = {
-            guard isNewBest, let charID = inferredCharacterID else { return nil }
-            return (charID, difficulty)
-        }()
-        let ctx = ResultReturnContext(
-            finalScore: finalScore, bestScore: bestScore, isNewBest: isNewBest,
-            stats: stats, characterName: characterName, difficulty: difficulty,
-            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt
-        )
-        let scoreboard = ScoreboardScene.newScoreboardScene(
-            lastUpdatedKey: lastUpdatedKey, returnContext: ctx
-        )
-        let transition = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(scoreboard, transition: transition)
-        return
-    }
-
-    // 기존 — StartScene 전이
-    isTransitioning = true
-    let startScene = StartScene.newStartScene()
-    view.presentScene(startScene, transition: SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration))
+// init() 변경
+override init() {
+    self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)  // Jua
+    super.init()
+    // ...
 }
 
-/// Sprint 7 Phase D — characterName → CharacterID 역변환 헬퍼.
-/// allCases에 5명 displayName 모두 유일 → 안전.
-private var inferredCharacterID: CharacterID? {
-    CharacterID.allCases.first { $0.displayName == characterName }
+// start(...) 안 — 색 3개 통일
+let step3 = stepAction(text: "3", color: .ganhoNavyDeep) { onTick(3) }
+let step2 = stepAction(text: "2", color: .ganhoNavyDeep) { onTick(2) }
+let step1 = stepAction(text: "1", color: .ganhoNavyDeep) { onTick(1) }
+
+// stepAction 안 setup 액션에 fontSize 갱신
+let setup = SKAction.run { [weak self] in
+    guard let self = self else { return }
+    self.label.text = text
+    self.label.fontColor = color
+    self.label.fontSize = GameConfig.countdownNumberFontSizeV3   // 신규 1줄
+    self.label.alpha = 0
+    self.label.setScale(1.0)
+    onTick()
 }
+
+// goAction 안 setup
+let setup = SKAction.run { [weak self] in
+    guard let self = self else { return }
+    self.label.text = "GO!"
+    self.label.fontColor = .ganhoCoralPrimary                      // 변경
+    self.label.fontSize = GameConfig.countdownGoFontSizeV3         // 신규
+    self.label.alpha = 0
+    self.label.setScale(GameConfig.countdownGoStartScaleV3)        // 1.2
+    onGo()
+}
+let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScaleV3, // 1.8
+                             duration: GameConfig.countdownGoHoldDuration)
 ```
 
-### 기능 2: CharacterFaceNode.mini 32pt 팩토리
+### 기능 2: GameScene.showCountdown에 dim 오버레이
 
 ```swift
-// MARK: - Mini Factory (Sprint 7 Phase D)
-/// Sprint 7 Phase D — Scoreboard 좌측 행 헤더용 32pt 미니 얼굴.
-/// 기존 init(id:) 결과를 0.47x로 축소(32/68 ≈ 0.47). 신규 시각 자식 0건.
-static func mini(id: CharacterID) -> CharacterFaceNode {
-    let face = CharacterFaceNode(id: id)
-    face.setScale(GameConfig.scoreboardMiniFaceScale)
-    face.name = "miniFace_\(id.rawValue)"
-    return face
-}
-```
+private func showCountdown() {
+    // 1) dim 오버레이 — cameraNode 자식, navyDeep × 0.32, 자연 페이드인
+    let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
+    dim.alpha = 0
+    dim.zPosition = GameConfig.countdownDimZPosition  // 240 (CountdownNode 250 아래)
+    dim.name = GameConfig.countdownDimNodeName
+    cameraNode.addChild(dim)
+    dim.run(.fadeAlpha(to: GameConfig.countdownDimAlpha,
+                       duration: GameConfig.countdownDimFadeInDuration))
 
-### 기능 3: ScoreboardScene 신규 씬
-
-**파일**: `Scenes/ScoreboardScene.swift` (신규 ~340 LOC)
-
-**노드 트리**
-```
-ScoreboardScene
-├── gradientBg (GradientBackgroundNode.threeStop, zPos -20)
-├── backButton (GlassPillNode "← 결과로", zPos 100, top-left)
-├── breadcrumbChip (DarkContextChipNode "캐릭터별 기록", zPos 100, top-right)
-├── accentLine (AccentLineNode, zPos 5, midY+130)
-├── titleLabel ("기록 보기", Jua 30pt, midY+95)
-├── subtitleLabel ("캐릭터·난이도별 최고점수", Gowun 12pt, midY+72)
-├── matrixContainer (SKNode, midY+10)
-│   ├── 열 헤더 3개 (하·중·상 SKLabel + Phase C 색)
-│   ├── 행 헤더 5개 (mini face + 약칭)
-│   ├── 15 셀 (Jua 18pt navy / "—" Gowun 14pt 회색 alpha 0.4)
-│   └── ★ 마커 (lastUpdatedKey 셀, gold)
-└── statLabel ("총 플레이 N회 · 졸업장 N장 보유", midY-150)
-```
-
-**핵심 구조**
-```swift
-final class ScoreboardScene: SKScene {
-    private let lastUpdatedKey: (CharacterID, Difficulty)?
-    private let returnContext: ResultReturnContext?
-    private var isTransitioning = false
-
-    private let perDiffRepo = PerDifficultyScoreRepository()
-    private let statsRepo = StatisticsRepository()
-    private let graduationRepo = GraduationRepository()
-
-    // 자식 노드들...
-    private let matrixContainer = SKNode()
-
-    class func newScoreboardScene(
-        lastUpdatedKey: (CharacterID, Difficulty)? = nil,
-        returnContext: ResultReturnContext? = nil
-    ) -> ScoreboardScene {
-        let scene = ScoreboardScene(
-            size: CGSize(width: 1024, height: 768),
-            lastUpdatedKey: lastUpdatedKey,
-            returnContext: returnContext
-        )
-        scene.scaleMode = .resizeFill
-        return scene
-    }
-
-    private init(size: CGSize, lastUpdatedKey: (CharacterID, Difficulty)?, returnContext: ResultReturnContext?) {
-        self.lastUpdatedKey = lastUpdatedKey
-        self.returnContext = returnContext
-        super.init(size: size)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        setupBackgroundGradient()
-        setupHeader()
-        setupBackButton()
-        setupBreadcrumbChip()
-        setupMatrix()
-        setupStatLabel()
-    }
-
-    override func didChangeSize(_ oldSize: CGSize) {
-        super.didChangeSize(oldSize)
-        layoutAll()
-    }
-
-    // 매트릭스 셀 좌표 계산
-    private func cellPosition(row: Int, col: Int) -> CGPoint {
-        let totalWidth = GameConfig.scoreboardRowHeaderWidth
-            + CGFloat(GameConfig.scoreboardMatrixColumnCount) * GameConfig.scoreboardCellWidth
-            + CGFloat(GameConfig.scoreboardMatrixColumnCount - 1) * GameConfig.scoreboardCellGap
-        let originX = frame.midX - totalWidth / 2
-        let cellX = originX + GameConfig.scoreboardRowHeaderWidth
-            + CGFloat(col) * (GameConfig.scoreboardCellWidth + GameConfig.scoreboardCellGap)
-            + GameConfig.scoreboardCellWidth / 2
-
-        let matrixHeight = CGFloat(GameConfig.scoreboardMatrixRowCount) * GameConfig.scoreboardCellHeight
-            + CGFloat(GameConfig.scoreboardMatrixRowCount - 1) * GameConfig.scoreboardCellGap
-        let originY = frame.midY + GameConfig.scoreboardMatrixOffsetY + matrixHeight / 2
-        let cellY = originY - GameConfig.scoreboardCellHeight / 2
-            - CGFloat(row) * (GameConfig.scoreboardCellHeight + GameConfig.scoreboardCellGap)
-
-        return CGPoint(x: cellX, y: cellY)
-    }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard !isTransitioning, let view = self.view, let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        if let back = backButton, back.contains(location) {
-            isTransitioning = true
-            returnToResultOrStart(view: view)
+    // 2) 기존 CountdownNode attach + start
+    let node = CountdownNode()
+    cameraNode.addChild(node)
+    node.start(
+        onTick: { [weak self] _ in self?.haptics.light() },
+        onGo: { [weak self] in
+            guard let self = self else { return }
+            self.haptics.heavy()
+            self.audio.play(.comboMilestoneStrong)
+        },
+        onComplete: { [weak self] in
+            guard let self = self else { return }
+            // 3) dim 페이드아웃 → 제거 → startGameProperly
+            let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownDimFadeOutDuration)
+            let cleanup = SKAction.removeFromParent()
+            let startGame = SKAction.run { [weak self] in self?.startGameProperly() }
+            dim.run(.sequence([fadeOut, cleanup, startGame]))
         }
-    }
-
-    private func returnToResultOrStart(view: SKView) {
-        let nextScene: SKScene
-        if let ctx = returnContext {
-            nextScene = ResultScene.newResultScene(
-                score: ctx.finalScore, bestScore: ctx.bestScore, isNewBest: ctx.isNewBest,
-                stats: ctx.stats, characterName: ctx.characterName, difficulty: ctx.difficulty,
-                isNewGraduation: false,    // 졸업장 재표시 차단
-                graduatedAt: nil
-            )
-        } else {
-            nextScene = StartScene.newStartScene()
-        }
-        view.presentScene(nextScene, transition: SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration))
-    }
-}
-
-/// ResultScene → ScoreboardScene → ResultScene 라운드트립용 9-인자 컨텍스트.
-struct ResultReturnContext {
-    let finalScore: Int
-    let bestScore: Int
-    let isNewBest: Bool
-    let stats: GameStats
-    let characterName: String
-    let difficulty: Difficulty
-    let isNewGraduation: Bool
-    let graduatedAt: Date?
+    )
 }
 ```
 
-> **주의**: `ResultScene.newResultScene` 실제 시그니처는 Generator가 코드에서 grep으로 확인 후 정확한 인자 순서·이름 매핑.
+**주의**: `startGameProperly()` 호출이 dim fadeOut *후*로 0.2초 미뤄지므로 총 카운트다운 4.0s = 1.0(3) + 1.0(2) + 1.0(1) + 0.8(GO!) + 0.2(dim) 일치. 첫 음표 spawn은 dim 사라진 직후로 시각 연속감 확보.
 
-### 기능 4: GameConfig Phase D V3 상수 신규
+### 기능 3: GameConfig V3 신규 상수 9개
 
-**위치**: `Config/GameConfig.swift` 파일 끝, `// MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene` 새 섹션
+**위치**: `Config/GameConfig.swift` MARK `Countdown (Phase 6-13)` 아래 새 sub-section `// MARK: - Countdown V3 (Sprint 7 Phase E)`
 
-**상수 ~40개** (값 일부 발췌):
 ```swift
-// ResultScene V3
-static let resultScoreNoteIconFontSizeV3: CGFloat = 24
-static let resultScoreNoteIconOffsetXV3: CGFloat = -60
-static let resultScoreRowOffsetYV3: CGFloat = -2
-static let resultBestPillWidthV3: CGFloat = 120
-static let resultBestPillHeightV3: CGFloat = 28
-static let resultBestPillOffsetXV3: CGFloat = 120
-static let resultHeaderChipOffsetYV3: CGFloat = 115
-static let resultTitleOffsetYV3: CGFloat = 85
-static let resultSubtitleOffsetYV3: CGFloat = 58
-static let resultAccentLineOffsetYV3: CGFloat = 148
-static let resultScoreSubOffsetYV3: CGFloat = -44
-static let resultDividerOffsetYV3: CGFloat = -78
-static let resultStatValueOffsetYV3: CGFloat = -98
-static let resultStatTitleOffsetYV3: CGFloat = -112
-static let resultScoreboardButtonWidthV3: CGFloat = 110
-static let resultScoreboardButtonOffsetXFromShareV3: CGFloat = -110
-static let resultScoreboardButtonText: String = "📊 기록 보기"
-static let resultBestPillTextNormalV3: String = "🏆 BEST"
-static let resultBestPillTextNewV3: String = "★ NEW BEST!"
-
-// ScoreboardScene 매트릭스
-static let scoreboardMatrixColumnCount: Int = 3
-static let scoreboardMatrixRowCount: Int = 5
-static let scoreboardCellWidth: CGFloat = 80
-static let scoreboardCellHeight: CGFloat = 36
-static let scoreboardCellGap: CGFloat = 4
-static let scoreboardRowHeaderWidth: CGFloat = 60
-static let scoreboardMatrixOffsetY: CGFloat = 10
-static let scoreboardMiniFaceScale: CGFloat = 0.47
-static let scoreboardCellScoreFontSize: CGFloat = 18
-static let scoreboardCellEmptyFontSize: CGFloat = 14
-static let scoreboardCellEmptyText: String = "—"
-static let scoreboardCellEmptyAlpha: CGFloat = 0.4
-static let scoreboardColumnHeaderFontSize: CGFloat = 15
-static let scoreboardRowHeaderShortNameFontSize: CGFloat = 13
-static let scoreboardRowHeaderShortNameOffsetX: CGFloat = 22
-static let scoreboardStarMarkerText: String = "★"
-static let scoreboardStarMarkerFontSize: CGFloat = 12
-static let scoreboardStarMarkerOffsetX: CGFloat = 28
-static let scoreboardStarMarkerOffsetY: CGFloat = 12
-
-// ScoreboardScene 헤더 + stat + 백 버튼
-static let scoreboardTitleOffsetY: CGFloat = 95
-static let scoreboardTitleFontSize: CGFloat = 30
-static let scoreboardSubtitleOffsetY: CGFloat = 72
-static let scoreboardSubtitleFontSize: CGFloat = 12
-static let scoreboardSubtitleText: String = "캐릭터·난이도별 최고점수"
-static let scoreboardTitleText: String = "기록 보기"
-static let scoreboardAccentLineOffsetY: CGFloat = 130
-static let scoreboardBackButtonWidth: CGFloat = 110
-static let scoreboardBackButtonHeight: CGFloat = 36
-static let scoreboardBackButtonText: String = "← 결과로"
-static let scoreboardBackButtonInsetX: CGFloat = 20
-static let scoreboardBackButtonInsetY: CGFloat = 32
-static let scoreboardBreadcrumbInsetX: CGFloat = 20
-static let scoreboardBreadcrumbInsetY: CGFloat = 32
-static let scoreboardBreadcrumbText: String = "캐릭터별 기록"
-static let scoreboardStatOffsetY: CGFloat = -150
-static let scoreboardStatFontSize: CGFloat = 12
+/// V3 카운트다운 숫자(3·2·1) 폰트 크기. V2 96 → 120 (화면 중앙 단독 강조).
+static let countdownNumberFontSizeV3: CGFloat = 120
+/// V3 GO! 폰트 크기. 숫자보다 큼 — "출발의 폭발" 톤.
+static let countdownGoFontSizeV3: CGFloat = 140
+/// V3 GO! scale 시작값. V2 1.0 → 1.2 — 등장부터 임팩트.
+static let countdownGoStartScaleV3: CGFloat = 1.2
+/// V3 GO! scale 끝값. V2 1.3 → 1.8 — 더 큰 펄스.
+static let countdownGoEndScaleV3: CGFloat = 1.8
+/// V3 dim 오버레이 알파. navyDeep × 0.32.
+static let countdownDimAlpha: CGFloat = 0.32
+/// V3 dim 페이드인 길이(초). 카운트다운 등장 동기.
+static let countdownDimFadeInDuration: TimeInterval = 0.2
+/// V3 dim 페이드아웃 길이(초). GO! 종료 직후 0.2초로 자연 밝아짐.
+static let countdownDimFadeOutDuration: TimeInterval = 0.2
+/// V3 dim zPosition. 240 (CountdownNode 250 아래, HUD/Combo/HitFlash 위).
+static let countdownDimZPosition: CGFloat = 240
+/// V3 dim 노드 name — 디버그/회귀 검증용.
+static let countdownDimNodeName: String = "countdownDim"
 ```
 
-### 기능 5: 신규 mockup HTML 2개
+### 기능 4: mockups/countdown-overlay-v1.html
 
-**파일 1**: `mockups/result-screen-v3.html`
-- v2 카피 → "♪" 분리(별도 .score-note-icon 24pt 좌측 absolute) / BEST GlassPill 우측 +120px / headerChip top +15 / 새 .btn-scoreboard 좌측 추가
-- annotation: "Sprint 7 Phase D — SPRINT_7_REQUEST.md §5.2 매칭"
+**핵심 사양**:
+- 4프레임 (3·2·1·GO!) 가로 4열, 각 카드 240×135 (16:9 미니 게임 화면)
+- 각 카드 = "게임 월드 일부 + navyDeep alpha 0.32 dim + 중앙 숫자"
+- 폰트: Jua / fallback sans-serif
+- 색: 3·2·1 navy `#2D2A4A` / GO! 코랄 `#FF6B5B`
+- 사이즈: 숫자 72pt 축소 / GO! 84pt
+- 캡션: "0.0~1.0s : 3" / "1.0~2.0s : 2" / "2.0~3.0s : 1" / "3.0~3.8s : GO!"
+- 상단 타이틀 + 하단 메모 ("총 4.0s · 3.8~4.0s dim 페이드아웃 + 입력 활성화")
+- CSS 인라인, JS 0줄
 
-**파일 2**: `mockups/highscore-board-v1.html`
-- 1024×768 .phone-frame, 3-stop warm gradient
-- 좌상단 GlassPill "← 결과로", 우상단 DarkContextChip "캐릭터별 기록"
-- 중앙 accentLine + Jua 30pt "기록 보기" + 부제
-- 매트릭스 5×3: 헤더 행(하/중/상 Phase C 색) + 5행(mini SVG 32px + 약칭 + 3 셀)
-- 4행(건간호) 1열(하)에 ★ + 큰 점수 200
-- 빈 셀 "—" 회색
-- 하단 "총 플레이 N회 · 졸업장 N장 보유"
+## 합격 기준 (SPRINT_7_REQUEST.md §6.5)
 
-## 합격 기준 (SPRINT_7_REQUEST.md §5.6)
-
-- 결과창 5개 정보 요소 시뮬레이터 0px 겹침
-- 기록 보기 칩 탭 → ScoreboardScene 0.25s fade
-- 15셀 매트릭스 값 PerDifficultyScoreRepository.best와 일치
-- "← 결과로" 탭 → 새 ResultScene 인스턴스, 졸업장 재표시 0, sparkle 재발화 0
-- ★ 마커 직전 게임 (캐릭터,난이도) 셀에 1개만
-- 빈 셀 "—" 회색
+- 시뮬레이터에서 게임 시작 후 4초 안에 "3 → 2 → 1 → GO!" 4단계 모두 보임
+- GO! 종료 즉시(<0.2s) 음표 첫 발생 (이미 보장)
+- 카운트다운 도중 D-pad 탭 무시 (이미 보장)
+- dim 오버레이 navyDeep alpha 0.32 — GO! 종료 직후 0.2초로 자연 사라짐
+- 3·2·1 navy, GO! 코랄 색 대비
+- 폰트 Jua-Regular
+- 숫자 120pt, GO! 140pt
+- mockup 4프레임 시각 확인
 
 | 카테고리 | 가중치 | 통과선 |
 |---|---|---|
 | 게임 로직 회귀 0 | 40% | 9.0 |
 | Swift 패턴 | 20% | 7.0 |
-| 비주얼 일관성 | 25% | 7.0 |
+| 비주얼 일관성 | 25% | 7.0 (mockup 매칭 ≥ 85%) |
 | 가독성 & UX | 15% | 7.0 |
 
 가중 평균 7.5 이상 합격.
 
 ## 변경 LOC 추정치
 
-| 파일 | LOC |
-|---|---|
-| `Scenes/ResultScene.swift` | +60 |
-| `Scenes/ScoreboardScene.swift` (신규) | +340 |
-| `Nodes/CharacterFaceNode.swift` | +12 |
-| `Config/GameConfig.swift` | +95 |
-| `mockups/result-screen-v3.html` (신규) | +250 |
-| `mockups/highscore-board-v1.html` (신규) | +220 |
-| **합계** | **~975 LOC** (Swift만 ~500) |
+| 파일 | LOC | 비고 |
+|---|---|---|
+| `CountdownNode.swift` | ~12 | init 1 / setup fontSize 2 / start 색 3 / goAction 색·scale 3 |
+| `GameScene.swift` | ~20 | showCountdown dim 시퀀스 |
+| `GameConfig.swift` | ~30 | V3 상수 9개 + MARK |
+| `mockups/countdown-overlay-v1.html` | ~140 | 4프레임 CSS + SVG 미니 |
+| **합계** | **~200** | Swift만 ~62 (사양 ~100 부합) |
 
-## OPEN_QUESTION
+## OPEN_QUESTION (모두 결정됨)
 
-**OQ-1 (결정됨)**: ScoreboardScene → ResultScene 복귀는 옵션 A (새 인스턴스 생성, `ResultReturnContext` struct로 9-인자 전달, `isNewGraduation: false` 강제로 졸업장 재표시 차단). 1탭 정책은 각 화면 안에서 유지.
+**OQ-1**: CountdownNode 시그니처 — 기존 `init()` + `start(onTick:onGo:onComplete:)` 그대로 유지. Sprint 7 사양 "static func bigCenter / func start(completion:)"는 기존이 *더 풍부*하므로 채택 안 함.
 
-**OQ-2 (결정됨)**: GraduationRepository API는 `graduationRepo.current.count` (`current: [CharacterID: Date]`의 keys 개수). `totalPlays`도 `statsRepo.current.playCount`.
+**OQ-2**: 입력 게이트 — 이미 `gameState == .playing` 가드 차단. 추가 코드 0줄.
 
-**OQ-3 (결정됨)**: ★ 마커는 ResultScene이 `isNewBest + inferredCharacterID + difficulty`로 lastUpdatedKey 산출. 전역 isNewBest와 perDiff isNewBest 미세 차이는 근사 허용 (init 시그니처 변경 금지).
+**OQ-3**: GO! 종료 직후 첫 음표 — 이미 정확. dim fadeOut 0.2s가 startGameProperly 직전이라 첫 spawn은 dim 사라진 직후.
 
-**OQ-4 (결정됨)**: CharacterFaceNode.mini 팩토리는 기존 `init(id:)` + `setScale(0.47)`. 신규 시각 자식 0.
+**OQ-4**: AudioManager 키 — tick/chime 부재. 본 Phase E 사운드 코드 변경 0.
 
 ## 주의사항
 
-1. **bestLabel 충돌**: 기존 `bestLabel`은 노드 트리 보존, `.alpha = 0`으로 시각만 차단. `startBestLabelGoldBlink()` fadeAlpha 액션은 0↔0.3 깜빡여도 시각 안 보임 (괜찮음).
-2. **isNewBest sparkle 5발**: `resultSparklePositionsV2` 좌표는 카드 주변이라 점수 위치 변경 영향 0.
-3. **졸업장 재진입 차단**: 복귀 시 `isNewGraduation: false` 명시.
-4. **CharacterID 역변환 안전**: 5 displayName 유일.
-5. **SceneSafeArea 적용**: ScoreboardScene도 백 버튼/브레드크럼 top inset 안전.
-6. **Repository 인스턴스**: 매번 new (기존 코드 패턴 동일, UserDefaults 기반).
-7. **★ zPosition**: 셀(2)보다 위(3).
-8. **`ResultReturnContext` struct**: ScoreboardScene.swift 같은 파일 내 정의 (Foundation 의존만).
+- 회귀 0 1순위: CountdownNode.start 시그니처 변경 금지.
+- dim zPosition 정합: 240 (CountdownNode 250 아래).
+- CountdownNode 자가 소멸 + dim 자가 소멸 별도 보장.
+- `.run { [weak self] in self?.startGameProperly() }` weak self 캡처 필수.
+- fontName 누락 시 SKLabelNode 시스템 폰트 fallback — Jua-Regular ttf 번들 의존.
+- `.ganhoNavyDeep`은 ColorTokens.swift 정의.
+- Phase E 절대 금기 재확인: SkillButtonNode / SkillSystem / SpawnSystem / ContactRouter / ScoreSystem / 모든 Repositories / AudioManager / GameState / PhysicsCategory / 다른 Scenes — 0줄.
 
 ## 관련 파일 (절대 경로)
 
-- 수정: `GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift`, `Nodes/CharacterFaceNode.swift`, `Config/GameConfig.swift`
-- 신규: `Scenes/ScoreboardScene.swift`, `mockups/result-screen-v3.html`, `mockups/highscore-board-v1.html`
-- 참조: `Repositories/PerDifficultyScoreRepository.swift`, `StatisticsRepository.swift`, `GraduationRepository.swift`, `Models/CharacterID.swift`, `Models/Difficulty.swift`, `mockups/result-screen-v2.html`
+- 수정: `GanhoMusic/GanhoMusic Shared/Nodes/CountdownNode.swift`, `GameScene.swift`, `Config/GameConfig.swift`
+- 신규: `mockups/countdown-overlay-v1.html`
+- 참조: `Config/ColorTokens.swift`, `mockups/game-map-v2.html`

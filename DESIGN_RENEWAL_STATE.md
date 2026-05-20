@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase D 합격 — 결과창 + ScoreboardScene 신설)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D ✅ / E·F·G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase E 합격 — 카운트다운 오버레이)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C·D·E ✅ / F·G 진행 중). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -44,8 +44,8 @@ Sprint 2 진행해줘
 | **7-B** | 스킬 설명 겹침 해소 | ✅ 합격 | 9.77/10 | 1/3 |
 | **7-C** | 난이도 카드 색 위계 | ✅ 합격 | 9.83/10 | 1/3 |
 | **7-D** | 결과창 + ScoreboardScene 신설 | ✅ 합격 | 9.83/10 | 1/3 |
-| **7-E** | 카운트다운 오버레이 | ⏳ 대기 | - | 0/3 |
-| **7-F** | 빌런 4종 + 박병장 신규 | ⏸️ 미시작 | - | 0/3 |
+| **7-E** | 카운트다운 오버레이 | ✅ 합격 | 9.76/10 | 1/3 |
+| **7-F** | 빌런 4종 + 박병장 신규 | ⏳ 대기 | - | 0/3 |
 | **7-G** | 플레이어 4방향 스프라이트 | ⏸️ 미시작 | - | 0/3 |
 
 ### 상태 범례
@@ -103,6 +103,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase E — 카운트다운 오버레이
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.76/10** (게임로직 10.0 · Swift패턴 9.6 · 비주얼 9.5 · UX 9.7)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 게임 시작 시 멈춤감 해소를 위한 3·2·1·GO! 카운트다운 시각 v3 보강. 기존 CountdownNode(Phase 6-13 신설) 시그니처 `init()` + `start(onTick:onGo:onComplete:)` byte-identical 유지. 4가지 보강: ① SKLabelNode init에 fontNamed Jua-Regular 적용(시스템 폰트 → Jua) ② 색 4개 갱신(3·2·1 = ganhoNavyDeep / GO = ganhoCoralPrimary, v2 blood/yellow/pink/mint와 다름) ③ stepAction/goAction setup에 fontSize 분기 추가(숫자 120pt V3 / GO 140pt V3) ④ GO scale 1.0→1.3 → 1.2→1.8(더 큰 펄스). GameScene.showCountdown에 dim SKSpriteNode 부착 + 페이드인 + onComplete에서 fadeOut→cleanup→startGameProperly 시퀀스([weak self] 이중 캡처). dim zPosition 240(CountdownNode 250 아래). 총 4.0s = 3·2·1(3.0s) + GO!(0.8s) + dim fadeOut(0.2s). GameConfig V3 신규 상수 9종(NumberFontSizeV3=120, GoFontSizeV3=140, GoStartScaleV3=1.2, GoEndScaleV3=1.8, DimAlpha=0.32, DimFadeInDuration=0.2, DimFadeOutDuration=0.2, DimZPosition=240, DimNodeName="countdownDim"). 기존 V2 상수 8개 값 보존(fontSize 96, fadeIn 0.1, hold 0.7, fadeOut 0.2, goEndScale 1.3, goFadeOut 0.4, goHold 0.5, zPosition 250). 신규 mockup countdown-overlay-v1.html ~247 LOC(4프레임 16:9 미니 + dim + 색 대비 + Jua + 캡션 + 메모 + JS 0줄 + mini-actor placeholder). 보호 영역 git diff 0줄: DPadNode/SkillButtonNode/SkillSystem/SpawnSystem/ContactRouter/ScoreSystem/GameScene+Setup/Managers(AudioManager 포함)/Repositories/GameState/PhysicsCategory/ColorTokens/모든 다른 Scenes/Phase A·B·C·D 결과물. CountdownNode.start 시그니처 + startGameProperly 본체 + gameState 전이 + spawnSystem.start 호출 위치 byte-identical. 강제 언래핑 0, Timer 0, switch default 0, update()-내-addChild 0. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: (1) V3 상수 명명 규칙 (countdownGoEndScale vs V3) 공존 — Sprint 7 종료 후 일괄 정리. (2) AudioManager tick/chime 키 등록은 Sprint 8 후보(SPRINT_7_REQUEST §6.3 명시). (3) dim fadeOut 0.2s + spawnSystem 갭이 추후 사운드 등록 시 청각 단절 우려 — chime ≥0.2s 또는 .group 검토.
 
 ### Sprint 7 Phase D — 결과창 + ScoreboardScene 신설
 - 시작: 2026-05-19

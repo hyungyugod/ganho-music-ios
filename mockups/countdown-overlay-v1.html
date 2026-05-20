@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김간호는 음악박사 — 카운트다운 오버레이 v1 (Sprint 7 Phase E)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #15151c; color: #e8e8e8;
+    min-height: 100vh; padding: 40px 24px 80px; line-height: 1.6;
+  }
+  .page { max-width: 1180px; margin: 0 auto; }
+  h1 {
+    font-family: 'Jua', sans-serif; font-size: 28px; color: #fff;
+    margin-bottom: 6px; letter-spacing: 0.5px;
+  }
+  .sub { color: #999; font-size: 13px; margin-bottom: 32px; }
+
+  /* === Frame Grid (4 columns) === */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .frame { text-align: center; }
+  .caption {
+    margin-top: 10px;
+    font-family: 'Jua', sans-serif;
+    font-size: 13px;
+    color: #cfcfcf;
+    letter-spacing: 0.4px;
+  }
+  .caption .timecode {
+    display: block;
+    font-family: 'Gowun Dodum', serif;
+    font-size: 11px;
+    color: #777;
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+  }
+
+  /* === Mini game screen (16:9) === */
+  .screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      0 12px 28px rgba(0,0,0,0.45),
+      inset 0 0 0 2px rgba(45, 42, 74, 0.65);
+    background: linear-gradient(165deg, #FFE5D0 0%, #FFC8B5 60%, #DCC9E8 100%);
+  }
+
+  /* tiled floor — game-map-v2 톤 (체커보드 콘서트장) */
+  .screen::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      repeating-conic-gradient(
+        from 0deg at 0% 0%,
+        #FFEFE0 0% 25%, #FFDFC8 0% 50%
+      );
+    background-size: 18px 18px;
+    opacity: 0.92;
+  }
+
+  /* HUD slot top-row (희미하게 보이는 게임 월드) */
+  .mini-hud {
+    position: absolute; top: 6px; left: 10px; right: 10px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    z-index: 2;
+  }
+  .mini-hud .slot {
+    background: rgba(45, 42, 74, 0.78);
+    border-radius: 4px;
+    height: 10px;
+  }
+
+  /* Player + enemies placeholder (희미하게) */
+  .mini-actor {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  .actor-player {
+    bottom: 22px; left: 32%;
+    background: #4A90E2;
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.5);
+  }
+  .actor-enemy {
+    top: 30%; right: 22%;
+    background: #C44A3D;
+    width: 12px; height: 12px;
+    box-shadow: 0 2px 4px rgba(196, 74, 61, 0.5);
+  }
+  .actor-note {
+    bottom: 40%; left: 50%;
+    background: #FFB347;
+    width: 8px; height: 8px;
+    box-shadow: 0 2px 4px rgba(255, 179, 71, 0.4);
+  }
+
+  /* DIM overlay — navyDeep × 0.32 (게임 월드는 보이되 "아직 시작 전" 시각화) */
+  .dim {
+    position: absolute; inset: 0;
+    background: #2D2A4A;
+    opacity: 0.32;
+    z-index: 5;
+  }
+
+  /* Center label — 3·2·1 navy / GO! coral */
+  .center {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .number {
+    font-family: 'Jua', sans-serif;
+    font-size: 72px;
+    color: #2D2A4A;  /* navyDeep */
+    line-height: 1;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 6px rgba(255,255,255,0.35);
+  }
+  .go {
+    font-family: 'Jua', sans-serif;
+    font-size: 84px;
+    color: #FF6B5B;  /* coralPrimary */
+    line-height: 1;
+    letter-spacing: 1.5px;
+    text-shadow: 0 3px 8px rgba(255,107,91,0.35);
+    transform: scale(1.05);
+  }
+
+  /* === Legend / notes === */
+  .note-box {
+    background: #1c1c24;
+    border: 1px solid #2a2a36;
+    border-radius: 12px;
+    padding: 18px 22px;
+    color: #b8b8b8;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .note-box h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 15px;
+    color: #fff;
+    margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+  .note-box ul { padding-left: 18px; }
+  .note-box li { margin-bottom: 4px; }
+  .note-box .accent { color: #FF6B5B; font-weight: 600; }
+  .note-box .navy   { color: #b0a8e0; font-weight: 600; }
+  .note-box code {
+    background: #2a2a36;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Gowun Dodum', monospace;
+    font-size: 12px;
+    color: #d4d4d4;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>카운트다운 오버레이 v1 — Sprint 7 Phase E</h1>
+  <div class="sub">게임 시작 전 4초 — dim 오버레이(navyDeep alpha 0.32) + Jua 폰트 + navy 숫자 / 코랄 GO!</div>
+
+  <!-- 4 frames -->
+  <div class="grid">
+    <!-- Frame 1: "3" -->
+    <div class="frame">
+      <div class="screen">
+        <div class="mini-hud">
+          <div class="slot"></div><div class="slot"></div>
+          <div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="mini-actor actor-player"></div>
+        <div class="mini-actor actor-enemy"></div>
+        <div class="mini-actor actor-note"></div>
+        <div class="dim"></div>
+        <div class="center"><div class="number">3</div></div>
+      </div>
+      <div class="caption">
+        준비 — 차분한 긴장
+        <span class="timecode">0.0s ~ 1.0s</span>
+      </div>
+    </div>
+
+    <!-- Frame 2: "2" -->
+    <div class="frame">
+      <div class="screen">
+        <div class="mini-hud">
+          <div class="slot"></div><div class="slot"></div>
+          <div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="mini-actor actor-player"></div>
+        <div class="mini-actor actor-enemy"></div>
+        <div class="mini-actor actor-note"></div>
+        <div class="dim"></div>
+        <div class="center"><div class="number">2</div></div>
+      </div>
+      <div class="caption">
+        집중 누적
+        <span class="timecode">1.0s ~ 2.0s</span>
+      </div>
+    </div>
+
+    <!-- Frame 3: "1" -->
+    <div class="frame">
+      <div class="screen">
+        <div class="mini-hud">
+          <div class="slot"></div><div class="slot"></div>
+          <div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="mini-actor actor-player"></div>
+        <div class="mini-actor actor-enemy"></div>
+        <div class="mini-actor actor-note"></div>
+        <div class="dim"></div>
+        <div class="center"><div class="number">1</div></div>
+      </div>
+      <div class="caption">
+        마지막 호흡
+        <span class="timecode">2.0s ~ 3.0s</span>
+      </div>
+    </div>
+
+    <!-- Frame 4: "GO!" -->
+    <div class="frame">
+      <div class="screen">
+        <div class="mini-hud">
+          <div class="slot"></div><div class="slot"></div>
+          <div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="mini-actor actor-player"></div>
+        <div class="mini-actor actor-enemy"></div>
+        <div class="mini-actor actor-note"></div>
+        <div class="dim"></div>
+        <div class="center"><div class="go">GO!</div></div>
+      </div>
+      <div class="caption">
+        출발의 폭발
+        <span class="timecode">3.0s ~ 3.8s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="note-box">
+    <h3>구현 사양 메모</h3>
+    <ul>
+      <li>총 카운트다운 길이 — <code>4.0s</code> · 3·2·1(3.0s) + GO!(0.8s) + dim fadeOut(0.2s)</li>
+      <li>dim 오버레이 — <span class="navy">navyDeep #2D2A4A · alpha 0.32</span> · <code>zPosition 240</code> (CountdownNode 250 아래)</li>
+      <li>3·2·1 — <span class="navy">navy #2D2A4A · Jua 120pt</span> · scale 1.0 → 1.0 (fadeIn 0.1s + hold 0.7s + fadeOut 0.2s)</li>
+      <li>GO! — <span class="accent">coral #FF6B5B · Jua 140pt</span> · scale <span class="accent">1.2 → 1.8</span> (fadeIn 0.1s + hold/scaleUp 0.5s + fadeOut 0.4s)</li>
+      <li>3.8s ~ 4.0s — dim 페이드아웃 (0.2s) + 입력 활성화 + 첫 음표 spawn (시각 연속감)</li>
+      <li>카운트다운 도중 D-pad 탭은 <code>guard gameState == .playing</code> 가드로 무시 (이미 보장)</li>
+      <li>폰트 미존재 시 SKLabelNode 시스템 폰트 fallback — Jua-Regular ttf 번들 의존</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

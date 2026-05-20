@@ -261,14 +261,31 @@ class GameScene: SKScene {
         )
     }
 
-    // MARK: - Countdown (Phase 6-13)
+    // MARK: - Countdown (Phase 6-13 · Sprint 7 Phase E)
     /// CountdownNode 생성 + cameraNode 부착 + start 진입점 호출.
     /// - onTick: 매 숫자(3/2/1) 표시 직후 light 햅틱 (사운드 없음 — *조용한 카운팅* 톤).
     /// - onGo: GO! 표시 직후 heavy 햅틱 + `comboMilestoneStrong` 사운드 (NewMail 1025 — 긍정 묵직).
-    /// - onComplete: GO! 페이드아웃 + 노드 제거 직후 startGameProperly() — 실제 게임 시동.
+    /// - onComplete: GO! 페이드아웃 + 노드 제거 직후 dim 페이드아웃 → startGameProperly() — 실제 게임 시동.
     /// 콜백 3개 모두 [weak self] 캡처 — 카운트다운 진행 중 씬 전환 가능성 대비 (안전한 해제 의미).
     /// CountdownNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
+    ///
+    /// Sprint 7 Phase E — dim 오버레이 추가:
+    /// 1) navyDeep × 0.32 dim을 cameraNode 자식으로 부착 (zPosition 240 — CountdownNode 250 아래)
+    /// 2) 0.2s 페이드인 → 게임 월드는 보이되 "아직 시작 전" 시각화
+    /// 3) onComplete에서 0.2s 페이드아웃 → removeFromParent → startGameProperly
+    ///    → 총 4.0s = 3·2·1 단계 3.0s + GO! 0.8s + dim fadeOut 0.2s
     private func showCountdown() {
+        // 1) dim 오버레이 — cameraNode 자식. CountdownNode(zPosition 250)보다 아래(240)로 깔아 숫자가 또렷.
+        //    color는 navyDeep, alpha는 0 시작 → fadeIn으로 0.32 도달 (자연 어두워짐).
+        let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
+        dim.alpha = 0
+        dim.zPosition = GameConfig.countdownDimZPosition
+        dim.name = GameConfig.countdownDimNodeName
+        cameraNode.addChild(dim)
+        dim.run(.fadeAlpha(to: GameConfig.countdownDimAlpha,
+                           duration: GameConfig.countdownDimFadeInDuration))
+
+        // 2) 기존 CountdownNode attach + start (시그니처 byte-identical).
         let node = CountdownNode()
         cameraNode.addChild(node)
         node.start(
@@ -281,7 +298,16 @@ class GameScene: SKScene {
                 self.audio.play(.comboMilestoneStrong)
             },
             onComplete: { [weak self] in
-                self?.startGameProperly()
+                guard let self = self else { return }
+                // 3) dim 페이드아웃 → 자가 제거 → startGameProperly.
+                //    startGameProperly 호출이 0.2s 미뤄지지만 총 4.0s = 3·2·1(3.0) + GO!(0.8) + dim(0.2) 일치.
+                //    첫 음표 spawn은 dim 사라진 직후로 시각 연속감 확보.
+                let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownDimFadeOutDuration)
+                let cleanup = SKAction.removeFromParent()
+                let startGame = SKAction.run { [weak self] in
+                    self?.startGameProperly()
+                }
+                dim.run(.sequence([fadeOut, cleanup, startGame]))
             }
         )
     }
