@@ -1932,4 +1932,51 @@ enum GameConfig {
     /// Phase B에서 백 버튼이 화면에서 제거되므로 실제 사용 빈도는 낮으나
     /// 향후 정책 변경 시 참조용으로 보존.
     static let skillExplanationBottomButtonGapV3: CGFloat = 18
+
+    // MARK: - Sprint 7 Phase C · Difficulty hierarchy v3
+    //
+    // 난이도 3장 카드에 *색 위계*를 부여하고 선택 카드를 시선 자석으로 만든다.
+    // 카드 헤더 22pt → 30pt + 카드별 stroke 외곽선 / 선택 시 +8pt 상승 + radial glow /
+    // 시작 버튼 뒤 halo SKShape 부착.
+    //
+    // 모든 신규 상수는 `*PhaseC` 또는 명시적 의도값 접미사. 기존 V3 상수
+    // (difficultyCardDeselectedAlphaV3, DeselectedFillAlphaV3, DeselectedStrokeAlphaV3,
+    // SelectedFillAlphaV3, StrokeLineWidthV3, NameFontSizeV3 등)는 값 변경 0.
+
+    /// Phase C — 카드 헤더(이름 라벨) 폰트 크기(30pt). 기존 V3 22pt → +8.
+    /// nameLabelStroke / nameLabel 2개 라벨로 stroke 외곽선 표현.
+    static let difficultyCardNameFontSizePhaseC: CGFloat = 30
+    /// Phase C — 카드 헤더 stroke 굵기(1pt). nameLabelStroke 폰트 = 30 + 1×2 = 32pt
+    /// 베이스 라벨로 stroke 효과 근사. SKLabelNode는 stroke 직접 미지원.
+    static let difficultyCardNameStrokeWidthPhaseC: CGFloat = 1.0
+
+    /// Phase C — 선택 카드 상승 거리(+8pt). mockup `transform: translateY(-8px)` 대응.
+    /// 미세 상승 — *시선 자석* 효과의 핵심 수치. liftCurrentOffset 증분 추적으로 누적 방지.
+    static let difficultyCardSelectedLiftY: CGFloat = 8
+    /// Phase C — 선택 카드 상승 액션 지속 시간(0.18s). spring overshoot phase1과 동일 톤.
+    static let difficultyCardSelectedLiftDuration: TimeInterval = 0.18
+
+    /// Phase C — 선택 카드 뒤 radial glow 폭(158pt). 카드 폭 112 대비 ×1.41.
+    /// mockup .diff-card::before 158 × 116.
+    static let difficultyCardSelectedGlowWidthPhaseC: CGFloat = 158
+    /// Phase C — 선택 카드 뒤 radial glow 높이(116pt). 카드 높이 82 대비 ×1.41.
+    static let difficultyCardSelectedGlowHeightPhaseC: CGFloat = 116
+    /// Phase C — 선택 카드 뒤 radial glow alpha(0.80). 시선 자석 강도.
+    static let difficultyCardSelectedGlowAlphaPhaseC: CGFloat = 0.80
+    /// Phase C — 선택 카드 뒤 radial glow spread(12pt). SKShapeNode.glowWidth로 근사 —
+    /// 진정한 Gaussian blur는 SpriteKit 미지원, mockup `filter: blur(20px)` 근사 보정.
+    static let difficultyCardSelectedGlowSpreadPhaseC: CGFloat = 12
+
+    /// Phase C — 시작 버튼 뒤 halo 폭(240pt). PrimaryButton 폭 대비 +여백.
+    static let difficultySelectStartButtonHaloWidth: CGFloat = 240
+    /// Phase C — 시작 버튼 뒤 halo 높이(90pt).
+    static let difficultySelectStartButtonHaloHeight: CGFloat = 90
+    /// Phase C — 시작 버튼 halo 알파(0.35). mockup `box-shadow … rgba(255,107,91,0.35)` 톤.
+    static let difficultySelectStartButtonHaloAlpha: CGFloat = 0.35
+    /// Phase C — 시작 버튼 halo spread(24pt). glowWidth 근사 — mockup `filter: blur(24px)`.
+    static let difficultySelectStartButtonHaloSpread: CGFloat = 24
+    /// Phase C — 시작 버튼 halo 페이드 인 지속 시간(0.25s). 화면 진입 후 자연스러운 등장.
+    static let difficultySelectStartButtonHaloFadeInDuration: TimeInterval = 0.25
+    /// Phase C — 시작 버튼 halo y offset (0pt — 버튼 정중앙 뒤). 별도 보정 필요 시 사용.
+    static let difficultySelectStartButtonHaloOffsetY: CGFloat = 0
 }

@@ -272,6 +272,28 @@ extension UIColor {
     static let ganhoDiplomaTextDeep  = UIColor(hex: "#5A3A0E")
     /// 졸업장 부속 흐린 글자색(titleEn/issuer/date/tap). mockup color (#8B5A0E).
     static let ganhoDiplomaTextMuted = UIColor(hex: "#8B5A0E")
+
+    // MARK: - Sprint 7 Phase C · Difficulty hierarchy
+    //
+    // 난이도 3장 카드(하/중/상)에 *색 위계*를 부여하는 6 토큰. 카드 배경 자체가 강도를 전달.
+    // 하=민트 / 중=골드 / 상=코랄 — fillTop(밝은)·deep(짙은) 페어로 그라데이션·stroke 양쪽 커버.
+    // 기존 `.ganhoScrubMint`(#9BE0CC) hex가 EasyMint와 동일하지만 *의미 단위 분리* 위해
+    // `ganhoDifficultyEasyMint` 별도 네이밍 — 호출부에서 "이건 난이도용"이 명확하게.
+    // 모든 hex는 SPRINT_7_REQUEST.md §10 디자인 토큰 표 그대로(byte-identical).
+
+    /// 하 난이도 카드 밝은 톤. mockup `linear-gradient(160deg, #9BE0CC, #5EBFA3)`의 상단.
+    static let ganhoDifficultyEasyMint   = UIColor(hex: "#9BE0CC")
+    /// 하 난이도 카드 짙은 톤(stroke + 그라데이션 하단).
+    static let ganhoDifficultyEasyDeep   = UIColor(hex: "#5EBFA3")
+    /// 중 난이도 카드 밝은 톤. `linear-gradient(160deg, #FFD27A, #E5A647)`의 상단.
+    static let ganhoDifficultyMidGold    = UIColor(hex: "#FFD27A")
+    /// 중 난이도 카드 짙은 톤.
+    static let ganhoDifficultyMidDeep    = UIColor(hex: "#E5A647")
+    /// 상 난이도 카드 밝은 톤. `linear-gradient(160deg, #FF8E80, #FF6B5B)`의 상단 대응 —
+    /// 기존 ganhoCoralPrimary(#FF6B5B)와 동일 hex이나 *의미 단위 분리*(난이도 lookup용).
+    static let ganhoDifficultyHardCoral  = UIColor(hex: "#FF6B5B")
+    /// 상 난이도 카드 짙은 톤. 기존 ganhoCoralShadow(#C44A3D)와 동일 hex.
+    static let ganhoDifficultyHardDeep   = UIColor(hex: "#C44A3D")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

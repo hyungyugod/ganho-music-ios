@@ -63,4 +63,50 @@ enum Difficulty: String, CaseIterable {
         case .hard:   return "이교수의 청진기가 따라옵니다"
         }
     }
+
+    // MARK: - Sprint 7 Phase C · Card hierarchy colors
+    //
+    // 카드 자체의 *색 위계* 표현용 4 lookup. 기존 `.color`(.ganhoMint / .ganhoYellowF /
+    // .ganhoBloodAccent)는 그대로 보존 — 다른 사용처(예: 점 dot)의 색이 회귀하지 않도록 분리.
+    // 본 lookup은 DifficultyCardNode init/setSelected에서만 사용. 게임 로직 분기 0.
+    // 3 case exhaustive switch — default 미사용으로 enum 확장 시 컴파일 가드 보장.
+
+    /// Sprint 7 Phase C — 카드 그라데이션 상단 색(밝은 톤). 카드 fill의 주 색상.
+    var cardFillTop: UIColor {
+        switch self {
+        case .easy:   return .ganhoDifficultyEasyMint
+        case .normal: return .ganhoDifficultyMidGold
+        case .hard:   return .ganhoDifficultyHardCoral
+        }
+    }
+
+    /// Sprint 7 Phase C — 카드 그라데이션 하단 색(짙은 톤). SpriteKit SKShapeNode는 그라데이션
+    /// fill 직접 지원이 없어 *strokeColor* 및 cardStrokeColor 동기화에 사용.
+    var cardFillBottom: UIColor {
+        switch self {
+        case .easy:   return .ganhoDifficultyEasyDeep
+        case .normal: return .ganhoDifficultyMidDeep
+        case .hard:   return .ganhoDifficultyHardDeep
+        }
+    }
+
+    /// Sprint 7 Phase C — 카드 stroke 정색(선택 시). 미선택 시는 알파 0.4 곱해서 사용.
+    /// cardFillBottom과 동일 hex — 의미 단위 분리(stroke 호출 명확성).
+    var cardStrokeColor: UIColor {
+        switch self {
+        case .easy:   return .ganhoDifficultyEasyDeep
+        case .normal: return .ganhoDifficultyMidDeep
+        case .hard:   return .ganhoDifficultyHardDeep
+        }
+    }
+
+    /// Sprint 7 Phase C — 선택 카드 뒤 라디얼 글로우 색(밝은 톤). cardFillTop과 동일 hex.
+    /// 의미 단위 분리 — *글로우*는 fill과 별도 역할(외곽 후광)이라 호출부 가독성을 위해 분리.
+    var cardGlowColor: UIColor {
+        switch self {
+        case .easy:   return .ganhoDifficultyEasyMint
+        case .normal: return .ganhoDifficultyMidGold
+        case .hard:   return .ganhoDifficultyHardCoral
+        }
+    }
 }

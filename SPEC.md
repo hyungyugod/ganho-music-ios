@@ -1,267 +1,343 @@
-# Sprint 7 Phase B — 스킬 설명 겹침 해소
+# Sprint 7 Phase C — 난이도 카드 색 위계 (V3)
 
 ## 개요
-SkillExplanationScene의 시각 충돌(좌상단 GlassPill 백 버튼과 하단 BackButtonNode 라벨 중복, 우상단 브레드크럼 칩과 우측 본문 라벨 영역 겹침)을 해소하고, 본문 호흡 폭을 47%→52%로 늘려 가독성을 강화한다. 인용 박스 좌측 코랄 보더 3px→4px, 메타 칩 gap 8→10, 하단 버튼 gap 12→18 등 세밀한 시각 위계 다듬기를 함께 적용한다.
+난이도 선택 화면(`DifficultySelectScene`)의 3장 카드에 **색 위계**를 부여한다. v2까지는 모든 카드가 동일 톤(피치)이었으나, v3에서는 하=민트 / 중=골드 / 상=코랄 그라데이션으로 *카드 배경 자체가* 난이도 강도를 전달한다. 선택 카드 뒤에 라디얼 글로우 + 미선택 카드 opacity 0.78로 시선을 유도하고, 시작 버튼은 입체 그림자 +halo로 "마지막 결정"임을 시각적으로 약속한다.
 
 ## 변경 유형
-**비주얼** — 단일 카테고리. 게임 로직·전이 로직·모델·저장소 0줄 변경.
+**비주얼**
 
 ## 게임 경험 의도
-사용자가 SkillExplanationScene을 0.5초 안에 훑었을 때 "내가 어떤 스킬을 갖고 있는지" 한 화면에서 명확히 보인다. 라벨이 중복되거나 본문 위에 다른 칩이 떠 있어 "어느 정보가 진짜인지"를 망설이는 0.3초의 인지 비용을 0으로 만든다. 우상단 브레드크럼이 위치 정보를 단독으로 담당하고, 좌상단 GlassPill이 백 버튼을 단독으로 담당한다.
+1. 사용자가 난이도 선택 화면에 들어선 첫 0.5초 안에 "하=민트 / 중=골드 / 상=코랄"이 카드 색만으로 즉시 보이게 한다 — 라벨 안 읽어도 강도가 느껴진다.
+2. 선택한 카드 한 장이 *글로우 + 상승 + opacity 1.0*으로 화면에서 가장 강한 시선 자석이 되고, 나머지 두 장은 0.78로 자연스럽게 물러난다.
+3. 시작 버튼이 화면 중앙 하단에서 입체 그림자 + halo(선택 시)로 "이게 마지막 탭"임을 약속한다.
 
-## Sprint 7 Phase B 범위 계약
+## Sprint 7 Phase C 범위 계약
 
-### 허용 (수정 가능)
-- `Scenes/SkillExplanationScene.swift` — 4가지 변경:
-  1. 하단 `BackButtonNode backButton` 인스턴스를 **씬 그래프에 추가하지 않음** (`addChild(backButton)` 호출 제거)
-  2. `metaLabel` 인스턴스를 **씬 그래프에 추가하지 않음** (`addChild(metaLabel)` 호출 제거)
-  3. 우상단 브레드크럼 라벨은 이미 dot separator `· ` 사용 중 — 텍스트 변경 불필요
-  4. 상수 참조 4곳 갱신 (quoteBox width/borderWidth, statChipSpacing, button layout 단순화)
-- `Config/GameConfig.swift` — **신규 V3 상수 5개 추가** (기존 v2 상수는 값 유지)
-- `mockups/skill-explanation-v3.html` — 신규 mockup 1개 작성
+### 허용
+- `Nodes/DifficultyCardNode.swift`: 카드별 색 lookup 적용, 미선택/선택 fill·stroke를 난이도별 색으로 분기, 선택 글로우(radial blur 80% effect) 색을 카드별 강조색으로 갱신, 헤더 폰트 30pt + stroke 카드별 색 동기화, 선택 시 position.y 액션 추가
+- `Scenes/DifficultySelectScene.swift`: 시작 버튼 뒤에 halo SKShapeNode 부착, 좌측 미니 캐릭터 영역 속도배율 칩 stroke 추가
+- `Config/ColorTokens.swift`: 신규 6 토큰 추가
+- `Config/GameConfig.swift`: 신규 V3 상수 14종 추가
+- `Models/Difficulty.swift`: 카드별 색 lookup 4개 computed property 추가 (3 case exhaustive switch, default 미사용)
 
 ### 금지 (0줄 변경)
-- `SkillExplanationScene.init(characterID:)` 시그니처 (Sprint 6 단순화 유지)
-- `StoryBoxNode` `fullDescription` 본문 텍스트
-- `transitionToCharacterSelect()` / `transitionToDifficulty()` 전이 로직
-- characterID별 스킬 메타데이터 표시 로직 (cooldown / range / cast 계산)
-- `PlayerSkill.rangeText` / `castText` / `displayName` / `fullDescription` 모델 값
-- `DarkContextChipNode` / `GlassPillNode` / `BackButtonNode` / `PrimaryButtonNode` / `StoryBoxNode` 내부 시각 코드 (재사용만)
-- 게임 로직 일체 (점수·콤보·물리·hitbox·input·AI·저장·사운드)
-- `ResultScene` / `GameScene` / `GameState` / `PhysicsCategory` / Managers / Repositories / Systems / 기타 Models — 모든 파일 **0줄**
-- Phase A에서 정착된 `CharacterCardNode` / `CharacterSelectScene` / `CharacterID` / `GameConfig` v3 카드 상수 — **0줄**
-- 기존 `skillExplanation*` v2 상수의 hex/값 — **0줄** (신규 V3 상수만 추가)
+- `Difficulty` enum 값 / case 이름 / raw value("easy", "normal", "hard")
+- `Difficulty` 기존 `color` computed property 값(.ganhoMint/.ganhoYellowF/.ganhoBloodAccent)
+- `DifficultySelectScene.init(characterID:)` 시그니처
+- `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` 호출 시그니처
+- `transitionBack()` 분기 로직 (.kim vs 그 외)
+- `difficultyRepo.current` / `difficultyRepo.save(id)` 호출 패턴
+- `selectDifficulty(_:)`의 `card.id` 비교 + 일괄 `setSelected` 호출 순서
+- `PrimaryButtonNode` **내부 0줄** — halo는 Scene이 외부에서 별도 SKShapeNode 부착
+- Phase A·B 결과물 (CharacterCardNode / CharacterSelectScene / CharacterID / PlayerSkill / SkillExplanationScene / `skillExplanation*V3` 상수)
+- ResultScene / GameScene / GameState / PhysicsCategory / Managers / Repositories / Systems / 게임 로직 일체
+- 기존 `difficultyCard*` 상수 값 (V3 접미사 없는 것 모두). V3 신규 상수만 추가
 
-## 신규 mockup 시각 사양 — `mockups/skill-explanation-v3.html`
+## 신규 mockup HTML 시각 사양 (`mockups/difficulty-select-v3.html`)
 
-Generator가 다음 사양으로 신규 HTML을 작성한다. 기존 `skill-explanation-v2.html`을 베이스 카피 후 다음 차이만 반영.
+배경·폰트·상단 바·좌측 미니 캐릭터 골격은 v2와 동일하되, **3장 카드와 시작 버튼만 v3로 갱신**한다. Phase A·B v3 mockup과 톤 일관성 유지.
 
-### 페이지 컨테이너
-- 폰 프레임: 19.5:9 aspect-ratio, max-width 920px (v2 동일)
-- 배경 3-stop 그라데이션 (v2 동일)
+### 디바이스 프레임
+- aspect-ratio 19.5/9, border-radius 52, padding 14
+- phone-screen radial gradient (Phase A·B와 동일 3-stop)
+- 좌측 Dynamic Island
 
-### 헤더 영역 (top 14%, center)
-- AccentLine `32 × 3` 코랄
-- 헤더 타이틀 "스킬을 익혀요" Jua 26pt navyDeep
-- 헤더 부제 "한 번만 익히면 충분해요" Gowun Dodum 12pt navyMuted
+### 상단 바 (v2 그대로)
+- 좌상단: `← 스킬 다시` 또는 `← 캐릭터 다시` GlassPill
+- 우상단: `캐릭터 · 스킬 · 난이도` DarkContextChip, `난이도` 코랄 알약
 
-### Top bar (top 22px)
-- 좌상단: **GlassPill 백 버튼 1개만** — "← 캐릭터 다시" Jua 13pt navyDeep
-- 우상단: **DarkContextChip 브레드크럼** 한 줄
-  - 배경 navyDeep × 0.92
-  - 텍스트: `김간호 · 스킬 · 난이도` Jua 12pt 골드
-  - "스킬" 단어 영역에 코랄 작은 알약 뱃지 부착 (현재 위치 강조)
+### 헤더 (v2 그대로)
+- AccentLine 32×3 코랄 + Jua 26pt "난이도를 골라요" + Gowun 12pt 부제
 
-### 메인 콘텐츠 영역 (top 38%, bottom 26%)
-- 좌측 아바타 카드: flex 0 0 200px, 4:5 비율, 글래스 카드 (v2 동일, **하단 secondary 백 버튼은 제거**)
-- 우측 본문 영역: **flex 1 1 52%** (v2의 47%에서 5%p 증가)
-  - **우측 본문 상단 "임간호의 스킬" 코랄 라벨은 표시하지 않음** (브레드크럼이 동일 정보를 담당)
-  - 스킬명: Jua 36pt navyDeep 한 줄
-  - 인용 박스: 글래스 화이트 × 0.55 라운드 14pt, **좌측 코랄 보더 4px** (v2는 3px), 본문 Gowun Dodum 14pt navyDeep
-  - 메타 칩 3개 (CD / 범위 / 발동): DarkContextChip 가로 정렬, **gap 10px** (v2는 8px)
+### 좌측 미니 캐릭터 글래스 카드 (Phase C 보강)
+- 폭 200 × 높이 260, border-radius 22, padding 16/14/14
+- 배경 `rgba(255,255,255,0.85)` + backdrop blur 12, stroke `rgba(255,107,91,0.3)` 2pt
+- 상단 -12 코랄 이름 뱃지
+- CharacterFaceNode mini 90×90 가운데
+- Jua 14pt 스킬명
+- **속도 칩 강조**: 배경 `rgba(155,224,204,0.4)` + **stroke 1pt `#5EBFA3`** + box-shadow `0 2px 6px rgba(94,191,163,0.3)`
 
-### 컨트롤 힌트 (bottom 16%)
-- DarkContextChip 컨테이너 navyDeep × 0.92 라운드 알약
-- "B" 키 코랄 원 11pt radius + Jua 12pt 흰색
-- 라벨 "좌하단 스킬 버튼을 1번 탭하면 발동" Gowun Dodum 12pt 웜라이트
+### 우측 난이도 3장 카드 (Phase C 핵심)
+각 카드 폭 110 × 높이 약 124, border-radius 18, padding 14/8/16. 카드 간 gap 14.
 
-### 하단 버튼 행 (bottom 4%)
-- **단독 PrimaryButton "다음 ▶"** 화면 중앙 배치 (v2의 좌측 secondary 백 버튼 제거)
-- 백 버튼 책임은 좌상단 GlassPill이 단독으로 가져감
+**카드 배경 — 카드별 그라데이션**
+- **하 (.easy)**: `linear-gradient(160deg, #9BE0CC, #5EBFA3)`
+- **중 (.normal)**: `linear-gradient(160deg, #FFD27A, #E5A647)`
+- **상 (.hard)**: `linear-gradient(160deg, #FF8E80, #FF6B5B)`
+- stroke 미선택 시 카드별 stroke × 0.4, 선택 시 정색
+- 미선택 alpha 0.78 / 선택 alpha 1.0
 
-### annotation 박스 (페이지 하단 필수)
-1. **🧹 중복 제거** — "하단 secondary 백 버튼 + 우측 'XX의 스킬' 라벨 제거. 좌상단 GlassPill과 우상단 브레드크럼이 단독 책임."
-2. **🫁 본문 호흡 +5%p** — "우측 본문 47%→52%. 인용 보더 3→4px, 메타칩 gap 8→10."
-3. **🎯 위계 명확** — "좌상단=뒤로, 우상단=위치, 본문=정보, 하단=다음 — 영역마다 정보 종류 1개씩."
+**카드 헤더 (이름)**
+- v2 22pt → **v3 30pt** Jua, navy fill, 카드별 강조색 stroke 1pt (SpriteKit은 nameLabelStroke + nameLabel 2개 겹쳐 표현)
 
-## 신규/수정 함수·메서드 시그니처 명세
+**카드 부제** v2 동일 (Gowun 11pt navy muted)
 
-### `Scenes/SkillExplanationScene.swift` 변경
+**카드 보조 라벨** v2 description Gowun 11pt 줄간격 1.4
 
-**1. `setupButtons()` (line ~540)**
+**선택 상태**
+- `transform: translateY(-8px) scale(1.05)` — 미세 상승 (v2 -6 → v3 **-8**)
+- 카드 뒤 radial glow: 158 × 116, `id.cardGlowColor` α 0.8, filter blur 20px (SpriteKit은 SKShape ellipse + glowWidth 12pt 근사)
+- 카드 stroke 미선택 0.4α → 선택 1.0
+- 카드 alpha 0.78 → 1.0
+
+### 시작 버튼 (Phase C 보강)
+- 입체 그림자 6 → **8** (`0 8px 0 #C44A3D`)
+- **halo 신규**: 240 × 90 ellipse, `#FF6B5B` α 0.35, filter blur 24px, 페이드 인 0.25s
+
+### 음표 deco · annotation 박스 4개
+1. "하·중·상 색만으로 강도 즉시 인지"
+2. "선택 글로우 80% · 미선택 0.78 — 시선 자석"
+3. "시작 버튼 halo = 마지막 결정"
+4. SpriteKit 매핑 — Difficulty 4 lookup + Scene halo SKShape (PrimaryButtonNode 0줄)
+
+## 기능 상세
+
+### 기능 1: `Difficulty` 카드별 색 lookup 4개 computed property
+**위치**: `Models/Difficulty.swift` 파일 끝 `// MARK: - Sprint 7 Phase C · Card hierarchy colors`
+
 ```swift
-// 변경 전:
-private func setupButtons() {
-    addChild(backButton)
+/// Sprint 7 Phase C — 카드 그라데이션 상단 색. lookup용. 게임 로직 분기 0.
+var cardFillTop: UIColor {
+    switch self {
+    case .easy:   return .ganhoDifficultyEasyMint
+    case .normal: return .ganhoDifficultyMidGold
+    case .hard:   return .ganhoDifficultyHardCoral
+    }
+}
+
+/// Sprint 7 Phase C — 카드 그라데이션 하단 색.
+var cardFillBottom: UIColor {
+    switch self {
+    case .easy:   return .ganhoDifficultyEasyDeep
+    case .normal: return .ganhoDifficultyMidDeep
+    case .hard:   return .ganhoDifficultyHardDeep
+    }
+}
+
+/// Sprint 7 Phase C — 카드 stroke 정색 (선택 시).
+var cardStrokeColor: UIColor {
+    switch self {
+    case .easy:   return .ganhoDifficultyEasyDeep
+    case .normal: return .ganhoDifficultyMidDeep
+    case .hard:   return .ganhoDifficultyHardDeep
+    }
+}
+
+/// Sprint 7 Phase C — 선택 카드 뒤 라디얼 글로우 색.
+var cardGlowColor: UIColor {
+    switch self {
+    case .easy:   return .ganhoDifficultyEasyMint
+    case .normal: return .ganhoDifficultyMidGold
+    case .hard:   return .ganhoDifficultyHardCoral
+    }
+}
+```
+
+> Difficulty enum case 실제 이름은 코드에서 확인. easy/normal/hard가 아니라면 그에 맞게 3 case exhaustive switch.
+
+### 기능 2: `ColorTokens.swift` 신규 6 토큰
+**위치**: 파일 끝 새 MARK 섹션 `// MARK: - Sprint 7 Phase C · Difficulty hierarchy`
+
+```swift
+static let ganhoDifficultyEasyMint   = UIColor(hex: "#9BE0CC")
+static let ganhoDifficultyEasyDeep   = UIColor(hex: "#5EBFA3")
+static let ganhoDifficultyMidGold    = UIColor(hex: "#FFD27A")
+static let ganhoDifficultyMidDeep    = UIColor(hex: "#E5A647")
+static let ganhoDifficultyHardCoral  = UIColor(hex: "#FF6B5B")
+static let ganhoDifficultyHardDeep   = UIColor(hex: "#C44A3D")
+```
+
+### 기능 3: `GameConfig.swift` Phase C V3 상수 14종
+**위치**: 파일 끝 새 MARK 섹션 `// MARK: - Sprint 7 Phase C · Difficulty hierarchy v3`
+
+```swift
+static let difficultyCardNameFontSizePhaseC: CGFloat = 30
+static let difficultyCardNameStrokeWidthPhaseC: CGFloat = 1.0
+static let difficultyCardSelectedLiftY: CGFloat = 8
+static let difficultyCardSelectedLiftDuration: TimeInterval = 0.18
+static let difficultyCardSelectedGlowWidthPhaseC: CGFloat = 158
+static let difficultyCardSelectedGlowHeightPhaseC: CGFloat = 116
+static let difficultyCardSelectedGlowAlphaPhaseC: CGFloat = 0.80
+static let difficultyCardSelectedGlowSpreadPhaseC: CGFloat = 12
+static let difficultySelectStartButtonHaloWidth: CGFloat = 240
+static let difficultySelectStartButtonHaloHeight: CGFloat = 90
+static let difficultySelectStartButtonHaloAlpha: CGFloat = 0.35
+static let difficultySelectStartButtonHaloSpread: CGFloat = 24
+static let difficultySelectStartButtonHaloFadeInDuration: TimeInterval = 0.25
+static let difficultySelectStartButtonHaloOffsetY: CGFloat = 0
+```
+
+### 기능 4: `DifficultyCardNode.setSelected(_:)` 카드별 색 lookup
+- init / setSelected에서 `id.color` 일색 분기를 `id.cardFillTop`/`cardStrokeColor`/`cardGlowColor` 패턴으로 교체
+- ringGlow.strokeColor를 `id.cardGlowColor` 사용
+- 선택 시 position.y +8 lift 액션 — `liftCurrentOffset` 증분 추적
+- 시그니처(`init(id:)`/`setSelected(_:)`) byte-identical
+
+```swift
+// 신규 프로퍼티
+private let nameLabelStroke = SKLabelNode()
+private var liftCurrentOffset: CGFloat = 0
+
+// setSelected 핵심
+background.fillColor = selected
+    ? id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardSelectedFillAlphaV3)
+    : id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardDeselectedFillAlphaV3)
+background.strokeColor = selected
+    ? id.cardStrokeColor
+    : id.cardStrokeColor.withAlphaComponent(GameConfig.difficultyCardDeselectedStrokeAlphaV3)
+
+ringGlow.strokeColor = id.cardGlowColor
+let targetAlpha: CGFloat = selected
+    ? GameConfig.difficultyCardSelectedGlowAlphaPhaseC : 0.0
+// ... ringGlow fade 액션 ...
+
+// lift 액션
+removeAction(forKey: "cardLift")
+let targetY: CGFloat = selected ? GameConfig.difficultyCardSelectedLiftY : 0
+let lift = SKAction.moveBy(x: 0, y: targetY - liftCurrentOffset,
+    duration: GameConfig.difficultyCardSelectedLiftDuration)
+lift.timingMode = .easeOut
+run(lift, withKey: "cardLift")
+liftCurrentOffset = targetY
+```
+
+> 기존 V3 상수(difficultyCardDeselectedFillAlphaV3, DeselectedStrokeAlphaV3, SelectedFillAlphaV3, StrokeLineWidthV3, RingGlowFadeIn/Out 등)는 코드에서 확인. 없는 상수면 SPEC §기능 3에 누락된 것 — Generator가 발견 시 GameConfig에 추가.
+
+### 기능 5: 헤더(nameLabel) 폰트 30pt + 카드별 stroke 외곽선
+- 베이스 stroke 라벨 + 위 nameLabel 2개 겹쳐 stroke 효과
+- nameLabelStroke 폰트 = `30 + strokeWidth × 2` = 32pt, fontColor `id.cardStrokeColor`
+- nameLabel 폰트 30pt, navy
+- nameLabelStroke.zPosition = nameLabel.zPosition - 0.1
+
+### 기능 6: `DifficultySelectScene` 시작 버튼 halo SKShapeNode
+**위치**: `Scenes/DifficultySelectScene.swift` — `setupStartButton()` + `layoutStartButton()`
+
+```swift
+private var startButtonHalo: SKShapeNode?
+
+private func setupStartButton() {
+    let halo = SKShapeNode(ellipseOf: CGSize(
+        width: GameConfig.difficultySelectStartButtonHaloWidth,
+        height: GameConfig.difficultySelectStartButtonHaloHeight))
+    halo.fillColor = UIColor.ganhoCoralPrimary
+        .withAlphaComponent(GameConfig.difficultySelectStartButtonHaloAlpha)
+    halo.strokeColor = .clear
+    halo.lineWidth = 0
+    halo.glowWidth = GameConfig.difficultySelectStartButtonHaloSpread
+    halo.alpha = 0
+    halo.zPosition = startButton.zPosition - 1
+    halo.name = "difficultySelectStartButtonHalo"
+    startButtonHalo = halo
+    addChild(halo)
+    halo.run(SKAction.fadeAlpha(to: 1.0,
+        duration: GameConfig.difficultySelectStartButtonHaloFadeInDuration))
     addChild(startButton)
-    layoutButtons()
+    layoutStartButton()
 }
 
-// 변경 후 (Sprint 7 Phase B):
-private func setupButtons() {
-    // Sprint 7 Phase B — backButton은 좌상단 topBackPill이 단독 책임.
-    //                    하단에서 제거(addChild 호출 안 함). 인스턴스는 보존.
-    addChild(startButton)
-    layoutButtons()
-}
-```
-
-**2. `layoutButtons()` (line ~548-553)** — startButton 단독 중앙 정렬
-```swift
-private func layoutButtons() {
-    let y = frame.midY + GameConfig.skillExplanationButtonRowOffsetY
-    // Sprint 7 Phase B — startButton 단독 중앙 배치.
-    startButton.position = CGPoint(x: frame.midX, y: y)
+private func layoutStartButton() {
+    let pos = CGPoint(x: frame.midX,
+        y: frame.midY + GameConfig.difficultySelectStartButtonOffsetY)
+    startButton.position = pos
+    startButtonHalo?.position = CGPoint(x: pos.x,
+        y: pos.y + GameConfig.difficultySelectStartButtonHaloOffsetY)
 }
 ```
 
-**3. `setupMetaLabel()` (line ~340-355)** — addChild 제거
-```swift
-// 변경 전 마지막 줄:
-//   addChild(metaLabel)
-//   layoutMetaLabel()
-// 변경 후:
-// Sprint 7 Phase B — metaLabel은 우상단 브레드크럼이 단독 책임.
-//                    화면에서 제거(addChild 호출 안 함). 인스턴스는 보존.
-// (layoutMetaLabel 호출도 제거 — 씬 그래프 외부 노드의 좌표 계산 불필요)
-```
-
-**4. `setupSkillQuoteBox()` (line ~389)** — V3 폭 + 보더
-```swift
-let boxSize = CGSize(
-    width: GameConfig.skillExplanationQuoteBoxWidthV3,    // Phase B V3
-    height: GameConfig.skillExplanationQuoteBoxHeight     // 유지
-)
-// borderWidth 참조도 V3로:
-quoteBoxBorder.lineWidth = GameConfig.skillExplanationQuoteBoxBorderWidthV3
-```
-
-**5. `layoutStatChips()` (line ~470)** — V3 spacing
-```swift
-let spacing = GameConfig.skillExplanationStatChipSpacingV3  // Phase B V3
-```
-
-**6. `didChangeSize(_:)` 안에서 `layoutMetaLabel()` 호출이 있다면 제거** — 씬 그래프 외부 노드 layout 불필요.
-
-## GameConfig 신규 상수 (Phase B 전용)
-
-`Config/GameConfig.swift` 파일 끝(또는 Sprint 7 Phase A 섹션 직후)에 새 MARK 섹션 추가:
+### 기능 7: 좌측 미니 캐릭터 속도배율 칩 stroke 보강
+**위치**: `Scenes/DifficultySelectScene.swift` — `setupSummaryCard()` 안 속도 칩
 
 ```swift
-// MARK: - Sprint 7 Phase B · Skill Explanation v3 (겹침 해소 + 호흡)
-// SPRINT_7_REQUEST.md §3.2 — 본문 폭 47%→52%, 인용 보더 3px→4px,
-// 메타칩 gap 8→10, 버튼 gap 12→18. 기존 v2 상수는 값 유지(회귀 0).
-
-/// 우측 본문(인용 박스) 가로폭(pt) — v2 300pt(≈47%) → v3 332pt(≈52%).
-static let skillExplanationQuoteBoxWidthV3: CGFloat = 332
-
-/// 콘텐츠 영역 비율 (참조용) — 우측 본문 폭 계산 근거.
-static let skillExplanationContentWidthRatioV3: CGFloat = 0.52
-
-/// 인용 박스 좌측 코랄 보더 굵기(pt) — v2 3 → v3 4.
-static let skillExplanationQuoteBoxBorderWidthV3: CGFloat = 4
-
-/// 메타 칩 3개(CD/범위/발동) 사이 간격(pt) — v2 8 → v3 10.
-static let skillExplanationStatChipSpacingV3: CGFloat = 10
-
-/// 하단 백·시작 버튼 사이 간격(pt) — v2 12 → v3 18.
-/// Phase B에서 백 버튼이 화면에서 제거되므로 실제 사용 빈도는 낮으나
-/// 향후 정책 변경 시 참조용으로 보존.
-static let skillExplanationBottomButtonGapV3: CGFloat = 18
+chip.fillColor = UIColor.ganhoScrubMint
+    .withAlphaComponent(GameConfig.difficultySelectSummarySpeedChipFillAlpha)
+chip.strokeColor = .ganhoDifficultyEasyDeep   // = #5EBFA3
+chip.lineWidth = 1
+chip.zPosition = 110
 ```
 
-기존 v2 상수(`skillExplanationQuoteBoxWidth`, `skillExplanationQuoteBoxBorderWidth`, `skillExplanationStatChipSpacing`) **값 변경 0**. Generator는 그대로 두고 V3 신규 상수만 추가, 참조 라인을 V3로 교체.
+## 합격 기준 (Sprint 7 Phase C 한정)
 
-## 합격 기준 (Sprint 7 Phase B 한정)
-
-### 시각 합격 기준 (SPRINT_7_REQUEST.md §3.4)
-- [ ] 시뮬레이터에서 "← 캐릭터 다시" 라벨이 화면에 **1개만** 보임 (우상단 GlassPill만)
-- [ ] 우상단 브레드크럼 칩과 우측 본문 라벨이 시각적으로 **겹치지 않음** (metaLabel 미표시로 0px 충돌)
-- [ ] 우측 인용 박스 좌측 코랄 보더가 **4px** 폭으로 또렷이 보임
-- [ ] 우측 본문 영역이 v2 대비 **약 5%p 넓어 보임** (300pt → 332pt)
-- [ ] 메타 칩 3개 사이 간격이 v2 대비 살짝 호흡 (8 → 10)
-- [ ] 모든 텍스트 가독성 (대비비 ≥ 4.5:1) 유지
+### 시각 합격 기준 (SPRINT_7_REQUEST.md §4.4)
+- [ ] 시뮬레이터에서 .easy / .normal / .hard 3개 카드 fill 색이 즉시 구분됨
+- [ ] 카드 헤더 폰트 30pt + 카드별 stroke 외곽선 시각 인지
+- [ ] 미선택 카드 alpha 0.78 / 선택 카드 alpha 1.0 + 글로우 ON
+- [ ] 선택 카드 +8pt 상승 + scale 1.05
+- [ ] 시작 버튼 halo 페이드 인 0.25s 자연스러움
+- [ ] 시작 버튼 입체 그림자 +2pt 강화
 
 ### 코드 합격 기준
-- [ ] `SkillExplanationScene.init(characterID:)` 시그니처 0줄 변경
-- [ ] `transitionToCharacterSelect()` / `transitionToDifficulty()` 0줄 변경
-- [ ] PlayerSkill / StoryBoxNode / DarkContextChipNode / GlassPillNode / BackButtonNode / PrimaryButtonNode **0줄 변경**
-- [ ] ResultScene / GameScene / Models / Managers / Repositories / Systems **0줄 변경**
-- [ ] CharacterCardNode / CharacterSelectScene / CharacterID **0줄 변경** (Phase A 보호)
-- [ ] 강제 언래핑(`!`) 0건, Timer 0건, update()-내-addChild 0건
-- [ ] 매직 넘버 0건 — 모든 신규 수치는 V3 상수 참조
-- [ ] `// MARK: - Sprint 7 Phase B` 섹션으로 변경 위치 표시
+- [ ] `DifficultySelectScene.init(characterID:)` 시그니처 0줄 변경
+- [ ] `transitionToGame()` → `GameScene.newGameScene(characterID:difficulty:)` byte-identical
+- [ ] `transitionBack()` .kim 분기 byte-identical
+- [ ] `Difficulty` enum 기존 멤버(`color`/`displayName`/`subtitle`/`description`/`shortName`/raw value) 100% 보존
+- [ ] `PrimaryButtonNode` 내부 0줄
+- [ ] ResultScene / GameScene / Models 외 파일 / Managers / Repositories / Systems 0줄
+- [ ] Phase A·B 결과물 0줄
+- [ ] 강제 언래핑 0, Timer 0, update() 안 addChild 0, switch default 미사용
+- [ ] 매직 넘버 0 — 모든 신규 수치는 V3 상수 참조
+- [ ] 하드코딩 hex 0 — ColorTokens 경유
 
-### 평가 4-카테고리 통과선 (SPRINT_7_REQUEST.md §11)
+### 평가 4-카테고리 통과선
 | 카테고리 | 가중치 | 통과선 |
 |---|---|---|
-| 게임 로직 회귀 0 | 40% | 9.0 이상 (회귀 0 절대 조건) |
-| Swift 패턴 | 20% | 7.0 이상 |
-| 비주얼 일관성 (mockup) | 25% | 7.0 이상 (skill-explanation-v3.html 매칭 ≥ 85%) |
-| 가독성 & UX | 15% | 7.0 이상 (1개 백 버튼·0px 겹침·52% 호흡) |
+| 게임 로직 회귀 0 | 40% | 9.0 |
+| Swift 패턴 | 20% | 7.0 |
+| 비주얼 일관성 (mockup) | 25% | 7.0 (difficulty-select-v3.html 매칭 ≥ 85%) |
+| 가독성 & UX | 15% | 7.0 |
 
 가중 평균 **7.5 이상**이면 ✅ 합격.
 
 ## 변경 LOC 추정치
 
-| 파일 | 추가 | 제거 | 순변경 |
+| 파일 | 신규 | 수정 | 합계 |
 |---|---|---|---|
-| `Scenes/SkillExplanationScene.swift` | ~10 | ~5 | ~+5 |
-| `Config/GameConfig.swift` | ~20 | 0 | +20 |
-| `mockups/skill-explanation-v3.html` | ~280 | 0 | +280 |
-| **합계** | **~310** | **~5** | **~+305** |
+| `Config/ColorTokens.swift` | ~12 | 0 | ~12 |
+| `Config/GameConfig.swift` | ~38 | 0 | ~38 |
+| `Models/Difficulty.swift` | ~32 | 0 | ~32 |
+| `Nodes/DifficultyCardNode.swift` | ~25 | ~12 | ~37 |
+| `Scenes/DifficultySelectScene.swift` | ~28 | ~6 | ~34 |
+| `mockups/difficulty-select-v3.html` | ~350 | 0 | ~350 |
+| **Swift 합계** | **~135** | **~18** | **~153** |
 
-코드 변경 순수치 ~25 LOC, mockup 포함 ~305 LOC. SPRINT_7_REQUEST.md §1 "Phase B ~150 LOC" 안에 충분히 들어감.
+SPRINT_7_REQUEST.md §1 Phase C 예상치 ~200 — 합리적 범위 (-47).
+
+## OPEN_QUESTION
+
+**OQ-1 (결정됨)**: `DifficultyCardNode`는 별도 파일 (`Nodes/DifficultyCardNode.swift` ~185 LOC). 기존 V3 1.4배 확장 완료. Phase C는 색 lookup 추가만.
+
+**OQ-2 (결정됨)**: 좌측 미니 캐릭터 `CharacterFaceNode mini factory` 재사용 — 기존 `setScale(GameConfig.difficultySelectSummaryFaceScale = 0.65)` 패턴 그대로. mini factory 신설 0건. ScoreboardScene(Phase D) 가서 도입.
+
+**OQ-3 (결정됨)**: 시작 버튼 halo는 **Scene에서 별도 SKShapeNode 부착**. PrimaryButtonNode 0줄 변경. 다른 화면 회귀 위험 0.
+
+**OQ-4 (결정됨)**: 선택 카드 -8pt 상승은 카드 노드 전체 position 이동 + `liftCurrentOffset` 증분 추적. mockup CSS `transform: translateY(-8px)`와 일관(모든 자식 함께 올라감).
 
 ## 주의사항
 
-### Swift / SpriteKit 패턴
-- **강제 언래핑 0건**: 새 코드는 V3 상수 참조와 addChild 제거뿐 — 옵셔널 다룰 일 없음
-- **GameConfig 상수만 사용**: 332/4/10/18은 모두 V3 상수에 캡슐화
-- **MARK 섹션**: 새 코드에 `// MARK: - Sprint 7 Phase B` 일관 적용
-- **클로저 self 캡처**: Phase B는 SKAction 추가 0건 — 캡처 패턴 미사용
+### Phase C 특유 위험
+1. **`Difficulty.color` 기존 computed property 보존** — 새 `cardFillTop`은 별도. 기존 `.color` 사용처 회귀 0.
+2. **`liftCurrentOffset` 증분 패턴** — setSelected 중복 호출 시 position 누적 방지.
+3. **`ringGlow.strokeColor`는 setSelected에서 매번 재설정** — 카드 인스턴스 자체는 id 고정이라 init에서 1회로 충분하나 가독성 위해 명시.
+4. **`nameLabelStroke` zPosition** — nameLabel zPos 그대로(기존 5), strokeLabel은 z=4.9 (뒤).
+5. **시작 버튼 halo zPosition** — startButton보다 -1. hit-test는 startButton이 먼저 받음.
+6. **`SKShapeNode.glowWidth` 한계** — 진정한 Gaussian blur는 없음. stroke를 확장하는 효과. mockup `filter: blur(24px)`는 근사.
 
-### 회귀 위험
-- `backButton` 인스턴스는 보존(시그니처 0 변경). `touchesBegan`의 `backButton.contains(location)` 가드는 부모(씬)가 없어 hit-test가 false 반환 — 탭 무시되어 안전
-- `metaLabel` 동일 패턴. layout 호출(`layoutMetaLabel()`)이 남아있어도 무해(좌표 계산만, 화면 영향 0)
-- `didChangeSize(_:)`에서 `layoutButtons()`, `layoutMetaLabel()` 호출이 있다면 layoutMetaLabel만 호출 제거(또는 함수 본문 안에서 isHidden 가드 추가)
-
-### OPEN_QUESTION
-
-**OQ-1 (결정됨)**: BackButtonNode 처리 → **옵션 A 채택** = `addChild(backButton)` 호출 제거. 인스턴스/시그니처/touchesBegan 가드 모두 보존. 부모(씬) 없는 노드의 hit-test는 false라 회귀 0.
-
-**OQ-2 (결정됨)**: metaLabel 처리 → **옵션 A 채택** = `addChild(metaLabel)` 호출 제거. layout 호출은 무해 — 별도 정리 불필요.
-
-**OQ-3 (결정됨)**: 우상단 브레드크럼 dot separator → **추가 변경 없음**. 현재 라벨 `"\(characterID.displayName) · 스킬 · 난이도"`가 이미 가운뎃점 + 양옆 공백 패턴 사용 중. 한국어 관례 dot separator.
-
-**OQ-4 (결정됨)**: SPRINT_7_REQUEST.md §3.2의 "우측 상단 라벨 [임간호 · 스킬 · 난이도 [스킬]]"은 실제 코드의 `metaLabel`("XX의 스킬")을 가리킨 표현으로 해석. metaLabel 삭제로 처리.
-
----
-
-## 변경 위치 정확 라인 참조 (Generator 인계용)
-
-| 파일 | 라인 (approximate) | 현재 코드 | 변경 |
-|---|---|---|---|
-| SkillExplanationScene.swift | ~543 | `addChild(backButton)` | **제거** |
-| SkillExplanationScene.swift | ~548-553 | `layoutButtons()` 좌우 분리 | **startButton 단독 중앙 배치**로 단순화 |
-| SkillExplanationScene.swift | ~353 | `addChild(metaLabel)` | **제거** |
-| SkillExplanationScene.swift | ~354 | `layoutMetaLabel()` 호출 | **제거** (무해하지만 정리) |
-| SkillExplanationScene.swift | ~389 | `width: skillExplanationQuoteBoxWidth` | `skillExplanationQuoteBoxWidthV3` |
-| SkillExplanationScene.swift | ~405 | `skillExplanationQuoteBoxBorderWidth` | `skillExplanationQuoteBoxBorderWidthV3` |
-| SkillExplanationScene.swift | ~470 | `skillExplanationStatChipSpacing` | `skillExplanationStatChipSpacingV3` |
-| SkillExplanationScene.swift | `didChangeSize(_:)` | `layoutMetaLabel()` 호출 있다면 | **제거** |
-| GameConfig.swift | 파일 끝 새 MARK | — | **V3 상수 5개 추가** |
-| mockups/skill-explanation-v3.html | (신규) | — | **신규 작성** |
-
-라인 번호는 approximate — Generator는 실제 코드에서 grep으로 확정 후 변경.
-
----
-
-**Generator 인계 체크**:
-- SkillExplanationScene + GameConfig 외 **절대 수정 금지**
-- Phase A 결과물(`CharacterCardNode`, `CharacterSelectScene`, `CharacterID`, GameConfig Phase A 상수) **0줄**
-- 기존 `skillExplanation*` v2 상수 **0줄 변경**, V3 상수만 신규 추가
-- mockup v3 HTML은 v2 베이스 카피 + 4개 항목만 차이 반영 + annotation 박스 3개
+### 일반 Swift / SpriteKit
+7. **`default` case 미사용** — 4개 신규 computed property 모두 3 case exhaustive.
+8. **하드코딩 hex 0** — 모든 색은 ColorTokens 경유.
+9. **클로저 self 캡처** — SKAction 안 self 접근 시 `[weak self]`. Phase C 신규 클로저 없음.
 
 ---
 
 ## 관련 파일 (절대 경로)
 
 - 수정 대상:
-  - `GanhoMusic/GanhoMusic Shared/Scenes/SkillExplanationScene.swift`
+  - `GanhoMusic/GanhoMusic Shared/Models/Difficulty.swift`
+  - `GanhoMusic/GanhoMusic Shared/Config/ColorTokens.swift`
   - `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+  - `GanhoMusic/GanhoMusic Shared/Nodes/DifficultyCardNode.swift`
+  - `GanhoMusic/GanhoMusic Shared/Scenes/DifficultySelectScene.swift`
 - 신규:
-  - `mockups/skill-explanation-v3.html`
+  - `mockups/difficulty-select-v3.html`
 - 시각 레퍼런스 (읽기):
-  - `mockups/skill-explanation-v2.html`
-  - `mockups/character-select-v3.html` (Phase A 톤 참고)
+  - `mockups/difficulty-select-v2.html`
+  - `mockups/character-select-v3.html`, `mockups/skill-explanation-v3.html`

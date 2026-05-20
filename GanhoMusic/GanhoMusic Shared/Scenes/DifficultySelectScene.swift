@@ -60,6 +60,9 @@ final class DifficultySelectScene: SKScene {
     private let startButton = PrimaryButtonNode(
         text: GameConfig.difficultySelectStartButtonText
     )
+    /// Sprint 7 Phase C — 시작 버튼 뒤 코랄 halo. PrimaryButtonNode 내부 변경 0 보장 위해
+    /// Scene이 외부 SKShapeNode를 직접 부착. zPos = startButton - 1 (버튼 뒤). 페이드 인 0.25s.
+    private var startButtonHalo: SKShapeNode?
 
     // MARK: - Factory
     /// CharacterSelectScene(.kim 분기) 또는 SkillExplanationScene(그 외)이 호출.
@@ -296,7 +299,10 @@ final class DifficultySelectScene: SKScene {
         )
         chip.fillColor = UIColor.ganhoScrubMint
             .withAlphaComponent(GameConfig.difficultySelectSummarySpeedChipFillAlpha)
-        chip.strokeColor = .clear
+        // Sprint 7 Phase C — 속도 칩 stroke 1pt 보강(.ganhoDifficultyEasyDeep #5EBFA3).
+        // mockup `box-shadow + stroke 1pt` 톤을 SpriteKit에서 stroke만으로 근사.
+        chip.strokeColor = .ganhoDifficultyEasyDeep
+        chip.lineWidth = 1
         chip.zPosition = 110
         summarySpeedChip = chip
         addChild(chip)
@@ -385,15 +391,41 @@ final class DifficultySelectScene: SKScene {
     }
 
     // MARK: - Setup (Start Button)
+    /// Sprint 7 Phase C — 버튼 뒤 코랄 halo SKShapeNode를 *Scene에서 별도 부착*.
+    /// PrimaryButtonNode 내부 0줄 변경 보장 — 다른 화면(StartScene 등) 회귀 위험 0.
+    /// halo zPos = startButton.zPosition - 1 (버튼 뒤). 화면 진입 후 0.25s 페이드 인.
     private func setupStartButton() {
+        let halo = SKShapeNode(ellipseOf: CGSize(
+            width: GameConfig.difficultySelectStartButtonHaloWidth,
+            height: GameConfig.difficultySelectStartButtonHaloHeight
+        ))
+        halo.fillColor = UIColor.ganhoCoralPrimary
+            .withAlphaComponent(GameConfig.difficultySelectStartButtonHaloAlpha)
+        halo.strokeColor = .clear
+        halo.lineWidth = 0
+        halo.glowWidth = GameConfig.difficultySelectStartButtonHaloSpread
+        halo.alpha = 0
+        halo.zPosition = startButton.zPosition - 1
+        halo.name = "difficultySelectStartButtonHalo"
+        startButtonHalo = halo
+        addChild(halo)
+        halo.run(SKAction.fadeAlpha(
+            to: 1.0,
+            duration: GameConfig.difficultySelectStartButtonHaloFadeInDuration
+        ))
         addChild(startButton)
         layoutStartButton()
     }
 
     private func layoutStartButton() {
-        startButton.position = CGPoint(
+        let pos = CGPoint(
             x: frame.midX,
             y: frame.midY + GameConfig.difficultySelectStartButtonOffsetY
+        )
+        startButton.position = pos
+        startButtonHalo?.position = CGPoint(
+            x: pos.x,
+            y: pos.y + GameConfig.difficultySelectStartButtonHaloOffsetY
         )
     }
 

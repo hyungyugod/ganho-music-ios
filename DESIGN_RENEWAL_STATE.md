@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-19 (Sprint 7 Phase B 합격 — 스킬 설명 겹침 해소)
-**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B ✅ / C~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-19 (Sprint 7 Phase C 합격 — 난이도 카드 색 위계)
+**현재 진행 중인 Sprint**: Sprint 7 (Phase A·B·C ✅ / D~G 대기). Sprint 1/2/3/5/6 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -42,8 +42,8 @@ Sprint 2 진행해줘
 | **6** | 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터 | ✅ 합격 | 9.53/10 | 1/3 |
 | **7-A** | 캐릭터 선택 NIKKE 카드 리뉴얼 | ✅ 합격 | 9.45/10 | 1/3 |
 | **7-B** | 스킬 설명 겹침 해소 | ✅ 합격 | 9.77/10 | 1/3 |
-| **7-C** | 난이도 카드 색 위계 | ⏳ 대기 | - | 0/3 |
-| **7-D** | 결과창 + ScoreboardScene 신설 | ⏸️ 미시작 | - | 0/3 |
+| **7-C** | 난이도 카드 색 위계 | ✅ 합격 | 9.83/10 | 1/3 |
+| **7-D** | 결과창 + ScoreboardScene 신설 | ⏳ 대기 | - | 0/3 |
 | **7-E** | 카운트다운 오버레이 | ⏸️ 미시작 | - | 0/3 |
 | **7-F** | 빌런 4종 + 박병장 신규 | ⏸️ 미시작 | - | 0/3 |
 | **7-G** | 플레이어 4방향 스프라이트 | ⏸️ 미시작 | - | 0/3 |
@@ -103,6 +103,14 @@ Sprint 2 진행해줘
 - QA 반복: 1회 (한 번에 통과)
 - 비고: ResultScene 3분기 시각(A 일반/B 신기록/C 졸업장), DiplomaOverlayNode 우드컷(SKShapeNode + CGMutablePath addEllipse 단일 노드 통합 ~1100 도트) + double-border ㄱ자 + 도장 + fontSerif 명조 라벨. sparkle 5발 신기록 분기. ColorTokens v2 Diploma 토큰 4개 추가. ResultScene init 9개 인자 byte-identical / 본문 텍스트 byte-identical / 햅틱·사운드 시퀀스·2단계 탭 정책 모두 보존. 보호 파일 24개 git diff 0줄. 빌드 SUCCEEDED.
 - **사용자 후속 작업 권장**: GowunBatang-Regular.ttf 추가(졸업장 명조 폰트). Google Fonts → Resources/Fonts → Info.plist UIAppFonts. 미추가 시 시스템 폰트 fallback(크래시 0).
+
+### Sprint 7 Phase C — 난이도 카드 색 위계
+- 시작: 2026-05-19
+- 완료: 2026-05-19
+- 점수: **9.83/10** (게임로직 10.0 · Swift패턴 9.8 · 비주얼 9.7 · UX 9.6)
+- QA 반복: 1회 (한 번에 통과)
+- 비고: 난이도 3장 카드에 색 위계(하=민트/중=골드/상=코랄 그라데이션) 부여. Difficulty 4종 computed property(cardFillTop/cardFillBottom/cardStrokeColor/cardGlowColor) 3 case exhaustive switch default 미사용. ColorTokens 6 신규(EasyMint/EasyDeep/MidGold/MidDeep/HardCoral/HardDeep). GameConfig Phase C V3 상수 14종(NameFontSize=30, NameStrokeWidth=1.0, LiftY=8, LiftDuration=0.18, GlowWidth=158, GlowHeight=116, GlowAlpha=0.80, GlowSpread=12, HaloWidth=240, HaloHeight=90, HaloAlpha=0.35, HaloSpread=24, HaloFadeIn=0.25, HaloOffsetY=0). DifficultyCardNode init/setSelected에서 id.cardFillTop/cardStrokeColor/cardGlowColor lookup 적용 + ringGlow.strokeColor 동기화. nameLabelStroke 32pt + nameLabel 30pt 2-라벨 stroke 패턴(SKLabelNode stroke 직접 미지원 우회). liftCurrentOffset 증분 패턴 — setSelected 다중 호출 안전. DifficultySelectScene 시작 버튼 halo SKShapeNode 240×90 ellipse + 페이드 인 0.25s + zPosition startButton-1. 좌측 속도 칩 stroke 1pt 보강. 신규 mockup difficulty-select-v3.html ~536줄. PrimaryButtonNode 내부 0줄 변경(OQ-3 halo는 Scene 책임). Phase A·B 결과물 6파일 + 게임 로직 4파일 + Managers/Repositories/Systems 디렉토리 모두 git diff 0줄. Difficulty enum 기존 멤버(color/displayName/subtitle/description/shortName/raw value) byte-identical. init/transitionToGame/transitionBack 시그니처 byte-identical. 강제 언래핑 0, Timer 0, update()-내-addChild 0, switch default 0. 빌드 SUCCEEDED 신규 워닝 0.
+- **잔존 P2 (합격 영향 0)**: DifficultySelectScene 속도 칩 `chip.lineWidth = 1` 리터럴 GameConfig 상수화 권장. 차기 정리 Sprint에서.
 
 ### Sprint 7 Phase B — 스킬 설명 겹침 해소
 - 시작: 2026-05-19
