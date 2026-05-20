@@ -235,9 +235,20 @@ final class ProfessorNode: SKSpriteNode {
     /// 이교수 시각 단서 보강 — 청진기 mini disc + 튜브(코랄 액세서리).
     /// init에서 1회 호출. AI/이동/투척/StethoscopeNode 0줄 영향 — 자식 SKShapeNode만 추가.
     /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준.
+    /// Sprint 9 Phase C — 시각 자식 부착 *직후* applyVisualScaleV9()로 일괄 1.4배 확대.
+    ///                     투척 로직(StethoscopeNode 투사체)은 별도 노드라 무영향.
     private func setupVisualOverlay() {
         attachStethoscopeDisc()
         attachStethoscopeTube()
+        applyVisualScaleV9()
+    }
+
+    /// Sprint 9 Phase C — 시각 자식(stethoDisc/tube) 일괄 setScale.
+    /// 자식 transform scale만 변경 — 본체 SKSpriteNode size·AI·투척 무영향.
+    private func applyVisualScaleV9() {
+        for child in children {
+            child.setScale(GameConfig.professorVisualScaleV9)
+        }
     }
 
     /// 청진기 disc — 좌측 옆구리 작은 코랄 원. coralShadow stroke로 *살아있는* 액센트.

@@ -81,9 +81,20 @@ final class StoneGuardNode: SKSpriteNode {
     /// 석조무사 시각 단서 보강 — 사각 갑옷(dark fill) + 일자눈 2개.
     /// init에서 1회 호출. physicsBody/이동 0줄 영향 — 자식 SKShapeNode만 추가.
     /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준.
+    /// Sprint 9 Phase C — 시각 자식 부착 *직후* applyVisualScaleV9()로 일괄 1.4배 확대.
+    ///                     physicsBody는 본체 size 기준이라 hitbox 회귀 0.
     private func setupVisualOverlay() {
         attachArmor()
         attachEyes()
+        applyVisualScaleV9()
+    }
+
+    /// Sprint 9 Phase C — 시각 자식(armor + 일자눈 2개) 일괄 setScale.
+    /// 자식 transform scale만 변경 — 본체 SKSpriteNode size·physicsBody·patrol 무영향.
+    private func applyVisualScaleV9() {
+        for child in children {
+            child.setScale(GameConfig.stoneGuardVisualScaleV9)
+        }
     }
 
     /// 사각 갑옷 — stoneGuardDark fill + stoneGuardOutline stroke 0.8. 본체 위에 겹친 *돌상 갑옷판*.

@@ -214,10 +214,22 @@ final class EnemyNode: SKSpriteNode {
     /// 수간호사 시각 단서 보강 — 외곽 헬로(권위감) + 차트(클립보드) + 코랄 클립.
     /// init에서 1회 호출. physicsBody/AI/이동/texture 0줄 영향 — 자식 SKShapeNode만 추가.
     /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준, zPosition은 부모(5) 기준 상대값.
+    /// Sprint 9 Phase C — 시각 자식 부착 *직후* applyVisualScaleV9()로 일괄 1.4배 확대.
+    ///                     physicsBody는 본체 size 기준이라 hitbox 회귀 0.
     private func setupVisualOverlay() {
         attachHalo()
         attachChart()
         attachClip()
+        applyVisualScaleV9()
+    }
+
+    /// Sprint 9 Phase C — 시각 자식(halo/chart/clip) 일괄 setScale.
+    /// 자식 transform scale만 변경 — 본체 SKSpriteNode size·physicsBody 무영향.
+    /// 시뮬레이터에서 빌런 시각 면적 ≥ 24pt 확보 → 회피·전략 판단 가능.
+    private func applyVisualScaleV9() {
+        for child in children {
+            child.setScale(GameConfig.enemyVisualScaleV9)
+        }
     }
 
     /// 외곽 헬로 — navyMuted ellipse alpha 0.18. 픽셀 텍스처 뒤에서 살짝 보이는 *권위감 light bloom*.

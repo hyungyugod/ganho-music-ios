@@ -281,43 +281,61 @@ class GameScene: SKScene {
     ///    → 총 4.0s = 3·2·1 단계 3.0s + GO! 0.8s + dim fadeOut 0.2s
     private func showCountdown() {
         // Sprint 8 Phase E — 진단 print: showCountdown 진입 시점.
+        // Sprint 9 Phase C — release 빌드 0건 보장: #if DEBUG wrap.
+        #if DEBUG
         print("[Phase E] showCountdown invoked at gameState=\(gameState)")
-        // 1) dim 오버레이 — cameraNode 자식. CountdownNode(zPosition 250)보다 아래(240)로 깔아 숫자가 또렷.
-        //    color는 navyDeep, alpha는 0 시작 → fadeIn으로 0.32 도달 (자연 어두워짐).
+        #endif
+        // 1) dim 오버레이 — cameraNode 자식. CountdownNode V9(zPos 300) 바로 아래(zPos 290)로 깔아 숫자가 또렷.
+        //    Sprint 9 Phase C — zPos 240 → 290, dim alpha 도달 0.32 → 0.22 (가독성 회복).
+        //    color는 navyDeep, alpha는 0 시작 → fadeIn으로 V9 0.22 도달 (자연 어두워짐).
         let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
         dim.alpha = 0
-        dim.zPosition = GameConfig.countdownDimZPosition
+        dim.zPosition = GameConfig.countdownDimZPositionV9
         dim.name = GameConfig.countdownDimNodeName
         cameraNode.addChild(dim)
         // Sprint 8 Phase E — 진단 print: dim attach 후 트리 부착 여부 확인.
+        #if DEBUG
         print("[Phase E] dim attached. zPos=\(dim.zPosition) parent=\(dim.parent != nil)")
-        dim.run(.fadeAlpha(to: GameConfig.countdownDimAlpha,
+        #endif
+        dim.run(.fadeAlpha(to: GameConfig.countdownDimAlphaV9,
                            duration: GameConfig.countdownDimFadeInDuration))
 
         // 2) 기존 CountdownNode attach + start (시그니처 byte-identical).
+        // Sprint 9 Phase C — 카메라 좌표계 정중앙(.zero) + zPos 300(V9) 외부 set로 표시 보장.
+        //                     CountdownNode 본체 init은 250을 set하지만 우리가 즉시 덮어씀(본체 git diff 0).
+        //                     isHidden=false / alpha=1.0 명시 — 이전 씬 잔존 상태로부터 방어.
         let node = CountdownNode()
-        cameraNode.addChild(node)
-        // Sprint 8 Phase E — 방어 보강: 기본값과 동일하지만 외부 영향(이전 씬 잔존 등) 대비 명시 set.
+        node.position = .zero
+        node.zPosition = GameConfig.countdownNodeZPositionV9
         node.isHidden = false
         node.alpha = 1.0
+        cameraNode.addChild(node)
         // Sprint 8 Phase E — 진단 print: CountdownNode attach 후 가시성 확인.
+        #if DEBUG
         print("[Phase E] CountdownNode attached. zPos=\(node.zPosition) parent=\(node.parent != nil) hidden=\(node.isHidden) alpha=\(node.alpha)")
+        #endif
         node.start(
             onTick: { [weak self] tick in
                 // Sprint 8 Phase E — 진단 print: 매 tick(3/2/1) 발화 확인.
+                #if DEBUG
                 print("[Phase E] onTick \(tick)")
+                #endif
                 self?.haptics.light()
             },
             onGo: { [weak self] in
                 // Sprint 8 Phase E — 진단 print: GO! 발화 확인.
+                #if DEBUG
                 print("[Phase E] onGo")
+                #endif
                 guard let self = self else { return }
                 self.haptics.heavy()
                 self.audio.play(.comboMilestoneStrong)
             },
             onComplete: { [weak self] in
                 // Sprint 8 Phase E — 진단 print: onComplete 발화 확인 (가장 중요한 지점).
+                #if DEBUG
                 print("[Phase E] onComplete")
+                #endif
                 guard let self = self else { return }
                 // 3) dim 페이드아웃 → 자가 제거 → startGameProperly.
                 //    startGameProperly 호출이 0.2s 미뤄지지만 총 4.0s = 3·2·1(3.0) + GO!(0.8) + dim(0.2) 일치.

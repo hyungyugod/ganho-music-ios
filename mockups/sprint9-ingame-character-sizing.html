@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Sprint 9 Phase B — 인게임 풀바디 크기 + 정체성</title>
+<style>
+  :root {
+    --warm-top: #FFEFE0;
+    --warm-mid: #FDD8C5;
+    --paper: #FFFFFF;
+    --navy-deep: #1F2238;
+    --navy-muted: #555A78;
+    --coral-primary: #F47B6B;
+    --coral-light: #FBB6A8;
+    --scrub-mint: #A8D6CC;
+    --skin: #FFE0CB;
+    --hair-brown: #4A3B2E;
+    --lavender: #D4C9E8;
+    --blood: #C04545;
+    --gold: #D9A24A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "SF Pro", "Noto Sans KR", sans-serif;
+    background: #2a2a2e;
+    color: #fff;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+
+  /* 비교 그리드 */
+  .compare-size {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1400px;
+    margin-bottom: 32px;
+  }
+  .panel {
+    background: linear-gradient(180deg, var(--warm-top) 0%, var(--warm-mid) 100%);
+    border-radius: 18px;
+    padding: 24px;
+    position: relative;
+  }
+  .panel h2 {
+    color: var(--navy-deep);
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+  /* 체크보드 배경 (1칸 = 32px) */
+  .stage {
+    background-image:
+      linear-gradient(45deg, rgba(31,34,56,0.06) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(31,34,56,0.06) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(31,34,56,0.06) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(31,34,56,0.06) 75%);
+    background-size: 32px 32px;
+    background-position: 0 0, 0 16px, 16px -16px, -16px 0;
+    background-color: #fff5ec;
+    border-radius: 12px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .tile-ruler {
+    position: absolute;
+    color: var(--navy-muted);
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .tile-ruler.top { top: 4px; left: 50%; transform: translateX(-50%); }
+  .tile-ruler.bottom { bottom: 4px; left: 50%; transform: translateX(-50%); }
+
+  /* 캐릭터 본체 — SVG 기반 */
+  .character {
+    display: block;
+  }
+  .as-is .character { width: 110px; }   /* ~3.4 tile */
+  .to-be .character { width: 64px; }    /* 2 tile */
+
+  .caption {
+    text-align: center;
+    color: #ccc;
+    font-size: 12px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .caption strong { color: var(--coral-primary); }
+
+  /* 5캐릭터 정체성 그리드 */
+  .identity-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    max-width: 1400px;
+    margin-top: 24px;
+  }
+  .identity-card {
+    background: linear-gradient(180deg, var(--warm-top) 0%, var(--warm-mid) 100%);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .identity-card svg {
+    width: 80px;
+    height: 90px;
+    display: block;
+    margin: 0 auto 8px;
+  }
+  .identity-card .id-name {
+    color: var(--navy-deep);
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .identity-card .id-element {
+    color: var(--scrub-mint);
+    font-size: 10px;
+    margin-top: 4px;
+  }
+  .identity-card .id-marker {
+    color: var(--coral-primary);
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 6px;
+    background: rgba(244,123,107,0.12);
+    padding: 2px 6px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .legend {
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .legend h3 { color: #fafafa; font-size: 13px; margin-bottom: 6px; }
+  .legend code { background: rgba(255,255,255,0.10); padding: 1px 5px; border-radius: 3px; color: #ffd; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>Sprint 9 Phase B — 인게임 풀바디 크기 + 캐릭터별 정체성</h1>
+<p class="subtitle">사용자 요청: 캐릭터는 "두 칸 정도(64pt)" 크기 + 정간호는 정간호답게 보이도록</p>
+
+<div class="compare-size">
+
+  <!-- AS-IS: Sprint 8 Phase G 결과 (~110pt) -->
+  <div class="panel as-is">
+    <h2>AS-IS · Sprint 8 Phase G — 캐릭터 ~110pt (3.4칸)</h2>
+    <div class="stage">
+      <span class="tile-ruler top">1 tile = 32pt</span>
+      <span class="tile-ruler bottom">캐릭터 본체 ~110pt</span>
+      <svg class="character" viewBox="0 0 64 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- 정간호 본체 (현 패턴 — 김간호 path 공유, 색만 다름) -->
+        <rect x="4" y="50" width="56" height="44" rx="8" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.8"/>
+        <rect x="14" y="86" width="5" height="24" rx="2" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.5"/>
+        <rect x="45" y="86" width="5" height="24" rx="2" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.5"/>
+        <rect x="-1" y="48" width="4" height="28" rx="2" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.5"/>
+        <rect x="61" y="48" width="4" height="28" rx="2" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.5"/>
+        <circle cx="32" cy="22" r="18" fill="#FFE0CB" stroke="#1F2238" stroke-width="1"/>
+        <rect x="16" y="2" width="32" height="10" rx="5" fill="#1F2238"/>
+        <rect x="25" y="-2" width="14" height="6" rx="1" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.5"/>
+        <circle cx="27" cy="20" r="1.6" fill="#1F2238"/>
+        <circle cx="37" cy="20" r="1.6" fill="#1F2238"/>
+      </svg>
+    </div>
+    <p class="caption">
+      <strong>문제</strong>: 본체 path 56×44+head r18 = 101pt + scale 0.35 적용해도 PixelSprite 본체 32×40과 중첩으로 시각상 약 110pt<br>
+      → 1칸(32pt)을 차지해야 할 캐릭터가 3.4칸 차지
+    </p>
+  </div>
+
+  <!-- TO-BE: Sprint 9 Phase B (~64pt) -->
+  <div class="panel to-be">
+    <h2>TO-BE · Sprint 9 Phase B — 캐릭터 64pt (2칸)</h2>
+    <div class="stage">
+      <span class="tile-ruler top">1 tile = 32pt</span>
+      <span class="tile-ruler bottom">캐릭터 본체 ~64pt (2칸)</span>
+      <svg class="character" viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+        <!-- 정간호 본체 V9 — path 자체 축소 + 안경 정체성 -->
+        <rect x="2" y="36" width="36" height="32" rx="6" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.6"/>
+        <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+        <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+        <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+        <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+        <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+        <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+        <rect x="15" y="0" width="10" height="4" rx="1" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+        <!-- 정간호 정체성: 안경 -->
+        <ellipse cx="16" cy="17" rx="3" ry="2.2" fill="none" stroke="#1F2238" stroke-width="0.7"/>
+        <ellipse cx="24" cy="17" rx="3" ry="2.2" fill="none" stroke="#1F2238" stroke-width="0.7"/>
+        <line x1="19" y1="17" x2="21" y2="17" stroke="#1F2238" stroke-width="0.5"/>
+      </svg>
+    </div>
+    <p class="caption">
+      <strong>해소</strong>: body 56→40, head r18→12, leg 24→18, hair 32→22, scale 0.35→0.92<br>
+      <strong>+ 안경 정체성</strong>: 정간호 식별 확보. 김간호와 시각 분리.
+    </p>
+  </div>
+
+</div>
+
+<h2 style="margin-bottom: 12px; color: #fafafa;">5캐릭터 정체성 요소 (V9 신규)</h2>
+<div class="identity-grid">
+
+  <!-- 김간호 -->
+  <div class="identity-card">
+    <svg viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="36" width="36" height="32" rx="6" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.6"/>
+      <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+      <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+      <rect x="15" y="0" width="10" height="4" rx="1" fill="#FBB6A8" stroke="#1F2238" stroke-width="0.4"/>
+      <!-- 김간호 정체성: 빨강 십자 캡 -->
+      <rect x="19" y="0.5" width="2" height="3" fill="#F47B6B"/>
+      <rect x="17.5" y="2" width="5" height="2" fill="#F47B6B"/>
+      <circle cx="16" cy="17" r="1.4" fill="#1F2238"/>
+      <circle cx="24" cy="17" r="1.4" fill="#1F2238"/>
+    </svg>
+    <div class="id-name">김간호</div>
+    <div class="id-element">⚡ Speed × 1.10</div>
+    <div class="id-marker">⊕ 빨강 십자 캡</div>
+  </div>
+
+  <!-- 정간호 -->
+  <div class="identity-card">
+    <svg viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="36" width="36" height="32" rx="6" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.6"/>
+      <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#A8D6CC" stroke="#1F2238" stroke-width="0.4"/>
+      <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+      <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+      <rect x="15" y="0" width="10" height="4" rx="1" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <!-- 정간호 정체성: 안경 -->
+      <ellipse cx="16" cy="17" rx="3" ry="2.2" fill="none" stroke="#1F2238" stroke-width="0.7"/>
+      <ellipse cx="24" cy="17" rx="3" ry="2.2" fill="none" stroke="#1F2238" stroke-width="0.7"/>
+      <line x1="19" y1="17" x2="21" y2="17" stroke="#1F2238" stroke-width="0.5"/>
+    </svg>
+    <div class="id-name">정간호</div>
+    <div class="id-element">💧 Speed × 0.90</div>
+    <div class="id-marker">⊕ 둥근 안경</div>
+  </div>
+
+  <!-- 박건오 -->
+  <div class="identity-card">
+    <svg viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="36" width="36" height="32" rx="6" fill="#FFEFE0" stroke="#1F2238" stroke-width="0.6"/>
+      <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#FFEFE0" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#FFEFE0" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#FFEFE0" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#FFEFE0" stroke="#1F2238" stroke-width="0.4"/>
+      <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+      <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+      <!-- 박건오 정체성: 야구캡 (코랄, 챙 앞으로) -->
+      <path d="M 9 4 Q 20 -3 31 4 L 32 7 Q 20 5 8 7 Z" fill="#F47B6B" stroke="#1F2238" stroke-width="0.5"/>
+      <ellipse cx="14" cy="7" rx="6" ry="3" fill="#F47B6B"/>
+      <circle cx="16" cy="17" r="1.4" fill="#1F2238"/>
+      <circle cx="24" cy="17" r="1.4" fill="#1F2238"/>
+    </svg>
+    <div class="id-name">박건오</div>
+    <div class="id-element">🌿 Speed × 0.95</div>
+    <div class="id-marker">⊕ 코랄 야구캡</div>
+  </div>
+
+  <!-- 임수민 -->
+  <div class="identity-card">
+    <svg viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="36" width="36" height="32" rx="6" fill="#D4C9E8" stroke="#1F2238" stroke-width="0.6"/>
+      <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#D4C9E8" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#D4C9E8" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#D4C9E8" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#D4C9E8" stroke="#1F2238" stroke-width="0.4"/>
+      <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+      <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+      <rect x="15" y="0" width="10" height="4" rx="1" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <!-- 임수민 정체성: 사이드테일 (오른쪽으로 흘러내림) -->
+      <path d="M 28 8 Q 32 18 30 28 L 26 26 Q 26 18 25 9 Z" fill="#1F2238" stroke="#1F2238" stroke-width="0.3"/>
+      <circle cx="16" cy="17" r="1.4" fill="#1F2238"/>
+      <circle cx="24" cy="17" r="1.4" fill="#1F2238"/>
+    </svg>
+    <div class="id-name">임수민</div>
+    <div class="id-element">🌙 Speed × 1.00</div>
+    <div class="id-marker">⊕ 사이드테일</div>
+  </div>
+
+  <!-- 이수민 -->
+  <div class="identity-card">
+    <svg viewBox="0 0 40 70" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="36" width="36" height="32" rx="6" fill="#C04545" stroke="#1F2238" stroke-width="0.6"/>
+      <rect x="10" y="62" width="4" height="18" rx="1.5" fill="#C04545" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="29" y="62" width="4" height="18" rx="1.5" fill="#C04545" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="-1" y="34" width="3" height="20" rx="1.5" fill="#C04545" stroke="#1F2238" stroke-width="0.4"/>
+      <rect x="38" y="34" width="3" height="20" rx="1.5" fill="#C04545" stroke="#1F2238" stroke-width="0.4"/>
+      <circle cx="20" cy="16" r="12" fill="#FFE0CB" stroke="#1F2238" stroke-width="0.7"/>
+      <rect x="9" y="4" width="22" height="7" rx="3" fill="#1F2238"/>
+      <rect x="15" y="0" width="10" height="4" rx="1" fill="#FFFFFF" stroke="#1F2238" stroke-width="0.4"/>
+      <!-- 이수민 정체성: 양 옆 묶음 -->
+      <rect x="8" y="6" width="4" height="6" rx="2" fill="#1F2238"/>
+      <rect x="28" y="6" width="4" height="6" rx="2" fill="#1F2238"/>
+      <circle cx="16" cy="17" r="1.4" fill="#1F2238"/>
+      <circle cx="24" cy="17" r="1.4" fill="#1F2238"/>
+    </svg>
+    <div class="id-name">이수민</div>
+    <div class="id-element">🌸 Speed × 1.00</div>
+    <div class="id-marker">⊕ 양 옆 묶음</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h3>변경 사항 요약 (Phase B V9)</h3>
+  body 56×44 → 40×32 · head r=18 → r=12 · hair 32×10 → 22×7 · cap 14×6 → 10×4 · leg h=24 → h=18 · arm h=28 → h=20<br>
+  <code>playerFullBodyScaleV9 = 0.92</code> (path 자체가 작아져서 scale은 1에 가깝게)<br>
+  PixelSprite 본체 시각 차단: <code>self.texture = nil; self.color = .clear; self.colorBlendFactor = 1.0</code>
+</div>
+
+</body>
+</html>

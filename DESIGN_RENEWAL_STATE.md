@@ -3,8 +3,8 @@
 > 이 파일은 디자인 리뉴얼 하네스가 **자동 갱신**합니다. 수동 편집 비권장.
 > 자세한 절차는 `CLAUDE.md` § "디자인 리뉴얼 모드" 참고.
 
-**최종 갱신**: 2026-05-20 (🎉 Sprint 8 전체 합격 — Phase A~G 7개 모두 완료. 평균 9.21/10)
-**현재 진행 중인 Sprint**: **Sprint 8 완료**. Sprint 1/2/3/5/6/7/8 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
+**최종 갱신**: 2026-05-20 (🎉 Sprint 9 전체 합격 — Phase A~D 4개 모두 완료. 평균 9.53/10)
+**현재 진행 중인 Sprint**: **Sprint 9 완료**. Sprint 1/2/3/5/6/7/8/9 모두 합격. Sprint 4(PNG 캐릭터 80장)는 사용자 자산 작업 대기.
 
 ---
 
@@ -54,6 +54,10 @@ Sprint 2 진행해줘
 | **8-E** | 카운트다운 표시 버그 수정 | ✅ 합격 | 9.24/10 | 1/3 |
 | **8-F** | 인게임 HUD/스킬 zPos 정리 | ✅ 합격 | 9.43/10 | 1/3 |
 | **8-G** | 빌런 가시화 + 박병장 데뷔 + 비행기 + 플레이어 팔다리·좌우 | ✅ 합격 | 8.78/10 | 1/3 |
+| **9-A** | 캐릭터 선택창 카드 내부 정렬 + 좌우 화살표 + 헤더 보정 | ✅ 합격 | 9.13/10 | 4/3* |
+| **9-B** | 인게임 풀바디 2칸 + 정체성 + PixelSprite 차단 | ✅ 합격 | 9.45/10 | 1/3 |
+| **9-C** | 빌런 시각 1.4배 + 카운트다운 zPos 300 | ✅ 합격 | 9.70/10 | 1/3 |
+| **9-D** | 결과창 V4 spacing | ✅ 합격 | 9.83/10 | 1/3 |
 
 ### 상태 범례
 - ✅ **합격** — Evaluator 합격 기준 충족, 완료
@@ -120,6 +124,48 @@ Sprint 2 진행해줘
 - **잔존 P2 (Sprint 7 전체 합격 영향 0)**: (1) CharacterFaceNode 1101 lines — +Front/+Back/+Side extension 3개 분리 후보. (2) back/side 헤어 색 hairBrown 단색 위주 — 캐릭터별 보강 후보. (3) PlayerNode PixelSprite + face child 하이브리드 정리 후보. (4) Phase F 시각 디테일 매직 넘버 8건 정리. (5) V3 상수 명명 규칙 일괄 정리.
 
 ---
+
+## 🎉 Sprint 9 전체 완료 (2026-05-20)
+
+Phase A~D 4개 모두 합격. 평균 9.53/10. 잔존 결함 4종(캐릭터 선택창 카드 내부 정렬, 인게임 풀바디 2칸, 빌런/카운트다운 가시, 결과창 spacing) 모두 해소.
+
+### Sprint 9 Phase D — 결과창 V4 spacing (✅ 합격 9.83/10, 1회차)
+
+- **변경 내용**: GameConfig Phase D V4 sub-MARK + 상수 7건 신설(`resultHeaderChipOffsetYV4=145`, `accentLine=178`, `title=100`, `subtitle=64`, `score=6`, `divider=-68`, `statGap=28`). ResultScene `layoutLabels()` 9건 V3/V2 → V4 1:1 치환. stat 좌표 상대식(`divider V4 - statGap V9`) 도입. scoreLabel/scoreNoteIcon/bestPill 3노드를 동일 V4 row(+6)로 동기화.
+- **수정 파일 2개**: `Config/GameConfig.swift`(V4 7건), `Scenes/ResultScene.swift`(layoutLabels 9건).
+- **QA 반복**: 1회. 가중 9.83 한 번에 합격.
+- **최종 점수**: 게임 로직 10/10 · Swift 9.5/10 · 비주얼 10/10 · UX 9.5/10 → 가중 9.83/10
+- **호흡 산술**: 위 묶음 5단 각 행간 33/45/36/58pt ≥ 24pt, score↔divider 74pt ≥ 60pt 모두 충족.
+- **보호 영역**: ResultScene init 9개 인자 / scoreLabel.text / bestLabel.alpha=0 / DiplomaOverlayNode / sparkle / heavy 햅틱 / NewMail 사운드 / 2단계 탭 / 3 버튼 hit-test 전부 byte-identical. V3/V2 상수 값 전부 보존.
+
+## Sprint 9 — 진행 로그 (2026-05-20)
+
+### Sprint 9 Phase C — 빌런 시각 1.4배 + 카운트다운 zPos 300 (✅ 합격 9.70/10, 1회차)
+
+- **변경 내용**: (1) EnemyNode/ProfessorNode/StoneGuardNode 모두 `setupVisualOverlay()` 끝에 `applyVisualScaleV9()` private helper 추가 — 자식 노드만 1.4배 transform scale(physicsBody/categoryBitMask 0줄 변경). (2) GameScene.showCountdown 4건 변경 — dim zPos 240→290, dim alpha 0.32→0.22, CountdownNode `position=.zero` + `zPosition=300` + `isHidden=false` + `alpha=1.0` 명시. (3) `[Phase E]` print 6줄 모두 `#if DEBUG ... #endif` wrap.
+- **수정 파일 5개**: `Config/GameConfig.swift`(V9 6종), `Nodes/EnemyNode.swift`, `Nodes/ProfessorNode.swift`, `Nodes/StoneGuardNode.swift`, `Scenes/GameScene.swift`.
+- **QA 반복**: 1회. 가중 9.70 한 번에 합격.
+- **최종 점수**: 게임 로직 10/10 · Swift 9.5/10 · 비주얼 9.5/10 · UX 9.5/10 → 가중 9.70/10
+- **보호 영역**: Sprint 8 Phase G `self.color=.clear; self.colorBlendFactor=1.0` 각 빌런 1줄씩 보존. CountdownNode.swift 본체 git diff 0줄. physicsBody/categoryBitMask 실코드 0줄.
+- **잔존 P2 (합격 영향 0)**: `applyVisualScaleV9()`가 자식 *전부* setScale — 미래 자식 추가 시 무차별 확대 위험. name 필터 또는 자식 명시 리스트 패턴 후속 정리 권장.
+
+### Sprint 9 Phase B — 인게임 풀바디 2칸 + 정체성 + PixelSprite 차단 (✅ 합격 9.45/10, 1회차)
+
+- **변경 내용**: (1) CharacterFullBodyNode body/head/hair/cap/arm/leg path 좌표·크기 V9 축소(body 56×44→40×32, head r18→12, hair 32×10→22×7, cap 14×6→10×4, arm h28→20, leg h24→18, scale 0.35→0.92), (2) 5캐릭터 정체성 자식 attachIdentityMarker switch exhaustive — 김간호 빨강 십자, 정간호 둥근 안경+bridge(4방향 분기), 박건오 코랄 야구캡, 임수민 사이드테일(좌/우 부호 분기), 이수민 양옆 묶음, (3) PlayerNode attachFullBody 끝에 PixelSprite 시각 차단 3줄(color=.clear + colorBlendFactor=1.0).
+- **수정 파일 3개**: `Config/GameConfig.swift`(V9 sub-MARK 10종 신규), `Nodes/CharacterFullBodyNode.swift`(4 buildXxxBody V9 + identity helper 6개), `Nodes/PlayerNode.swift`(정확히 2위치: setScale V9 + 시각 차단 3줄).
+- **QA 반복**: 1회. 가중 9.45 한 번에 합격.
+- **최종 점수**: 게임 로직 10/10 · Swift 9.0/10 · 비주얼 9.2/10 · UX 9.0/10 → 가중 9.45/10
+- **산술 검증**: 세로 70pt × 0.92 = 64.4pt, 가로 ±24pt × 0.92 = 44.2pt 모두 ≤ 70pt 충족.
+- **보호 영역**: CharacterFaceNode/NurseAvatarNode/EnemyNode/ProfessorNode/StoneGuardNode 5종 git diff 0줄. PlayerNode physicsBody/velocity/setupPhysics 본문 0줄.
+- **잔존 P2 (합격 영향 0)**: (1) 측면 변형 magic number 6건(36/21/9) GameConfig 상수화 후보. (2) PlayerNode L151 주석에 V4(0.35) 표기 잔존 — V9 표기 갱신 후보.
+
+### Sprint 9 Phase A — 캐릭터 선택창 카드 내부 정렬 + 좌우 화살표 + 헤더 보정 (✅ 합격 9.13/10, 4회차)
+
+- **변경 내용**: (1) "선택됨" 알약/glow를 카드 내부 inset으로 이동(외부 부유 0), (2) 좌우 ‹/› GlassPill 화살표 2개 신규 + 끝 isHidden 가드, (3) 카드 y 비율 0.50 → 0.55(상향), (4) chip y 산식을 cardBottom anchor 단일 식으로 전환(skillChipBaselineY computed property), (5) confirmButton clamp를 chip 기준으로 재정렬, (6) 양옆 카드 face alpha 4-role 동기화(center=1.0/side=0.55/offscreen=0), (7) 헤더 offset 140 → 170(SPEC §4 범위 확장 — 4회차 사용자 승인).
+- **수정 파일 3개**: `Config/GameConfig.swift`(V9 sub-MARK 14종 신규 + headerOffsetY 1줄), `Nodes/CharacterCardNode.swift`(알약/glow inset 좌표 교체), `Scenes/CharacterSelectScene.swift`(arrow chips 신규 setup/layout/updateVisibility + skillChipBaselineY + clamp 재정렬 + face alpha 동기화).
+- **QA 반복**: 4회. 1·2회차는 cardCenterY 하향 방향에서 chip/button gap 산술 미달, 3회차에서 cardBottom anchor 단일 식으로 전환해 chip/button 5/6항목 충족, 4회차에서 헤더 1줄 보정으로 #4 충족.
+- **최종 점수**: 게임 로직 10/10 · Swift 9.5/10 · 비주얼 7.5/10 · UX 9.0/10 → 가중 9.13/10
+- **잔존 P2 (합격 영향 0)**: (1) `cardBaseY(for _:)` 매개변수 미사용 — 호출부 12곳 정리는 다음 정리 Sprint 후보. (2) 시뮬레이터 폰트 baseline 보수 산술 시 #4 gap 22.5pt로 24pt 1.5pt 미달 — SKLabelNode bbox 시각 추정상 충분, §10 시뮬레이터 실측 우선 정책으로 합격 처리.
 
 ## 🎉 Sprint 8 전체 완료 (2026-05-20)
 

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Sprint 9 Phase D — 결과창 V4 spacing</title>
+<style>
+  :root {
+    --warm-top: #FFEFE0;
+    --warm-mid: #FDD8C5;
+    --warm-bottom: #F5C1B4;
+    --navy-deep: #1F2238;
+    --navy-muted: #555A78;
+    --coral-primary: #F47B6B;
+    --coral-light: #FBB6A8;
+    --gold: #D9A24A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "SF Pro", "Noto Sans KR", sans-serif;
+    background: #2a2a2e;
+    color: #fff;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1800px;
+  }
+  .panel {
+    background: linear-gradient(180deg, var(--warm-top) 0%, var(--warm-mid) 50%, var(--warm-bottom) 100%);
+    border-radius: 18px;
+    aspect-ratio: 844 / 390;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    color: var(--navy-deep);
+    text-align: center;
+  }
+  .label-top {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    z-index: 999;
+  }
+  /* 공통 요소 */
+  .header-chip {
+    position: absolute;
+    background: rgba(31,34,56,0.85);
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .accent-line {
+    position: absolute;
+    width: 44px;
+    height: 3px;
+    background: var(--coral-primary);
+    border-radius: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .title {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .subtitle-row {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: var(--navy-muted);
+  }
+  .score-row {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+  }
+  .score-row .note {
+    font-size: 18px;
+    color: var(--coral-primary);
+    margin-right: 8px;
+  }
+  .score-row .num {
+    font-size: 56px;
+    font-weight: 900;
+    color: var(--coral-primary);
+    letter-spacing: -1px;
+  }
+  .best-pill {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    color: var(--gold);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-weight: 800;
+  }
+  .scoreboard-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    color: var(--navy-deep);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-weight: 700;
+  }
+  .divider {
+    position: absolute;
+    width: 60%;
+    height: 1px;
+    background: rgba(31,34,56,0.18);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .stats {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+  }
+  .stats .stat-item .value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--navy-deep);
+  }
+  .stats .stat-item .label {
+    font-size: 10px;
+    color: var(--navy-muted);
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+  .restart-btn {
+    position: absolute;
+    bottom: 14px;
+    right: 20px;
+    background: var(--coral-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 8px 22px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(244,123,107,0.4);
+  }
+
+  /* AS-IS V3 위치 (midY 기준 offsets) */
+  /* 결과창 viewBox 390pt height. midY=195. V3: headerChip +115 → 80px from top */
+  .as-is .header-chip { top: 78px; }   /* 195-115 = 80 */
+  .as-is .accent-line { top: 47px; }   /* 195-148 */
+  .as-is .title       { top: 92px; }   /* 195-85 = 110, -18 (font height) */
+  .as-is .subtitle-row{ top: 130px; }  /* 195-58 = 137 */
+  .as-is .score-row   { top: 165px; }  /* 195-(-2) = 197 → -32 height */
+  .as-is .best-pill   { top: 175px; right: 28%; }
+  .as-is .scoreboard-button { top: 175px; left: 28%; }
+  .as-is .divider     { top: 268px; } /* 195-(-78) = 273 */
+  .as-is .stats       { top: 290px; }
+
+  /* TO-BE V4 — 위 요소들 모두 상향 (~25px), 위/아래 묶음 분리 */
+  .to-be .header-chip { top: 38px; }   /* 195-145=50 → -12 padding */
+  .to-be .accent-line { top: 17px; }   /* 195-178 */
+  .to-be .title       { top: 76px; }   /* 195-100=95, -19 */
+  .to-be .subtitle-row{ top: 124px; }  /* 195-64=131 */
+  .to-be .score-row   { top: 156px; }  /* 195-6=189, -33 */
+  .to-be .best-pill   { top: 178px; right: 28%; }
+  .to-be .scoreboard-button { top: 178px; left: 28%; }
+  .to-be .divider     { top: 258px; } /* 195-(-68)=263 */
+  .to-be .stats       { top: 282px; }
+
+  /* 결함 마커 */
+  .as-is .overlap-mark {
+    position: absolute;
+    color: #ff3b30;
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.92);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid #ff3b30;
+  }
+  .to-be .margin-ok {
+    position: absolute;
+    color: #28a745;
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.92);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid #28a745;
+  }
+
+  .caption {
+    text-align: center;
+    color: #ccc;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .caption strong { color: var(--coral-primary); }
+  .caption .meta { color: #888; font-size: 10px; display: block; margin-top: 3px; }
+
+  .legend {
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .legend h3 { color: #fafafa; font-size: 13px; margin-bottom: 6px; }
+  .legend code { background: rgba(255,255,255,0.10); padding: 1px 5px; border-radius: 3px; color: #ffd; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>Sprint 9 Phase D — 결과창 V4 spacing</h1>
+<p class="subtitle">위쪽 5단(헤더칩/title/부제/score/best) 시각 호흡 부족 해소 — 모든 V3 offset +20~30pt 위로 이동</p>
+
+<div class="compare">
+
+  <!-- AS-IS -->
+  <div>
+    <div class="panel as-is">
+      <span class="label-top">AS-IS · Sprint 7 Phase D V3</span>
+      <div class="accent-line"></div>
+      <div class="header-chip">중 난이도 · 정간호</div>
+      <div class="title">실습 종료</div>
+      <div class="subtitle-row">수고했어요! 한 번 더 해볼까요?</div>
+      <div class="score-row"><span class="note">♪</span><span class="num">0</span></div>
+      <div class="best-pill">🏆 BEST 11</div>
+      <div class="scoreboard-button">📊 기록 보기</div>
+      <div class="divider"></div>
+      <div class="stats">
+        <div class="stat-item"><div class="value">9</div><div class="label">PLAYS</div></div>
+        <div class="stat-item"><div class="value">18</div><div class="label">TOTAL</div></div>
+      </div>
+      <div class="restart-btn">다시 시작 ▶</div>
+
+      <!-- 결함 마커 -->
+      <div class="overlap-mark" style="top: 86px; left: 56%;">↕ chip ↔ title 6pt</div>
+      <div class="overlap-mark" style="top: 124px; left: 56%;">↕ title ↔ sub 14pt</div>
+      <div class="overlap-mark" style="top: 158px; left: 24%;">↕ sub ↔ score 28pt</div>
+    </div>
+    <p class="caption">
+      <strong>문제</strong>: 위 5단이 80~195px 안에 압축. 각 행 사이 시각 gap 6~28pt — 호흡 부족<br>
+      <span class="meta">V3: headerChip +115 / title +85 / subtitle +58 / score -2 / divider -78</span>
+    </p>
+  </div>
+
+  <!-- TO-BE -->
+  <div>
+    <div class="panel to-be">
+      <span class="label-top">TO-BE · Sprint 9 Phase D V4</span>
+      <div class="accent-line"></div>
+      <div class="header-chip">중 난이도 · 정간호</div>
+      <div class="title">실습 종료</div>
+      <div class="subtitle-row">수고했어요! 한 번 더 해볼까요?</div>
+      <div class="score-row"><span class="note">♪</span><span class="num">0</span></div>
+      <div class="best-pill">🏆 BEST 11</div>
+      <div class="scoreboard-button">📊 기록 보기</div>
+      <div class="divider"></div>
+      <div class="stats">
+        <div class="stat-item"><div class="value">9</div><div class="label">PLAYS</div></div>
+        <div class="stat-item"><div class="value">18</div><div class="label">TOTAL</div></div>
+      </div>
+      <div class="restart-btn">다시 시작 ▶</div>
+
+      <!-- OK 마커 -->
+      <div class="margin-ok" style="top: 60px; left: 56%;">✓ chip ↔ title ≥ 28pt</div>
+      <div class="margin-ok" style="top: 108px; left: 56%;">✓ title ↔ sub ≥ 32pt</div>
+      <div class="margin-ok" style="top: 144px; left: 22%;">✓ sub ↔ score ≥ 24pt</div>
+      <div class="margin-ok" style="top: 220px; left: 56%;">✓ 위묶음 ↔ 아래묶음 ≥ 60pt</div>
+    </div>
+    <p class="caption">
+      <strong>해소</strong>: V3 offset 일괄 +20~30pt 상향. 위 묶음(headerChip→score)과 아래 묶음(divider→stat) 분리 60pt+<br>
+      <span class="meta">V4: headerChip +145 / title +100 / subtitle +64 / score +6 / divider -68</span>
+    </p>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h3>변경 사항 요약 (Phase D V4)</h3>
+  V3 → V4 offset 변화:
+  <code>headerChip 115 → 145</code> ·
+  <code>accentLine 148 → 178</code> ·
+  <code>title 85 → 100</code> ·
+  <code>subtitle 58 → 64</code> ·
+  <code>score -2 → +6</code> ·
+  <code>divider -78 → -68</code><br>
+  ResultScene init 9개 인자 byte-identical · DiplomaOverlayNode / sparkle / 햅틱 / NewMail 사운드 발화 시점 보존 · 2단계 탭 정책 보존
+</div>
+
+</body>
+</html>

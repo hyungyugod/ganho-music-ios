@@ -545,7 +545,7 @@ final class ResultScene: SKScene {
         )
         scoreLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultScoreOffsetYV2
+            y: frame.midY + GameConfig.resultScoreOffsetYV4
         )
         bestLabel.position = CGPoint(
             x: frame.midX,
@@ -577,15 +577,15 @@ final class ResultScene: SKScene {
         // V2 상수는 보존 — bestLabel은 alpha=0이라 위치 표시 안 되지만 노드 트리는 유지.
         accentLine.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultAccentLineOffsetYV3
+            y: frame.midY + GameConfig.resultAccentLineOffsetYV4
         )
         headerChip?.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultHeaderChipOffsetYV3
+            y: frame.midY + GameConfig.resultHeaderChipOffsetYV4
         )
         subtitleLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultSubtitleOffsetYV3
+            y: frame.midY + GameConfig.resultSubtitleOffsetYV4
         )
         scoreSubLabel.position = CGPoint(
             x: frame.midX,
@@ -593,35 +593,39 @@ final class ResultScene: SKScene {
         )
         divider.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultDividerOffsetYV3
+            y: frame.midY + GameConfig.resultDividerOffsetYV4
         )
+        // Sprint 9 Phase D — stat 좌표는 divider V4 - statGap V9 상대식으로 의도 명시(위/아래 묶음 분리).
+        // V3 statValueY(-98) 대비 -96 → -2pt 미세 차이, V3 statTitle pitch(-14)는 보존.
+        let statValueY = GameConfig.resultDividerOffsetYV4 - GameConfig.resultStatGapFromDividerV9
+        let statTitleY = statValueY - 14
         playsValueLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatValueOffsetYV3
+            y: frame.midY + statValueY
         )
         playsTitleLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatTitleOffsetYV3
+            y: frame.midY + statTitleY
         )
         totalValueLabel.position = CGPoint(
             x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatValueOffsetYV3
+            y: frame.midY + statValueY
         )
         totalTitleLabel.position = CGPoint(
             x: frame.midX + GameConfig.resultStatGroupSpacingXV2,
-            y: frame.midY + GameConfig.resultStatTitleOffsetYV3
+            y: frame.midY + statTitleY
         )
 
         // Sprint 7 Phase D — V3 신규 자식 3개 좌표.
-        // (1) scoreNoteIconLabel — scoreLabel.position 기준 -60 좌측 / y는 score row(-2)와 정렬.
+        // (1) scoreNoteIconLabel — scoreLabel.position 기준 -60 좌측 / y는 score row V4(+6)와 정렬.
         scoreNoteIconLabel.position = CGPoint(
             x: frame.midX + GameConfig.resultScoreNoteIconOffsetXV3,
-            y: frame.midY + GameConfig.resultScoreRowOffsetYV3
+            y: frame.midY + GameConfig.resultScoreOffsetYV4
         )
-        // (2) bestPill — scoreLabel.position 기준 +120 우측 / y는 score row(-2)와 정렬.
+        // (2) bestPill — scoreLabel.position 기준 +120 우측 / y는 score row V4(+6)와 정렬.
         bestPill?.position = CGPoint(
             x: frame.midX + GameConfig.resultBestPillOffsetXV3,
-            y: frame.midY + GameConfig.resultScoreRowOffsetYV3
+            y: frame.midY + GameConfig.resultScoreOffsetYV4
         )
         // Sprint 7+ — safeArea.bottom 회피로 교체.
         // 기존 resultButtonOffsetYV2(-180)는 값 보존 — 다른 곳 참조 가능성.

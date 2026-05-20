@@ -162,12 +162,17 @@ final class PlayerNode: SKSpriteNode {
 
         let body = CharacterFullBodyNode(id: characterID)
         body.name = "fullBody"
-        body.setScale(GameConfig.playerFullBodyScaleV4)
+        body.setScale(GameConfig.playerFullBodyScaleV9)
         body.zPosition = GameConfig.playerFaceChildZPosition
         // 초기 facing 노출 일치 — apply 직후 lastFacing이 .front라면 .front 노출 이미 set됨.
         body.facing(lastFacing)
         addChild(body)
         self.fullBody = body
+
+        // Sprint 9 Phase B — PixelSprite 본체 시각 차단 (Enemy 패턴 답습).
+        // refreshTexture()/physicsBody/이동 0줄 영향 — color 합성만으로 투명화.
+        self.color = .clear
+        self.colorBlendFactor = 1.0
     }
 
     // MARK: - Update (Movement)

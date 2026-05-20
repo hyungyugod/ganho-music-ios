@@ -264,11 +264,16 @@ final class CharacterCardNode: SKNode {
 
     // MARK: - Phase A · 선택 데코(글로우 + 알약, 기본 isHidden)
     /// 하단 코랄 radial glow + 상단 "선택됨" 알약. 기본 isHidden — setSelected에서 토글.
+    /// Sprint 9 Phase A — 카드 *외부* 부착 → 카드 *내부* inset으로 재배치.
+    ///   · 알약: halfH + 14 (외부 상단) → halfH - 16 (내부 상단 inset)
+    ///   · 글로우: -halfH + (-12) (외부 하단) → -halfH + 22 (내부 하단 inset)
+    ///   · 글로우 크기: 224×60 → 152×36 (카드 폭 - 8 / 카드 외부 침범 0)
+    /// 인스턴스(selectedGlow / selectedPill / selectedPillLabel)는 *재사용* — path/position만 V9로 교체.
     private func attachSelectedDecor() {
-        // 하단 코랄 radial glow (타원).
+        // 하단 코랄 radial glow (타원). Sprint 9 Phase A — 카드 내부 하단 inset + 폭 축소.
         let glowSize = CGSize(
-            width: GameConfig.characterCardSelectedGlowWidth,
-            height: GameConfig.characterCardSelectedGlowHeight
+            width: GameConfig.characterCardSelectedGlowWidthV9,
+            height: GameConfig.characterCardSelectedGlowHeightV9
         )
         selectedGlow.path = CGPath(
             ellipseIn: CGRect(
@@ -284,11 +289,12 @@ final class CharacterCardNode: SKNode {
         selectedGlow.strokeColor = .clear
         selectedGlow.lineWidth = 0
         let halfH = GameConfig.characterCardHeightV3 / 2
+        // Sprint 9 Phase A — 카드 내부 하단 inset(22pt 안쪽). AS-IS: -halfH + (-12) (외부).
         selectedGlow.position = CGPoint(
             x: 0,
-            y: -halfH + GameConfig.characterCardSelectedGlowOffsetY
+            y: -halfH + GameConfig.characterCardSelectedGlowInsetBottomV9
         )
-        // background(zPos 0) 뒤로 — 시각상 카드 아래로 새어 나옴.
+        // background(zPos 0) 뒤로 — 카드 내부에서 잔잔하게 비치는 느낌.
         selectedGlow.zPosition = -1
         selectedGlow.isHidden = true
         addChild(selectedGlow)
@@ -312,9 +318,10 @@ final class CharacterCardNode: SKNode {
         selectedPill.fillColor = .ganhoCoralPrimary
         selectedPill.strokeColor = .clear
         selectedPill.lineWidth = 0
+        // Sprint 9 Phase A — 카드 내부 상단 inset(16pt 안쪽). AS-IS: halfH + 14 (외부).
         selectedPill.position = CGPoint(
             x: 0,
-            y: halfH + GameConfig.characterCardSelectedPillOffsetY
+            y: halfH - GameConfig.characterCardSelectedPillInsetTopV9
         )
         selectedPill.zPosition = 10
         selectedPill.isHidden = true
@@ -326,6 +333,7 @@ final class CharacterCardNode: SKNode {
         selectedPillLabel.fontColor = .white
         selectedPillLabel.horizontalAlignmentMode = .center
         selectedPillLabel.verticalAlignmentMode = .center
+        // 라벨은 알약과 동일 좌표 — 알약 V9 inset에 자동 추적.
         selectedPillLabel.position = selectedPill.position
         selectedPillLabel.zPosition = 11
         selectedPillLabel.isHidden = true

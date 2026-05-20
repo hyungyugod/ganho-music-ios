@@ -60,6 +60,12 @@ final class CharacterSelectScene: SKScene {
     /// 한 터치 사이클당 1회만 스와이프 트리거 — 중복 swipeTo 방지.
     private var didSwipeInCurrentTouch: Bool = false
 
+    // Sprint 9 Phase A — 좌우 화살표 GlassPill 2개.
+    /// 왼쪽 화살표("‹") — currentIndex-1로 스와이프. 끝(index 0)에서 isHidden=true.
+    private var leftArrowChip: GlassPillNode?
+    /// 오른쪽 화살표("›") — currentIndex+1로 스와이프. 끝(index max)에서 isHidden=true.
+    private var rightArrowChip: GlassPillNode?
+
     // MARK: - Factory
     /// Sprint 6 — 인자 제거. StartScene이 유일 호출자.
     class func newCharacterSelectScene() -> CharacterSelectScene {
@@ -95,6 +101,7 @@ final class CharacterSelectScene: SKScene {
         applyGlassContainerSelection(id: selectedCharacterID)
         setupConfirmButton()
         rebuildSkillInfoPanel(for: selectedCharacterID)
+        setupArrowChips()                   // Sprint 9 Phase A — 좌우 ‹/› 화살표 2개.
         // Sprint 8 Phase B — 스와이프 페이지 초기 배치(애니메이션 없이).
         layoutCards(animated: false)
     }
@@ -109,8 +116,12 @@ final class CharacterSelectScene: SKScene {
         layoutCharacterFaces()              // Sprint 6.
         layoutCardColorDots()
         layoutTagLabels()
-        layoutConfirmButton()
+        // Sprint 9 Phase A QA 3차 — 의존성 역전 후 호출 순서: chip 먼저(cardBottom 기준 식),
+        // 그 다음 button(chip 기준 clamp). 산식이 chip 노드 없이도 동작하므로 순서 자체는 무관하나
+        // 의존 방향 명확성을 위해 chip → button 순으로 변경.
         layoutSkillInfoChip()
+        layoutConfirmButton()
+        layoutArrowChips()                  // Sprint 9 Phase A.
         // Sprint 8 Phase B — 회전/사이즈 변경 시 카드 즉시 재배치(애니메이션 없이).
         layoutCards(animated: false)
     }
@@ -264,10 +275,11 @@ final class CharacterSelectScene: SKScene {
     }
 
     private func layoutCharacterFaces() {
+        // Sprint 9 Phase A — 얼굴 y offset V9(12pt). AS-IS: V4(8pt). 카드 중심에서 살짝 위로.
         for (id, face) in characterFaces {
             face.position = CGPoint(
                 x: cardBaseX(for: id),
-                y: cardBaseY(for: id) + GameConfig.characterFaceOffsetYWithinCard
+                y: cardBaseY(for: id) + GameConfig.characterFaceOffsetYWithinCardV9
             )
         }
     }
@@ -346,17 +358,39 @@ final class CharacterSelectScene: SKScene {
 
     /// Sprint 2 — confirm 버튼은 가운데. backButton 인스턴스 제거됨.
     /// Sprint 7+ — safeArea.bottom 회피. 카드 하단(cardBaseY + characterCardHeight/2)보다 충분히 아래.
-    ///   - 카드 하단 ≈ frame.midY + 30 + 6 + 52 = frame.midY + 88(최대 zigzag 포함).
-    ///   - 새 confirm.y = frame.minY + safe.bottom + adaptiveBottomMargin + characterSelectConfirmButtonBottomInset.
-    ///   - 두 값 사이 간격이 PrimaryButton 높이(약 40~56pt)보다 큼.
+    /// Sprint 9 Phase A QA 3차 (Case B) — **cardBottom anchor 단일 식으로 의존성 역전**.
+    ///   AS-IS: chip이 button.y에 종속(chip = button.y + 64). cardCenterY를 낮추면 button이 음수 → chip도 충돌.
+    ///   TO-BE: chip이 cardBottom에 종속(chip = cardBottom − 20 − chipHalf). button이 chip.y에 종속.
+    ///     단방향 의존성: cardBottom → chip → button. Spring 비유: 의존성 역전(DIP)으로 button 산출이
+    ///     "chip을 모르는" 식에서 "chip을 기반으로 clamp되는" 식으로 바뀜.
+    /// 호출 순서: chip 먼저, button 나중 — didMove/didChangeSize에서 순서 보장.
     /// 기존 characterSelectConfirmButtonOffsetY(-180)는 값 보존(다른 곳 참조 가능성).
     private func layoutConfirmButton() {
         let safe = SceneSafeArea.insets(for: self)
-        confirmButton.position = CGPoint(
-            x: frame.midX,
-            y: frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin
-                + GameConfig.characterSelectConfirmButtonBottomInset
-        )
+        let baseY = frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin
+            + GameConfig.characterSelectConfirmButtonBottomInset
+        // Sprint 9 Phase A QA 3차 — chip 위치를 산식으로 직접 산출(chip 노드 의존성 0).
+        // chip 노드가 아직 생성되지 않은 시점(setupConfirmButton 단계)에서도 안전.
+        let chipY = skillChipBaselineY
+        let chipBottom = chipY - GameConfig.darkContextChipHeight / 2
+        // button top(buttonY + halfHeight) ≤ chipBottom − characterCardConfirmButtonBelowChipV9.
+        // 즉, buttonY ≤ chipBottom − 24 − primaryButtonHeight/2.
+        let maxAllowedY = chipBottom
+            - GameConfig.characterCardConfirmButtonBelowChipV9
+            - GameConfig.primaryButtonHeight / 2
+        let buttonY = min(baseY, maxAllowedY)
+        confirmButton.position = CGPoint(x: frame.midX, y: buttonY)
+    }
+
+    /// Sprint 9 Phase A QA 3차 — chip y baseline의 단일 진실 원천(cardBottom anchor).
+    /// layoutSkillInfoChip / layoutConfirmButton 양쪽이 이 값을 참조 — 두 식이 갈라질 위험 0.
+    /// 산식: cardBottom − characterCardSkillChipBelowCardV9(20) − chipHalfHeight(14).
+    /// 이 식 하나로 §4-A-4 #5(cardBottom ↔ chipTop ≥ 16pt)가 *산술적으로 보장*된다 — chipTop = cardBottom − 20.
+    private var skillChipBaselineY: CGFloat {
+        let cardBottom = cardBaseY(for: .kim) - GameConfig.characterCardHeightV3 / 2
+        return cardBottom
+            - GameConfig.characterCardSkillChipBelowCardV9
+            - GameConfig.darkContextChipHeight / 2
     }
 
     // MARK: - Setup (Sprint 2 · Skill Info Panel)
@@ -378,18 +412,15 @@ final class CharacterSelectScene: SKScene {
     }
 
     /// Sprint 7+ — confirm 버튼 위쪽 상대 간격(`characterSelectSkillInfoChipAbove`). frame.midY 기반 식은 폐기.
-    /// QA 2차 — confirmButton.position.y 직접 참조로 DRY 회복(두 식이 갈라질 위험 0).
-    /// 호출 순서: didMove(to:)는 setupConfirmButton → rebuildSkillInfoPanel 순,
-    ///           didChangeSize(_:)는 layoutConfirmButton → layoutSkillInfoChip 순.
-    ///           confirmButton의 position이 layoutSkillInfoChip 호출 시점에 항상 설정되어 있음.
-    /// 기존 characterSelectSkillInfoOffsetY(-100)는 값 보존(다른 곳 참조 가능성).
+    /// QA 2차 — confirmButton.position.y 직접 참조로 DRY 회복.
+    /// **Sprint 9 Phase A QA 3차 (Case B) — 의존성 역전**: chip이 더 이상 confirmButton에 종속되지 않는다.
+    ///   chip.y = `skillChipBaselineY` (cardBottom anchor 단일 식). button이 거꾸로 chip을 참조하여 clamp.
+    ///   호출 순서가 chip 먼저 → button 나중으로 바뀜(didMove / didChangeSize).
+    /// 기존 characterSelectSkillInfoOffsetY(-100), characterSelectSkillInfoChipAboveV9(64)는 값 보존.
     private func layoutSkillInfoChip() {
         guard let chip = skillInfoChip else { return }
-        // confirm 버튼 좌표를 직접 참조 — 두 식이 갈라질 위험 0(DRY).
-        chip.position = CGPoint(
-            x: frame.midX,
-            y: confirmButton.position.y + GameConfig.characterSelectSkillInfoChipAbove
-        )
+        // Sprint 9 Phase A QA 3차 — cardBottom anchor 단일 식. confirmButton 위치에 종속되지 않음.
+        chip.position = CGPoint(x: frame.midX, y: skillChipBaselineY)
         // Sprint 7 Phase A — 폭 clamp. 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
         // 칩 자체는 라벨 너비 기반 자동 폭이므로 setScale(maxW / currentW)로 축소.
         let maxW = GameConfig.characterSelectSkillInfoMaxWidth
@@ -411,6 +442,47 @@ final class CharacterSelectScene: SKScene {
         return String(format: "%.2f", Double(value))
     }
 
+    // MARK: - Setup (Sprint 9 Phase A · Left/Right Arrow Chips)
+    /// 카드 좌우 ±260pt 위치에 ‹ / › GlassPill 2개 신규.
+    /// zPos 115(카드 110·105·100보다 위). 끝 index에서는 isHidden=true.
+    /// touchesBegan에서 hit-test → swipeTo(currentIndex ±1) 분기.
+    private func setupArrowChips() {
+        let size = CGSize(
+            width: GameConfig.characterSelectArrowChipWidthV9,
+            height: GameConfig.characterSelectArrowChipHeightV9
+        )
+        let left = GlassPillNode(text: "‹", size: size)
+        left.name = "characterSelectArrowLeft"
+        left.zPosition = GameConfig.characterSelectArrowChipZPositionV9
+        leftArrowChip = left
+        addChild(left)
+
+        let right = GlassPillNode(text: "›", size: size)
+        right.name = "characterSelectArrowRight"
+        right.zPosition = GameConfig.characterSelectArrowChipZPositionV9
+        rightArrowChip = right
+        addChild(right)
+
+        layoutArrowChips()
+        updateArrowVisibility()
+    }
+
+    /// 좌우 화살표 위치 갱신 — 카드 y(cardBaseY)와 같은 높이, 화면 중앙에서 ±260pt.
+    private func layoutArrowChips() {
+        let offsetX = GameConfig.characterSelectArrowChipOffsetXV9
+        // 카드 y와 동일(어느 캐릭터를 넣어도 같은 y). 임의 .kim 기준.
+        let y = cardBaseY(for: .kim)
+        leftArrowChip?.position = CGPoint(x: frame.midX - offsetX, y: y)
+        rightArrowChip?.position = CGPoint(x: frame.midX + offsetX, y: y)
+    }
+
+    /// 끝 index 도달 시 해당 방향 화살표 isHidden=true. 그 외는 false.
+    /// currentIndex=0 → left isHidden. currentIndex=count-1 → right isHidden.
+    private func updateArrowVisibility() {
+        leftArrowChip?.isHidden = (currentIndex <= 0)
+        rightArrowChip?.isHidden = (currentIndex >= characters.count - 1)
+    }
+
     // MARK: - Card Geometry Helpers (Sprint 8 Phase B · 스와이프 페이지)
     /// 카드 x 좌표 — currentIndex 기준 ±N offset. 중앙(diff=0)은 frame.midX,
     /// 좌측(diff=-1)은 -180, 우측(diff=+1)은 +180. offscreen은 ±360 이상.
@@ -423,10 +495,13 @@ final class CharacterSelectScene: SKScene {
         return frame.midX + offset
     }
 
-    /// 카드 y 좌표 — 모든 카드가 동일한 y(scene.height × 0.50). 헤더(0.80 위) ↔ 카드(0.50) 사이
-    /// 30% 비율(~80pt 이상 가로 844pt 기준)의 safe gap 확보. zigzag 폐기.
-    private func cardBaseY(for id: CharacterID) -> CGFloat {
-        return frame.minY + frame.height * GameConfig.characterCardCenterYV4
+    /// 카드 y 좌표 — 모든 카드가 동일한 y. zigzag 폐기.
+    /// Sprint 9 Phase A — 비율을 V9(0.40)로 변경. AS-IS: V4(0.50, 화면 정중앙).
+    /// 카드 중심이 약 23pt 아래로 내려가 헤더 sub bottom ↔ 카드 top ≥ 24pt 호흡 확보.
+    /// V4 상수(0.50)는 값 보존 — 다른 사용처 참조 가능성.
+    /// 매개변수 `_`: 모든 카드가 동일 y를 공유하므로 id는 사용하지 않음 — 호출부 시그니처 호환을 위해 인자만 유지.
+    private func cardBaseY(for _: CharacterID) -> CGFloat {
+        return frame.minY + frame.height * GameConfig.characterCardCenterYV9
     }
 
     // MARK: - Sprint 8 Phase B · 스와이프 페이지 layout
@@ -458,10 +533,30 @@ final class CharacterSelectScene: SKScene {
             }
             // 컨테이너 / 얼굴도 같은 좌표로 동기화(시각 잔존 방지).
             cardContainers[id]?.position = targetPos
+            // Sprint 9 Phase A — 얼굴 y offset V9(12pt). AS-IS: V4(8pt).
             characterFaces[id]?.position = CGPoint(
                 x: targetPos.x,
-                y: targetPos.y + GameConfig.characterFaceOffsetYWithinCard
+                y: targetPos.y + GameConfig.characterFaceOffsetYWithinCardV9
             )
+            // Sprint 9 Phase A — 둥둥 얼굴 해소: face alpha를 카드 alpha와 동기화.
+            // center=1.0 / left,right=0.55(characterSwipeCardAlphaSideV4) / offscreen=0.
+            // 얼굴 zPos(105)는 그대로 유지.
+            let targetFaceAlpha: CGFloat
+            switch role {
+            case .center:    targetFaceAlpha = 1.0
+            case .left, .right: targetFaceAlpha = GameConfig.characterSwipeCardAlphaSideV4
+            case .offscreen: targetFaceAlpha = 0
+            }
+            if let face = characterFaces[id] {
+                face.removeAction(forKey: "faceAlpha")
+                if animated {
+                    let alphaAct = SKAction.fadeAlpha(to: targetFaceAlpha, duration: duration)
+                    alphaAct.timingMode = .easeInEaseOut
+                    face.run(alphaAct, withKey: "faceAlpha")
+                } else {
+                    face.alpha = targetFaceAlpha
+                }
+            }
             // 색점 / 태그 라벨도 카드 좌표 따라 같이 이동(isHidden=true이지만 회귀 안전).
             cardColorDots[id]?.position = CGPoint(
                 x: targetPos.x + GameConfig.characterCardWidthV3 / 2
@@ -480,6 +575,8 @@ final class CharacterSelectScene: SKScene {
             let diff = index - currentIndex
             card.zPosition = (diff == 0) ? 110 : (abs(diff) == 1 ? 105 : 100)
         }
+        // Sprint 9 Phase A — 끝 index 도달 시 좌/우 화살표 isHidden 갱신.
+        updateArrowVisibility()
     }
 
     /// 스와이프(또는 양옆 카드 탭)로 중앙 카드 변경.
@@ -542,7 +639,12 @@ final class CharacterSelectScene: SKScene {
     }
 
     // MARK: - Touch (Sprint 8 Phase B · 스와이프 페이지)
-    /// 우선순위: 양옆(±1) 카드 탭 → 뒤로 → confirm. (중앙 카드/외 영역 무동작 — 스와이프는 touchesMoved)
+    /// 우선순위(Sprint 9 Phase A 갱신):
+    ///   1) 좌/우 화살표 GlassPill → 해당 방향 스와이프 (양옆 카드 탭보다 먼저, 백/확인보다 먼저).
+    ///   2) 양옆(±1) 카드 탭 → 해당 인덱스로 스와이프.
+    ///   3) 뒤로 GlassPill.
+    ///   4) confirm 버튼.
+    /// (중앙 카드/외 영역 무동작 — 스와이프는 touchesMoved)
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
@@ -550,7 +652,16 @@ final class CharacterSelectScene: SKScene {
         swipeStartX = location.x
         didSwipeInCurrentTouch = false
 
-        // 1) 양옆(±1) 카드 탭 → 해당 인덱스로 스와이프.
+        // 1) Sprint 9 Phase A — 좌/우 화살표 GlassPill 우선 분기. isHidden=true면 hit 제외.
+        if let left = leftArrowChip, !left.isHidden, left.contains(location) {
+            swipeTo(index: currentIndex - 1)
+            return
+        }
+        if let right = rightArrowChip, !right.isHidden, right.contains(location) {
+            swipeTo(index: currentIndex + 1)
+            return
+        }
+        // 2) 양옆(±1) 카드 탭 → 해당 인덱스로 스와이프.
         for (index, id) in characters.enumerated() {
             let diff = index - currentIndex
             guard abs(diff) == 1 else { continue }
@@ -560,12 +671,12 @@ final class CharacterSelectScene: SKScene {
                 return
             }
         }
-        // 2) 뒤로 GlassPill.
+        // 3) 뒤로 GlassPill.
         if backPill?.contains(location) == true {
             transitionToStart()
             return
         }
-        // 3) confirm 버튼.
+        // 4) confirm 버튼.
         if confirmButton.contains(location) {
             transitionToNext()
         }

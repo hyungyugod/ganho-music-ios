@@ -1011,7 +1011,7 @@ enum GameConfig {
     /// 헤더 폰트 크기 (pt). titleFontSize(36)보다 작음 — 부분 화면 헤더 톤.
     static let characterSelectHeaderFontSize: CGFloat = 22
     /// 헤더 y 오프셋. 패널 상단 부근.
-    static let characterSelectHeaderOffsetY: CGFloat = 140
+    static let characterSelectHeaderOffsetY: CGFloat = 170
     /// 캐릭터 카드 행 y 오프셋. 헤더 아래 적당한 간격.
     static let characterSelectCardOffsetY: CGFloat = 30
     /// 태그 라벨 폰트 크기 (pt). characterCardWidth(48) 안에 1~5자 작은 태그.
@@ -2403,4 +2403,112 @@ enum GameConfig {
     /// CharacterFullBodyNode → PlayerNode hitbox fit scale(0.35).
     /// CharacterFullBodyNode 자체 좌표계(약 ±60pt) × 0.35 ≈ PlayerNode 시각(32×40pt) 정합.
     static let playerFullBodyScaleV4: CGFloat = 0.35
+
+    // MARK: - Sprint 9 Phase A · Character Select V9
+    //
+    // 카드 외부에 부착되던 알약/글로우/얼굴을 카드 내부 inset 좌표로 재배치.
+    // 좌우 GlassPill 화살표 2개 신규. 카드 y 비율을 0.50 → 0.44로 살짝 낮춰 헤더↔카드 24pt 호흡 확보.
+    // V3/V4 기존 상수는 모두 *값 보존*(다른 사용처 참조 가능성 + 회귀 안전망) — V9 신규만 추가.
+
+    /// "선택됨" 알약 — 카드 상단 *내부* inset(top 기준 16pt 안쪽). AS-IS: halfH + 14 (외부).
+    static let characterCardSelectedPillInsetTopV9: CGFloat = 16
+    /// 코랄 glow — 카드 하단 *내부* inset(bottom 기준 22pt 안쪽). AS-IS: -halfH + (-12) (외부).
+    static let characterCardSelectedGlowInsetBottomV9: CGFloat = 22
+    /// 코랄 glow 폭 — 카드 폭에 맞춤(cardWidthV3 - 8 = 152pt). AS-IS: 224 (카드 폭 1.4배 외부).
+    static let characterCardSelectedGlowWidthV9: CGFloat = 152
+    /// 코랄 glow 높이 — 36pt. AS-IS: 60.
+    static let characterCardSelectedGlowHeightV9: CGFloat = 36
+    /// 중앙 카드 Y 중심 비율(0.55). AS-IS: 0.50 → 0.44(QA 1차) → 0.40(QA 2차) → 0.55(QA 3차 방향 전환).
+    /// QA 1·2회차는 카드를 *낮추는* 방향 → cardBottom 절대 좌표가 너무 낮아 chip+button 공간 부족 → 음수 y.
+    /// QA 3회차(Case B): 카드를 *상향* + chip을 cardBottom anchor 단일 식으로 분리.
+    /// iPhone 17 Pro Landscape(390pt)에서 cardBaseY = 214.5, cardBottom = 114.5, chip top = 94.5,
+    /// buttonY = 18.5 (모두 양수, scene boundary 보존). mockup sprint9-character-select-v4.html 위치와 일치.
+    static let characterCardCenterYV9: CGFloat = 0.55
+    /// 카드 bottom ↔ 확인 버튼 top 최소 gap(36pt) — 이전 clamp 식의 잔존 상수. V9 신규 식에서는 미사용.
+    static let characterSelectConfirmButtonGapV9: CGFloat = 36
+    /// 확인 버튼 ↔ 스킬칩 거리(64pt). 이전 식의 잔존 상수. V9 신규 식에서는 미사용(chip이 button에 종속되지 않음).
+    /// 값 보존 — 다른 사용처 참조 안전.
+    static let characterSelectSkillInfoChipAboveV9: CGFloat = 64
+    /// 카드 bottom ↔ 스킬칩 top 사이 안전 호흡(20pt). §4-A-4 #5(≥16pt) 산술 보장 — QA 3차 신규.
+    /// chip.y = cardBottom − 20 − chipHalfHeight(14) 식의 핵심 inset.
+    static let characterCardSkillChipBelowCardV9: CGFloat = 20
+    /// 스킬칩 bottom ↔ 확인 버튼 top 사이 안전 호흡(24pt). §4-A-4 #6(≥20pt) 산술 보장 — QA 3차 신규.
+    /// buttonY 최댓값을 chipBottom 기준으로 clamp.
+    static let characterCardConfirmButtonBelowChipV9: CGFloat = 24
+    /// 얼굴 y offset(카드 내부 +12pt). AS-IS: 8. 카드 중심에서 살짝 위로 배치.
+    static let characterFaceOffsetYWithinCardV9: CGFloat = 12
+    /// 좌우 화살표 GlassPill 폭(36pt).
+    static let characterSelectArrowChipWidthV9: CGFloat = 36
+    /// 좌우 화살표 GlassPill 높이(36pt).
+    static let characterSelectArrowChipHeightV9: CGFloat = 36
+    /// 좌우 화살표 — 화면 중앙에서 x 오프셋(±260pt).
+    static let characterSelectArrowChipOffsetXV9: CGFloat = 260
+    /// 좌우 화살표 zPosition — 카드 110보다 위(115).
+    static let characterSelectArrowChipZPositionV9: CGFloat = 115
+
+    // MARK: - Sprint 9 Phase B · Player FullBody V9
+    //
+    // 인게임 풀바디 캐릭터를 "2칸(64pt)" 안에 들이기 위한 path 자체 축소 + scale 보정.
+    // V4 상수(playerFullBodyScaleV4 = 0.35)는 *값 보존* — 다른 사용처 참조 가능성 + 회귀 안전망.
+    // PixelSprite 본체는 PlayerNode.attachFullBody 끝에서 color=.clear + colorBlendFactor=1.0 패턴으로 시각 차단.
+    // physicsBody / velocity / 이동 로직 0줄 변경 — 순수 시각 layer.
+
+    /// 풀바디 몸통 폭(40pt). AS-IS: 56. CharacterFullBodyNode buildXxxBody body rect.
+    static let playerFullBodyBodyWidthV9: CGFloat = 40
+    /// 풀바디 몸통 높이(32pt). AS-IS: 44.
+    static let playerFullBodyBodyHeightV9: CGFloat = 32
+    /// 풀바디 머리 반지름(12pt). AS-IS: 18. circleOfRadius.
+    static let playerFullBodyHeadRadiusV9: CGFloat = 12
+    /// 풀바디 머리카락 폭(22pt). AS-IS: 32.
+    static let playerFullBodyHairWidthV9: CGFloat = 22
+    /// 풀바디 머리카락 높이(7pt). AS-IS: 10.
+    static let playerFullBodyHairHeightV9: CGFloat = 7
+    /// 풀바디 간호사 캡 폭(10pt). AS-IS: 14.
+    static let playerFullBodyCapWidthV9: CGFloat = 10
+    /// 풀바디 간호사 캡 높이(4pt). AS-IS: 6.
+    static let playerFullBodyCapHeightV9: CGFloat = 4
+    /// 풀바디 팔 높이(20pt). AS-IS: 28. 폭은 기존 playerArmWidthV4(4pt) 그대로.
+    static let playerFullBodyArmHeightV9: CGFloat = 20
+    /// 풀바디 다리 높이(18pt). AS-IS: 24. 폭은 기존 playerLegWidthV4(5pt) 그대로.
+    static let playerFullBodyLegHeightV9: CGFloat = 18
+    /// CharacterFullBodyNode → PlayerNode hitbox fit scale(0.92).
+    /// V9에서는 path 자체를 축소했기 때문에 scale은 거의 1:1. 최종 화면상 약 64pt(2 tile) = 2칸.
+    static let playerFullBodyScaleV9: CGFloat = 0.92
+
+    // MARK: - Sprint 9 Phase C · Enemy Visual & Countdown V9
+    // 빌런 3종 시각 자식(halo/chart/clip/stethoDisc/tube/armor/eye)을 일괄 1.4배 확대해
+    // 시뮬레이터 화면에서 24pt 이상 식별 면적 확보. physicsBody는 본체 size 기준이라 회귀 0.
+    // 카운트다운 zPos 250→300, dim alpha 0.32→0.22, dim zPos 240→290 — 항상 정중앙에 또렷이 표시.
+    /// 수간호사 시각 자식 일괄 scale(1.4). setupVisualOverlay() 끝에서 적용 — physicsBody 무영향.
+    static let enemyVisualScaleV9: CGFloat = 1.4
+    /// 이교수 시각 자식 일괄 scale(1.4). setupVisualOverlay() 끝에서 적용.
+    static let professorVisualScaleV9: CGFloat = 1.4
+    /// 석조무사 시각 자식 일괄 scale(1.4). setupVisualOverlay() 끝에서 적용.
+    static let stoneGuardVisualScaleV9: CGFloat = 1.4
+    /// CountdownNode zPosition V9(300). 기존 250보다 위 — HitFlash(200) 위 보장 + UI 잔존 노드와 충돌 회피.
+    static let countdownNodeZPositionV9: CGFloat = 300
+    /// 카운트다운 dim zPosition V9(290). CountdownNode(300) 바로 아래 — 숫자가 dim 위에 또렷이 표시.
+    static let countdownDimZPositionV9: CGFloat = 290
+    /// 카운트다운 dim 도달 alpha V9(0.22). 기존 0.32보다 약화 — coralPrimary/navyDeep 숫자 가독성 회복.
+    static let countdownDimAlphaV9: CGFloat = 0.22
+
+    // MARK: - Sprint 9 Phase D · Result V4 Spacing
+    // V3 좌표(headerChip+115 / accentLine+148 / title+85 / subtitle+58 / score-2 / divider-78)는 위쪽 5단의
+    // 시각 호흡이 6~28pt에 그쳐 답답했다. V4는 위 묶음 전체를 +20~30pt 끌어올려 각 행 사이 호흡 ≥ 24pt를 확보,
+    // 동시에 score(+6) ↔ divider(-68) gap을 74pt로 키워 "정체성 정보(위)"와 "통계(아래)"를 두 묶음으로 분리한다.
+    // V3 상수는 값 보존 — 다른 곳 참조 가능성 + 회귀 안전망.
+    /// headerChip y 오프셋 V4(+145). V3 +115 대비 +30pt 위 — 타이틀과 30pt 이상 이격해 호흡 회복.
+    static let resultHeaderChipOffsetYV4: CGFloat = 145
+    /// AccentLine y 오프셋 V4(+178). V3 +148 대비 +30pt 위 — headerChip과 함께 위로 시프트.
+    static let resultAccentLineOffsetYV4: CGFloat = 178
+    /// 타이틀(레거시) y 오프셋 V4(+100). V3 +85 대비 +15pt 위 — alpha=0 라벨이라 시각 영향은 없으나 좌표 일관성.
+    static let resultTitleOffsetYV4: CGFloat = 100
+    /// 부제 y 오프셋 V4(+64). V3 +58 대비 +6pt 위 — score와 58pt 이격 확보.
+    static let resultSubtitleOffsetYV4: CGFloat = 64
+    /// SCORE 라벨 y 오프셋 V4(+6). V3 -2 대비 +8pt 위 — divider와 74pt 이격해 위/아래 묶음 분리.
+    static let resultScoreOffsetYV4: CGFloat = 6
+    /// divider y 오프셋 V4(-68). V3 -78 대비 +10pt 위 — score와 74pt 이격해 위/아래 묶음 분리 첫 행.
+    static let resultDividerOffsetYV4: CGFloat = -68
+    /// divider→stat 값 행 거리 V9(28pt). statValueY = resultDividerOffsetYV4 - 28 = -96 (V3 -98과 동급).
+    static let resultStatGapFromDividerV9: CGFloat = 28
 }
