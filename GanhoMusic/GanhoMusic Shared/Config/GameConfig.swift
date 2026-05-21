@@ -1837,7 +1837,8 @@ enum GameConfig {
     static let characterSelectMaxCardSpacing: CGFloat = 56
     /// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
     /// PrimaryButton의 시각적 중앙을 카드 줄과 충분히 분리하기 위한 미세 inset.
-    static let characterSelectConfirmButtonBottomInset: CGFloat = 40
+    /// Sprint 10 — 40 → 64 (+24). 버튼이 safeArea 가장자리에 너무 붙어 답답하던 시각 결함 해소.
+    static let characterSelectConfirmButtonBottomInset: CGFloat = 64
     /// CharacterSelect 스킬 정보 칩 — 확인 버튼 위쪽 상대 간격.
     static let characterSelectSkillInfoChipAbove: CGFloat = 36
 

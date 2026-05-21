@@ -1,166 +1,159 @@
-# SPEC.md — Sprint 9 Phase D · 결과창 V4 spacing (위 묶음 분리 + 전체 위로)
+# SPEC.md — Im/Lee 간호사 모자 추가 + 다음 버튼 offsetY 상향
 
 ## 개요
-Sprint 7 Phase D ResultScene V3 좌표는 위쪽 5단(headerChip/accentLine/title/subtitle/score)을 압축해 시각 호흡이 6~28pt에 그쳤다. 본 Phase D는 GameConfig V4 offset 7건 신설 + ResultScene `layoutLabels()`의 V3 참조만 V4로 1:1 치환해 위 묶음을 +20~30pt 상향, 위·아래 묶음(score↔divider) gap ≥ 60pt 분리.
+캐릭터 선택창에서 5명 중 이간호(lee)·임간호(im) 2명만 nurse cap이 누락되어 시각 일관성이 깨진다. 두 캐릭터의 `buildImFace()` / `buildLeeFace()`에 `buildNurseCap()` 호출 한 줄씩 추가해 5명 모두 동일한 흰 모자 + 적십자 마크를 갖춘다. 동시에 "다음" 버튼이 화면 하단 가장자리에 너무 붙어 답답하므로 `characterSelectConfirmButtonBottomInset` 값을 키워 시각적으로 약 24pt 위로 끌어올린다.
 
 ## 변경 유형
-**비주얼 (결과창 spacing)** — 좌표 상수 7건 + `layoutLabels()` 위치식 9건 치환만. 라벨 텍스트/폰트/색/액션/init 인자/터치 정책 전부 byte-identical 보존.
+**비주얼** (캐릭터 시각 + 레이아웃 미세 조정 — 게임플레이/로직 영향 0)
 
 ## 게임 경험 의도
-플레이어가 게임 종료 후 결과창에서 각 정보 행을 또렷이 읽도록. V3에서 헤더칩↔타이틀↔부제가 압축돼 있던 답답함을 풀어 "수고했어요"의 따뜻한 호흡 회복. 위쪽 정체성 정보(난이도·캐릭터/타이틀/부제/점수)와 아래쪽 통계(divider/PLAYS·TOTAL)를 시각적으로 두 묶음으로 분리.
+3명만 모자를 쓰고 있던 부조화(김간호/정간호는 의도된 다른 헤드기어, 건간호만 모자) → 5명 모두 nurse cap을 공유하는 "간호사 게임" 정체성 강화. 동시에 "다음" 버튼이 safe area 바닥에 거의 닿아있던 갑갑함이 호흡 있는 하단 마진으로 바뀌어 캐릭터 선택의 시각적 마무리가 자연스러워진다.
 
-## Sprint 범위 계약 (Phase D 한정)
-- **허용**:
-  - `GameConfig.swift` Phase D V4 sub-MARK에 신규 상수 7건 추가
-  - `ResultScene.swift` `layoutLabels()` 안에서 V3 참조를 V4로 1:1 치환 (9건)
-  - 신규 V4 상수 주석(시각 호흡 의도)
-- **금지**:
-  - SPEC에 없는 신규 노드/효과/Phase 추가
-  - V3 상수 값 변경 (전부 *값 보존* — 다른 곳 참조 가능 + 회귀 안전망)
-  - V2 상수 값 변경
-  - ResultScene init 9개 인자 시그니처 변경
-  - scoreLabel.text 합성 정책 변경(`"\(finalScore)"` 그대로)
-  - bestLabel.alpha = 0 정책 변경
-  - DiplomaOverlayNode / sparkle / heavy 햅틱 / NewMail 사운드 발화 시점 변경
-  - 2단계 탭 정책 변경
-  - 3 버튼(scoreboard/share/restart) hit-test 좌표 변경
-- **판단 기준**: "이 변경이 없으면 V4 spacing이 제대로 동작하지 않는가?" → YES면 허용.
+## Sprint 범위 계약
 
-## V4 상수 (7건)
-```swift
-// MARK: - Sprint 9 Phase D · Result V4 Spacing
-static let resultHeaderChipOffsetYV4: CGFloat = 145   // V3 +115 → +30
-static let resultAccentLineOffsetYV4: CGFloat = 178   // V3 +148 → +30
-static let resultTitleOffsetYV4: CGFloat = 100        // V3 +85 → +15
-static let resultSubtitleOffsetYV4: CGFloat = 64      // V3 +58 → +6
-static let resultScoreOffsetYV4: CGFloat = 6          // V3 -2 → +8
-static let resultDividerOffsetYV4: CGFloat = -68      // V3 -78 → +10
-static let resultStatGapFromDividerV9: CGFloat = 28   // divider→stat 거리
-```
+### 허용
+- `CharacterFaceNode.swift` 내 `buildImFace()` / `buildLeeFace()` 본문에 **각각 `buildNurseCap()` 1줄 호출 추가만** 허용
+- `GameConfig.swift` 내 `characterSelectConfirmButtonBottomInset` 값 단일 변경 (40 → 64)
+- 위 변경만으로 maxAllowedY 클램프가 발동되어 시각적 상승이 부족할 경우 보조 조정: `characterCardConfirmButtonBelowChipV9` 24 → 16 (조건부, 필요 시에만)
+
+### 금지
+- `NurseAvatarNode` 본체 git diff 0줄 유지 (메모리 의사결정 #10 — Sprint 8)
+- `buildHeadBase()` · `buildBlush()` · `buildNurseCap()` 공통 함수 **본문 내부** 수정 (호출만 추가 허용)
+- 다른 캐릭터 분기 `buildKimFace()` · `buildJungFace()` · `buildGeonFace()` 본문 변경
+- 모든 side / back face 빌더 (`buildBackFace`, `buildSideFace`) 본문 변경
+- `CharacterCardNode` 내부 변경
+- `CharacterSelectScene.swift`의 `layoutConfirmButton()` 산식 자체 변경 (값 조정만 GameConfig에서)
+- 모자 모양/색상 변형 (`buildNurseCap` 공통 함수 그대로 사용 — 별도 path / 색 / 위치 조정 금지)
+
+### 판단 기준
+"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+
+## 변경 범위
+
+### 수정할 파일
+- `GanhoMusic Shared/Nodes/CharacterFaceNode.swift`:
+  - `buildImFace()` 본문에 `buildNurseCap()` 호출 1줄 추가 (`buildBlush(...)` 직전 권장)
+  - `buildLeeFace()` 본문에 `buildNurseCap()` 호출 1줄 추가 (`buildBlush(...)` 직전 권장)
+- `GanhoMusic Shared/Config/GameConfig.swift`:
+  - `characterSelectConfirmButtonBottomInset` 값: **40 → 64** (+24)
+  - (조건부) `characterCardConfirmButtonBelowChipV9` 값: 24 → 16 (QA 시 클램프 발동 확인된 경우만)
+
+### 추가할 파일
+없음.
 
 ## 기능 상세
 
-### 기능 1: GameConfig V4 상수 7건 신설
-- 위치: `Config/GameConfig.swift` 끝(Phase C V9 직후) `// MARK: - Sprint 9 Phase D · Result V4 Spacing`
-- V3 상수 *값 보존*
+### 기능 1: Im 캐릭터 nurse cap 추가
+- 설명: `buildImFace()`에서 nurse cap이 빠져있던 누락 결함을 해소. `buildNurseCap()` 공통 함수를 호출하여 흰 모자 본체(zPosition 20) + 적십자 v바/h바(zPosition 21)를 추가.
+- 구현 위치: `CharacterFaceNode.swift` · `// MARK: - 4. Im` · `buildImFace()` 함수 마지막
+- 호출 순서 근거 (중요):
+  - Im의 기존 zPosition 분포: 긴머리(zPos=-1) → buildHeadBase(zPos=0) → 가르마 앞머리(zPos=10) → 고양이귀(zPos=20) → 귀 안쪽(zPos=21) → 눈/입(zPos=30)
+  - **nurse cap은 cap path(zPos=20) + 적십자(zPos=21)** — 고양이귀와 동일 zPosition.
+  - SpriteKit은 동일 zPosition일 때 **addChild 순서가 곧 렌더 순서**(나중에 add된 것이 위에 그려짐). 따라서 cap을 귀 호출 *뒤*에 두면 모자가 귀를 자연스럽게 덮어 머리 정수리 부근에 안정적으로 안착.
+  - 단, 눈/입(zPos=30)은 cap zPos=20보다 위 → 얼굴 디테일은 모자에 가려지지 않음(정상).
+  - **삽입 위치**: `buildBlush(...)` 호출 *직전*. (buildGeonFace 패턴과 일관)
 
-### 기능 2: ResultScene `layoutLabels()` V3→V4 치환 9건
-- 위치: `Scenes/ResultScene.swift` `layoutLabels()` 메서드
-- 치환 9곳:
-  1. headerChip.position.y → V4
-  2. accentLine.position.y → V4
-  3. subtitleLabel.position.y → V4
-  4. scoreLabel.position.y → V4
-  5. scoreNoteIconLabel.position.y → V4 (score row 동기화)
-  6. bestPill.position.y → V4 (score row 동기화)
-  7. divider.position.y → V4
-  8. stat value 좌표 → `divider V4 - statGap V9` 상대식 (playsValue/totalValue)
-  9. stat title 좌표 → `statValueY - 14` (playsTitle/totalTitle)
-
-**V4 미적용 라인**:
-- titleLabel (V2 그대로, alpha=0이라 시각 영향 없음)
-- bestLabel / statsLabel / characterLabel / difficultyLabel / promptLabel / newBestLabel
-- scoreSubLabel (V3 `-44` 그대로)
-- buttonY 계산 (safeArea 기준)
-- gradientBg / overlayPanel (frame.midX/midY)
-
-**핵심 코드 구조**:
+핵심 코드 구조:
 ```swift
-headerChip?.position = CGPoint(x: frame.midX,
-    y: frame.midY + GameConfig.resultHeaderChipOffsetYV4)
-accentLine.position = CGPoint(x: frame.midX,
-    y: frame.midY + GameConfig.resultAccentLineOffsetYV4)
-subtitleLabel.position = CGPoint(x: frame.midX,
-    y: frame.midY + GameConfig.resultSubtitleOffsetYV4)
-scoreLabel.position = CGPoint(x: frame.midX,
-    y: frame.midY + GameConfig.resultScoreOffsetYV4)
-scoreNoteIconLabel.position = CGPoint(
-    x: frame.midX + GameConfig.resultScoreNoteIconOffsetXV3,
-    y: frame.midY + GameConfig.resultScoreOffsetYV4)
-bestPill?.position = CGPoint(
-    x: frame.midX + GameConfig.resultBestPillOffsetXV3,
-    y: frame.midY + GameConfig.resultScoreOffsetYV4)
-divider.position = CGPoint(x: frame.midX,
-    y: frame.midY + GameConfig.resultDividerOffsetYV4)
+private func buildImFace() {
+    // (기존 코드 그대로 — 긴머리, head base, 가르마, 고양이귀, 눈, 미소, 코)
+    ...
+    nose.zPosition = 30
+    addChild(nose)
 
-let statValueY = GameConfig.resultDividerOffsetYV4 - GameConfig.resultStatGapFromDividerV9
-let statTitleY = statValueY - 14
-playsValueLabel.position = CGPoint(
-    x: frame.midX - GameConfig.resultStatGroupSpacingXV2, y: frame.midY + statValueY)
-playsTitleLabel.position = CGPoint(
-    x: frame.midX - GameConfig.resultStatGroupSpacingXV2, y: frame.midY + statTitleY)
-totalValueLabel.position = CGPoint(
-    x: frame.midX + GameConfig.resultStatGroupSpacingXV2, y: frame.midY + statValueY)
-totalTitleLabel.position = CGPoint(
-    x: frame.midX + GameConfig.resultStatGroupSpacingXV2, y: frame.midY + statTitleY)
+    buildNurseCap()  // Sprint 10 — 5명 시각 일관성. 귀(zPos 20) 뒤에 add → cap이 위에 렌더.
+
+    buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
+}
 ```
 
-## 변경 금지 영역 (§6 Phase D 관련)
-| 영역 | 이유 |
-|---|---|
-| PlayerNode/SpawnSystem/ScoreSystem/SkillSystem/ContactRouter | 게임 로직 |
-| Models/ Repositories/ | 의미·저장 보존 |
-| CharacterFaceNode / NurseAvatarNode 전체 | 보호 노드 |
-| Sprint 8 Phase F V4 zPos 적층 80<100<110 | Phase F 결과 |
-| Sprint 8 Phase G 빌런 3종 2줄 | 의사결정 #6 |
-| **ResultScene init 9개 인자 + scoreLabel "\(finalScore)" + bestLabel.alpha=0** | **분기별 발화 보존 — 본 Phase 최우선** |
-| DiplomaOverlayNode 본체 | Sprint 5 결과 |
-| Phase A/B/C V9 30종 + 산출물 | 직전 합격분 회귀 0 |
+### 기능 2: Lee 캐릭터 nurse cap 추가
+- 설명: `buildLeeFace()`에서 nurse cap이 빠져있던 누락 결함을 해소. 동일하게 `buildNurseCap()` 공통 함수 호출.
+- 구현 위치: `CharacterFaceNode.swift` · `// MARK: - 5. Lee` · `buildLeeFace()` 함수 마지막
+- 호출 순서 근거:
+  - Lee의 기존 zPosition 분포: side curls(zPos=-1) → curl dots(zPos=1) → buildHeadBase(zPos=0) → 앞머리 bangs(zPos=10) → fringe 점(zPos=11) → 닫힌 눈/입(zPos=30)
+  - Lee에는 zPos=20 노드가 없음 → cap(zPos=20)이 fringe(zPos=11)와 bangs(zPos=10) 위에 깔끔히 안착. 닫힌 눈 미소(zPos=30)는 cap 위에 그대로 노출(정상).
+  - **삽입 위치**: `buildBlush(...)` 호출 *직전*.
 
-**국지적 보호**:
-- ResultScene touchesBegan 전체 (scoreboardButton 분기 + StartScene 전이 + isTransitioning)
-- revealNewBest / scheduleNewBestReveal / startBestLabelGoldBlink / emitSparkleBurst / presentDiploma 본문
-- configureNewBestLabel newBestLabel.position
-- buttonY 계산식 (safeArea)
-- scoreboardButton / shareButton / restartButton position
-- scoreSubLabel position (V3 -44 그대로)
+핵심 코드 구조:
+```swift
+private func buildLeeFace() {
+    // (기존 코드 그대로 — side curls, curl dots, head base, bangs, fringe, 눈, 미소)
+    ...
+    mouthNode.zPosition = 30
+    addChild(mouthNode)
 
-## 합격 기준
+    buildNurseCap()  // Sprint 10 — 5명 시각 일관성. bangs(zPos 10)·fringe(zPos 11) 위에 cap zPos 20.
 
-### §4-D-4 Phase D 기능 기준
-- 위 묶음 5단 각 행간 ≥ 24pt 시각 호흡
-- 위 묶음 마지막(score) ↔ 아래 묶음 첫(divider) gap ≥ 60pt
-- ResultScene init 시그니처 byte-identical
-- DiplomaOverlayNode / sparkle 5발 / heavy 햅틱 / NewMail 사운드 발화 시점 byte-identical
-- 2단계 탭 정책 byte-identical
-- "기록 보기" / "공유" / "다시 시작" 3 버튼 hit-test 회귀 0
-
-### §9 가중 (≥ 7.5)
-| 카테고리 | 가중치 | 통과선 |
-|---|---|---|
-| 게임 로직 회귀 0 | 40% | 9.0 |
-| Swift 패턴 | 20% | 7.0 |
-| 비주얼 일관성 | 25% | 7.0 |
-| 가독성 & UX | 15% | 7.0 |
-
-### Verify grep
-```bash
-git diff ResultScene.swift | grep -E "init\(|finalScore: Int|bestScore: Int"     # 빈
-git diff | grep -E "class func newResultScene"                                   # 빈
-git diff | grep -E 'scoreLabel\.text\s*=\s*"\\\('                                # 빈
-git diff | grep -E "bestLabel\.alpha\s*=\s*0"                                    # 빈
-git diff | grep -E "DiplomaOverlayNode\.present"                                 # 빈
-git diff | grep -E "haptics\.heavy|comboMilestoneStrong|emitSparkleBurst"        # 빈
-git diff | grep -E "touchesBegan|isTransitioning|scoreboardButton"               # 빈
+    buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
+}
 ```
 
-## 호흡 검증 (V4 시각 gap)
-| 위 행 | 아래 행 | y 차이 |
-|---|---|---|
-| accentLine(+178) | headerChip(+145) | 33pt ≥ 28pt ✓ |
-| headerChip(+145) | title via headerChip(+100) | 45pt ✓ |
-| (effective title) | subtitleLabel(+64) | 36pt ≥ 32pt ✓ |
-| subtitleLabel(+64) | scoreLabel(+6) | 58pt - 폰트반 ≈ 26pt ≥ 24pt ✓ |
-| **scoreLabel(+6)** | **divider(-68)** | **74pt ≥ 60pt** ✓ (위/아래 묶음 분리) |
-| divider(-68) | statValue(-96) | 28pt |
-| statValue(-96) | statTitle(-110) | 14pt (V3 pitch 보존) |
+### 기능 3: "다음" 버튼 offsetY 상향
+- 설명: `characterSelectConfirmButtonBottomInset` 값을 키워 buttonY 계산의 baseY를 끌어올림 → 버튼이 시각적으로 약 24pt 위로 이동.
+- 구현 위치: `GameConfig.swift`의 `characterSelectConfirmButtonBottomInset` 상수 값 변경.
+- 산술 분석:
+  - **현재값들** (Planner 검증):
+    - `primaryButtonHeight = 48`
+    - `darkContextChipHeight = 28`
+    - `adaptiveBottomMargin = 24`
+    - `characterSelectConfirmButtonBottomInset = 40` ← 변경 대상
+    - `characterCardHeightV3 = 200`
+    - `characterCardSkillChipBelowCardV9 = 20`
+    - `characterCardConfirmButtonBelowChipV9 = 24`
+  - **현재 buttonY 산식** (`layoutConfirmButton()`):
+    ```
+    baseY        = frame.minY + safe.bottom + 24 + 40  = frame.minY + safe.bottom + 64
+    chipY        = cardBottom − 20 − 14(chipHalf)      = cardBottom − 34
+    chipBottom   = chipY − 14                          = cardBottom − 48
+    maxAllowedY  = chipBottom − 24 − 24(btnHalf)       = cardBottom − 96
+    buttonY      = min(baseY, maxAllowedY)
+    ```
+  - **권장값**: `characterSelectConfirmButtonBottomInset: 40 → 64` (+24)
+    - 결과: `baseY = frame.minY + safe.bottom + 24 + 64 = frame.minY + safe.bottom + 88`
+    - 시각적으로 약 24pt 위로 상승.
+  - **클램프 검토**: 1차 변경만으로 대부분 디바이스에서 baseY가 maxAllowedY보다 작아 clamp 발동하지 않을 가능성이 높음 (산술 검증 시).
+  - **조건부 보조 변경**: 만약 클램프가 발동하여 시각 상승이 부족하다면 `characterCardConfirmButtonBelowChipV9: 24 → 16` (-8) 으로 chip-button 호흡을 좁히면서 16pt 이상 유지.
+
+핵심 코드 구조:
+```swift
+/// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
+/// Sprint 10 — 40 → 64. 버튼이 safeArea 가장자리에 너무 붙어 답답하던 시각 결함 해소.
+static let characterSelectConfirmButtonBottomInset: CGFloat = 64
+```
+
+## 합격 기준 (Evaluator용)
+
+가중 평균 ≥ 9.0 + 항목별 9.0+:
+
+- **Swift 패턴 9.0+**: 기존 코드 스타일 유지 (한국어 주석, MARK 섹션, 매직넘버 없음 — 모든 변경은 GameConfig 상수 또는 공통 함수 호출). 강제 언래핑 0건.
+- **게임 로직 9.0+**: 5명 모두 nurse cap이 머리 위에 가시. addChild 순서를 통한 동일 zPosition 렌더 우선순위가 정확. "다음" 버튼이 시각적으로 더 올라옴.
+- **성능 & 안정성 9.0+**: 추가 노드 증가 미미 (캐릭터당 +3 노드 — cap path + v바 + h바). buildNurseCap 공통 함수 재사용 → 코드 중복 0. 빌드 에러 없음.
+- **기능 완성도 9.0+**:
+  - CharacterSelectScene 실행 시 5장 카드 모두 nurse cap 표시 (김/정/건은 기존 보존, 임/이는 신규 표시)
+  - "다음" 버튼이 이전보다 약 24pt 위로 이동 (육안 시각 확인)
+  - 결과창(`ScoreboardScene`의 mini face) · 인게임(`CharacterFullBodyNode`) · side/back face에 영향 없음
+
+## 사용자 의사결정 (사전 확정)
+
+1. **모자 모양/색상**: `buildNurseCap()` 공통 함수 그대로 사용. 별도 변형 / 위치 미세조정 / 색 변경 금지.
+2. **offsetY 조정량**: 시각적으로 ~24pt 위로. `characterSelectConfirmButtonBottomInset` 40 → **64** (+24).
+3. **클램프 발동 시 대비책**: `characterCardConfirmButtonBelowChipV9` 24 → 16 (-8) 까지만 허용. 16pt 미만 금지.
+4. **호출 순서**: Im은 귀(zPos=20) *뒤*에 cap 호출하여 동일 zPos 내 cap이 위로 렌더. Lee는 fringe 점(zPos=11) 뒤 어디든 무방. 양쪽 모두 `buildBlush(...)` *직전*을 권장.
 
 ## 주의사항
 
-1. **scoreLabel 부작용 차단**: scoreLabel을 V4(+6)로 옮길 때 scoreNoteIcon/bestPill도 *같은 row*로 동시 이동. 안 그러면 score row가 깨짐.
-2. **stat 좌표 상대식**: `divider V4 - statGap V9` 패턴으로 의도 명시. V3 절대값(-98)은 보존.
-3. **titleLabel은 V4 미적용**: alpha=0 라벨, headerChip이 시각 담당. V2 그대로.
-4. **buttonY 보존**: safeArea 기준이라 V4 영향 0. 3 버튼 라인 0줄.
-5. **DiplomaOverlay/sparkle/heavy/NewMail 발화 시점**: 본문 0줄 변경. layoutLabels 외 코드는 byte-identical.
-6. **시뮬레이터 실측 우선** (§10): 위 묶음 ≥ 24pt + score↔divider ≥ 60pt 직접 측정.
-7. **회귀 위험 최소화**: GameConfig +12줄 / ResultScene ~9줄, 총 ~21줄.
+- **SpriteKit zPosition 동률 처리**: Im의 고양이귀와 nurse cap이 모두 zPosition=20. `addChild()` 호출 순서가 곧 그리기 순서이므로 cap을 귀 *뒤*에 호출해야 cap이 위에 그려진다. 만약 순서가 뒤바뀌면 모자 일부가 귀에 가려지는 시각 결함 발생.
+- **buildNurseCap 본문 보호**: 5명 공통 함수이므로 본문 변경 시 김/정/건도 영향 받음. 본문은 절대 손대지 않고 **호출만 추가**.
+- **convenience init·side·back face 불변**: `init(id: CharacterID, facing: Direction)`의 `.front` 분기만이 buildImFace/buildLeeFace를 호출. side / back는 별도 빌더이므로 본 SPEC 변경의 영향 없음.
+- **GameConfig 단일 사용처**: `characterSelectConfirmButtonBottomInset`는 `CharacterSelectScene.layoutConfirmButton()` 단일 사용 확인됨.
+- **빌드 검증**: 변경 후 시뮬레이터(iPhone Landscape)에서 CharacterSelectScene 진입 → 5장 카드 모두 모자 표시 + 버튼 위치 상승 육안 확인.
+- **mini face 부수효과 (의도된 개선)**: `CharacterFaceNode.mini(id:)` 호출(ScoreboardScene 사용)도 동일 `init(id:)` 경로이므로 mini face 5명도 모자 갖춤. 본 SPEC 의도("5명 시각 일관성")는 mini face 일관성도 함의 → **정상**.
+
+---
+
+## 참고 파일 경로 (절대 경로)
+
+- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift` (수정 — buildImFace line ~521, buildLeeFace line ~642)
+- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` (수정 — characterSelectConfirmButtonBottomInset)
+- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift` (참조만 — 산식 검증용 layoutConfirmButton)

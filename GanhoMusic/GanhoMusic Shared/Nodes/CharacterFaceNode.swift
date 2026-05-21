@@ -632,6 +632,9 @@ final class CharacterFaceNode: SKNode {
         nose.zPosition = 30
         addChild(nose)
 
+        // Sprint 10 — 5명 시각 일관성. 고양이귀(zPos 20) 뒤에 add → 동일 zPos 내 cap이 위로 렌더.
+        buildNurseCap()
+
         buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
     }
 
@@ -741,6 +744,9 @@ final class CharacterFaceNode: SKNode {
         mouthNode.lineCap = .round
         mouthNode.zPosition = 30
         addChild(mouthNode)
+
+        // Sprint 10 — 5명 시각 일관성. bangs(zPos 10)·fringe(zPos 11) 위에 cap zPos 20.
+        buildNurseCap()
 
         // 강한 볼터치(따뜻한·축제 느낌) — SVG `<ellipse cx="-44" cy="20" rx="14" ry="8" alpha 0.75"/>` 축소 → rx=7, ry=4.
         buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)

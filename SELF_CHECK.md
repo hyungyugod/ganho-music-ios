@@ -1,101 +1,143 @@
-# 자체 점검 — Sprint 9 Phase D · 결과창 V4 spacing
+# 자체 점검 — Sprint 10 Im/Lee Nurse Cap + 다음 버튼 offsetY 상향
 
-전략: Case A — 1회차 신규 구현. SPEC §"핵심 코드 구조" 그대로 따랐고, V3/V2 상수 값·init·발화 시점·터치 정책 byte-identical 보존.
+전략: 최초 시도 (Case 해당 없음).
 
-## SPEC 기능 체크
+## 수정한 파일 목록 + line 번호
 
-### 기능 1: GameConfig V4 상수 7건 신설
-- [x] `resultHeaderChipOffsetYV4 = 145` (V3 +115 → +30)
-- [x] `resultAccentLineOffsetYV4 = 178` (V3 +148 → +30)
-- [x] `resultTitleOffsetYV4 = 100` (V3 +85 → +15) — alpha=0 레거시 라벨용
-- [x] `resultSubtitleOffsetYV4 = 64` (V3 +58 → +6)
-- [x] `resultScoreOffsetYV4 = 6` (V2 -2 → +8)
-- [x] `resultDividerOffsetYV4 = -68` (V3 -78 → +10)
-- [x] `resultStatGapFromDividerV9 = 28` (divider→stat 거리)
-- [x] V3 상수 7건 모두 *값 보존* (회귀 안전망)
-- [x] 위치: Phase C V9 직후 `// MARK: - Sprint 9 Phase D · Result V4 Spacing`
+### 1) `GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift`
+- **buildImFace()** 본문 마지막 — line 635~636 신규 삽입 (nose addChild ~ buildBlush 사이)
+  - 주석 1줄(`// Sprint 10 — ...`) + `buildNurseCap()` 호출 1줄 추가
+- **buildLeeFace()** 본문 마지막 — line 748~749 신규 삽입 (mouth addChild ~ buildBlush 사이)
+  - 주석 1줄(`// Sprint 10 — ...`) + `buildNurseCap()` 호출 1줄 추가
 
-### 기능 2: ResultScene `layoutLabels()` V3/V2 → V4 치환 9건
+### 2) `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift`
+- **characterSelectConfirmButtonBottomInset** — line 1840~1841
+  - 주석 1줄(`Sprint 10 — 40 → 64 (+24) ...`) 신규 추가 + 값 `40` → `64` 변경
 
-| # | 라벨 | AS-IS | TO-BE |
-|---|---|---|---|
-| 1 | scoreLabel.position.y | `resultScoreOffsetYV2` (-2) | `resultScoreOffsetYV4` (+6) |
-| 2 | accentLine.position.y | `resultAccentLineOffsetYV3` (148) | `resultAccentLineOffsetYV4` (178) |
-| 3 | headerChip?.position.y | `resultHeaderChipOffsetYV3` (115) | `resultHeaderChipOffsetYV4` (145) |
-| 4 | subtitleLabel.position.y | `resultSubtitleOffsetYV3` (58) | `resultSubtitleOffsetYV4` (64) |
-| 5 | divider.position.y | `resultDividerOffsetYV3` (-78) | `resultDividerOffsetYV4` (-68) |
-| 6 | playsValueLabel.position.y | `resultStatValueOffsetYV3` (-98) | `statValueY` (= -68 - 28 = -96) |
-| 6' | totalValueLabel.position.y | 동일 | 동일 |
-| 7 | playsTitleLabel.position.y | `resultStatTitleOffsetYV3` (-112) | `statTitleY` (= -96 - 14 = -110) |
-| 7' | totalTitleLabel.position.y | 동일 | 동일 |
-| 8 | scoreNoteIconLabel.position.y | `resultScoreRowOffsetYV3` (-2) | `resultScoreOffsetYV4` (+6) — score row 동기화 |
-| 9 | bestPill?.position.y | `resultScoreRowOffsetYV3` (-2) | `resultScoreOffsetYV4` (+6) — score row 동기화 |
+## 변경 전/후 비교
 
-(stat은 plays/total 2쌍이라 1줄 표시 1건, 실제 코드는 4 라인 + 2 local let)
+### CharacterFaceNode.swift · buildImFace()
 
-### V4 미적용 라인 (의도)
-- [x] titleLabel — V2 그대로 유지(alpha=0 라벨, headerChip이 시각 담당)
-- [x] bestLabel — V2 그대로(alpha=0 정책 보존)
-- [x] statsLabel / characterLabel / difficultyLabel / promptLabel / newBestLabel — 기존 그대로
-- [x] scoreSubLabel — V3 `-44` 그대로
-- [x] buttonY — safeArea 기준 그대로 (V4 영향 0)
-
-## 호흡 검증 (산술 — V4 시각 gap)
-
-| 위 행 | 아래 행 | y 차이 | 합격 ≥ 24pt? |
-|---|---|---|---|
-| accentLine (+178) | headerChip (+145) | 33pt | ✓ (≥ 28pt) |
-| headerChip (+145) | titleLabel via header (+100) | 45pt | ✓ |
-| subtitle area (+64) | subtitleLabel (+64) | — | — |
-| subtitle (+64) | scoreLabel (+6) | 58pt | ✓ (≥ 24pt) |
-| **scoreLabel (+6)** | **divider (-68)** | **74pt** | ✓ **≥ 60pt — 위/아래 묶음 분리 확보** |
-| divider (-68) | statValue (-96) | 28pt | (statGap V9) |
-| statValue (-96) | statTitle (-110) | 14pt | (V3 pitch 보존) |
-
-scoreLabel ↔ divider gap **74pt ≥ 60pt** → SPEC §4-D-4 합격 기준 충족.
-
-## 보호 영역 — git diff "ResultScene.swift" 스코프 grep (모두 빈 출력)
-
+변경 전 (line 633~635):
 ```
-init( / finalScore: Int / bestScore: Int        → 빈
-class func newResultScene                       → 빈
-scoreLabel.text =                               → 빈
-bestLabel.alpha = 0                             → 빈
-DiplomaOverlayNode.present                      → 빈
-haptics.heavy / comboMilestoneStrong / emitSparkleBurst → 빈
-touchesBegan / isTransitioning / scoreboardButton → 빈
+        addChild(nose)
+
+        buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
 ```
 
-검증 명령:
-```bash
-git diff "GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift" | \
-  grep -E "init\(|finalScore: Int|bestScore: Int|newResultScene|scoreLabel\.text\s*=|bestLabel\.alpha\s*=\s*0|DiplomaOverlayNode\.present|haptics\.heavy|comboMilestoneStrong|emitSparkleBurst|touchesBegan|isTransitioning|scoreboardButton"
-# 출력 0줄
+변경 후 (line 633~638):
 ```
+        addChild(nose)
+
+        // Sprint 10 — 5명 시각 일관성. 고양이귀(zPos 20) 뒤에 add → 동일 zPos 내 cap이 위로 렌더.
+        buildNurseCap()
+
+        buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
+```
+
+### CharacterFaceNode.swift · buildLeeFace()
+
+변경 전 (line 746~748 부근):
+```
+        addChild(mouthNode)
+
+        // 강한 볼터치(따뜻한·축제 느낌) — SVG `<ellipse cx="-44" cy="20" rx="14" ry="8" alpha 0.75"/>` 축소 → rx=7, ry=4.
+        buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
+```
+
+변경 후 (line 746~752):
+```
+        addChild(mouthNode)
+
+        // Sprint 10 — 5명 시각 일관성. bangs(zPos 10)·fringe(zPos 11) 위에 cap zPos 20.
+        buildNurseCap()
+
+        // 강한 볼터치(따뜻한·축제 느낌) — SVG `<ellipse cx="-44" cy="20" rx="14" ry="8" alpha 0.75"/>` 축소 → rx=7, ry=4.
+        buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
+```
+
+### GameConfig.swift · characterSelectConfirmButtonBottomInset
+
+변경 전 (line 1838~1840):
+```
+    /// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
+    /// PrimaryButton의 시각적 중앙을 카드 줄과 충분히 분리하기 위한 미세 inset.
+    static let characterSelectConfirmButtonBottomInset: CGFloat = 40
+```
+
+변경 후 (line 1838~1841):
+```
+    /// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
+    /// PrimaryButton의 시각적 중앙을 카드 줄과 충분히 분리하기 위한 미세 inset.
+    /// Sprint 10 — 40 → 64 (+24). 버튼이 safeArea 가장자리에 너무 붙어 답답하던 시각 결함 해소.
+    static let characterSelectConfirmButtonBottomInset: CGFloat = 64
+```
+
+## 조건부 보조 변경 처리
+- `characterCardConfirmButtonBelowChipV9` 24 → 16 변경은 **하지 않음**.
+- 이유: SPEC §변경 범위에서 "(조건부) ... QA 시 클램프 발동 확인된 경우만". 클램프 발동은 시뮬레이터 시각 확인이 필요하며, 1차 변경(40→64)만으로 SPEC 산술 분석상 대부분 디바이스에서 baseY < maxAllowedY 가정이 성립 가능 → 1차 변경만 적용해 최소 변경 원칙 준수.
+- 클램프 발동이 QA에서 확인되면 2회차에서 추가 적용 예정.
+
+## SPEC.md 합격 기준 4개 항목별 자가 채점
+
+### Swift 패턴 9.5/10
+- 기존 코드 스타일 유지: 한국어 주석, MARK 섹션 보존 (신규 MARK 추가 없음).
+- 매직넘버 없음: 모든 변경은 GameConfig 상수 값 변경 또는 공통 함수(`buildNurseCap`) 호출.
+- 강제 언래핑 0건: 변경된 3줄에는 옵셔널 접근 없음.
+- weak self 캡처 불필요(클로저 추가 없음).
+- 코드 인덴트(8 spaces × 2 = 16 spaces 수준에서 8 spaces 유지): 함수 본문 인덴트와 동일 유지 확인됨.
+
+### 게임 로직 9.5/10
+- Im: 고양이귀(zPos=20) `addChild` 호출 이후 `buildNurseCap()` 호출 → cap(zPos=20)이 동일 zPos 내 뒤에 add되어 위로 렌더. 눈/입(zPos=30)은 cap 위 노출(정상).
+- Lee: bangs(zPos=10)·fringe(zPos=11) 위에 cap(zPos=20) 자연 안착. 닫힌 눈 미소(zPos=30)는 cap 위 노출(정상).
+- "다음" 버튼 baseY 가산값이 64 + 24 = 88로 증가 → 약 24pt 시각 상승.
+- 5명 모두 nurse cap 시각 일관성 확보 (Kim·Jung·Geon 기존 보존 + Im·Lee 신규).
+
+### 성능 & 안정성 9.5/10
+- 캐릭터당 +3 노드(cap path + v바 + h바). SKShapeNode 3개 × 2명 = 총 6개 노드 증가 — CharacterSelectScene 1회 생성, 풀바디/인게임 미영향.
+- `buildNurseCap` 공통 함수 재사용 → 코드 중복 0.
+- 빌드 위험 요소: 없음 (호출 한 줄 추가는 컴파일 안전).
+- 인코딩: 모든 한국어 주석 UTF-8 그대로 보존 (Edit 도구가 바이트 단위 처리).
+
+### 기능 완성도 9.5/10
+- CharacterSelectScene 진입 시 5장 카드 모두 nurse cap 표시 — Im/Lee의 init(id:) → .front 분기 → buildImFace/buildLeeFace 진입 → `buildNurseCap()` 실행.
+- 결과창 mini face: `CharacterFaceNode.mini(id:)`도 동일 init 경로이므로 mini face 5명도 모자 갖춤 (SPEC §주의사항: 의도된 부수효과).
+- 인게임 `CharacterFullBodyNode`: front face 빌더 사용 시 동일 코드 경로. SPEC §주의사항에 "결과창·인게임·side/back face에 영향 없음"이라고 명시되어 있으나 코드상으로는 mini는 영향(긍정적), side/back/풀바디는 별도 빌더라 영향 없음.
+- "다음" 버튼: GameConfig 단일 상수 변경. CharacterSelectScene `layoutConfirmButton()` 산식에서 baseY가 +24 증가.
+
+## 가중 평균 자가 추정
+(0.30 × 9.5) + (0.25 × 9.5) + (0.20 × 9.5) + (0.25 × 9.5) = **9.50/10** — SPEC 합격선(9.0) 충족 예상.
 
 ## Swift 패턴 준수
-- 강제 언래핑 미사용: 준수 (기존 `headerChip?` / `bestPill?` optional chaining 그대로)
-- guard let 옵셔널 처리: 해당 없음 (이번 Phase는 좌표 치환만)
-- MARK 섹션 구분: 준수 (`// MARK: - Sprint 9 Phase D · Result V4 Spacing`)
-- GameConfig 상수 사용: 준수 (V4 7건 신규 + 매직 넘버 1개 `-14`는 V3 pitch 보존 의도 주석 명시)
-- weak self 캡처: 해당 없음
+- 강제 언래핑 미사용: 준수 (변경 라인에 옵셔널 미사용)
+- guard let 옵셔널 처리: 해당 없음 (옵셔널 없음)
+- MARK 섹션 구분: 준수 (기존 MARK 보존, 신규 MARK 없음)
+- GameConfig 상수 사용: 준수 (`characterSelectConfirmButtonBottomInset` 상수 값만 변경)
+- weak self 캡처: 해당 없음 (클로저 미추가)
 
 ## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: 해당 없음 (layoutLabels는 willMove + didChangeSize 양쪽에서 호출되는 기존 패턴 보존)
+- didMove(to:)에서 초기화: 해당 없음 (씬 변경 없음)
 - dt 기반 이동: 해당 없음
 - SKAction 스폰 패턴: 해당 없음
 - 충돌 후 노드 즉시 삭제 없음: 해당 없음
-- HUD 노드 분리: 해당 없음 (좌표 치환만)
+- HUD 노드 분리: 해당 없음
+- zPosition 동률 처리: 준수 (Im 케이스에서 cap을 귀 *뒤*에 add → 위로 렌더, SPEC §주의사항 첫 항목 정확 반영)
 
-## 빌드 상태
-- xcodebuild SUCCEEDED (iPhone 17 Pro, iOS 16.6 Simulator, Debug)
-- 예상 빌드 에러: 없음
-- 주의 필요 경고: 없음
+## 빌드 위험 요소
+- **없음**. 변경 라인 모두 기존에 존재하는 `private func buildNurseCap()` 호출과 동일 클래스 내 `static let` 상수 값 변경뿐.
+- 인코딩: 한국어 주석 UTF-8 정상.
+- 세미콜론: Swift는 줄바꿈으로 종결, 세미콜론 없음 — 모든 추가 라인 준수.
+- 인덴트: 함수 본문(`private func ...`) 내부 8-space 인덴트로 일관 유지.
+- 토큰 균형: `(`/`)` 균형 유지. `{`/`}` 함수 본문 brace 영향 없음.
 
 ## 범위 외 미구현 항목
-- 없음 — SPEC §4-D-4 합격 기준 6항목 모두 충족.
+- 없음. SPEC §변경 범위 내 변경만 적용.
+- 조건부 보조 변경(`characterCardConfirmButtonBelowChipV9` 24 → 16)은 의도적으로 미적용 — SPEC상 "QA 시 클램프 발동 확인된 경우만" 허용. 시뮬레이터 실측 없이 선제 적용은 SPEC 의도 위반 위험.
 
-## 산출물
-- `GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` — +18 라인 (Phase D V4 7건 + sub-MARK + 4줄 의도 주석)
-- `GanhoMusic/GanhoMusic Shared/Scenes/ResultScene.swift` — layoutLabels() 안 9건 치환 + 2 local let + 2 comment update. 총 변경 행 ~21줄. **layoutLabels 외 본문 0줄 변경**.
-- `docs/learn/sprint-9-phase-d-result-spacing.md` — 학습 노트(중학생 수준).
+## 변경 외 보존 확인
+- `NurseAvatarNode.swift`: 미수정.
+- `buildHeadBase()` · `buildBlush()` · `buildNurseCap()` **본문**: 미수정.
+- `buildKimFace()` · `buildJungFace()` · `buildGeonFace()`: 미수정.
+- `buildBackFace*` · `buildSideFace*`: 미수정.
+- `CharacterCardNode.swift`: 미수정.
+- `CharacterSelectScene.swift`: 미수정 (산식 자체 변경 금지 준수).
