@@ -318,6 +318,34 @@ extension UIColor {
     static let ganhoStoneGuardDark     = UIColor(hex: "#5A5670")
     /// 석조무사 외곽선 — 따뜻한 회갈색. light 톤(#A0A0A8)과 명확히 분리된 stroke 색.
     static let ganhoStoneGuardOutline  = UIColor(hex: "#7A7570")
+
+    // MARK: - Sprint 10 Phase J · Pixel HUD/Effect Palette (8색)
+    //
+    // 인게임 픽셀 톤(8-bit) 전용 컬러 패밀리. 메뉴(v2 카툰 ganhoCoral*/ganhoNavy*)와 *완전 분리*된
+    // *별도 의미 단위* — 호출부에서 "이건 인게임 픽셀 톤"이 한 눈에 보이도록. 기존 ganhoYellowF(#FFD23F),
+    // ganhoMusicGold(#FFB347), ganhoCoralPrimary(#FF6B5B) 등과 hex 일부 동일/근접하지만 *네이밍 분리*
+    // 원칙(Difficulty/Brand 토큰 동형) — Sprint 10 Phase J SPEC §6 표 byte-equal.
+
+    /// HUD 라벨/COMBO hot/GO!/×10 옐로. #FFD23F — ganhoYellowF와 hex 동일하나 *의미 단위 분리*
+    /// (인게임 HUD/이펙트 lookup 전용). 8-bit 톤의 *명도 최고* 옐로.
+    static let ganhoPixelHudYellow     = UIColor(hex: "#FFD23F")
+    /// HUD 값/3·2·1/+1 점수 페이퍼 화이트. 순백 대신 #FFFCE0 — 따뜻한 8-bit CRT 화면 톤.
+    /// ganhoPixelFlashWhite(#fffce0)와 hex 동일하나 *의미 분리*(HUD 텍스트 전용).
+    static let ganhoPixelHudWhite      = UIColor(hex: "#FFFCE0")
+    /// TIME 경고/쿨다운 링 코랄. #FF6E5A — ganhoCoralPrimary(#FF6B5B)와 *근접* 톤이나 별도 hex.
+    /// 8-bit 톤 더 채도 높은 *경고 코랄*.
+    static let ganhoPixelHudCoral      = UIColor(hex: "#FF6E5A")
+    /// 콤보 ×3 골드. #FFC830 — 8-bit 픽셀 톤의 *깊은 옐로골드*.
+    static let ganhoPixelComboGold     = UIColor(hex: "#FFC830")
+    /// 콤보 ×5·×20 + ComboBreak 레드. #E0463A — 8-bit 톤의 깊은 *손실/클라이맥스 레드*.
+    static let ganhoPixelComboRed      = UIColor(hex: "#E0463A")
+    /// 픽셀 텍스트 외곽선 블랙. #0F1118 — 순흑(#000) 대신 미세한 *블루블랙* 톤 → 어두운 배경과
+    /// 자연스러운 깊이감.
+    static let ganhoPixelOutlineBlack  = UIColor(hex: "#0F1118")
+    /// HitFlash 풀스크린 피격 레드. #C8281A — 8-bit 톤의 *깊은 진홍*. ganhoBloodAccent(#D8315B)와 별도.
+    static let ganhoPixelHitRed        = UIColor(hex: "#C8281A")
+    /// 5초 비네트 가장자리 톤. #FF3D2E — 8-bit 톤의 *경고 형광 코랄*.
+    static let ganhoPixelTensionEdge   = UIColor(hex: "#FF3D2E")
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

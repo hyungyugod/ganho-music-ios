@@ -1,159 +1,256 @@
-# SPEC.md — Im/Lee 간호사 모자 추가 + 다음 버튼 offsetY 상향
+# Sprint 10 Phase J — HUD · iOS 이펙트 픽셀 톤 변환 (마지막 Phase)
 
-## 개요
-캐릭터 선택창에서 5명 중 이간호(lee)·임간호(im) 2명만 nurse cap이 누락되어 시각 일관성이 깨진다. 두 캐릭터의 `buildImFace()` / `buildLeeFace()`에 `buildNurseCap()` 호출 한 줄씩 추가해 5명 모두 동일한 흰 모자 + 적십자 마크를 갖춘다. 동시에 "다음" 버튼이 화면 하단 가장자리에 너무 붙어 답답하므로 `characterSelectConfirmButtonBottomInset` 값을 키워 시각적으로 약 24pt 위로 끌어올린다.
+## 1. 개요
+인게임 HUD/오버레이/이펙트의 모든 시각 톤을 v2 카툰(Jua-Regular + 코랄/네이비) → **8-bit 픽셀 톤(Menlo-Bold + 픽셀 옐로/페이퍼화이트)** 으로 일관 변환. Phase A~I로 인게임 본체가 픽셀화된 상태에서, 마지막으로 UI/이펙트 레이어를 통일해 시각 분기(메뉴=카툰 / 인게임=픽셀)를 완성.
 
-## 변경 유형
-**비주얼** (캐릭터 시각 + 레이아웃 미세 조정 — 게임플레이/로직 영향 0)
+## 2. 변경 유형
+**비주얼** (픽셀 톤 변환 — 게임 로직/AI/물리/스폰/충돌 0건 변경)
 
-## 게임 경험 의도
-3명만 모자를 쓰고 있던 부조화(김간호/정간호는 의도된 다른 헤드기어, 건간호만 모자) → 5명 모두 nurse cap을 공유하는 "간호사 게임" 정체성 강화. 동시에 "다음" 버튼이 safe area 바닥에 거의 닿아있던 갑갑함이 호흡 있는 하단 마진으로 바뀌어 캐릭터 선택의 시각적 마무리가 자연스러워진다.
+## 3. 게임 경험 의도
+메뉴 부드러운 카툰 UI → 인게임 진입 시 8-bit HUD/팝업/카운트다운으로 톤 통째 전환. 점수 +1·콤보 ×3·GO! 모든 텍스트 픽셀 폰트, sparkle 1×1 사각 픽셀, 5초 긴박감 픽셀 비네트로 패미컴 절체절명 환기.
 
-## Sprint 범위 계약
+## 4. Sprint 범위 계약
 
-### 허용
-- `CharacterFaceNode.swift` 내 `buildImFace()` / `buildLeeFace()` 본문에 **각각 `buildNurseCap()` 1줄 호출 추가만** 허용
-- `GameConfig.swift` 내 `characterSelectConfirmButtonBottomInset` 값 단일 변경 (40 → 64)
-- 위 변경만으로 maxAllowedY 클램프가 발동되어 시각적 상승이 부족할 경우 보조 조정: `characterCardConfirmButtonBelowChipV9` 24 → 16 (조건부, 필요 시에만)
+**허용**: HUDNode/HUDSkillSlotNode/ComboPopupNode/ComboBreakNode/ScorePopupNode/SparkleEffectNode/CountdownNode/HitFlashNode/BombFlashNode 폰트·색·외곽선·입자 모양 교체. GameConfig 픽셀 톤 상수 추가. TensionVignetteNode 신규.
 
-### 금지
-- `NurseAvatarNode` 본체 git diff 0줄 유지 (메모리 의사결정 #10 — Sprint 8)
-- `buildHeadBase()` · `buildBlush()` · `buildNurseCap()` 공통 함수 **본문 내부** 수정 (호출만 추가 허용)
-- 다른 캐릭터 분기 `buildKimFace()` · `buildJungFace()` · `buildGeonFace()` 본문 변경
-- 모든 side / back face 빌더 (`buildBackFace`, `buildSideFace`) 본문 변경
-- `CharacterCardNode` 내부 변경
-- `CharacterSelectScene.swift`의 `layoutConfirmButton()` 산식 자체 변경 (값 조정만 GameConfig에서)
-- 모자 모양/색상 변형 (`buildNurseCap` 공통 함수 그대로 사용 — 별도 path / 색 / 위치 조정 금지)
+**금지**: SPEC 외 새 이펙트/HUD 슬롯, SKAction 본문 변경, 외부 API 시그니처 변경.
 
-### 판단 기준
-"이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지.
+## 5. 사용자 의사결정 7건 (§3 그대로)
 
-## 변경 범위
+| # | 항목 | 결정 |
+|---|---|---|
+| 1 | 카메라 follow 유지, 맵 32×20 | |
+| 2 | 박병장 유지 + 비행기/폭탄/5초 도주 | |
+| 3 | EnemyNode 자식 시각 제거 | |
+| 4 | iOS 고유 이펙트 픽셀 톤 변환 유지 | |
+| 5 | BGM/SE 유지 | |
+| 6 | dpad 유지 | |
+| 7 | 캐릭터 5명 byte-equal | |
 
-### 수정할 파일
-- `GanhoMusic Shared/Nodes/CharacterFaceNode.swift`:
-  - `buildImFace()` 본문에 `buildNurseCap()` 호출 1줄 추가 (`buildBlush(...)` 직전 권장)
-  - `buildLeeFace()` 본문에 `buildNurseCap()` 호출 1줄 추가 (`buildBlush(...)` 직전 권장)
-- `GanhoMusic Shared/Config/GameConfig.swift`:
-  - `characterSelectConfirmButtonBottomInset` 값: **40 → 64** (+24)
-  - (조건부) `characterCardConfirmButtonBelowChipV9` 값: 24 → 16 (QA 시 클램프 발동 확인된 경우만)
+Phase J 특히 #4 적용.
 
-### 추가할 파일
-없음.
+## 6. 픽셀 톤 단일 정책
 
-## 기능 상세
+### 폰트
+- 인게임: `GameConfig.fontPixel = "Menlo-Bold"` (Phase G/H 사용)
+- 메뉴: fontDisplay = "Jua-Regular" 유지
 
-### 기능 1: Im 캐릭터 nurse cap 추가
-- 설명: `buildImFace()`에서 nurse cap이 빠져있던 누락 결함을 해소. `buildNurseCap()` 공통 함수를 호출하여 흰 모자 본체(zPosition 20) + 적십자 v바/h바(zPosition 21)를 추가.
-- 구현 위치: `CharacterFaceNode.swift` · `// MARK: - 4. Im` · `buildImFace()` 함수 마지막
-- 호출 순서 근거 (중요):
-  - Im의 기존 zPosition 분포: 긴머리(zPos=-1) → buildHeadBase(zPos=0) → 가르마 앞머리(zPos=10) → 고양이귀(zPos=20) → 귀 안쪽(zPos=21) → 눈/입(zPos=30)
-  - **nurse cap은 cap path(zPos=20) + 적십자(zPos=21)** — 고양이귀와 동일 zPosition.
-  - SpriteKit은 동일 zPosition일 때 **addChild 순서가 곧 렌더 순서**(나중에 add된 것이 위에 그려짐). 따라서 cap을 귀 호출 *뒤*에 두면 모자가 귀를 자연스럽게 덮어 머리 정수리 부근에 안정적으로 안착.
-  - 단, 눈/입(zPos=30)은 cap zPos=20보다 위 → 얼굴 디테일은 모자에 가려지지 않음(정상).
-  - **삽입 위치**: `buildBlush(...)` 호출 *직전*. (buildGeonFace 패턴과 일관)
+### 색 팔레트
 
-핵심 코드 구조:
+| 토큰 | hex | 용도 |
+|---|---|---|
+| ganhoPixelHudYellow | #FFD23F | HUD 라벨/COMBO hot/GO!/×10 |
+| ganhoPixelHudWhite | #FFFCE0 | HUD 값/3·2·1/+1 점수 |
+| ganhoPixelHudCoral | #FF6E5A | TIME 경고/쿨다운 링 |
+| ganhoPixelComboGold | #FFC830 | 콤보 ×3 |
+| ganhoPixelComboRed | #E0463A | 콤보 ×5·×20 + ComboBreak |
+| ganhoPixelOutlineBlack | #0F1118 | 픽셀 텍스트 외곽선 |
+| ganhoPixelHitRed | #C8281A | HitFlash 풀스크린 |
+| ganhoPixelTensionEdge | #FF3D2E | 5초 비네트 |
+
+### zPosition
+모든 노드 기존 zPosition 상수 0줄 변경. 톤만 swap.
+
+## 7. 변경 범위
+
+### 수정 (9개)
+- GameConfig.swift: 픽셀 톤 상수 신규 (추가만)
+- HUDNode.swift: HUDSlotNode 라벨/값 fontName + fontColor 픽셀 톤 swap
+- HUDSkillSlotNode.swift: fontName + 링 stroke READY=옐로/쿨다운=코랄
+- ComboPopupNode.swift: fontDisplay → fontPixel, color(for:) 픽셀 팔레트
+- ComboBreakNode.swift: fontPixel + ganhoPixelComboRed + 외곽선
+- ScorePopupNode.swift: fontPixel + color(for:) 픽셀 톤
+- SparkleEffectNode.swift: context 분기, .ingame 픽셀 입자 / .menu 원형 유지
+- CountdownNode.swift: context 분기, 3·2·1 픽셀화이트 / GO! 픽셀옐로
+- HitFlashNode.swift: ganhoPixelHitRed + blendMode .add
+
+### 신규 (1개)
+- TensionVignetteNode.swift: 5초 긴박감 픽셀 비네트
+
+### 검증만 (0줄)
+- BombFlashNode.swift (Phase G 적용 완료)
+
+## 8. 기능 1 — HUDNode
+
 ```swift
-private func buildImFace() {
-    // (기존 코드 그대로 — 긴머리, head base, 가르마, 고양이귀, 눈, 미소, 코)
-    ...
-    nose.zPosition = 30
-    addChild(nose)
+labelNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
+labelNode.fontColor = .ganhoPixelHudYellow
+valueNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
+valueNode.fontColor = .ganhoPixelHudWhite
+// setWarn: ganhoCoralShadow → ganhoPixelHudCoral
+```
 
-    buildNurseCap()  // Sprint 10 — 5명 시각 일관성. 귀(zPos 20) 뒤에 add → cap이 위에 렌더.
+외부 API(update/setCharacterName/startTensionBlink/stopTensionBlink) 시그니처 0줄.
 
-    buildBlush(radiusX: 5, radiusY: 3, cy: 10, alpha: 0.65)
+## 9. 기능 2 — HUDSkillSlotNode
+
+fontName 픽셀. ringNode.strokeColor ganhoMusicGold(0.3) → ganhoPixelHudYellow(0.3). ringFillNode READY .ganhoMusicGold → .ganhoPixelHudYellow. 쿨다운 .ganhoCoralPrimary → .ganhoPixelHudCoral. valueNode READY 색도 픽셀 옐로. 4상태 분기/configure/oncePerGame/alpha 보간 0줄.
+
+## 10. 기능 3 — ComboPopupNode
+
+fontDisplay → fontPixel. addOutline navy → ganhoPixelOutlineBlack. color(for:) 매핑:
+- 3 → ganhoPixelComboGold
+- 5 → ganhoPixelComboRed
+- 10 → ganhoPixelHudYellow
+- 20 → ganhoPixelComboRed
+
+animate SKAction 0줄, zRotation -8° 유지.
+
+## 11. 기능 4 — ComboBreakNode
+
+fontPixel + .ganhoPixelComboRed + 외곽선 .ganhoPixelOutlineBlack. animate 0줄.
+
+## 12. 기능 5 — ScorePopupNode
+
+fontNamed: fontPixel. color(for:):
+- scorePerNote → ganhoPixelHudWhite
+- scorePerNoteCombo → ganhoPixelHudYellow
+
+spawn 정적 팩토리 시그니처 0줄.
+
+## 13. 기능 6 — SparkleEffectNode (context 분기)
+
+```swift
+enum SparkleContext { case ingame, menu }
+
+init(context: SparkleContext = .ingame) {
+    super.init()
+    self.context = context
+    buildParticles()
+}
+
+private func buildParticles() {
+    for _ in 0..<GameConfig.sparkleParticleCount {
+        let particle: SKNode
+        switch context {
+        case .ingame:
+            particle = SKSpriteNode(color: .ganhoPixelHudWhite,
+                                    size: CGSize(width: GameConfig.sparklePixelSize,
+                                                 height: GameConfig.sparklePixelSize))
+        case .menu:
+            let shape = SKShapeNode(circleOfRadius: GameConfig.sparkleParticleRadius)
+            shape.fillColor = .white
+            shape.strokeColor = .clear
+            particle = shape
+        }
+        particle.position = .zero
+        addChild(particle)
+    }
 }
 ```
 
-### 기능 2: Lee 캐릭터 nurse cap 추가
-- 설명: `buildLeeFace()`에서 nurse cap이 빠져있던 누락 결함을 해소. 동일하게 `buildNurseCap()` 공통 함수 호출.
-- 구현 위치: `CharacterFaceNode.swift` · `// MARK: - 5. Lee` · `buildLeeFace()` 함수 마지막
-- 호출 순서 근거:
-  - Lee의 기존 zPosition 분포: side curls(zPos=-1) → curl dots(zPos=1) → buildHeadBase(zPos=0) → 앞머리 bangs(zPos=10) → fringe 점(zPos=11) → 닫힌 눈/입(zPos=30)
-  - Lee에는 zPos=20 노드가 없음 → cap(zPos=20)이 fringe(zPos=11)와 bangs(zPos=10) 위에 깔끔히 안착. 닫힌 눈 미소(zPos=30)는 cap 위에 그대로 노출(정상).
-  - **삽입 위치**: `buildBlush(...)` 호출 *직전*.
+호출부:
+- GameScene.swift L567/L657 → `.ingame`
+- ResultScene.swift L788 → `.menu`
 
-핵심 코드 구조:
+emit SKAction 0줄.
+
+## 14. 기능 7 — CountdownNode (context 분기)
+
 ```swift
-private func buildLeeFace() {
-    // (기존 코드 그대로 — side curls, curl dots, head base, bangs, fringe, 눈, 미소)
+enum CountdownContext { case ingame, menu }
+override init() { self.init(context: .ingame) }   // 호환성
+init(context: CountdownContext) {
+    let fontName = (context == .ingame) ? GameConfig.fontPixel : GameConfig.fontDisplay
+    self.label = SKLabelNode(fontNamed: fontName)
     ...
-    mouthNode.zPosition = 30
-    addChild(mouthNode)
+}
+// 3·2·1: .ganhoPixelHudWhite (vs .ganhoNavyDeep 메뉴)
+// GO!: .ganhoPixelHudYellow (vs .ganhoCoralPrimary 메뉴)
+```
 
-    buildNurseCap()  // Sprint 10 — 5명 시각 일관성. bangs(zPos 10)·fringe(zPos 11) 위에 cap zPos 20.
+SKAction sequence/fadeIn/fadeOut/hold/scaleUp 0줄.
 
-    buildBlush(radiusX: 7, radiusY: 4, cy: 10, alpha: 0.75)
+## 15. 기능 8 — HitFlashNode
+
+```swift
+super.init(texture: nil, color: .ganhoPixelHitRed, size: .zero)
+blendMode = .add
+```
+
+peakAlpha 0.6 → 0.5 조정 허용 (시뮬레이터 검증 후). SKAction 0줄.
+
+## 16. 기능 9 — TensionVignetteNode 신규
+
+```swift
+final class TensionVignetteNode: SKNode {
+    init(sceneSize: CGSize) {
+        super.init()
+        name = "tensionVignette"
+        zPosition = GameConfig.tensionVignetteZPosition   // 110 (HUD 100~101 위, countdown 250 아래)
+        let thickness = GameConfig.tensionVignetteThickness   // 8pt
+        // 상/하/좌/우 4 SKSpriteNode 가장자리 inset
+        // 색 ganhoPixelTensionEdge, alpha 0.6
+        // 4 자식 모두 SKAction.repeatForever blink (fadeAlpha 0.3 ↔ 0.7, 0.5s)
+    }
+    required init?(coder: NSCoder) { fatalError() }
 }
 ```
 
-### 기능 3: "다음" 버튼 offsetY 상향
-- 설명: `characterSelectConfirmButtonBottomInset` 값을 키워 buttonY 계산의 baseY를 끌어올림 → 버튼이 시각적으로 약 24pt 위로 이동.
-- 구현 위치: `GameConfig.swift`의 `characterSelectConfirmButtonBottomInset` 상수 값 변경.
-- 산술 분석:
-  - **현재값들** (Planner 검증):
-    - `primaryButtonHeight = 48`
-    - `darkContextChipHeight = 28`
-    - `adaptiveBottomMargin = 24`
-    - `characterSelectConfirmButtonBottomInset = 40` ← 변경 대상
-    - `characterCardHeightV3 = 200`
-    - `characterCardSkillChipBelowCardV9 = 20`
-    - `characterCardConfirmButtonBelowChipV9 = 24`
-  - **현재 buttonY 산식** (`layoutConfirmButton()`):
-    ```
-    baseY        = frame.minY + safe.bottom + 24 + 40  = frame.minY + safe.bottom + 64
-    chipY        = cardBottom − 20 − 14(chipHalf)      = cardBottom − 34
-    chipBottom   = chipY − 14                          = cardBottom − 48
-    maxAllowedY  = chipBottom − 24 − 24(btnHalf)       = cardBottom − 96
-    buttonY      = min(baseY, maxAllowedY)
-    ```
-  - **권장값**: `characterSelectConfirmButtonBottomInset: 40 → 64` (+24)
-    - 결과: `baseY = frame.minY + safe.bottom + 24 + 64 = frame.minY + safe.bottom + 88`
-    - 시각적으로 약 24pt 위로 상승.
-  - **클램프 검토**: 1차 변경만으로 대부분 디바이스에서 baseY가 maxAllowedY보다 작아 clamp 발동하지 않을 가능성이 높음 (산술 검증 시).
-  - **조건부 보조 변경**: 만약 클램프가 발동하여 시각 상승이 부족하다면 `characterCardConfirmButtonBelowChipV9: 24 → 16` (-8) 으로 chip-button 호흡을 좁히면서 16pt 이상 유지.
+GameScene에서 `startTensionBlink` 호출 직후 attach, `stopTensionBlink`에서 removeFromParent. cameraNode 자식.
 
-핵심 코드 구조:
+HUDNode.startTensionBlink/stopTensionBlink 시그니처 0줄. GameScene가 비네트 attach/detach 2~3줄만 추가.
+
+## 17. GameConfig 신규 상수
+
 ```swift
-/// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
-/// Sprint 10 — 40 → 64. 버튼이 safeArea 가장자리에 너무 붙어 답답하던 시각 결함 해소.
-static let characterSelectConfirmButtonBottomInset: CGFloat = 64
+// Sprint 10 Phase J
+static let fontPixel: String = "Menlo-Bold"
+static let sparklePixelSize: CGFloat = 3
+static let tensionVignetteThickness: CGFloat = 8
+static let tensionVignetteZPosition: CGFloat = 110
+static let tensionVignetteEdgeAlpha: CGFloat = 0.6
+static let tensionVignetteBlinkHalfPeriod: TimeInterval = 0.5
 ```
 
-## 합격 기준 (Evaluator용)
+ColorTokens 또는 GameConfig 픽셀 팔레트 enum에 색 8개 추가 (§6 표).
 
-가중 평균 ≥ 9.0 + 항목별 9.0+:
+## 18. 변경 금지 (git diff 0줄)
 
-- **Swift 패턴 9.0+**: 기존 코드 스타일 유지 (한국어 주석, MARK 섹션, 매직넘버 없음 — 모든 변경은 GameConfig 상수 또는 공통 함수 호출). 강제 언래핑 0건.
-- **게임 로직 9.0+**: 5명 모두 nurse cap이 머리 위에 가시. addChild 순서를 통한 동일 zPosition 렌더 우선순위가 정확. "다음" 버튼이 시각적으로 더 올라옴.
-- **성능 & 안정성 9.0+**: 추가 노드 증가 미미 (캐릭터당 +3 노드 — cap path + v바 + h바). buildNurseCap 공통 함수 재사용 → 코드 중복 0. 빌드 에러 없음.
-- **기능 완성도 9.0+**:
-  - CharacterSelectScene 실행 시 5장 카드 모두 nurse cap 표시 (김/정/건은 기존 보존, 임/이는 신규 표시)
-  - "다음" 버튼이 이전보다 약 24pt 위로 이동 (육안 시각 확인)
-  - 결과창(`ScoreboardScene`의 mini face) · 인게임(`CharacterFullBodyNode`) · side/back face에 영향 없음
+- PixelSprite/PixelPalette/PixelSpriteRenderer 본체
+- GameScene+Setup.swift (게임 루프/스폰/충돌/맵/AI) — 단, 비네트 attach/detach 2~3줄만 GameScene.swift에 추가
+- ContactRouter, SergeantParkNode, AirplaneNode 본체
+- 5종 컷씬 노드 (IntroCutsceneNode/MidCutsceneNode/IntroVillainCutsceneNode/CutsceneOverlayNode/CutsceneTexts)
+- BombFlashNode (Phase G 완료)
+- 메뉴 6 씬 + 메뉴 노드 14 (단, ResultScene SparkleEffectNode 호출부 `.menu` 인자 명시 1줄만 예외)
+- Phase A~I 산물
 
-## 사용자 의사결정 (사전 확정)
+## 19. 합격 기준
 
-1. **모자 모양/색상**: `buildNurseCap()` 공통 함수 그대로 사용. 별도 변형 / 위치 미세조정 / 색 변경 금지.
-2. **offsetY 조정량**: 시각적으로 ~24pt 위로. `characterSelectConfirmButtonBottomInset` 40 → **64** (+24).
-3. **클램프 발동 시 대비책**: `characterCardConfirmButtonBelowChipV9` 24 → 16 (-8) 까지만 허용. 16pt 미만 금지.
-4. **호출 순서**: Im은 귀(zPos=20) *뒤*에 cap 호출하여 동일 zPos 내 cap이 위로 렌더. Lee는 fringe 점(zPos=11) 뒤 어디든 무방. 양쪽 모두 `buildBlush(...)` *직전*을 권장.
+1. 인게임 모든 텍스트 Menlo-Bold (HUD 4슬롯 + 스킬 슬롯 + 콤보 팝업/브레이크 + 점수 팝업 + 카운트다운)
+2. 메뉴 UI Jua-Regular + 코랄/네이비 카툰 그대로
+3. HUD 색: 라벨=픽셀옐로, 값=픽셀화이트, TIME 경고=픽셀코랄
+4. sparkle 인게임 8 × 3pt 사각 / ResultScene 신기록 원형 유지
+5. 카운트다운 3·2·1 픽셀화이트, GO! 픽셀옐로
+6. 5초 긴박감 TIME 깜빡임 + 픽셀 비네트 동시 활성, 정확 detach
+7. HitFlash 픽셀톤 빨강 + .add
+8. Phase A~I 산물 + 메뉴 6+14 git diff 0줄 (ResultScene 1줄 예외)
+9. 가중 평균 7.5 이상
 
-## 주의사항
+## 20. 평가 5축
 
-- **SpriteKit zPosition 동률 처리**: Im의 고양이귀와 nurse cap이 모두 zPosition=20. `addChild()` 호출 순서가 곧 그리기 순서이므로 cap을 귀 *뒤*에 호출해야 cap이 위에 그려진다. 만약 순서가 뒤바뀌면 모자 일부가 귀에 가려지는 시각 결함 발생.
-- **buildNurseCap 본문 보호**: 5명 공통 함수이므로 본문 변경 시 김/정/건도 영향 받음. 본문은 절대 손대지 않고 **호출만 추가**.
-- **convenience init·side·back face 불변**: `init(id: CharacterID, facing: Direction)`의 `.front` 분기만이 buildImFace/buildLeeFace를 호출. side / back는 별도 빌더이므로 본 SPEC 변경의 영향 없음.
-- **GameConfig 단일 사용처**: `characterSelectConfirmButtonBottomInset`는 `CharacterSelectScene.layoutConfirmButton()` 단일 사용 확인됨.
-- **빌드 검증**: 변경 후 시뮬레이터(iPhone Landscape)에서 CharacterSelectScene 진입 → 5장 카드 모두 모자 표시 + 버튼 위치 상승 육안 확인.
-- **mini face 부수효과 (의도된 개선)**: `CharacterFaceNode.mini(id:)` 호출(ScoreboardScene 사용)도 동일 `init(id:)` 경로이므로 mini face 5명도 모자 갖춤. 본 SPEC 의도("5명 시각 일관성")는 mini face 일관성도 함의 → **정상**.
+| 축 | 가중 | 합격선 |
+|---|---|---|
+| Swift/SpriteKit 패턴 | 20% | 7.0 |
+| 원본 1:1 일치도 | 30% | 7.5 |
+| 성능 | 15% | 7.0 |
+| 시각 일관성 | 20% | 7.5 |
+| 기능 완성도 | 15% | 8.0 |
 
----
+가중 평균 7.5 이상 → 합격 → **Sprint 10 전체 완료**.
 
-## 참고 파일 경로 (절대 경로)
+## 21. 잠재 위험 / OQ
 
-- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Nodes/CharacterFaceNode.swift` (수정 — buildImFace line ~521, buildLeeFace line ~642)
-- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Config/GameConfig.swift` (수정 — characterSelectConfirmButtonBottomInset)
-- `/Users/hg/Desktop/ganho-music-ios/GanhoMusic/GanhoMusic Shared/Scenes/CharacterSelectScene.swift` (참조만 — 산식 검증용 layoutConfirmButton)
+- **OQ-1** HUD 폰트 자릿수: Menlo-Bold가 Jua-Regular보다 폭 넓을 수 있음. SCORE/COMBO 3자리 시 알약 폭 초과 검증. 초과 시 신규 hudSlotPixelValueFontSize 추가.
+- **OQ-2** SparkleEffectNode context 누락: ResultScene `.menu` 명시 누락 시 신기록 픽셀 입자로 톤 충돌. 호출부 grep + 명시 필수.
+- **OQ-3** CountdownNode context: 현재 호출 1곳(인게임)만, 기본값 `.ingame`으로 호환.
+- **OQ-4** 비네트 SRP: HUD startTensionBlink는 timeSlot 깜빡임만, 비네트는 별도 노드. GameScene가 두 책임 순차 호출.
+- **OQ-5** BombFlashNode 검증: Phase G 완료, Phase J 0줄.
+- **OQ-6** HitFlashNode .add 합성: 기존 peakAlpha 0.6 + .add 너무 밝을 위험. 0.6 → 0.5 1줄 조정 허용.
+
+## 22. 관련 파일
+
+- Nodes/HUDNode.swift, HUDSkillSlotNode.swift, ComboPopupNode.swift, ComboBreakNode.swift, ScorePopupNode.swift, SparkleEffectNode.swift, CountdownNode.swift, HitFlashNode.swift, TensionVignetteNode.swift(신규), BombFlashNode.swift(0줄)
+- Config/GameConfig.swift, ColorTokens.swift
+- GameScene.swift (비네트 attach/detach 2~3줄)
+- Scenes/ResultScene.swift (SparkleEffectNode 호출부 1줄)

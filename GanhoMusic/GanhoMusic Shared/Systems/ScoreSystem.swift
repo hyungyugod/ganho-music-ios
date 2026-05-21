@@ -21,13 +21,24 @@ final class ScoreSystem {
 
     // MARK: - Mutations
     /// 음표 1개 수집을 기록. 콤보 윈도우 검사 + 콤보 갱신 + 점수 가산.
+    /// Sprint 10 Phase E — 원본 game.js L811~L817 / L1048~L1052 3단 분기 1:1 이식.
+    ///   combo >= 7 → +4, >= 5 → +3, >= 3 → +2, else → +1.
+    /// 변기 ×2 보너스(recordToiletBonus)는 본 함수 2회 호출 → 새 분기 자연 적용.
     /// - Parameter now: 현재 게임 시각 (보통 lastUpdateTime).
     func recordNoteHit(at now: TimeInterval) {
         let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
         combo = isInWindow ? combo + 1 : 1
-        score += combo >= GameConfig.comboBonusThreshold
-            ? GameConfig.scorePerNoteCombo
-            : GameConfig.scorePerNote
+        let gain: Int
+        if combo >= GameConfig.comboBonusThresholdHigh {
+            gain = GameConfig.scorePerNoteComboHigh   // 4 (combo >= 7)
+        } else if combo >= GameConfig.comboBonusThresholdMid {
+            gain = GameConfig.scorePerNoteComboMid    // 3 (combo >= 5)
+        } else if combo >= GameConfig.comboBonusThreshold {
+            gain = GameConfig.scorePerNoteCombo       // 2 (combo >= 3)
+        } else {
+            gain = GameConfig.scorePerNote            // 1 (combo < 3)
+        }
+        score += gain
         lastCollectAt = now
     }
 

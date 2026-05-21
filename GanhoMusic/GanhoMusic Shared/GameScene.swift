@@ -58,6 +58,7 @@ class GameScene: SKScene {
 
     // 노드 트리
     let worldNode  = SKNode()
+    let mapNode    = MapNode()       // Sprint 10 Phase B — worldNode 자식, 원본 1:1 좌표 그릇(zPos -50)
     let cameraNode = SKCameraNode()
     let player     = PlayerNode()    // worldNode 자식 (이동함)
     let enemy      = EnemyNode()     // worldNode 자식 (player 추적, Phase 2-6)
@@ -107,10 +108,21 @@ class GameScene: SKScene {
     /// `airforceTriggered` 1회 가드 패턴 답습 — 단순/안전/회귀 0.
     private var tensionStarted: Bool = false
 
+    /// Sprint 10 Phase J — 5초 긴박감 화면 가장자리 비네트. tensionStarted true 진입 시 attach,
+    /// endGame/stopTensionBlink 경로에서 detach. nil 상태로 시작 → 재시작 안전.
+    /// cameraNode 자식 부착해 카메라 follow와 무관하게 화면 고정.
+    private var tensionVignette: TensionVignetteNode?
+
     /// Sprint 8 Phase G — 박병장 hard 난이도 데뷔 1회 발화 플래그.
     /// false → 트리거 조건(30s OR 50점) 만족 시 spawnSergeantPark + 컷씬 발화 + true 토글.
     /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
     var sergeantParkDebuted: Bool = false
+
+    /// Sprint 10 Phase H — 한 판 내 발화된 컷씬 ID Set (원본 game.js `state.cutscenesShown`와 byte-equal).
+    /// 5종 컷씬 모두 *매 판 1회* 발화 정책 — UserDefaults 영구 스킵 X. 새 GameScene 인스턴스에서 자동 비어 시작.
+    /// 사용처: mid1/mid2 update 폴링 1회 가드. Set.contains O(1) — 매 프레임 호출 안전.
+    /// 키: "intro" / "mid1" / "mid2" / "introStoneGuard" / "introProfessor".
+    private var cutscenesShown: Set<String> = []
     /// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
     /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
     /// HUD timeLabel이 보여주는 `Int(ceil(remainingTime))`과 정확히 같은 식으로 계산 → *눈에 보이는 숫자가 바뀐 순간* 햅틱 발화.
@@ -172,96 +184,49 @@ class GameScene: SKScene {
         // Phase 7-3 — 카운트다운 *전*에 인트로 컷씬 진입. .cutscene 상태도 .countdown과 동일하게
         // update `guard gameState == .playing`에서 자동 차단 → 7개 시스템 동시 정지.
         // 컷씬 탭 종료 시 dismissed 콜백에서 .countdown 전환 + showCountdown() 호출 → 기존 흐름 그대로.
-        // Phase 7-5 — UserDefaults 분기. bool 기본값 false → 최초 사용자만 컷씬 표시.
-        // 두 번째 이상 진입은 *컷씬 스킵 → 곧장 카운트다운*. onDismiss에서 true set 후 영원 스킵.
-        let hasSeenIntro = UserDefaults.standard.bool(forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-        if hasSeenIntro {
-            // Phase 10-1d — 2회차 이상도 경고 컷씬은 *매 판* 환기 (SPEC §주의사항 7 / GDD §3).
-            // 인트로 컷씬만 영구 스킵 — 적 출현 경고는 매 판 다시 보여 위협 인지 갱신.
-            gameState = .cutscene
-            switch difficulty {
-            case .easy, .normal: showStoneGuardWarningCutscene()
-            case .hard:          showProfessorWarningCutscene()
-            }
-        } else {
-            gameState = .cutscene
-            showIntroCutscene()
-        }
+        //
+        // Sprint 10 Phase H — UserDefaults 영구 스킵 *제거*. 원본 game.js는 매 판 1회 정책
+        // (`state.cutscenesShown` Set이 판 단위로 리셋) → iOS도 동일.
+        // 새 GameScene 인스턴스마다 cutscenesShown 빈 Set로 시작(인스턴스 기본값) — 매 판 5종 모두 발화 가능.
+        // 진입 흐름: .cutscene 가드 → IntroCutsceneNode.present(250ms 지연 내장) →
+        //            onDismiss에서 IntroVillainCutsceneNode.present (난이도 분기) →
+        //            그 onDismiss에서 .countdown 전환 + showCountdown().
+        cutscenesShown.removeAll()
+        gameState = .cutscene
+        showIntroCutscene()
     }
 
-    // MARK: - Cutscene (Phase 7-3)
-    /// 게임 시작 직전 화면 전체 컷씬 1회 발화. 난이도별 본문 분기 + `{NAME}` 토큰 치환 후 present.
-    /// onDismiss 콜백에서 .countdown 전환 + showCountdown() 호출 — 기존 카운트다운 흐름 *그대로* 진입.
+    // MARK: - Cutscene (Phase 7-3 · Sprint 10 Phase H)
+    /// Sprint 10 Phase H — 게임 시작 직전 인트로 컷씬 1회 발화.
+    /// IntroCutsceneNode 정적 팩토리 위임 — 250ms 지연(원본 L2268) / 본문 lookup / Menlo-Bold 폰트 주입 일괄.
+    /// onDismiss 콜백에서 cutscenesShown.insert("intro") + IntroVillainCutsceneNode.present
+    /// (난이도 분기) → 그 dismiss 후 .countdown + showCountdown 기존 흐름.
     /// CutsceneOverlayNode가 자가 소멸하므로 GameScene은 후속 정리 0건.
-    /// 난이도 분기: easy/normal = 수간호사 순찰 톤, hard = 이교수 청진기 톤.
-    /// `{NAME}` 토큰 치환은 easy/normal 본문에만 1개 등장 — hard 본문은 캐릭터 비독립이라 토큰 0개(자연 무동작).
-    /// onDismiss는 [weak self] 캡처 필수 — 컷씬 표시 중 씬 전환 가능성 대비 (CountdownNode 콜백 패턴 답습).
+    /// [weak self] 캡처 필수 — 250ms 지연 중 씬 전환 가능성 대비.
     private func showIntroCutscene() {
-        let title = "어느 한적한 병동의 오후"
-        let template: String
-        switch difficulty {
-        case .easy, .normal:
-            template = "수간호사가 순찰을 돈다. 그 틈을 타, {NAME}는 주머니 속 작곡 노트를 슬쩍 꺼낸다… 음표를 모으자."
-        case .hard:
-            template = "학교에서 나온 깐깐한 이교수가 오늘따라 청진기를 휘두른다. 날아오는 청진기를 피하며 음표를 모으자. 수간호사는 언제나 그렇듯 순찰을 돈다."
-        }
-        // {NAME} 토큰 치환 — hard 본문에는 토큰이 없어 자연 무동작(원본 동일 반환).
-        let body = template.replacingOccurrences(of: "{NAME}", with: characterID.displayName)
-        CutsceneOverlayNode.present(
-            title: title,
-            body: body,
-            parent: cameraNode,
-            sceneSize: size,
+        IntroCutsceneNode.present(
+            scene: self,
+            character: characterID,
+            difficulty: difficulty,
             onDismiss: { [weak self] in
                 guard let self = self else { return }
-                // Phase 7-5 — 컷씬 종료 시 UserDefaults 플래그 set → 이후 진입은 자동 스킵.
-                // UserDefaults.standard 접근은 self 무관 — self 해제 시에도 플래그는 set됨(부수효과 안전).
-                UserDefaults.standard.set(true, forKey: GameConfig.hasSeenIntroCutsceneUserDefaultsKey)
-                // Phase 10-1d — 난이도별 경고 컷씬 2단계 분기.
-                // easy/normal: 석조무사 경고 (신규, GDD §10 미구현 → 완성).
-                // hard: 이교수 경고 (Phase 9-7).
-                // 두 분기 모두 CutsceneOverlayNode 자가 소멸 *직후* 새 컷씬 present → 동시 표시 0.
-                switch self.difficulty {
-                case .easy, .normal: self.showStoneGuardWarningCutscene()
-                case .hard:          self.showProfessorWarningCutscene()
-                }
-            }
-        )
-    }
-
-    /// Phase 10-1d — 석조무사 경고 컷씬. easy/normal 난이도 인트로 컷씬 dismiss 직후 발화.
-    /// CutsceneOverlayNode 재사용 (SPEC §"금지": 신규 컷씬 노드 신설 금지).
-    /// showProfessorWarningCutscene와 시그니처 동형 — title/body만 GameConfig 상수로 교체.
-    /// onDismiss에서 .countdown 전환 + showCountdown — 인트로/이교수 경고와 동일 흐름.
-    /// [weak self] 캡처 — 컷씬 표시 중 씬 전환 가능성 대비.
-    private func showStoneGuardWarningCutscene() {
-        CutsceneOverlayNode.present(
-            title: GameConfig.stoneGuardWarningTitle,
-            body: GameConfig.stoneGuardWarningBody,
-            parent: cameraNode,
-            sceneSize: size,
-            onDismiss: { [weak self] in
-                guard let self = self else { return }
-                self.gameState = .countdown
-                self.showCountdown()
-            }
-        )
-    }
-
-    /// Phase 9-7 — 이교수 경고 컷씬. hard 난이도에서 인트로 컷씬 dismiss 직후 1회 발화.
-    /// CutsceneOverlayNode 재사용 (SPEC §허용 14: 신규 컷씬 노드 신설 금지).
-    /// onDismiss에서 .countdown 전환 + showCountdown — 인트로 컷씬과 동일 흐름.
-    /// [weak self] 캡처 — 컷씬 표시 중 씬 전환 가능성 대비.
-    private func showProfessorWarningCutscene() {
-        CutsceneOverlayNode.present(
-            title: GameConfig.professorWarningTitle,
-            body: GameConfig.professorWarningBody,
-            parent: cameraNode,
-            sceneSize: size,
-            onDismiss: { [weak self] in
-                guard let self = self else { return }
-                self.gameState = .countdown
-                self.showCountdown()
+                self.cutscenesShown.insert("intro")
+                // 인트로 dismiss 직후 *난이도별 빌런 경고* 컷씬으로 자연 체인.
+                // IntroVillainCutsceneNode가 난이도 분기 + 본문 lookup + 폰트 주입 일괄 — 호출부 switch 0.
+                IntroVillainCutsceneNode.present(
+                    scene: self,
+                    difficulty: self.difficulty,
+                    onDismiss: { [weak self] in
+                        guard let self = self else { return }
+                        // 매 판 1회 가드 키: easy/normal은 "introStoneGuard", hard는 "introProfessor".
+                        switch self.difficulty {
+                        case .easy, .normal: self.cutscenesShown.insert("introStoneGuard")
+                        case .hard:          self.cutscenesShown.insert("introProfessor")
+                        }
+                        self.gameState = .countdown
+                        self.showCountdown()
+                    }
+                )
             }
         )
     }
@@ -427,6 +392,30 @@ class GameScene: SKScene {
             return
         }
 
+        // Sprint 10 Phase H — mid1/mid2 컷씬 임계 폴링. 1회 발화 가드(Set.contains O(1)) +
+        // .cutscene 전환으로 다음 프레임부터 위 `guard gameState == .playing` 자동 차단(재진입 0).
+        // 원본 game.js L2417/L2469 byte-equal:
+        //   · mid1: timeLeft ≤ 30 + !cutscenesShown.has('mid1')
+        //   · mid2: timeLeft ≤ 15 + !cutscenesShown.has('mid2')
+        // 우선순위: mid2 임계(15s)가 mid1 임계(30s)에 *포함*되어도 — Set 가드로 mid1은 이미 발화됨 →
+        // mid2만 새로 발화. 같은 프레임 동시 발화 방지: if-else if 체인이 자연 직렬.
+        if !cutscenesShown.contains("mid1") && remainingTime <= GameConfig.cutsceneMid1Threshold {
+            cutscenesShown.insert("mid1")
+            gameState = .cutscene
+            MidCutsceneNode.presentMid1(scene: self, character: characterID) { [weak self] in
+                self?.gameState = .playing
+            }
+            return   // .cutscene 전환 직후엔 이번 프레임의 나머지 갱신을 건너뛴다.
+        }
+        if !cutscenesShown.contains("mid2") && remainingTime <= GameConfig.cutsceneMid2Threshold {
+            cutscenesShown.insert("mid2")
+            gameState = .cutscene
+            MidCutsceneNode.presentMid2(scene: self) { [weak self] in
+                self?.gameState = .playing
+            }
+            return
+        }
+
         // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
         // 가드: hard 난이도 + 미발화. 트리거 만족 시 즉시 sergeantParkDebuted=true → 재진입 차단.
         // spawnSergeantPark는 컷씬+노드 부착을 GameScene+Setup으로 위임 — update는 조건 분기만.
@@ -448,6 +437,10 @@ class GameScene: SKScene {
             if !tensionStarted {
                 tensionStarted = true
                 hud.startTensionBlink()
+                // Sprint 10 Phase J — 픽셀 비네트 attach (cameraNode 자식). HUD 깜빡임과 같은 박자 동기.
+                let vignette = TensionVignetteNode(sceneSize: size)
+                cameraNode.addChild(vignette)
+                tensionVignette = vignette
             }
             // 매 프레임 rate 보간: 1.0 + 0.15 × (5 - remainingTime) / 5.
             // TimeInterval(Double) → Float 캐스팅 — AVAudioPlayer.rate는 Float 타입.
@@ -497,14 +490,16 @@ class GameScene: SKScene {
         player.updatePixelDirection(velocity)
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
 
-        // 3) 카메라 follow — Phase 1-5: 드론 follow. player가 늘 화면 정중앙. 클램프 없음 (회피 게임 본질)
-        cameraNode.position = player.position
+        // 3) 카메라 follow — Sprint 10 Phase B: 맵 가장자리 클램프 적용.
+        //    원본 32×20 맵(1280×800pt)으로 좁아져 무클램프 시 화면 밖 검은 빈 공간 노출 위험.
+        //    updateCameraFollow가 worldW/H 단일 진실 원천(GameConfig)을 참조 → 맵 크기 변경 시 자동 적응.
+        updateCameraFollow()
 
-        // 4) Phase 2-6 — 적 직선 추적 (player 위치를 향해 velocity 갱신)
-        // Phase 2-8 — 게임 진행률 0 ~ 1 (시작 0, 끝 1). remainingTime은 max(0, ...)으로 음수 방지.
-        // speedT는 CGFloat (EnemyNode.update 시그니처 일치) — TimeInterval(Double) → CGFloat 변환.
-        let curveT = CGFloat(1.0 - remainingTime / GameConfig.gameDuration)
-        enemy.update(deltaTime: dt, targetPosition: player.position, speedT: curveT)
+        // 4) Sprint 10 Phase D — 수간호사 패트롤 + 텔레그래프 상태 머신.
+        //    player 추적 폐기 → 4지점 사각 순환. update(dt:) 단일 인자.
+        //    player.position / 진행률 / charmActive는 provider 캡처(GameScene+Setup에서 1회 주입).
+        //    SpawnSystem.startProjectileFireLoop는 폐기됨 — F 발사는 EnemyNode 내부 상태 머신이 전담.
+        enemy.update(deltaTime: dt)
 
         // Phase 9-7 — 이교수 픽셀 애니메이션 갱신 (hard만). easy/normal에선 professor=nil → optional chain 자연 noop.
         // SKAction.move 기반이라 position 변화량으로 방향/걷기 프레임 산출 (ProfessorNode 내부 자기 처리).
@@ -578,7 +573,8 @@ class GameScene: SKScene {
             // worldNode 좌표계 위치를 캡처해 같은 worldNode에 sparkle을 부착 → 카메라 follow 자연 동기.
             // note.position을 *먼저* 캡처 — note.removeFromParent() 후엔 노드가 트리에서 빠짐.
             let sparkleOrigin = note.position
-            let sparkle = SparkleEffectNode()
+            // Sprint 10 Phase J — .ingame 명시 (픽셀 사각 입자). 기본값과 동일하지만 호출부 명료성 위해.
+            let sparkle = SparkleEffectNode(context: .ingame)
             sparkle.position = sparkleOrigin
             self.worldNode.addChild(sparkle)
             sparkle.emit()
@@ -618,19 +614,42 @@ class GameScene: SKScene {
                 node.run(.removeFromParent())
                 return
             }
-            // 멀티모달 피드백: 햅틱 medium + 카메라 셰이크 + "청진기 명중!" 토스트.
-            // BGM/효과음 신규 추가 금지(SPEC §금지 2) — 기존 audio.play 호출 0건.
+            // Sprint 10 Phase F — 토스트 1s → freeze 2s 직렬화. 원본 game.js L4060~L4084 byte-equal.
+            // 멀티모달 피드백: 햅틱 medium + 카메라 셰이크 + "청진기 명중!" 토스트(1.0s 노출).
+            // BGM/효과음 신규 추가 금지(SPEC §금지) — 기존 audio.play 호출 0건.
             self.haptics.medium()
             self.cameraNode.run(CameraShakeAction.make())
             ToastLabelNode.spawn(text: GameConfig.stethoscopeToastText,
                                  at: self.player.position,
                                  parent: self.worldNode)
-            // 2초 동결 발화. PlayerNode.freeze 내부에서 isFrozen 가드 + 깜빡임 시퀀스 진행.
-            self.player.freeze(duration: GameConfig.playerFreezeDuration)
+            // 토스트 종료(1.0s) 후 freeze 시작 — 두 시퀀스 직렬 연결.
+            // SKAction.sequence([wait, run])로 Timer 미사용. [weak self] 캡처로 메모리 누수 0.
+            let toastWait = SKAction.wait(forDuration: GameConfig.stethoscopeToastDuration)
+            let freezeKick = SKAction.run { [weak self] in
+                self?.player.freeze(duration: GameConfig.playerFreezeDuration)
+            }
+            self.run(.sequence([toastWait, freezeKick]))
             node.run(.removeFromParent())
         }
         // 청진기 ↔ wall 접촉 시 — onProjectileHitWall 패턴 답습. self 미사용 → [weak self] 불필요.
         contactRouter.onStethoscopeHitWall = { node in
+            node.run(.removeFromParent())
+        }
+        // Sprint 10 Phase D — aItem(매혹 변환 A) 수집 콜백.
+        //  · 매혹 활성 중 수간호사가 던진 F가 A로 변환된 결과 — *위협이 보상으로* 뒤집히는 극적 반전.
+        //  · ScoreSystem.recordCharmedNoteHit(×2 가산) 단일 진입점 — 기존 임간호 매혹 점수 정책 그대로 재사용.
+        //    (SPEC §10의 collectACombo()는 ScoreSystem에 존재하지 않음 → 기존 동일 의도 API로 매핑.)
+        //  · haptics.light + audio.noteCollected — 음표 수집과 동급 손맛(보상 정체성).
+        //  · didBegin 진행 중 즉시 removeFromParent 금지 → SKAction.removeFromParent (주의사항 1).
+        contactRouter.onAItemCollected = { [weak self] node in
+            guard let self = self else { return }
+            self.scoreSystem.recordCharmedNoteHit()
+            self.haptics.light()
+            self.audio.play(.noteCollected)
+            node.run(.removeFromParent())
+        }
+        // aItem ↔ wall 접촉 시 — onProjectileHitWall 패턴 답습. self 미사용 → [weak self] 불필요.
+        contactRouter.onAItemHitWall = { node in
             node.run(.removeFromParent())
         }
         // Phase 9-6 — 변기 보너스 수집. onNoteCollected 패턴 미러 (콤보/마일스톤 분기 자연 발화).
@@ -645,7 +664,8 @@ class GameScene: SKScene {
             self.haptics.medium()
             self.audio.play(.noteCollected)
             // 3. sparkle 시각 — 음표 수집과 동형. toilet은 worldNode 자식이므로 worldNode 좌표 그대로.
-            let sparkle = SparkleEffectNode()
+            // Sprint 10 Phase J — .ingame 명시 (픽셀 사각 입자).
+            let sparkle = SparkleEffectNode(context: .ingame)
             sparkle.position = toiletOrigin
             self.worldNode.addChild(sparkle)
             sparkle.emit()
@@ -758,29 +778,103 @@ class GameScene: SKScene {
         // 이 메서드 자체로 진입할 경로가 없으나, 호출 경로 변경 시 회귀 차단용 안전망(Spring @PreAuthorize 답습).
         if difficulty == .hard { return }
         airforceTriggered = true
-        // t=0 — 오버레이 즉시 표시(자가 2.4초 후 소멸).
+
+        // Sprint 10 Phase G 시퀀스 (SPEC §7) — t=0/2.4/3.4/5.0 단계 직렬화.
+
+        // t=0.0 — "나와라 박병장!" 오버레이 (자가 2.4초 후 소멸).
         let overlay = AirforceOverlayNode()
         cameraNode.addChild(overlay)
         overlay.showAndDismiss()
-        // t=0 — 수간호사 도주 모드 진입(5초 후 onEnd 콜백으로 F 1발 재발사).
+
+        // t=0.0 — 박병장 클로즈업 (fadeIn 0.1 → stay 1.6 → fadeOut 0.5 → 자가 제거).
+        // SergeantParkNode.makeIntroCloseup() factory 재사용 — 본체 변경 0.
+        let sergeant = SergeantParkNode.makeIntroCloseup()
+        sergeant.zPosition = GameConfig.sergeantCloseupZPosition
+        sergeant.alpha = 0
+        sergeant.position = CGPoint(x: 0, y: GameConfig.sergeantCloseupOffsetY)
+        cameraNode.addChild(sergeant)
+        let sergeantFadeIn = SKAction.fadeIn(withDuration: GameConfig.sergeantCloseupFadeInDuration)
+        let sergeantStay   = SKAction.wait(forDuration: GameConfig.sergeantCloseupStayDuration)
+        let sergeantFadeOut = SKAction.fadeOut(withDuration: GameConfig.sergeantCloseupFadeOutDuration)
+        let sergeantCleanup = SKAction.removeFromParent()
+        sergeant.run(.sequence([sergeantFadeIn, sergeantStay, sergeantFadeOut, sergeantCleanup]))
+
+        // t=0.0 — 수간호사 도주 모드 진입(5초). onEnd 콜백에서 F 재시딩.
+        // 원본 game.js L2678~L2687 byte-equal — Math.round(obstacles × 1.0) - 현재 F = deficit만큼 fireImmediately.
         enemy.startFleeing(duration: GameConfig.enemyFleeDuration) { [weak self] in
-            self?.spawnSystem.fireImmediately()
+            guard let self = self else { return }
+            let target = self.spawnSystem.currentObstaclesTarget
+            // 현재 화면 위 F(name="projectile") 개수 — A(aItem)는 제외(매혹 변환은 별도 노드).
+            var currentF = 0
+            self.worldNode.enumerateChildNodes(withName: "projectile") { _, _ in currentF += 1 }
+            let deficit = max(0, target - currentF)
+            for _ in 0..<deficit {
+                self.spawnSystem.fireImmediately()
+            }
         }
-        // Phase 9-8 — 비행기는 오버레이 완전 소멸(t=2.4) 후 등장. SKAction.sequence 지연 attach 패턴.
-        // AirplaneNode 시그니처 불변. [weak self] 캡처로 endGame 중 self 해제 안전.
+
+        // t=2.4 — 비행기 등장. cameraNode 자식 좌표계 — 상단에서 airplaneTopOffset 아래.
+        // [weak self] 캡처로 endGame 중 self 해제 안전.
         let plane = AirplaneNode()
-        let y = +(size.height / 2 - GameConfig.airplaneTopOffset)
-        let wait = SKAction.wait(forDuration: GameConfig.airplaneDelayAfterOverlay)
-        let attach = SKAction.run { [weak self] in
+        let planeY = +(size.height / 2 - GameConfig.airplaneTopOffset)
+        let waitPlane   = SKAction.wait(forDuration: GameConfig.airplaneDelayAfterOverlay)
+        let attachPlane = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.cameraNode.addChild(plane)
-            plane.crossScreen(sceneWidth: self.size.width, atY: y)
+            plane.crossScreen(sceneWidth: self.size.width, atY: planeY)
         }
-        cameraNode.run(.sequence([wait, attach]))
-        // t=3.4 — 비행기 중앙 도달 시점에 폭탄 섬광. bombFlashDelay 상수(3.4)가 BombFlashNode 내부에서 자동 적용.
+        cameraNode.run(.sequence([waitPlane, attachPlane]))
+
+        // t=3.4 — 폭탄 섬광 (BombFlashNode가 자체 wait(bombFlashDelay=3.4) 내장 → 발화 시점 t=0 부착 OK).
         let bomb = BombFlashNode()
         cameraNode.addChild(bomb)
         bomb.flash(sceneSize: size)
+
+        // t=3.4 — F 전멸. BombFlashNode wait(3.4)와 동일값 GameConfig.bombFlashDelay 사용 — 동기 보장(OQ-5).
+        // cameraNode.run으로 발화 (worldNode 노드 삭제는 worldNode가 아니어도 OK — SpawnSystem.worldNode 캡처).
+        let waitPurge = SKAction.wait(forDuration: GameConfig.bombFlashDelay)
+        let attachPurge = SKAction.run { [weak self] in
+            self?.spawnSystem.purgeAllF()
+        }
+        cameraNode.run(.sequence([waitPurge, attachPurge]))
+    }
+
+    // MARK: - Camera Follow (Sprint 10 Phase B)
+    /// 카메라 follow + 맵 가장자리 클램프. 매 프레임 update에서 1회 호출.
+    /// Phase B 이전: `cameraNode.position = player.position` 한 줄(클램프 0) — 1280×800 맵에선
+    /// 모서리 근처에서 화면 밖 검은 빈 공간 노출 위험. 클램프 도입으로 viewport 가장자리가
+    /// 항상 맵 가장자리에 정렬.
+    /// viewport > map 비율 분기(`upperX < lowerX`)는 *맵이 viewport보다 좁을 때* 중앙 고정.
+    /// 16:10 맵(1.6) ↔ 가변 viewport(.resizeFill) 대응 안전망(SPEC §16 OQ-2).
+    /// 알고리즘 O(1) — sqrt/lerp 없음, 산술 6회만으로 60fps 보장.
+    private func updateCameraFollow() {
+        let halfW = size.width  / 2
+        let halfH = size.height / 2
+        let worldW = GameConfig.originalMapWorldWidth
+        let worldH = GameConfig.originalMapWorldHeight
+
+        let lowerX = halfW
+        let upperX = worldW - halfW
+        let lowerY = halfH
+        let upperY = worldH - halfH
+
+        let targetX: CGFloat
+        if upperX < lowerX {
+            // viewport가 맵보다 가로로 넓음 → 가운데 고정(검은 띠 좌우 균등).
+            targetX = worldW / 2
+        } else {
+            targetX = max(lowerX, min(upperX, player.position.x))
+        }
+
+        let targetY: CGFloat
+        if upperY < lowerY {
+            // viewport가 맵보다 세로로 넓음 → 가운데 고정.
+            targetY = worldH / 2
+        } else {
+            targetY = max(lowerY, min(upperY, player.position.y))
+        }
+
+        cameraNode.position = CGPoint(x: targetX, y: targetY)
     }
 
     // MARK: - Game State
@@ -796,6 +890,9 @@ class GameScene: SKScene {
         audio.play(.gameOver)   // Phase 6-2 — heavy 직후, spawnSystem.stop() 전
         bgm.stop()           // Phase 6-4 — gameOver 사운드와 동시에 BGM 정지 (멱등 가드 안쪽 = 1회 보장)
         hud.stopTensionBlink()   // Phase 6-14 — 깜빡임 즉시 종료 (잔상 0). 0초 만료 / F 피격 / enemy 접촉 모든 경로에서 발화.
+        // Sprint 10 Phase J — 비네트 detach (멱등 — nil이면 자연 noop). HUD 깜빡임과 동시 종료.
+        tensionVignette?.removeFromParent()
+        tensionVignette = nil
         spawnSystem.stop()
         // Phase 9-7 — 이교수 청진기 발사 루프 정지 + 활성 청진기 velocity 0.
         // easy/normal에선 professor=nil → optional chain 자연 noop.

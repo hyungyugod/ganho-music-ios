@@ -43,11 +43,14 @@ final class AirforceOverlayNode: SKNode, SelfDismissingNode {
     }
 
     // MARK: - Configure
-    /// 라벨 스타일 — 색은 비행기와 통일(.ganhoYellowF), 중앙 정렬.
+    /// 라벨 스타일 — Sprint 10 Phase G 픽셀 톤 통일.
+    /// fontName: pixelOverlayFontName(Menlo-Bold) — PressStart2P 미설치 → 안티앨리어싱 적은 등폭 픽셀 톤.
+    /// fontColor: ganhoPixelWarning(#FFD23F) — 비행기/폭탄과 톤 정합.
     /// cameraNode 자식 (0,0) = 화면 중앙. label position도 (0,0)으로 두면 화면 정중앙.
     private func configureLabel() {
+        label.fontName = GameConfig.pixelOverlayFontName
         label.fontSize = GameConfig.airforceOverlayFontSize
-        label.fontColor = .ganhoYellowF
+        label.fontColor = .ganhoPixelWarning
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         label.position = .zero

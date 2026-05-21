@@ -23,18 +23,26 @@ final class SpawnSystem {
     /// 게임 진행률 (0 ~ 1) 공급자. F 발사 주기 보간에 사용.
     private var progressProvider: () -> Double = { 0 }
 
-    // MARK: - Tunable (Phase 7-1)
+    // MARK: - Tunable (Phase 7-1 / Sprint 10 Phase I)
     /// 동시 음표 최대 수. default = GameConfig.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
     var noteMaxConcurrent: Int = GameConfig.noteMaxConcurrent
     /// 음표 TTL (초). easy = .infinity → NoteNode.applyLifetime이 가드로 noop → 무한 TTL 유지.
     var noteLifetime: TimeInterval = .infinity
-    /// F 동시 최대 수. default = GameConfig.projectileMaxConcurrent → easy 동작 자연 fallback.
+    /// Sprint 10 Phase I — 음표 spawn 주기 (초). default = GameConfig.noteSpawnInterval(1.5, easy)
+    /// → apply 누락 시 easy 동작 자연 fallback. apply(difficulty)가 dict에서 set.
+    /// startNoteSpawnLoop가 self.noteSpawnInterval 참조 → 난이도별 차등 적용.
+    var noteSpawnInterval: TimeInterval = GameConfig.noteSpawnInterval
+
+    // MARK: Dead (Phase D 이후 미사용, Sprint 10 Phase I 보류 — OQ-B)
+    // 호출처: currentObstaclesTarget getter(아래)만 projectileMaxConcurrent 사용 → 보존 필수.
+    // burst/fireIntervalStart/End 3개는 호출처 0이지만 즉시 삭제 X — 후속 정리 sprint에서.
+    /// F 동시 최대 수. AIRFORCE 도주 종료 후 F 재시딩 목표치(currentObstaclesTarget)에서 사용 — *살아있음*.
     var projectileMaxConcurrent: Int = GameConfig.projectileMaxConcurrent
-    /// F 동시 burst 발사 수. easy=1 → 기존 1발 루프와 정확 동일(회귀 0, 주의사항 4).
+    /// F 동시 burst 발사 수. Phase D 이후 호출처 0 (EnemyNode가 GameConfig dict 직접 참조).
     var projectileBurstCount: Int = 1
-    /// F 발사 주기 시작값. default = GameConfig.projectileFireInterval → easy 동작 자연 fallback.
+    /// F 발사 주기 시작값. Phase D 이후 호출처 0.
     var projectileFireIntervalStart: TimeInterval = GameConfig.projectileFireInterval
-    /// F 발사 주기 끝값. default = GameConfig.projectileFireIntervalEnd → easy 동작 자연 fallback.
+    /// F 발사 주기 끝값. Phase D 이후 호출처 0.
     var projectileFireIntervalEnd: TimeInterval = GameConfig.projectileFireIntervalEnd
 
     // MARK: - Apply (Phase 7-1)
@@ -47,6 +55,9 @@ final class SpawnSystem {
         projectileBurstCount       = GameConfig.projectileBurstCountByDifficulty[difficulty]       ?? 1
         projectileFireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? GameConfig.projectileFireInterval
         projectileFireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty]   ?? GameConfig.projectileFireIntervalEnd
+        // Sprint 10 Phase I — 음표 spawn 주기 난이도 차등 (원본 game.js L101~L105 1:1).
+        // easy=1.5(기존값 = 회귀 0) / normal=0.4 / hard=0.3. fallback은 기존 단일값 noteSpawnInterval.
+        noteSpawnInterval = GameConfig.noteSpawnIntervalByDifficulty[difficulty] ?? GameConfig.noteSpawnInterval
     }
 
     // MARK: - Lifecycle
@@ -64,11 +75,15 @@ final class SpawnSystem {
         self.enemy = enemy
         self.progressProvider = progressProvider
         startNoteSpawnLoop()
-        startProjectileFireLoop()
+        // Sprint 10 Phase D — F 발사 루프 폐기. EnemyNode 내부 텔레그래프 상태 머신이 전담.
+        // startProjectileFireLoop() 호출 제거 — 옛 함수 본문은 dead code(향후 정리, OQ-6).
         startToiletSpawnLoop()   // Phase 9-6 — 변기 보너스 12초/15% Bernoulli 루프
     }
 
-    /// 게임 종료 시 GameScene이 호출. 모든 액션 정지 + 활성 projectile 정지.
+    /// 게임 종료 시 GameScene이 호출. 모든 액션 정지 + 활성 projectile/aItem 정지.
+    /// Sprint 10 Phase D — F 발사 루프는 폐기됐지만 EnemyNode 내부 상태 머신은 scene.isPaused로
+    /// 자연 정지(SKAction wait는 isPaused면 멈춤). 안전망으로 "fireProjectiles" key 제거는 그대로 유지.
+    /// aItem 노드(매혹 잔존 A)도 함께 velocity=.zero — 게임 종료 후 화면 흐름 정지.
     func stop() {
         scene?.removeAction(forKey: "spawnNotes")
         scene?.removeAction(forKey: "fireProjectiles")
@@ -76,12 +91,18 @@ final class SpawnSystem {
         worldNode?.enumerateChildNodes(withName: "projectile") { node, _ in
             node.physicsBody?.velocity = .zero
         }
+        // Sprint 10 Phase D — 매혹 잔존 A 노드 정지.
+        worldNode?.enumerateChildNodes(withName: "aItem") { node, _ in
+            node.physicsBody?.velocity = .zero
+        }
     }
 
-    // MARK: - Note Spawn (Phase 2-3)
+    // MARK: - Note Spawn (Phase 2-3 / Sprint 10 Phase I)
     /// 음표 자동 spawn 루프 시작. SKAction.repeatForever — Timer 금지.
+    /// Sprint 10 Phase I — GameConfig.noteSpawnInterval(static) → self.noteSpawnInterval(인스턴스).
+    /// apply(difficulty)가 set한 난이도별 dict 값을 그대로 반영 — easy=1.5(회귀 0)/normal=0.4/hard=0.3.
     private func startNoteSpawnLoop() {
-        let wait  = SKAction.wait(forDuration: GameConfig.noteSpawnInterval)
+        let wait  = SKAction.wait(forDuration: self.noteSpawnInterval)
         let spawn = SKAction.run { [weak self] in self?.trySpawnNote() }
         let loop  = SKAction.repeatForever(.sequence([wait, spawn]))
         scene?.run(loop, withKey: "spawnNotes")
@@ -121,80 +142,46 @@ final class SpawnSystem {
         return CGPoint(x: x, y: y)
     }
 
-    // MARK: - Projectile Fire (Phase 2-7 + 2-9)
-    /// F 발사 루프 시작 (재귀 SKAction).
-    private func startProjectileFireLoop() {
-        scheduleNextFire()
-    }
+    // MARK: - Projectile Fire (Sprint 10 Phase E)
+    // Phase D OQ-6 — 발사 책임이 EnemyNode 내부 텔레그래프 상태 머신으로 완전 이전.
+    // dead code 5 메서드(startProjectileFireLoop / scheduleNextFire / currentFireInterval /
+    //   fireProjectile / currentProjectileCount) 제거. 호출처 0.
+    // stop()의 "fireProjectiles" removeAction은 유지 — noop 안전망.
+    // dead 프로퍼티(projectileMaxConcurrent / projectileBurstCount / projectileFireIntervalStart /
+    //   projectileFireIntervalEnd)는 Phase I로 미룸.
 
-    /// 현재 보간 주기 후 1회 발사 + 재귀로 자기 자신 다시 호출.
-    /// withKey: "fireProjectiles" 동일 — stop()의 removeAction이 즉시 정지 가능.
-    private func scheduleNextFire() {
-        let interval = currentFireInterval()
-        let wait = SKAction.wait(forDuration: interval)
-        let fire = SKAction.run { [weak self] in
-            self?.fireProjectile()
-            self?.scheduleNextFire()
-        }
-        scene?.run(.sequence([wait, fire]), withKey: "fireProjectiles")
-    }
-
-    /// 현재 게임 진행률에 따른 F 발사 주기 (보간).
-    /// Phase 7-1 — GameConfig 상수 → 인스턴스 프로퍼티 참조(난이도 차등). easy는 GameConfig 값과 정확 일치 → 회귀 0.
-    private func currentFireInterval() -> TimeInterval {
-        let progress = progressProvider()
-        return projectileFireIntervalStart
-            + (projectileFireIntervalEnd - projectileFireIntervalStart) * progress
-    }
-
-    /// F burstCount 만큼 발사. 각 발마다 max 가드 매 발 검사 (주의사항 4).
-    /// easy=1 → 루프 1회 = 기존과 정확 동일 (회귀 0). normal=3 / hard=4.
-    /// burst 안에서도 player 위치는 *한 번* 캡처 → 같은 방향 동시 발사(연사 톤).
-    private func fireProjectile() {
-        guard let world = worldNode else { return }
-        guard let player = player else { return }
-        guard let enemy = enemy else { return }
-        let dx = player.position.x - enemy.position.x
-        let dy = player.position.y - enemy.position.y
-        let magnitude = hypot(dx, dy)
-        guard magnitude > 0 else { return }
-        let unitX = dx / magnitude
-        let unitY = dy / magnitude
-
-        // Phase 9-5 — 임간호 매혹 활성 시 새로 발사되는 F도 출생 즉시 enchanted.
-        // SpawnSystem.start 시그니처는 *그대로* — 여기서 scene 캐스팅으로 GameScene/SkillSystem 조회.
-        // weak scene이 nil이면 isCharmActive=false 자연 fallback(주의사항 2).
-        let isCharmed = (scene as? GameScene)?.skillSystem.isCharmActive ?? false
-        for _ in 0..<projectileBurstCount {
-            // 각 발마다 max 가드 — 동시 max 초과 시 중단.
-            guard currentProjectileCount() < projectileMaxConcurrent else { return }
-            let projectile = ProjectileNode()
-            projectile.position = enemy.position
-            projectile.physicsBody?.velocity = CGVector(
-                dx: unitX * GameConfig.projectileSpeed,
-                dy: unitY * GameConfig.projectileSpeed
-            )
-            // Phase 9-5 — 매혹 활성 중 출생 시 즉시 enchanted set.
-            if isCharmed {
-                projectile.applyEnchanted()
-            }
-            world.addChild(projectile)
-        }
-    }
-
-    /// worldNode 안 projectile ("projectile" 이름) 개수.
-    private func currentProjectileCount() -> Int {
-        guard let world = worldNode else { return 0 }
-        var count = 0
-        world.enumerateChildNodes(withName: "projectile") { _, _ in count += 1 }
-        return count
-    }
-
-    /// Phase 4-7 — 외부 호출용. private fireProjectile()의 외부 진입점.
-    /// AIRFORCE 이스터에그 수간호사 복귀 시 F 1발 즉시 발사.
-    /// projectileMaxConcurrent 가드는 그대로(균형 유지).
+    /// Phase 4-7 — 외부 호출용. AIRFORCE 이스터에그 수간호사 복귀 시 F 1발 즉시 발사.
+    /// Sprint 10 Phase D — 발사 책임이 EnemyNode로 이동 → enemy.fireFOnce() 1줄 위임.
+    /// 텔레그래프를 우회하는 즉시 발사 — burst/F-A 분기는 EnemyNode.fireF가 단일 진실 원천.
     func fireImmediately() {
-        fireProjectile()
+        guard let enemy = enemy else { return }
+        enemy.fireFOnce()
+    }
+
+    // MARK: - Sprint 10 Phase G · F 전멸 + obstacles target getter
+
+    /// AIRFORCE 이스터에그 폭탄 섬광 동기 호출. 화면 위 모든 F(name="projectile")를 즉시 제거.
+    /// A(name="aItem", 매혹 변환)는 보존 — 원본 game.js L3419~L3447 'type==F 전부 삭제' byte-equal.
+    /// SKAction.removeFromParent 사용 — didBegin/물리 콜백 진행 중 즉시 removeFromParent 회피
+    /// (주의사항 1: 물리 충돌 노드 즉시 삭제 금지).
+    /// ProjectileNode(deprecated)와 FProjectileNode(Phase D 신규) 모두 name="projectile" 공유 →
+    /// type-agnostic 정책: 이름 기준 일괄 제거 (grep 검증: name="projectile" 사이트 2곳 / name="aItem" 분리).
+    /// 매혹된 ProjectileNode(레거시 isEnchanted=true)는 화면 보존되지 않음 — Phase D 이후 매혹 변환은
+    /// 발사 시점에 AItemNode로 분기되어 name="aItem" 별도. 즉 "projectile" 이름은 항상 일반 F만 보유.
+    func purgeAllF() {
+        guard let world = worldNode else { return }
+        world.enumerateChildNodes(withName: "projectile") { node, _ in
+            // 다음 프레임 안전 제거 — SKAction.removeFromParent는 물리 콜백 진행 중 즉시 제거 회피.
+            node.run(.removeFromParent())
+        }
+    }
+
+    /// AIRFORCE 이스터에그 도주 종료 시 F 재시딩 목표치. 원본 game.js L2678~L2687
+    /// `Math.round(obstacles × 1.0) - 현재 F` byte-equal — iOS는 difficulty별 projectileMaxConcurrent 사용.
+    /// (SpawnSystem.apply에서 set된 인스턴스 프로퍼티 그대로 노출.)
+    /// 호출부: GameScene.triggerAirforceEasterEgg onEnd 콜백 — 목표치 - 현재 F = deficit만큼 fireImmediately.
+    var currentObstaclesTarget: Int {
+        return projectileMaxConcurrent
     }
 
     // MARK: - Toilet Spawn (Phase 9-6)

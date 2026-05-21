@@ -24,7 +24,8 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     /// 마일스톤 값(3/5/10/20 등)을 받아 텍스트와 색을 결정.
     /// 텍스트 포맷 "x\(milestone)" — 라벨 1개로 깔끔한 단일 메시지.
     init(milestone: Int) {
-        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        // Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold). 인게임 픽셀 톤.
+        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
         self.label.text = "x\(milestone)"
         super.init()
         name = "comboPopup"
@@ -81,11 +82,12 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
             CGPoint(x:  0,      y: -offset),
             CGPoint(x:  0,      y: +offset)
         ]
+        // Sprint 10 Phase J — outline fontDisplay → fontPixel, ganhoNavyDeep → ganhoPixelOutlineBlack.
         for off in offsets {
-            let outline = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let outline = SKLabelNode(fontNamed: GameConfig.fontPixel)
             outline.text = text
             outline.fontSize = GameConfig.comboPopupV2FontSize
-            outline.fontColor = .ganhoNavyDeep
+            outline.fontColor = .ganhoPixelOutlineBlack
             outline.verticalAlignmentMode = .center
             outline.horizontalAlignmentMode = .center
             outline.position = off
@@ -94,17 +96,17 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
         }
     }
 
-    // MARK: - Color Mapping (Sprint 3 v2)
-    /// 마일스톤 값 → ColorTokens v2 매핑. 미일치 시 기본 ganhoMusicGold로 graceful fallback.
-    /// case 3 골드, 5 코랄, 10 골드(황금기 강조), 20 코랄 쉐도우(클라이맥스).
+    // MARK: - Color Mapping (Sprint 10 Phase J · Pixel Palette)
+    /// 마일스톤 값 → 픽셀 컬러 매핑. SPEC §10 byte-equal.
+    /// case 3 픽셀 콤보 골드, 5 픽셀 콤보 레드, 10 픽셀 HUD 옐로(황금기), 20 픽셀 콤보 레드(클라이맥스).
     /// 정적 메서드: 외부 상태 의존 0 — 입력 같으면 출력 같음(pure function).
     private static func color(for milestone: Int) -> UIColor {
         switch milestone {
-        case 3:  return .ganhoMusicGold     // 골드 — 첫 도달
-        case 5:  return .ganhoCoralPrimary  // 코랄 — 음악의 따뜻함
-        case 10: return .ganhoMusicGold     // 황금 — 노트의 황금기
-        case 20: return .ganhoCoralShadow   // 진한 코랄 — 클라이맥스
-        default: return .ganhoMusicGold     // 미래 마일스톤 대비
+        case 3:  return .ganhoPixelComboGold   // 첫 도달 — 따뜻한 픽셀 골드
+        case 5:  return .ganhoPixelComboRed    // 음악의 강렬함 — 픽셀 레드
+        case 10: return .ganhoPixelHudYellow   // 노트의 황금기 — HUD 옐로와 동일 톤
+        case 20: return .ganhoPixelComboRed    // 클라이맥스 — 짙은 픽셀 레드
+        default: return .ganhoPixelComboGold   // 미래 마일스톤 graceful fallback
         }
     }
 }

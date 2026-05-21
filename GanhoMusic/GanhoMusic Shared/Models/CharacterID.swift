@@ -36,16 +36,13 @@ enum CharacterID: String, CaseIterable {
         }
     }
 
-    /// Phase 5-3 — 캐릭터별 이동속도 배율. `.kim` = 1.0을 기준으로 +/- 10% 이내 미세 차등.
-    /// PlayerNode.update(deltaTime:)에서 GameConfig.playerBaseSpeed × multiplier로 velocity 산출.
+    /// Sprint 10 Phase I — 원본 game.js L317 1:1 정합. 5명 모두 1.0 통일.
+    /// 캐릭터 정체성은 *스킬*에서만 분기 — 이동속도는 원본과 동일하게 균질.
+    /// 회귀: 기존 ±10% 미세 차등(jung 1.10/geon 0.90 등) 사라짐. 원본 정합 우선 (OQ-D).
+    /// PlayerNode.apply(characterID)가 speedMultiplier에 set → update(deltaTime:) velocity 산출에 사용.
+    /// switch 제거 — 5명 모두 동일값이라 분기 불필요. 호출처(라벨 표시 6곳)는 모두 ×1.00으로 자연 일치.
     var playerSpeedMultiplier: CGFloat {
-        switch self {
-        case .kim:  return 1.00   // 기준
-        case .jung: return 1.10   // 민첩
-        case .lee:  return 1.05   // 살짝 빠름
-        case .im:   return 0.95   // 살짝 느림
-        case .geon: return 0.90   // 묵직
-        }
+        return 1.0
     }
 
     /// Phase 9-5 — 캐릭터별 능동 스킬. `.kim`은 .none (스킬 없음 = 정공법 정체성).

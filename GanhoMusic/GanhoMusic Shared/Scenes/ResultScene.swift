@@ -785,7 +785,8 @@ final class ResultScene: SKScene {
     /// 5개 자식은 각자 0.5초 후 자가 소멸 → ResultScene은 후속 정리 0건.
     private func emitSparkleBurst() {
         for offset in GameConfig.resultSparklePositionsV2 {
-            let sparkle = SparkleEffectNode()
+            // Sprint 10 Phase J — .menu 명시. 메뉴 v2 카툰 톤(원형 순백) 유지 — 인게임 픽셀 톤과 분리.
+            let sparkle = SparkleEffectNode(context: .menu)
             sparkle.position = CGPoint(
                 x: frame.midX + offset.x,
                 y: frame.midY + offset.y

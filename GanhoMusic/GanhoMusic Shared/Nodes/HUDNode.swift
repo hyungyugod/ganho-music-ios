@@ -60,7 +60,9 @@ final class HUDNode: SKNode {
         let seconds = max(0, Int(ceil(remainingTime)))
         timeSlot.setValue(String(format: "00:%02d", seconds))
         comboSlot.setValue("\(combo)")
-        comboSlot.setValueColor(combo >= 3 ? .ganhoMusicGold : .white)
+        // Sprint 10 Phase J — 콤보 hot 색 픽셀 톤 swap (ganhoMusicGold → ganhoPixelHudYellow,
+        // .white → ganhoPixelHudWhite). 3+ 픽셀 옐로, 그 외 페이퍼 화이트.
+        comboSlot.setValueColor(combo >= 3 ? .ganhoPixelHudYellow : .ganhoPixelHudWhite)
 
         // Sprint 3 — TIME 경고 색 swap + 진행바 갱신.
         // tensionWindow 이하 진입 시 코랄 경고 배경. 그 외엔 navy 기본.
@@ -80,17 +82,19 @@ final class HUDNode: SKNode {
     }
 
     // MARK: - Tension (Phase 6-14)
-    /// timeSlot의 값 라벨을 골드 ↔ 흰 1초 주기로 깜빡이게 한다.
-    /// Sprint 3 — v2 토큰(ganhoMusicGold ↔ .white)으로 색 교체. 시그니처 0 변경.
+    /// timeSlot의 값 라벨을 픽셀 옐로 ↔ 픽셀 화이트 1초 주기로 깜빡이게 한다.
+    /// Sprint 10 Phase J — v2 토큰(ganhoMusicGold/.white) → 픽셀 토큰
+    /// (ganhoPixelHudYellow/ganhoPixelHudWhite) swap. 시그니처 0 변경.
     /// 같은 key(`tensionBlinkActionKey`)로 중복 호출 시 SpriteKit이 이전 액션을 자동 교체(자연 멱등).
     func startTensionBlink() {
-        timeSlot.startBlink(color: .ganhoMusicGold)
+        timeSlot.startBlink(color: .ganhoPixelHudYellow)
     }
 
-    /// 깜빡임 액션 제거 + 색 즉시 기본 색(.white)으로 복원 (잔상 0).
+    /// 깜빡임 액션 제거 + 색 즉시 기본 색(픽셀 화이트)으로 복원 (잔상 0).
     /// removeAction은 키가 없어도 안전(noop).
+    /// Sprint 10 Phase J — .white → ganhoPixelHudWhite swap.
     func stopTensionBlink() {
-        timeSlot.stopBlink(restoreColor: .white)
+        timeSlot.stopBlink(restoreColor: .ganhoPixelHudWhite)
     }
 }
 
@@ -132,10 +136,10 @@ final class HUDSlotNode: SKNode {
         backgroundChip.strokeColor = .clear
         backgroundChip.zPosition = 99
 
-        // (2) 라벨/값 SKLabelNode. fontName = Jua-Regular(fontDisplay) — v2 시스템.
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        // (2) 라벨/값 SKLabelNode. Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold).
+        labelNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
         labelNode.text = label
-        valueNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        valueNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
         valueNode.text = initialValue
 
         // (3) 진행바 자식 — TIME 슬롯만. xScale 갱신을 위해 anchorPoint 좌측 정렬.
@@ -172,9 +176,10 @@ final class HUDSlotNode: SKNode {
 
         super.init()
 
-        // (4) 위쪽 라벨 — 10pt 골드. labelNode.position을 super.init 후 set.
+        // (4) 위쪽 라벨 — 10pt 픽셀 옐로. labelNode.position을 super.init 후 set.
+        // Sprint 10 Phase J — ganhoMusicGold → ganhoPixelHudYellow swap.
         labelNode.fontSize = GameConfig.hudSlotV2LabelFontSize
-        labelNode.fontColor = .ganhoMusicGold
+        labelNode.fontColor = .ganhoPixelHudYellow
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
@@ -184,9 +189,9 @@ final class HUDSlotNode: SKNode {
             y: GameConfig.hudSlotV2ValueFontSize / 2 + GameConfig.hudSlotInnerGap
         )
 
-        // (5) 아래쪽 값 — 18pt 흰색.
+        // (5) 아래쪽 값 — 18pt 픽셀 화이트(페이퍼 화이트 톤). Sprint 10 Phase J — .white → ganhoPixelHudWhite.
         valueNode.fontSize = GameConfig.hudSlotV2ValueFontSize
-        valueNode.fontColor = .white
+        valueNode.fontColor = .ganhoPixelHudWhite
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
@@ -220,11 +225,13 @@ final class HUDSlotNode: SKNode {
     }
 
     // MARK: - Sprint 3 v2 · Warn / TimeBar
-    /// 경고 모드 toggle. on=true → 코랄 배경, on=false → navy 기본 배경.
+    /// 경고 모드 toggle. on=true → 픽셀 코랄 배경, on=false → navy 기본 배경.
     /// SetWarn은 fillColor 교체 1줄로 멱등 — 중복 호출 안전.
+    /// Sprint 10 Phase J — 경고 색 ganhoCoralShadow → ganhoPixelHudCoral. 기본 navy는 메뉴 잔상 0
+    /// (HUDNode는 인게임 전용 호출).
     func setWarn(_ on: Bool) {
         backgroundChip.fillColor = on
-            ? UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.hudSlotWarnBgAlpha)
+            ? UIColor.ganhoPixelHudCoral.withAlphaComponent(GameConfig.hudSlotWarnBgAlpha)
             : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.hudSlotBgAlpha)
     }
 
@@ -239,8 +246,9 @@ final class HUDSlotNode: SKNode {
     /// SKLabelNode의 `colorize` 액션은 `colorBlendFactor` 이슈로 일관성 ↓ → fontColor 직접 교체 패턴 채택.
     /// 콜백은 [weak self] 캡처 — 씬 전환 시 액션 잔존 시 안전.
     func startBlink(color: UIColor) {
+        // Sprint 10 Phase J — toBase .white → ganhoPixelHudWhite swap. accent 색은 호출자 주입 그대로.
         let toAccent = SKAction.run { [weak self] in self?.valueNode.fontColor = color }
-        let toBase = SKAction.run { [weak self] in self?.valueNode.fontColor = .white }
+        let toBase = SKAction.run { [weak self] in self?.valueNode.fontColor = .ganhoPixelHudWhite }
         let wait = SKAction.wait(forDuration: GameConfig.tensionBlinkHalfPeriod)
         let cycle = SKAction.sequence([toAccent, wait, toBase, wait])
         valueNode.run(.repeatForever(cycle), withKey: GameConfig.tensionBlinkActionKey)

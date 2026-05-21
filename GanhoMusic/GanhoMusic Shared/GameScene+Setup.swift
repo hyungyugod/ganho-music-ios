@@ -26,115 +26,19 @@ extension GameScene {
         // Phase 9-4 — 체크보드 바닥. setupMap()보다 *먼저* 호출해서
         // 외곽 벽/기둥(z=0)이 자연스럽게 바닥(z=-100) 위에 얹히도록 한다.
         addCheckerboardFloor()
+        // Sprint 10 Phase B — 원본 1:1 좌표 그릇 MapNode 부착. zPos -50(체크보드 위, 외곽벽 아래).
+        // Phase B는 빈 컨테이너 — Phase C가 buildWalls(difficulty:)로 채울 예정.
+        worldNode.addChild(mapNode)
         setupMap()
     }
 
-    /// Phase 7-2 — 맵 구성 단일 진입점. 외곽 벽 + difficulty 분기.
-    /// Phase 9-4 — .normal 케이스가 .hard에서 떨어져 addNormalMap()으로 연결.
-    /// switch default 미사용: Difficulty 신규 case 추가 시 컴파일러 경고로 자연 검출.
+    /// Sprint 10 Phase C — 맵 구성 단일 진입점이 MapNode로 이동.
+    /// MapNode.buildWalls(difficulty:)가 외곽 + easy 중앙 기둥 + hard 4 방·중앙 기둥을 일괄 부착.
+    /// 옛 addOuterWalls/addCentralPillar/addHardMap/addNormalMap/addRectPillar/addHorizontalWall/
+    /// addVerticalWall 7개 함수는 본 Phase에서 *함수 자체* 삭제(호출자 0건 검증 후).
+    /// 외곽 라운드 보더 SKShapeNode도 함께 제거(OQ-1 — 원본 1:1 픽셀 톤 우선).
     func setupMap() {
-        addOuterWalls()
-        switch difficulty {
-        case .easy:   addCentralPillar()
-        case .normal: addNormalMap()
-        case .hard:   addHardMap()
-        }
-    }
-
-    /// Phase 7-2 — hard 맵(normal·hard 공용). 옵션 C 좌표 — 원본 game.js L289-309의
-    /// *맵 가장자리 절대 거리* 보존 + *중앙 빈 공간만 확장*. 거울 대칭 (mirroredC=47-c, mirroredR=23-r).
-    func addHardMap() {
-        // 코너 방 4개 — 가로벽 + 세로벽(doorR 한 칸 분기)
-
-        // 좌상 방
-        addHorizontalWall(cStart: GameConfig.hardMapTopLeftRoomHWallCStart,
-                          cEnd:   GameConfig.hardMapTopLeftRoomHWallCEnd,
-                          r:      GameConfig.hardMapTopLeftRoomHWallR)
-        addVerticalWall(c:       GameConfig.hardMapTopLeftRoomVWallC,
-                        rStart:  GameConfig.hardMapTopLeftRoomVWallRStart,
-                        rEnd:    GameConfig.hardMapTopLeftRoomVWallREnd,
-                        doorR:   GameConfig.hardMapTopLeftRoomDoorR)
-
-        // 우상 방
-        addHorizontalWall(cStart: GameConfig.hardMapTopRightRoomHWallCStart,
-                          cEnd:   GameConfig.hardMapTopRightRoomHWallCEnd,
-                          r:      GameConfig.hardMapTopRightRoomHWallR)
-        addVerticalWall(c:       GameConfig.hardMapTopRightRoomVWallC,
-                        rStart:  GameConfig.hardMapTopRightRoomVWallRStart,
-                        rEnd:    GameConfig.hardMapTopRightRoomVWallREnd,
-                        doorR:   GameConfig.hardMapTopRightRoomDoorR)
-
-        // 좌하 방
-        addHorizontalWall(cStart: GameConfig.hardMapBottomLeftRoomHWallCStart,
-                          cEnd:   GameConfig.hardMapBottomLeftRoomHWallCEnd,
-                          r:      GameConfig.hardMapBottomLeftRoomHWallR)
-        addVerticalWall(c:       GameConfig.hardMapBottomLeftRoomVWallC,
-                        rStart:  GameConfig.hardMapBottomLeftRoomVWallRStart,
-                        rEnd:    GameConfig.hardMapBottomLeftRoomVWallREnd,
-                        doorR:   GameConfig.hardMapBottomLeftRoomDoorR)
-
-        // 우하 방
-        addHorizontalWall(cStart: GameConfig.hardMapBottomRightRoomHWallCStart,
-                          cEnd:   GameConfig.hardMapBottomRightRoomHWallCEnd,
-                          r:      GameConfig.hardMapBottomRightRoomHWallR)
-        addVerticalWall(c:       GameConfig.hardMapBottomRightRoomVWallC,
-                        rStart:  GameConfig.hardMapBottomRightRoomVWallRStart,
-                        rEnd:    GameConfig.hardMapBottomRightRoomVWallREnd,
-                        doorR:   GameConfig.hardMapBottomRightRoomDoorR)
-
-        // 중앙 기둥 4개 — 대칭의 댄스플로어
-        // 중앙-좌 (1×2 세로형)
-        addRectPillar(cStart: GameConfig.hardMapCenterLeftPillarC,
-                      cEnd:   GameConfig.hardMapCenterLeftPillarC,
-                      rStart: GameConfig.hardMapCenterLeftPillarRStart,
-                      rEnd:   GameConfig.hardMapCenterLeftPillarREnd)
-        // 중앙-우 (1×2 세로형)
-        addRectPillar(cStart: GameConfig.hardMapCenterRightPillarC,
-                      cEnd:   GameConfig.hardMapCenterRightPillarC,
-                      rStart: GameConfig.hardMapCenterRightPillarRStart,
-                      rEnd:   GameConfig.hardMapCenterRightPillarREnd)
-        // 중앙-상 (2×1 가로형)
-        addRectPillar(cStart: GameConfig.hardMapCenterTopPillarCStart,
-                      cEnd:   GameConfig.hardMapCenterTopPillarCEnd,
-                      rStart: GameConfig.hardMapCenterTopPillarR,
-                      rEnd:   GameConfig.hardMapCenterTopPillarR)
-        // 중앙-하 (2×1 가로형)
-        addRectPillar(cStart: GameConfig.hardMapCenterBottomPillarCStart,
-                      cEnd:   GameConfig.hardMapCenterBottomPillarCEnd,
-                      rStart: GameConfig.hardMapCenterBottomPillarR,
-                      rEnd:   GameConfig.hardMapCenterBottomPillarR)
-    }
-
-    /// Phase 9-4 — normal 맵. 좌·우 두 방을 가르는 중앙 세로 분리벽(c=23) + 가운데 r=11~12 두 칸 문 +
-    /// 좌방/우방 안 2×2 장식 기둥. addVerticalWall은 private(같은 파일 한정)이라
-    /// 본 메서드는 *반드시* 같은 extension 블록 안에 있어야 한다.
-    /// Phase 9-5 — 중앙 세로 분리벽만 breakable: true (정간호 돌진으로 파괴 가능).
-    /// 장식 기둥(좌방/우방)은 breakable: false 유지 — 게임 균형 회귀 0.
-    func addNormalMap() {
-        // 중앙 세로 분리벽 — 윗 절반 (r=2..10). doorR=-1 sentinel → 모든 r에서 벽 채워짐.
-        // Phase 9-5 — 분리벽만 breakable: true. 정간호 돌진 시 1칸 파괴 가능.
-        addVerticalWall(c:      GameConfig.normalMapDividerC,
-                        rStart: GameConfig.normalMapDividerUpperRStart,
-                        rEnd:   GameConfig.normalMapDividerUpperREnd,
-                        doorR:  GameConfig.normalMapNoDoorSentinel,
-                        breakable: true)
-        // 중앙 세로 분리벽 — 아랫 절반 (r=13..21). 가운데 r=11,12는 두 빌더 모두 건드리지 않아
-        // 자연스럽게 *통과 가능한 2칸 문*이 형성된다.
-        addVerticalWall(c:      GameConfig.normalMapDividerC,
-                        rStart: GameConfig.normalMapDividerLowerRStart,
-                        rEnd:   GameConfig.normalMapDividerLowerREnd,
-                        doorR:  GameConfig.normalMapNoDoorSentinel,
-                        breakable: true)
-        // 좌방 장식 기둥 — 2×2 타일. breakable: false (장식이라 파괴 비대상).
-        addRectPillar(cStart: GameConfig.normalMapLeftPillarCStart,
-                      cEnd:   GameConfig.normalMapLeftPillarCEnd,
-                      rStart: GameConfig.normalMapLeftPillarRStart,
-                      rEnd:   GameConfig.normalMapLeftPillarREnd)
-        // 우방 장식 기둥 — 2×2 타일, 좌우 거울 대칭. breakable: false.
-        addRectPillar(cStart: GameConfig.normalMapRightPillarCStart,
-                      cEnd:   GameConfig.normalMapRightPillarCEnd,
-                      rStart: GameConfig.normalMapRightPillarRStart,
-                      rEnd:   GameConfig.normalMapRightPillarREnd)
+        mapNode.buildWalls(difficulty: difficulty)
     }
 
     /// Phase 9-4 — 체크보드 바닥. 1152개(mapColumns × mapRows = 48×24) SKSpriteNode를
@@ -169,151 +73,11 @@ extension GameScene {
         worldNode.addChild(container)
     }
 
-    /// Phase 7-2 — 가로벽 헬퍼. 단일 행 r에 cStart..cEnd 길이 만큼 1행 직사각형 1개.
-    /// Phase 9-5 — breakable 파라미터 추가 (default false → 회귀 0).
-    private func addHorizontalWall(cStart: Int, cEnd: Int, r: Int, breakable: Bool = false) {
-        addRectPillar(cStart: cStart, cEnd: cEnd, rStart: r, rEnd: r, breakable: breakable)
-    }
-
-    /// Phase 7-2 — 세로벽 헬퍼. doorR 한 칸을 *건너뛰며* 1×1 직사각형 여러 개 생성.
-    /// 통짜로 만들면 PhysicsBody가 문을 막아 플레이어 입장 불가 — SKSpriteNode 분리 필수(주의사항 7).
-    /// Phase 9-5 — breakable 파라미터 추가 (default false → hard 맵 호출자 회귀 0).
-    /// breakable=true 호출 시 각 칸 SKSpriteNode가 name="breakableWall"을 부여받아
-    /// SkillSystem.dashClimb의 enumerate가 식별 가능.
-    private func addVerticalWall(c: Int, rStart: Int, rEnd: Int, doorR: Int, breakable: Bool = false) {
-        for r in rStart...rEnd where r != doorR {
-            addRectPillar(cStart: c, cEnd: c, rStart: r, rEnd: r, breakable: breakable)
-        }
-    }
-
-    /// Phase 7-2 — 직사각형 벽 1개 생성. anchorPoint 기본값 .center 가정 —
-    /// 중심 = ((cStart + widthTiles/2) × tileSize, (rStart + heightTiles/2) × tileSize).
-    /// PhysicsBody 정책은 addCentralPillar와 byte-equal(주의사항 1).
-    /// Phase 9-5 — breakable 파라미터 추가 (default false → 외곽/장식/hard 맵 호출자 회귀 0).
-    /// breakable=true면 노드에 name="breakableWall" 부여 — SkillSystem.dashClimb 발동 시
-    /// worldNode.enumerateChildNodes(withName: breakableWallName)이 식별 가능.
-    private func addRectPillar(cStart: Int, cEnd: Int, rStart: Int, rEnd: Int, breakable: Bool = false) {
-        let t = GameConfig.tileSize
-        let widthTiles  = CGFloat(cEnd - cStart + 1)
-        let heightTiles = CGFloat(rEnd - rStart + 1)
-        let pillarSize = CGSize(width: widthTiles * t, height: heightTiles * t)
-        // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/breakable name/위치 0건 변경.
-        let pillar = SKSpriteNode(color: .ganhoNavyDeep, size: pillarSize)
-        pillar.position = CGPoint(
-            x: (CGFloat(cStart) + widthTiles  / 2) * t,
-            y: (CGFloat(rStart) + heightTiles / 2) * t
-        )
-        if breakable {
-            pillar.name = GameConfig.breakableWallName
-        }
-        let body = SKPhysicsBody(rectangleOf: pillarSize)
-        body.isDynamic           = false
-        body.friction            = 0
-        body.restitution         = 0
-        body.categoryBitMask     = PhysicsCategory.wall
-        body.collisionBitMask    = 0
-        body.contactTestBitMask  = 0
-        pillar.physicsBody = body
-        worldNode.addChild(pillar)
-    }
-
-    func addOuterWalls() {
-        // 4 외곽 벽: 두께 1 tile (20pt), 맵 바깥쪽에 배치.
-        // Phase 2-2 — 각 벽에 static PhysicsBody 부착하여 박스가 진짜로 부딪히게 함.
-        // (1-4 자체 클램프 제거 후 외곽 벽 PhysicsBody가 그 책임을 이어받음.)
-        let mapW = GameConfig.mapWidth
-        let mapH = GameConfig.mapHeight
-        let t    = GameConfig.tileSize
-        let halfT = t / 2
-
-        struct WallSpec {
-            let size: CGSize
-            let position: CGPoint
-        }
-        let walls: [WallSpec] = [
-            // top
-            WallSpec(
-                size: CGSize(width: mapW + t * 2, height: t),    // 좌우 모서리까지 덮음
-                position: CGPoint(x: mapW / 2, y: mapH + halfT)
-            ),
-            // bottom
-            WallSpec(
-                size: CGSize(width: mapW + t * 2, height: t),
-                position: CGPoint(x: mapW / 2, y: -halfT)
-            ),
-            // left
-            WallSpec(
-                size: CGSize(width: t, height: mapH),
-                position: CGPoint(x: -halfT, y: mapH / 2)
-            ),
-            // right
-            WallSpec(
-                size: CGSize(width: t, height: mapH),
-                position: CGPoint(x: mapW + halfT, y: mapH / 2)
-            )
-        ]
-
-        for spec in walls {
-            // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/size/position 0건 변경.
-            let wall = SKSpriteNode(color: .ganhoNavyDeep, size: spec.size)
-            wall.position = spec.position
-
-            // Phase 2-2 — PhysicsBody 부착 (static, 박스가 부딪힘)
-            let body = SKPhysicsBody(rectangleOf: spec.size)
-            body.isDynamic           = false
-            body.friction            = 0
-            body.restitution         = 0
-            body.categoryBitMask     = PhysicsCategory.wall
-            body.collisionBitMask    = 0   // 벽은 다른 객체에 의해 안 움직임 (static)
-            body.contactTestBitMask  = 0   // 충돌 알림은 player가 받음 (대칭)
-            wall.physicsBody = body
-
-            worldNode.addChild(wall)
-        }
-
-        // Sprint 3 — 외곽 라운드 보더 SKShapeNode 1개 (시각만, physicsBody 미부착).
-        // zPosition -50 — 체크보드(-100) 위, 외곽 벽(0) 아래에 자연스럽게 깔린다.
-        let borderRect = CGRect(
-            x: 0, y: 0,
-            width: GameConfig.mapWidth,
-            height: GameConfig.mapHeight
-        )
-        let border = SKShapeNode(
-            rect: borderRect,
-            cornerRadius: GameConfig.outerWallBorderCornerRadius
-        )
-        border.strokeColor = .ganhoNavyDeep
-        border.lineWidth = GameConfig.outerWallBorderLineWidth
-        border.fillColor = .clear
-        border.zPosition = -50
-        worldNode.addChild(border)
-    }
-
-    func addCentralPillar() {
-        // GDD §6 easy 맵 — 중앙 기둥 1개 (2×4 tile = 40×80pt), 맵 정중앙.
-        let pillarSize = CGSize(
-            width:  GameConfig.tileSize * 2,    // 40pt
-            height: GameConfig.tileSize * 4     // 80pt
-        )
-        // Sprint 3 — v2 디자인 시스템 navy 톤 통합. PhysicsBody/위치 0건 변경.
-        let pillar = SKSpriteNode(color: .ganhoNavyDeep, size: pillarSize)
-        pillar.position = CGPoint(
-            x: GameConfig.mapWidth  / 2,        // 맵 가로 정중앙
-            y: GameConfig.mapHeight / 2         // 맵 세로 정중앙
-        )
-
-        // PhysicsBody 부착 (외곽 벽과 동일 정책)
-        let body = SKPhysicsBody(rectangleOf: pillarSize)
-        body.isDynamic           = false
-        body.friction            = 0
-        body.restitution         = 0
-        body.categoryBitMask     = PhysicsCategory.wall
-        body.collisionBitMask    = 0
-        body.contactTestBitMask  = 0
-        pillar.physicsBody = body
-
-        worldNode.addChild(pillar)
-    }
+    // Sprint 10 Phase C — 옛 빌더 함수 7개 본문 + 외곽 라운드 보더 SKShapeNode 삭제.
+    // 제거된 함수: addHorizontalWall / addVerticalWall / addRectPillar / addOuterWalls /
+    //             addCentralPillar / addHardMap / addNormalMap.
+    // 호출자 0건 검증(grep 결과 SELF_CHECK §5) → setupMap의 단일 위임으로 책임 이동.
+    // outerWallBorder* 상수도 호출자 0건 — GameConfig에 정의만 남되 본 Phase는 시각 사용 중단.
 
     func setupPlayer() {
         // Phase 2-6 hotfix 2 — 중앙 기둥(맵 정중앙)과 분리된 좌측 1/4 지점.
@@ -354,14 +118,27 @@ extension GameScene {
     }
 
     func setupEnemy() {
-        // Phase 2-7 hotfix — player가 좌측 1/4(240, 240)에 있으니 enemy를 *맵 우상단*에 배치.
-        // 좌표 (mapW * 3/4, mapH * 3/4) = (720, 360). player와 거리 √(480² + 120²) ≈ 495pt.
-        // 60pt/s 속도로 ~8초 후 도달 → 사용자가 D-Pad 익히고 회피 학습할 시간 확보.
-        enemy.position = CGPoint(
-            x: GameConfig.mapWidth  * 3 / 4,
-            y: GameConfig.mapHeight * 3 / 4
-        )
-        enemy.apply(difficulty)   // Phase 7-1 — 난이도별 baseSpeedStart/End set.
+        // Sprint 10 Phase D — 추적 폐기 → 4지점 사각 순환 패트롤.
+        //  · apply(difficulty)가 patrolWaypoints / patrolSpeed / burst / obs 속도 / fireInterval lerp 일괄 set.
+        //  · 초기 위치는 selectInitialWaypoint(from:player.position)이 결정 — 플레이어로부터 가장 먼 waypoint.
+        //    (옛 *맵 우상단* 하드코딩 폐기. 원본 game.js L2618~L2628 byte-equal.)
+        //  · provider 4종 [weak self] 캡처 — 발사 시점에 player.position / 진행률 / charmActive를 실시간 조회.
+        //    EnemyNode 인스턴스는 GameScene이 strong하게 보유하므로 메모리 누수 0.
+        enemy.apply(difficulty)
+        enemy.selectInitialWaypoint(from: player.position)
+        enemy.targetProvider = { [weak self] in
+            return self?.player.position ?? .zero
+        }
+        enemy.worldProvider = { [weak self] in
+            return self?.worldNode
+        }
+        enemy.progressProvider = { [weak self] in
+            guard let self = self else { return 0 }
+            return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+        }
+        enemy.charmActiveProvider = { [weak self] in
+            return self?.skillSystem.isCharmActive ?? false
+        }
         worldNode.addChild(enemy)
     }
 
@@ -369,11 +146,11 @@ extension GameScene {
         // Phase 9-8 — hard 난이도는 이교수 톤 집중. 석조무사 미등장 (GDD §7-6 "하/중 전용").
         // worldNode에 stoneGuard를 추가하지 않으므로 충돌 자체가 발생 0건 → 이스터에그 진입 0.
         guard difficulty != .hard else { return }
-        // Phase 4-1 — 첫 waypoint(좌하단)에 위치 부여. StoneGuardNode.init에서 patrol이 이미 시작됐으므로
-        // 첫 .move 액션은 (200, 100) → (760, 100) 우향으로 자동 진행된다.
-        let first = GameConfig.stoneGuardWaypoints[0]
-        stoneGuard.position = CGPoint(x: first.x, y: first.y)
+        // Sprint 10 Phase F — farthest-first 시작 정책. worldNode 부착 직후 selectInitialWaypoint이
+        // 플레이어로부터 가장 먼 waypoint를 시작 위치로 결정 + startPatrolFrom으로 시퀀스 자동 시작.
+        // 옛 *첫 waypoint(좌하단) 하드코딩* 폐기. 원본 game.js L3236~L3274 byte-equal.
         worldNode.addChild(stoneGuard)
+        stoneGuard.selectInitialWaypoint(from: player.position)
     }
 
     // MARK: - Professor (Phase 9-7)
@@ -385,10 +162,12 @@ extension GameScene {
     func setupProfessor() {
         guard difficulty == .hard else { return }
         let node = ProfessorNode()
-        let first = GameConfig.professorWaypoints[0]
-        node.position = first
         worldNode.addChild(node)
         professor = node
+        // Sprint 10 Phase F — farthest-first 시작 정책. worldNode 부착 직후 selectInitialWaypoint이
+        // 플레이어로부터 가장 먼 waypoint를 시작 위치로 결정 + startPatrolFrom으로 8자 패트롤 시퀀스 자동 시작.
+        // 옛 *첫 waypoint 하드코딩* 폐기. 원본 game.js L2618~L2628(farthest-first) byte-equal.
+        node.selectInitialWaypoint(from: player.position)
         // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
         // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
         node.startThrowingStethoscopes(

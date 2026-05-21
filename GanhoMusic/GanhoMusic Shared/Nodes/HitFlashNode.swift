@@ -18,11 +18,14 @@ final class HitFlashNode: SKSpriteNode, SelfDismissingNode {
 
     // MARK: - Init
     init() {
-        // ColorTokens.ganhoBloodAccent — assets.md에 "피격 플래시" 용도로 이미 정의됨(재사용).
-        super.init(texture: nil, color: .ganhoBloodAccent, size: .zero)
+        // Sprint 10 Phase J — ganhoBloodAccent(#D8315B) → ganhoPixelHitRed(#C8281A) swap.
+        // blendMode .add — 본체 진홍이 배경 픽셀과 가산 합성 → 풀스크린 *번쩍* 임팩트.
+        // BombFlashNode와 동형 패턴(Phase G 적용 완료).
+        super.init(texture: nil, color: .ganhoPixelHitRed, size: .zero)
         name = "hitFlash"
         zPosition = GameConfig.hitFlashZPosition
         alpha = 0
+        blendMode = .add
     }
 
     required init?(coder aDecoder: NSCoder) {

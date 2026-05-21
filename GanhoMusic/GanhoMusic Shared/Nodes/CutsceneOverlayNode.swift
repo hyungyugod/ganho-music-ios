@@ -43,7 +43,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     /// `private init` — 외부 호출자가 *반드시* `present` 정적 팩토리를 거치도록 강제 →
     /// position 설정 누락 / isUserInteractionEnabled 미설정 같은 사용자 실수를
     /// 컴파일 타임에 차단 (ScorePopupNode 9호 패턴 답습).
-    private init(title: String, body: String, sceneSize: CGSize) {
+    private init(title: String, body: String, sceneSize: CGSize, fontName: String? = nil) {
         self.background = SKSpriteNode(
             color: UIColor.black.withAlphaComponent(GameConfig.cutsceneBackgroundAlpha),
             size: sceneSize
@@ -58,9 +58,9 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         // 미설정 시 터치가 부모(cameraNode → scene)로 전파되어 컷씬 dismiss 트리거 누락.
         isUserInteractionEnabled = true
         configureBackground(sceneSize: sceneSize)
-        configureTitleLabel()
-        configureBodyLabel(sceneSize: sceneSize)
-        configureTapLabel()
+        configureTitleLabel(fontName: fontName)
+        configureBodyLabel(sceneSize: sceneSize, fontName: fontName)
+        configureTapLabel(fontName: fontName)
         addChild(background)
         addChild(titleLabel)
         addChild(bodyLabel)
@@ -86,9 +86,10 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         body: String,
         parent: SKNode,
         sceneSize: CGSize,
+        fontName: String? = nil,
         onDismiss: @escaping () -> Void
     ) {
-        let node = CutsceneOverlayNode(title: title, body: body, sceneSize: sceneSize)
+        let node = CutsceneOverlayNode(title: title, body: body, sceneSize: sceneSize, fontName: fontName)
         node.onDismiss = onDismiss
         parent.addChild(node)
         // fadeIn — 등장 보간. ScorePopupNode·CountdownNode와 동형 자가 소멸 패턴.
@@ -133,7 +134,8 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
 
     /// 제목 라벨 — 화면 중앙 위쪽 +cutsceneTitleOffsetY, 흰빛(.ganhoPaper) 강조.
     /// 라벨은 본 노드 좌표계 (0, +offset)에 부착 → cameraNode 부착 시 화면 중앙 위쪽.
-    private func configureTitleLabel() {
+    private func configureTitleLabel(fontName: String? = nil) {
+        if let fontName { titleLabel.fontName = fontName }
         titleLabel.fontSize = GameConfig.cutsceneTitleFontSize
         titleLabel.fontColor = .ganhoPaper
         titleLabel.verticalAlignmentMode = .center
@@ -145,7 +147,8 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     /// 본문 라벨 — 화면 중앙(0,0), 자동 줄바꿈. iOS 11+에서 numberOfLines = 0 + preferredMaxLayoutWidth 조합으로
     /// 한국어 본문이 폭 안에 들어가도록 자동 줄바꿈된다.
     /// 폭 = sceneSize.width × cutsceneBodyWidthRatio(0.7) — 양 가장자리 15% 여백.
-    private func configureBodyLabel(sceneSize: CGSize) {
+    private func configureBodyLabel(sceneSize: CGSize, fontName: String? = nil) {
+        if let fontName { bodyLabel.fontName = fontName }
         bodyLabel.fontSize = GameConfig.cutsceneBodyFontSize
         bodyLabel.fontColor = .ganhoPaper
         bodyLabel.verticalAlignmentMode = .center
@@ -159,7 +162,8 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
 
     /// TAP 라벨 — 본문 아래쪽 -cutsceneTapOffsetY, 부속 안내 톤(alpha 0.7).
     /// titlePromptBlink(0.6초 깜빡임)과 달리 *정적 표시* — 컷씬 본문 가독성 우선(시각 노이즈 ↓).
-    private func configureTapLabel() {
+    private func configureTapLabel(fontName: String? = nil) {
+        if let fontName { tapLabel.fontName = fontName }
         tapLabel.fontSize = GameConfig.cutsceneTapFontSize
         tapLabel.fontColor = .ganhoPaper
         tapLabel.verticalAlignmentMode = .center

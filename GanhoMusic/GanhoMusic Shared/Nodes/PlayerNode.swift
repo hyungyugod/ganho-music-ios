@@ -9,6 +9,9 @@
 //  Phase 7-1 · 난이도별 기준 속도 차등 (baseSpeedStart/End 인스턴스 프로퍼티 + apply(_:Difficulty))
 //  Phase 8-1 · 단색 SKSpriteNode → 픽셀 텍스처 모드. PixelSprite + PixelPalette + PixelSpriteRenderer 사용.
 //             4방향 + 걷기 애니메이션을 PlayerNode가 *자기 update*에서 수동 처리.
+//  Sprint 10 Phase A · 풀바디(CharacterFullBodyNode SKShapeNode) 자식 제거 → 16×20 PixelSprite 자식 SKSpriteNode 1개로 통일.
+//                       시각 단일 진실 원천을 자식으로 일원화. physicsBody/velocity/이동/충돌/스킬 0줄 변경.
+//                       5명 × 4방향 = 20 SKTexture 정적 캐시(lazy hit). PNG 우선 경로 제거(원본 1:1 픽셀 회귀).
 //
 
 import SpriteKit
@@ -18,6 +21,8 @@ import SpriteKit
 /// Phase 2-2 — SKPhysicsBody 부착 (1-1에서 정의된 PhysicsCategory가 드디어 활성화).
 /// Phase 8-1 — texture 모드 전환. physicsBody 크기는 *그대로* 16×20 — 게임 hitbox 회귀 0.
 ///             시각만 32×40pt로 확대(pixelSpriteScale=2) — 카메라 follow / 충돌 / 맵 경계 영향 0.
+/// Sprint 10 Phase A — 시각 단일 진실 원천을 *자식 SKSpriteNode 1개*(pixelSpriteChild)로 통일.
+///             본체 self는 투명 placeholder. CharacterFullBodyNode(SVG SKShapeNode) 부착 제거.
 final class PlayerNode: SKSpriteNode {
 
     // MARK: - Properties
@@ -59,17 +64,20 @@ final class PlayerNode: SKSpriteNode {
     /// init 직후 .kim — apply 호출 전에도 그래픽이 깨지지 않도록 graceful default.
     private var currentCharacterID: CharacterID = .kim
 
-    // MARK: - Properties — Facing (Sprint 7 Phase G / Sprint 8 Phase G 풀바디 교체)
-    /// 4방향 CharacterFaceNode child 캐시. apply(_:) 호출 시 일괄 재생성.
-    /// Sprint 8 Phase G — 신규 캐릭터 적용 시 정리만 하고, *재부착 안 함*(fullBody로 교체).
-    /// dict lookup으로 facing(_:) noop 가드(.zero 시 미발화)와 즉시 토글 비용 0.
-    private var faceNodes: [Direction: CharacterFaceNode] = [:]
+    // MARK: - Properties — Facing (Sprint 7 Phase G / Sprint 10 Phase A 픽셀 일원화)
     /// 직전 facing 방향. facing(_:)이 같은 값이면 noop — 매 프레임 호출에도 비용 0.
     /// 초기값 .front — 정지 상태에서 정면 보는 자연 톤(D-Pad 미입력 시).
     private var lastFacing: Direction = .front
-    /// Sprint 8 Phase G — 인게임 풀바디 child. apply(_:)에서 부착, facing(_:)에서 위임.
-    /// CharacterFaceNode 4-child 패턴 대체 — *팔다리 보이는 캐릭터* 정체성.
-    private var fullBody: CharacterFullBodyNode?
+
+    // MARK: - Pixel Sprite Child (Sprint 10 Phase A)
+    /// 인게임 시각 단일 진실 원천. PlayerNode 본체(self)는 투명 placeholder, 이 자식이 실제 픽셀.
+    /// apply(_ characterID:)에서 부착, facing/updatePixelDirection에서 texture 교체만.
+    private var pixelSpriteChild: SKSpriteNode?
+
+    /// 5 × 4 = 20 SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
+    /// static — PlayerNode 인스턴스 전환(캐릭터 재선택 후 재시작)에도 1회 워밍 유지.
+    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전.
+    private static var textureCache: [CharacterID: [PixelDirection: SKTexture]] = [:]
 
     // MARK: - Init
     init() {
@@ -84,15 +92,15 @@ final class PlayerNode: SKSpriteNode {
             height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
         )
         // 초기 텍스처는 .kim의 down/idle. apply(_ characterID:)로 캐릭터 확정 시 갱신.
-        // Sprint 4 (PNG migration partial) — Self.loadTexture가 PNG 우선·픽셀 fallback 처리.
-        let initialTexture = Self.loadTexture(
-            for: .kim, direction: .down, frame: .idle
-        )
+        // Sprint 10 Phase A — 본체 self.texture는 투명 placeholder 정책상 시각 영향 0이지만
+        //                    size 0 방지 위해 .kim down idle 텍스처를 placeholder로 보유.
+        let initialTexture = Self.cachedTexture(for: .kim, direction: .down)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "player"
 
         // Phase 2-2 — PhysicsBody 부착 (dynamic, velocity 통제, 회전/마찰/탄성/감쇠 모두 0)
         // Phase 8-1 — body 크기는 *시각 크기와 무관하게* physicsSize 사용 → 기존 hitbox 보존.
+        // Sprint 10 Phase A — physicsBody 코드 0줄 변경(SPEC §8.12).
         let body = SKPhysicsBody(rectangleOf: physicsSize)
         body.isDynamic           = true
         body.allowsRotation      = false
@@ -105,6 +113,7 @@ final class PlayerNode: SKSpriteNode {
                                  | PhysicsCategory.enemy
                                  | PhysicsCategory.projectile
                                  | PhysicsCategory.bonus   // Phase 2-3 + 2-6 + 2-7 + 9-6 변기 보너스
+                                 | PhysicsCategory.aItem   // Sprint 10 Phase D — 수간호사 매혹 분기 시 F→A 수집
         physicsBody = body
     }
 
@@ -117,62 +126,116 @@ final class PlayerNode: SKSpriteNode {
     /// 외부(GameScene+Setup)는 setter를 직접 알지 않고 CharacterID 하나만 넘긴다.
     /// Phase 8-1 — color 단색 setter 폐기. 대신 currentCharacterID 갱신 + refreshTexture 호출.
     /// 기존 speedMultiplier 적용은 유지 — 캐릭터별 차등 속도(5-3) 그대로.
+    /// Sprint 10 Phase A — attachFullBody(CharacterFullBodyNode) 제거 → attachPixelSpriteChild로 교체.
+    ///                     refreshTexture() 호출 자체는 보존(currentCharacterID/pixelDirection state 정합).
     func apply(_ characterID: CharacterID) {
         currentCharacterID = characterID
         speedMultiplier = characterID.playerSpeedMultiplier
+        // refreshTexture()는 self.texture를 변경하지만 본체는 투명 placeholder가 됐으므로
+        // 호출 자체는 보존 (currentCharacterID/pixelDirection state 갱신 + 본체 texture는 fallback용).
         refreshTexture()
-        // Sprint 8 Phase G — buildFacingChildren(face 4-child)을 CharacterFullBodyNode 부착으로 교체.
-        // PixelSprite texture/physicsBody/이동 로직 0건 변경 — 시각만.
-        attachFullBody(for: characterID)
+        // Sprint 10 Phase A — attachFullBody → attachPixelSpriteChild로 교체.
+        // 자식 SKSpriteNode 1개가 시각 단일 진실 원천(20-텍스처 lazy 캐시).
+        attachPixelSpriteChild(for: characterID)
+        // 초기 방향: lastFacing이 .front라면 자식 텍스처도 down으로 초기 노출 (이미 attach에서 처리).
     }
 
     /// Phase 7-1 — 난이도 정체성 단일 진입점.
     /// dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
     /// `apply(_ characterID:)`와 *서로 다른 프로퍼티*를 set하므로 호출 순서 무관 (주의사항 1).
     /// 일관성을 위해 GameScene+Setup에서 character 먼저 → difficulty 나중 순서로 호출.
+    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
     func apply(_ difficulty: Difficulty) {
         baseSpeedStart = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
         baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
     }
 
-    // MARK: - Facing (Sprint 7 Phase G / Sprint 8 Phase G 풀바디 교체)
-    /// D-Pad 입력 방향 → 시각 child 토글. isHidden만 다루므로 다음 SK 프레임(~16ms) 안 전환.
+    // MARK: - Pixel Sprite Child Attachment (Sprint 10 Phase A)
+    /// 인게임 시각 자식 부착. 캐릭터 전환 시 기존 자식 정리 + 신규 자식 부착 + 본체 투명화.
+    /// 자식 SKSpriteNode 1개의 texture 프로퍼티만 교체해서 4방향 전환(facing/updatePixelDirection).
+    /// 메모리: 자식 노드 1개 + 20-텍스처 static 캐시(첫 사용 시 lazy) = 25.6KB(SPEC OQ-C).
+    private func attachPixelSpriteChild(for characterID: CharacterID) {
+        // 1. 기존 자식 정리 (캐릭터 전환 시 누적 방지).
+        pixelSpriteChild?.removeFromParent()
+
+        // 2. SKSpriteNode 생성. 초기 texture는 .down(.front 대응) idle.
+        let initialTexture = Self.cachedTexture(for: characterID, direction: .down)
+        let child = SKSpriteNode(texture: initialTexture)
+        child.name = "pixelSpriteChild"
+        child.zPosition = GameConfig.playerFaceChildZPosition  // 1 — 기존 상수 재사용
+        // 시각 크기 = 16×20(텍스처) × pixelSpriteScale(2) = 32×40pt → playerWidth×Height와 정합
+        child.size = CGSize(
+            width:  GameConfig.playerWidth  * GameConfig.pixelSpriteScale,
+            height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
+        )
+        // filteringMode는 PixelSpriteRenderer가 이미 .nearest 세팅 → 별도 코드 불요.
+        addChild(child)
+        self.pixelSpriteChild = child
+
+        // 3. PlayerNode 본체(self) 투명 placeholder.
+        //    color clear + colorBlendFactor 1.0 합성 — 본체 픽셀 색 완전 차단(Sprint 9 Phase B 검증 패턴).
+        //    alpha는 1.0 유지 — alpha 0이면 자식까지 같이 사라짐(SpriteKit 표준 전파).
+        //    freeze(duration:)의 alpha 깜빡임은 자식까지 자연 전파 → 본체/자식 동시 깜빡임(자연 톤).
+        self.alpha = 1.0
+        self.colorBlendFactor = 1.0
+        self.color = .clear
+
+        // 4. pixelDirection state도 초기 .down으로 정합 — 이후 facing/updatePixelDirection이 동일한 키 lookup.
+        pixelDirection = .down
+        // pixelFrame은 .idle 그대로(init default). Phase A는 walk 미적용 정책.
+    }
+
+    /// 5 × 4 = 20 SKTexture 정적 캐시 헬퍼. 첫 호출 시 lazy 생성 → 이후 dict lookup O(1).
+    /// PixelSpriteRenderer는 이미 filteringMode = .nearest 보장 — 픽셀 perfect.
+    /// SKTexture는 GPU 텍스처 공유 안전 — 다중 PlayerNode 인스턴스가 같은 텍스처 참조해도 OK.
+    private static func cachedTexture(for characterID: CharacterID,
+                                       direction: PixelDirection) -> SKTexture {
+        if let cached = textureCache[characterID]?[direction] {
+            return cached
+        }
+        let sprite = PixelSprite.data(for: characterID,
+                                      direction: direction,
+                                      frame: .idle)
+        let palette = PixelPalette.palette(for: characterID)
+        let texture = PixelSpriteRenderer.texture(from: sprite, palette: palette)
+        if textureCache[characterID] == nil {
+            textureCache[characterID] = [:]
+        }
+        textureCache[characterID]?[direction] = texture
+        return texture
+    }
+
+    // MARK: - Facing (Sprint 7 Phase G / Sprint 10 Phase A 픽셀 일원화)
+    /// D-Pad 입력 방향 → 자식 SKSpriteNode texture 교체. 다음 SK 프레임(~16ms) 안 전환.
     /// lastFacing 가드 — 같은 방향 재호출 시 noop(매 프레임 호출에도 비용 0).
     /// 게임 로직(velocity·position·hitbox·skill) 0건 변경 — 순수 시각 layer.
-    /// Sprint 8 Phase G — fullBody?.facing(_:)으로 위임 (CharacterFaceNode 4-child 폐기).
+    /// Sprint 10 Phase A — fullBody?.facing(_:) 위임 폐기. 자식 texture 교체로 일원화.
+    /// pixelDirection state 동기화 — updatePixelDirection(velocity 기반 fallback)가 noop 되도록.
     func facing(_ direction: Direction) {
         if direction == lastFacing { return }
         lastFacing = direction
-        fullBody?.facing(direction)
+        let pixelDir = Self.pixelDirection(from: direction)
+        pixelSpriteChild?.texture = Self.cachedTexture(
+            for: currentCharacterID,
+            direction: pixelDir
+        )
+        pixelDirection = pixelDir
     }
 
-    /// Sprint 8 Phase G — apply(_ characterID:)에서 1회 호출.
-    /// 기존 face child 4개 정리(누수 0) + 새 CharacterFullBodyNode 부착.
-    /// fullBody는 *PlayerNode visual(32×40)에 맞춰* playerFullBodyScaleV4(0.35) 축소.
-    /// zPosition은 playerFaceChildZPosition(1) — PixelSprite texture(zPos 0) 위 자연 오버레이.
-    /// PixelSprite 본체 시각은 *그대로 노출* — 풀바디 위에 겹쳐 보이지만 풀바디가 더 크고 명확.
-    /// 추후 보강 sprint에서 PixelSprite 본체도 차단(빌런 3종 패턴) 후보.
-    private func attachFullBody(for characterID: CharacterID) {
-        // Sprint 7 Phase G face child 4개 정리 — 누수 0 + 시각 중첩 0.
-        for (_, node) in faceNodes { node.removeFromParent() }
-        faceNodes.removeAll()
-
-        // 기존 fullBody 정리 — 캐릭터 전환 시 누적 방지.
-        fullBody?.removeFromParent()
-
-        let body = CharacterFullBodyNode(id: characterID)
-        body.name = "fullBody"
-        body.setScale(GameConfig.playerFullBodyScaleV9)
-        body.zPosition = GameConfig.playerFaceChildZPosition
-        // 초기 facing 노출 일치 — apply 직후 lastFacing이 .front라면 .front 노출 이미 set됨.
-        body.facing(lastFacing)
-        addChild(body)
-        self.fullBody = body
-
-        // Sprint 9 Phase B — PixelSprite 본체 시각 차단 (Enemy 패턴 답습).
-        // refreshTexture()/physicsBody/이동 0줄 영향 — color 합성만으로 투명화.
-        self.color = .clear
-        self.colorBlendFactor = 1.0
+    /// Direction(D-Pad 입력 layer) → PixelDirection(텍스처 키) 변환.
+    /// 좌표 약속:
+    ///   .front(카메라 정면, dy < 0) → .down (스프라이트 정면)
+    ///   .back (캐릭터 뒷모습, dy > 0) → .up
+    ///   .left → .left
+    ///   .right → .right
+    /// switch exhaustive — default 없음(Direction 4 case enum).
+    private static func pixelDirection(from direction: Direction) -> PixelDirection {
+        switch direction {
+        case .front: return .down
+        case .back:  return .up
+        case .left:  return .left
+        case .right: return .right
+        }
     }
 
     // MARK: - Update (Movement)
@@ -181,6 +244,7 @@ final class PlayerNode: SKSpriteNode {
     ///  물리 엔진이 매 프레임 자동으로 위치 갱신 + 충돌 처리.)
     /// - Parameter deltaTime: dt — 본 메서드는 미사용 (velocity 기반이라 엔진이 dt 처리).
     ///   시그니처는 외부 호출부 호환 위해 보존.
+    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
     func update(deltaTime: TimeInterval) {
         // Phase 9-7 — 동결 가드. 청진기 피격 시 2초간 isFrozen=true → velocity 0으로 강제 정지 후 early return.
         // 함수 *최상단* 가드 — 기존 로직 전혀 도달하지 않도록 보장(주의사항 10).
@@ -203,10 +267,11 @@ final class PlayerNode: SKSpriteNode {
     /// 정책:
     /// 1) 이미 frozen이면 noop — 2초 *고정*, 누적 안 함 (연사 무한 정지 방지).
     /// 2) 무적(isInvulnerable) 우선 — 무적 중 호출 noop. 이간호 텔레포트와 일관.
-    /// 3) 시각: alpha 1.0 ↔ frozenBlinkMinAlpha(0.4) 반복 깜빡임.
+    /// 3) 시각: alpha 1.0 ↔ frozenBlinkMinAlpha(0.4) 반복 깜빡임. (SpriteKit 표준 alpha 전파로 자식까지 깜빡임)
     /// 4) duration 종료 시 SKAction.run 콜백으로 isFrozen=false + alpha 1.0 복원 + velocity 0.
     /// 5) withKey: playerFreezeActionKey → 같은 키 재호출 시 SpriteKit 자동 액션 교체 (이중 안전망).
     /// [weak self] 캡처 — 동결 진행 중 씬 전환 가능성 대비.
+    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
     func freeze(duration: TimeInterval) {
         if isFrozen { return }
         if isInvulnerable { return }
@@ -231,6 +296,8 @@ final class PlayerNode: SKSpriteNode {
     /// GameScene.update가 매 프레임 호출. PlayerNode가 자기 텍스처를 갱신.
     /// velocity dx/dy 부호 + 절대값 비교로 4방향 산출. 정지 시 마지막 방향 유지.
     /// 텍스처 재생성은 *방향이 실제로 바뀐 프레임에만* — 매 프레임 호출이라도 정지 시 비용 0.
+    /// Sprint 10 Phase A — D-Pad facing 콜백 누락 케이스 보조 안전망(SPEC OQ-B).
+    ///                     본체 self.texture뿐 아니라 자식 pixelSpriteChild.texture도 같이 갱신.
     func updatePixelDirection(_ velocity: CGVector) {
         let absDx = abs(velocity.dx)
         let absDy = abs(velocity.dy)
@@ -247,12 +314,19 @@ final class PlayerNode: SKSpriteNode {
         if newDir != pixelDirection {
             pixelDirection = newDir
             refreshTexture()
+            // Sprint 10 Phase A — 본체뿐 아니라 자식도 같이 갱신(시각 단일 진실 원천).
+            pixelSpriteChild?.texture = Self.cachedTexture(
+                for: currentCharacterID,
+                direction: newDir
+            )
         }
     }
 
     /// GameScene.update가 매 프레임 호출. 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
     /// 텍스처 재생성은 *변경 순간에만* — 매 프레임 호출이라도 변화 없으면 비용 0.
     /// - Parameter isMoving: 외부에서 판단(velocity != .zero 등). 명시 인자로 받아 책임 분리.
+    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.10). 자식은 idle 고정(walk 부활은 후속 Phase).
+    ///                     refreshTexture() 호출은 self.texture만 영향 — 자식은 항상 idle.
     func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
         guard isMoving else {
             // 정지 — idle로 전환 (이미 idle이면 noop, 텍스처 재생성 없음).
@@ -274,45 +348,16 @@ final class PlayerNode: SKSpriteNode {
     }
 
     // MARK: - Texture Refresh
-    /// 현재 캐릭터/방향/프레임 조합으로 텍스처를 재생성하고 SKSpriteNode.texture에 set.
+    /// 현재 캐릭터/방향 조합으로 텍스처를 재생성하고 SKSpriteNode.texture에 set.
     /// SKTexture 이전 값은 ARC로 자동 해제 — 메모리 누수 0.
-    /// 호출 빈도: 캐릭터 적용 1회 + 방향 변경 시 + 프레임 변경 시 (0.18초 주기 ↔ idle 진입).
-    /// Sprint 4 (PNG migration partial) — Self.loadTexture가 PNG 우선·픽셀 fallback 처리.
+    /// 호출 빈도: 캐릭터 적용 1회 + 방향 변경 시 (D-Pad/velocity fallback).
+    /// Sprint 10 Phase A — PNG 우선 경로 제거. cachedTexture(20-텍스처 static 캐시) 직행.
+    ///                     본체 self.texture는 투명 placeholder 정책상 시각 영향 0 — 자식이 단일 진실 원천.
+    ///                     단, currentCharacterID/pixelDirection 상태 정합 위해 *값으로*는 정확히 유지.
     private func refreshTexture() {
-        texture = Self.loadTexture(
+        texture = Self.cachedTexture(
             for: currentCharacterID,
-            direction: pixelDirection,
-            frame: pixelFrame
-        )
-    }
-
-    // MARK: - Texture Loading (Sprint 4 — walk 미적용 버전)
-    /// 5명 캐릭터(kim/jung/geon/im/lee) PNG 자산이 있으면 PNG 텍스처 반환,
-    /// 없으면 PixelSpriteRenderer로 fallback (EnemyNode·ProfessorNode 등 비대상).
-    ///
-    /// **walk 미적용 정책**: direction·frame 파라미터를 모두 무시하고 항상 `{char}_down_idle_1.png`
-    /// 사용. 캐릭터는 이동 방향과 무관하게 카메라를 바라봄 (브롤스타즈·쿠키런 패턴).
-    /// 풀세트 PNG 도착 시 frame/direction 분기 활성화 예정.
-    ///
-    /// 현재 자산 상태 (2026-05-19):
-    /// - kim/jung/geon/im/lee × down × idle → PNG 보유 ✓
-    /// - 풀세트 (4방향 × idle+walk = 16프레임 × 5명) 미보유
-    private static func loadTexture(
-        for char: CharacterID,
-        direction: PixelDirection,
-        frame: PixelFrame
-    ) -> SKTexture {
-        // PNG 우선 — 5명 캐릭터 down_idle만 보유, 모든 방향·프레임 요청을 이 PNG로 매핑.
-        let pngName = "\(char.rawValue)_down_idle_1"
-        if UIImage(named: pngName) != nil {
-            let tex = SKTexture(imageNamed: pngName)
-            tex.filteringMode = .linear  // 부드러운 스케일링 (픽셀의 .nearest와 대비)
-            return tex
-        }
-        // Fallback — PNG 자산 미보유 캐릭터(현재 시점 없음). 향후 신규 캐릭터 추가 시 graceful 대응.
-        return PixelSpriteRenderer.texture(
-            from: PixelSprite.data(for: char, direction: direction, frame: frame),
-            palette: PixelPalette.palette(for: char)
+            direction: pixelDirection
         )
     }
 }

@@ -2,6 +2,8 @@
 //  CharacterFullBodyNode.swift
 //  GanhoMusic Shared
 //
+/// [Sprint 10 Phase A] 사용처 제거됨 — 후속 Phase에서 파일 삭제 후보. 본 Phase 본문 0줄 변경.
+//
 //  Sprint 8 Phase G · 인게임 풀바디 캐릭터 시각 (5명 × 4방향 = 20셀)
 //  Sprint 9 Phase B · 2칸(64pt) 크기 축소 + 캐릭터별 정체성 자식 5종
 //

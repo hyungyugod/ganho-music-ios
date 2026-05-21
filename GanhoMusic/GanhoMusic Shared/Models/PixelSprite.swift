@@ -362,27 +362,37 @@ extension PixelSprite {
     /// 행 4-8: 시트 + 림 + 물 (변기 윗부분, 좌석 영역).
     /// 행 9-19: 본체 다리 + 받침 (변기 아랫부분).
     static func toiletData() -> Frame {
+        // Sprint 10 Phase E · 원본 game.js drawToilet (L756~L869) 16×16 fillRect 5단계를
+        // 16×20 매트릭스로 변환 (상단 4행 padding). 의미 영역 row 5~17.
+        // 색 코드: 'W'=흰 도자기, 's'=회색 시트/뚜껑 테두리, 'B'=옅은 파랑 물, 'K'=검정 구멍.
+        // 1) row 5: 뚜껑 — fillRect(3,1,10,1)=s
+        // 2) row 6~10: 물탱크 — fillRect(3,2,10,4)=W (4행 + 위 행 1)
+        // 3) row 12: 시트 테두리 — fillRect(1,8,14,1)=s
+        // 4) row 13~14: 시트 본체 — fillRect(1,8,14,5)=W (시트 흰 영역)
+        // 5) row 15: 물 + 구멍 — fillRect(5,11,6,1)=B(물), fillRect(7,11,2,2)=K(구멍 상단)
+        // 6) row 16: 구멍 하단 — fillRect(7,11,2,2)=K
+        // 7) row 17: 추가 흰 — fillRect(2,13,12,1)=W
         return [
             "................", // 0  (padding)
             "................", // 1  (padding)
             "................", // 2  (padding)
             "................", // 3  (padding)
-            "...ssssssssss...", // 4  시트 윗면(회색 림 위쪽)
-            "..s..........s..", // 5  시트 측면(좌측·우측 림)
-            "..s.CCCCCCCC.s..", // 6  시트 안 물(코럴) — 1
-            "..s.CCCCCCCC.s..", // 7  시트 안 물(코럴) — 2
-            "...ssssssssss...", // 8  시트 아랫면(림 마감)
-            "...WWWWWWWWWW...", // 9  본체 윗면 (흰 도자기)
-            "...W........W...", // 10 본체 측면 — 1
-            "...W........W...", // 11 본체 측면 — 2
-            "...W........W...", // 12 본체 측면 — 3
-            "...WWWWWWWWWW...", // 13 본체 아랫면(받침 윗면)
-            "...W........W...", // 14 받침 측면
-            "..WWWWWWWWWWWW..", // 15 받침 바닥
-            "................", // 16 (transparent — 16×16 의미 영역 끝)
-            "................", // 17 (transparent)
-            "................", // 18 (transparent)
-            "................"  // 19 (transparent)
+            "................", // 4  (padding)
+            "...ssssssssss...", // 5  뚜껑 oy=1 (fillRect 3,1,10,1)
+            "...WWWWWWWWWW...", // 6  물탱크 oy=2
+            "...WWWWWWWWWW...", // 7  물탱크 oy=3
+            "...WWWWWWWWWW...", // 8  물탱크 oy=4
+            "...WWWWWWWWWW...", // 9  물탱크 oy=5 (마감)
+            "................", // 10 빈 간격
+            "................", // 11 빈 간격
+            ".ssssssssssssss.", // 12 시트 테두리 oy=8 (fillRect 1,8,14,1)
+            ".WWWWWWWWWWWWWW.", // 13 시트 oy=9
+            ".WWWWWWWWWWWWWW.", // 14 시트 oy=10
+            ".WWWWBBKKBBWWWW.", // 15 물(5,11,6,1)+구멍 상단(7,11,2,2)
+            ".WWWWWWKKWWWWWW.", // 16 구멍 하단(7,12,2,1)
+            ".WWWWWWWWWWWWWW.", // 17 흰 추가 oy=13 (fillRect 2,13,12,1)
+            "................", // 18 (padding)
+            "................"  // 19 (padding)
         ]
     }
 }
@@ -458,6 +468,75 @@ extension PixelSprite {
         case .step2:
             base[18] = "....BBB...BB...."
             base[19] = "....BB...BBB...."
+        case .idle:
+            break
+        }
+
+        return base
+    }
+}
+
+// MARK: - Stone Guard Sprite (Sprint 10 Phase F)
+extension PixelSprite {
+    /// 석조무사(StoneGuardNode) 16×20 픽셀 데이터.
+    /// 원본 game.js L3120~L3169 stoneGuardSprite byte-equal 이식. nurseChiefData/professorData 패턴 동형.
+    ///
+    /// 색 코드: '.'=투명, 'H'=짧은 검정 머리, 'K'=피부, 'E'=날카로운 눈,
+    /// 'U'=남색 교복, 'u'=교복 음영(단추 라인), 'P'=바지, 'B'=검정 구두.
+    /// 입 생략(단호) — drawStoneGuard는 입 픽셀 칠 없음.
+    static func stoneGuardData(direction: PixelDirection, frame: PixelFrame) -> Frame {
+        // 기본 정면 base — 원본 L3120~L3140 byte-equal 16×20 매트릭스.
+        var base: Frame = [
+            "................", // 0
+            ".....HHHHHH.....", // 1  짧은 검정 머리 꼭대기
+            "....HHHHHHHH....", // 2  머리 본체
+            "....HHHHHHHH....", // 3  머리 밑단
+            "....HKKKKKKH....", // 4  이마 + 헤어라인
+            "....KKKKKKKK....", // 5  얼굴 상단
+            "....KEKKKKEK....", // 6  날카로운 눈 2점
+            "....KKKKKKKK....", // 7
+            "....KKKKKKKK....", // 8  입 생략(단호)
+            "....KKKKKKKK....", // 9
+            "...UUUUUUUUUU...", // 10 교복 상의
+            "..UUUuUUUUuUUU..", // 11 단추 라인 u
+            "..UUUuUUUUuUUU..", // 12
+            "..UUUuUUUUuUUU..", // 13
+            "..UUUUUUUUUUUU..", // 14
+            "...UUUUUUUUUU...", // 15
+            "....PPPP.PPPP...", // 16 바지 (가운데 1px 빈공간)
+            "....PPPP.PPPP...", // 17
+            "....BBBB.BBBB...", // 18 검정 구두
+            "....BBBB.BBBB..."  // 19
+        ]
+
+        // 방향별 얼굴 — 원본 L3142~L3158 byte-equal 분기.
+        switch direction {
+        case .up:
+            // 뒷통수 — 얼굴 자리 전체를 머리로 덮음.
+            base[4]  = "....HHHHHHHH...."
+            base[5]  = "....HHHHHHHH...."
+            base[6]  = "....HHHHHHHH...."
+            base[7]  = "....HHHHHHHH...."
+            base[8]  = "....HHHHHHHH...."
+            base[9]  = "....HHHHHHHH...."
+        case .left:
+            // 오른쪽 눈만(좌측 응시).
+            base[6] = "....KKKKKKEK...."
+        case .right:
+            // 왼쪽 눈만(우측 응시).
+            base[6] = "....KEKKKKKK...."
+        case .down:
+            break
+        }
+
+        // 걷기 프레임 — 발만 교차 (행 18-19). 원본 L3160~L3168 byte-equal.
+        switch frame {
+        case .step1:
+            base[18] = "....BBB...BBB..."
+            base[19] = "....BBBB.BBB...."
+        case .step2:
+            base[18] = "....BBB.BBBB...."
+            base[19] = "....BBB...BBB..."
         case .idle:
             break
         }

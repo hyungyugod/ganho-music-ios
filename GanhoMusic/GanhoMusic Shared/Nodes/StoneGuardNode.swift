@@ -3,129 +3,181 @@
 //  GanhoMusic Shared
 //
 //  Phase 4-1 · 석조무사 NPC — 4 waypoint 시계방향 패트롤 (SKAction)
-//  GDD §7-6: 맵 4지점 사각 순환, 55 px/s, 본 sprint는 시각 등장만 (PhysicsBody 없음).
 //  Phase 4-2 · PhysicsBody 부착 (collision=0 통과형, contactTest=.player)
+//  Sprint 10 Phase F · 픽셀 텍스처 + selectInitialWaypoint(farthest-first) + 좌표 정합.
+//                       자식 시각(armor/일자눈)/applyVisualScaleV9 본체 삭제 — 본체 16×20 픽셀만 노출.
+//
+//  단일 진실 원천: SPEC.md §7.3/§9 + docs/ORIGINAL_GAME_ANALYSIS.md L119~L122/L3120~L3192/L3221~L3274.
 //
 
 import SpriteKit
 
-/// 석조무사 NPC. 추적 AI(EnemyNode)와 달리 *정해진 길*만 걷는 두 번째 AI 패턴.
-/// init 시점에 startPatrol()을 호출 — SKAction.repeatForever(.sequence([.move × 4]))으로
-/// 4 waypoint를 시계방향으로 무한 순회한다. 본 sprint는 PhysicsBody 미부착(시각 등장만).
+/// 석조무사 NPC. 4 waypoint 시계방향 무한 순환 패트롤 (원본 game.js L3221~L3274 byte-equal).
+/// Sprint 10 Phase F 변경:
+///  - super.init(color: .ganhoStoneGuardLight) 폐기 → 픽셀 텍스처(stoneGuardData + stoneGuardPalette) 부착
+///  - 자식 시각(armor + 일자눈)/applyVisualScaleV9 본체 삭제 — 본체 픽셀 텍스처만 노출
+///  - color clear / colorBlendFactor 1.0 정책 제거 (super.init color:.clear이라 자연 투명)
+///  - startPatrol → startPatrolFrom(index:) 리팩터 + selectInitialWaypoint(from:) 신설(farthest-first)
+///  - 좌표 정합: 옛 200/760·100/380 폐기 → 원본 80/540·80/300 4점 직접 사용 (GameConfig)
+///  - PixelDirection/Frame 갱신 (PlayerNode/EnemyNode/ProfessorNode 패턴 동형)
 final class StoneGuardNode: SKSpriteNode {
+
+    // MARK: - Pixel Sprite State (Sprint 10 Phase F)
+    /// 현재 픽셀 텍스처가 표현하는 방향. SKAction.move의 진행 방향에 따라 갱신.
+    private var pixelDirection: PixelDirection = .down
+    /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
+    private var pixelFrame: PixelFrame = .idle
+    /// step1↔step2 교차 누적 시간 (초). 0.22초 도달 시 토글 + 0 리셋.
+    private var frameAccumulator: TimeInterval = 0
+    /// updatePixelAnimation에서 *이전 프레임 위치*와 비교하여 진행 방향 산출.
+    private var lastPosition: CGPoint = .zero
+    /// lastPosition 첫 초기화 여부. 첫 update에서 자기 자신과 비교 → 거짓 정지 신호 방지.
+    private var hasLastPosition: Bool = false
 
     // MARK: - Init
     init() {
-        let size = CGSize(
+        // PhysicsBody는 옛 16×20 size 그대로 유지 — hitbox 회귀 0.
+        let physicsSize = CGSize(
             width:  GameConfig.stoneGuardWidth,
             height: GameConfig.stoneGuardHeight
         )
-        // Sprint 7 Phase F — 색상: 따뜻한 종이톤(.ganhoPaper)에서 *돌상 무채색*(.ganhoStoneGuardLight)으로 교체.
-        // super.init 시그니처 byte-identical(texture: nil, color: _, size: size) — 값만 변경.
-        // 새 ColorTokens(ganhoStoneGuardLight #A0A0A8)는 Phase F에서 추가.
-        super.init(texture: nil, color: .ganhoStoneGuardLight, size: size)
+        // 시각은 pixelSpriteScale(2)배 — EnemyNode/ProfessorNode 패턴 동형 (32×40pt).
+        let visualSize = CGSize(
+            width:  GameConfig.stoneGuardWidth  * GameConfig.pixelSpriteScale,
+            height: GameConfig.stoneGuardHeight * GameConfig.pixelSpriteScale
+        )
+        let initialTexture = PixelSpriteRenderer.texture(
+            from: PixelSprite.stoneGuardData(direction: .down, frame: .idle),
+            palette: PixelPalette.stoneGuardPalette
+        )
+        // Sprint 10 Phase F — color:.ganhoStoneGuardLight 폐기. 본체는 텍스처 노출, color:.clear.
+        super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "stoneGuard"
-        // EnemyNode와 동일한 zPosition 5 — 다른 노드(벽/음표/기둥) 위에 그려짐.
         zPosition = 5
 
-        // Phase 4-2 — PhysicsBody 부착. EnemyNode 패턴 답습하되 collision=0(통과형).
-        // patrol은 SKAction.move 기반 → isDynamic=false (velocity 미사용).
-        let body = SKPhysicsBody(rectangleOf: size)
+        // Phase 4-2 — PhysicsBody 부착. collision=0(통과형), contactTest=.player.
+        // physicsSize는 기존 16×20 그대로 — hitbox 회귀 0.
+        let body = SKPhysicsBody(rectangleOf: physicsSize)
         body.isDynamic           = false
         body.allowsRotation      = false
         body.friction            = 0
         body.restitution         = 0
         body.linearDamping       = 0
         body.categoryBitMask     = PhysicsCategory.stoneGuard
-        body.collisionBitMask    = 0                            // 통과형 — 아무도 막지 않음
-        body.contactTestBitMask  = PhysicsCategory.player       // player와 닿으면 알림
+        body.collisionBitMask    = 0
+        body.contactTestBitMask  = PhysicsCategory.player
         physicsBody = body
 
-        // Sprint 7 Phase F — 시각 보강 자식 노드 부착(갑옷 + 일자눈).
-        // physicsBody.size 인자(GameConfig.stoneGuardWidth/Height) 변경 0 — hitbox byte-identical.
-        setupVisualOverlay()
+        // Sprint 10 Phase F — 자식 시각(armor + 일자눈) 부착 폐기 + color clear 제거.
+        // setupVisualOverlay 호출 제거 → 본체 픽셀 텍스처만 노출.
+        // super.init(color: .clear)로 이미 투명 — colorBlendFactor 강제 1.0 정책 제거.
 
-        // Sprint 8 Phase G — 본체 단색 시각 차단(physicsBody/패트롤은 보존, color로 투명).
-        // texture는 nil이지만 color=.ganhoStoneGuardLight로 *돌상 무채색*이 보였음.
-        // color=.clear로 본체를 투명하게 → 시각 자식(Phase 7-F 갑옷+일자눈)만 노출.
-        // colorBlendFactor=1.0은 texture 합성 정책 명시 — texture nil이라 시각 영향은 color에만.
-        self.color = .clear
-        self.colorBlendFactor = 1.0
-
-        startPatrol()
+        // 초기 패트롤은 selectInitialWaypoint(from:)가 외부 호출 시 시작 —
+        // init 자동 시작 금지(외부에서 farthest-first index 결정 후 startPatrolFrom 호출).
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Patrol
-    /// 4 waypoint 시계방향 무한 순환 SKAction을 self.run으로 실행.
-    /// init 시점 호출 — setupStoneGuard()가 (200, 100)에 노드를 둔 직후 worldNode 트리에 들어가면
-    /// 첫 .move(to: w[1])부터 자동으로 (760, 100)을 향해 시작된다.
-    private func startPatrol() {
+    // MARK: - Initial Waypoint (Sprint 10 Phase F)
+    /// 플레이어 위치에서 가장 먼 waypoint를 시작 위치로 결정. 원본 farthest-first 정책 byte-equal.
+    /// GameScene+Setup.setupStoneGuard에서 worldNode addChild 직후 1회 호출.
+    /// 호출 직후 startPatrolFrom(index:)로 패트롤 시퀀스 자동 시작.
+    func selectInitialWaypoint(from playerPosition: CGPoint) {
+        let wps = GameConfig.stoneGuardWaypoints
+        guard !wps.isEmpty else { return }
+        var maxDist: CGFloat = -1
+        var maxIndex: Int = 0
+        for (i, wp) in wps.enumerated() {
+            let d = hypot(wp.x - playerPosition.x, wp.y - playerPosition.y)
+            if d > maxDist {
+                maxDist = d
+                maxIndex = i
+            }
+        }
+        removeAction(forKey: GameConfig.stoneGuardPatrolActionKey)
+        position = wps[maxIndex]
+        startPatrolFrom(index: maxIndex)
+    }
+
+    // MARK: - Patrol (Sprint 10 Phase F · 4지점 순환)
+    /// 4 waypoint 시계방향 무한 순환 SKAction. 시작 인덱스부터 시퀀스를 구성.
+    /// run 직전 위치는 waypoints[startIndex]에 있어야 함(selectInitialWaypoint이 보장).
+    private func startPatrolFrom(index startIndex: Int) {
         let waypoints = GameConfig.stoneGuardWaypoints
+        guard !waypoints.isEmpty else { return }
+        let count = waypoints.count
         var moves: [SKAction] = []
-        for i in 0..<waypoints.count {
-            let from = waypoints[i]
-            let to   = waypoints[(i + 1) % waypoints.count]
+        for offset in 0..<count {
+            let fromIdx = (startIndex + offset) % count
+            let toIdx   = (startIndex + offset + 1) % count
+            let from = waypoints[fromIdx]
+            let to   = waypoints[toIdx]
             let dist = hypot(to.x - from.x, to.y - from.y)
             let dur  = TimeInterval(dist / GameConfig.stoneGuardSpeed)
             moves.append(.move(to: to, duration: dur))
         }
         let loop = SKAction.repeatForever(.sequence(moves))
-        run(loop)
+        run(loop, withKey: GameConfig.stoneGuardPatrolActionKey)
     }
 
-    // MARK: - Visual Overlay (Sprint 7 Phase F)
-    /// 석조무사 시각 단서 보강 — 사각 갑옷(dark fill) + 일자눈 2개.
-    /// init에서 1회 호출. physicsBody/이동 0줄 영향 — 자식 SKShapeNode만 추가.
-    /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준.
-    /// Sprint 9 Phase C — 시각 자식 부착 *직후* applyVisualScaleV9()로 일괄 1.4배 확대.
-    ///                     physicsBody는 본체 size 기준이라 hitbox 회귀 0.
-    private func setupVisualOverlay() {
-        attachArmor()
-        attachEyes()
-        applyVisualScaleV9()
-    }
+    // MARK: - Pixel Animation (Sprint 10 Phase F)
+    /// GameScene.update가 매 프레임 호출. position 변화량으로 방향/걷기 프레임 갱신.
+    /// ProfessorNode.updatePixelAnimation 패턴 정확 답습 — SKAction.move 기반이라 position 변화량 추적.
+    func updatePixelAnimation(deltaTime: TimeInterval) {
+        guard hasLastPosition else {
+            lastPosition = position
+            hasLastPosition = true
+            return
+        }
+        let dx = position.x - lastPosition.x
+        let dy = position.y - lastPosition.y
+        lastPosition = position
 
-    /// Sprint 9 Phase C — 시각 자식(armor + 일자눈 2개) 일괄 setScale.
-    /// 자식 transform scale만 변경 — 본체 SKSpriteNode size·physicsBody·patrol 무영향.
-    private func applyVisualScaleV9() {
-        for child in children {
-            child.setScale(GameConfig.stoneGuardVisualScaleV9)
+        let absDx = abs(dx)
+        let absDy = abs(dy)
+        guard absDx > 0.01 || absDy > 0.01 else {
+            if pixelFrame != .idle {
+                pixelFrame = .idle
+                frameAccumulator = 0
+                refreshTexture()
+            }
+            return
+        }
+        let newDir: PixelDirection
+        if absDx > absDy {
+            newDir = dx >= 0 ? .right : .left
+        } else {
+            newDir = dy >= 0 ? .up : .down
+        }
+        var needsRefresh = false
+        if newDir != pixelDirection {
+            pixelDirection = newDir
+            needsRefresh = true
+        }
+        frameAccumulator += deltaTime
+        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
+            frameAccumulator = 0
+            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
+            needsRefresh = true
+        }
+        if needsRefresh {
+            refreshTexture()
         }
     }
 
-    /// 사각 갑옷 — stoneGuardDark fill + stoneGuardOutline stroke 0.8. 본체 위에 겹친 *돌상 갑옷판*.
-    /// 본체 크기보다 약간 작게(0.7배) → 외곽선이 본체를 살짝 보여줌. zPos 0.1.
-    private func attachArmor() {
-        let armorSize = CGSize(
-            width:  GameConfig.stoneGuardWidth  * 0.7,
-            height: GameConfig.stoneGuardHeight * 0.5
+    /// 현재 방향/프레임 조합으로 텍스처 재생성.
+    private func refreshTexture() {
+        texture = PixelSpriteRenderer.texture(
+            from: PixelSprite.stoneGuardData(direction: pixelDirection, frame: pixelFrame),
+            palette: PixelPalette.stoneGuardPalette
         )
-        let armor = SKShapeNode(rectOf: armorSize, cornerRadius: 1.0)
-        armor.fillColor = .ganhoStoneGuardDark
-        armor.strokeColor = .ganhoStoneGuardOutline
-        armor.lineWidth = 0.8
-        armor.zPosition = 0.1
-        addChild(armor)
     }
 
-    /// 일자눈 2개 — navyDeep 색의 가로 직사각형 좌우 대칭. *무뚝뚝한 돌상* 표정.
-    /// rectOf 2×0.8 → 가로로 긴 얇은 눈. zPos 0.2 → 갑옷(0.1) 위.
-    private func attachEyes() {
-        let eyeSize = CGSize(width: 2, height: 0.8)
-        for sign in [-1, 1] {
-            let eye = SKShapeNode(rectOf: eyeSize)
-            eye.fillColor = .ganhoNavyDeep
-            eye.strokeColor = .clear
-            eye.position = CGPoint(
-                x: CGFloat(sign) * GameConfig.stoneGuardEyeOffsetX,
-                y: GameConfig.stoneGuardEyeOffsetY
-            )
-            eye.zPosition = 0.2
-            addChild(eye)
-        }
-    }
+    // MARK: - Visual Overlay (Sprint 10 Phase F · 본문 삭제)
+    // setupVisualOverlay / attachArmor / attachEyes / applyVisualScaleV9 4개 메서드 본문 삭제.
+    // 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(armor + 일자눈) 부착 폐기.
+    // GameConfig.stoneGuardEyeOffsetX/Y/stoneGuardVisualScaleV9 상수는 변경 금지 우회 위해 보존
+    // (호출자 0건이 되어 자연 deprecate).
 }

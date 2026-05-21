@@ -39,7 +39,9 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// `private init` — 외부 호출자가 *반드시* `spawn` 정적 팩토리를 거치도록 강제 →
     /// position 설정 누락 같은 사용자 실수 컴파일 타임 차단 (패턴 진화).
     private init(gainedPoints: Int) {
-        self.label = SKLabelNode(text: "+\(gainedPoints)")
+        // Sprint 10 Phase J — fontNamed 미지정(시스템 폰트) → fontPixel(Menlo-Bold). 인게임 픽셀 톤 통일.
+        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        self.label.text = "+\(gainedPoints)"
         super.init()
         name = "scorePopup"
         zPosition = GameConfig.scorePopupZPosition
@@ -101,11 +103,13 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// 가산 점수 → ColorTokens 매핑. ScoreSystem.recordNoteHit의 점수 분기와 동일 조건 사용.
     /// 정적 메서드: 외부 상태 의존 0 — 입력 같으면 출력 같음(pure function).
     /// ComboPopupNode.color(for:) static 메서드와 위치/형태 대칭.
+    /// Sprint 10 Phase J — 픽셀 톤 swap. ganhoPaper → ganhoPixelHudWhite, ganhoYellowF → ganhoPixelHudYellow.
+    /// 인게임 점수 팝업과 HUD가 같은 픽셀 팔레트를 공유 → 시각 일관성.
     private static func color(for gainedPoints: Int) -> UIColor {
         switch gainedPoints {
-        case GameConfig.scorePerNote:      return .ganhoPaper        // +1 흰빛 — 기본 수집
-        case GameConfig.scorePerNoteCombo: return .ganhoYellowF      // +2 황금 — 콤보 보너스
-        default:                            return .ganhoPaper       // 미래 점수 확장 대비 graceful fallback
+        case GameConfig.scorePerNote:      return .ganhoPixelHudWhite   // +1 페이퍼 화이트 — 기본 수집
+        case GameConfig.scorePerNoteCombo: return .ganhoPixelHudYellow  // +2 픽셀 옐로 — 콤보 보너스
+        default:                            return .ganhoPixelHudWhite  // 미래 점수 확장 대비 graceful fallback
         }
     }
 }

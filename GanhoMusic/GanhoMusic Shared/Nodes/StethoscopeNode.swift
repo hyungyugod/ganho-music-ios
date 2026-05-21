@@ -23,9 +23,11 @@ final class StethoscopeNode: SKSpriteNode {
 
     // MARK: - Init
     init() {
-        let size = CGSize(width: GameConfig.stethoscopeSize, height: GameConfig.stethoscopeSize)
-        // 검은 톤 — ganhoPixelChiefShoes 재사용(SPEC §기능 2 명시). 다른 토큰 신설 금지.
-        super.init(texture: nil, color: .ganhoPixelChiefShoes, size: size)
+        // Sprint 10 Phase E — 원본 game.js drawStethoscope (L2922~L2960) 14×8 픽셀 텍스처.
+        // size 18×18 → 28×16 (원본 14×8 × SCALE 2). 가로 넓고 세로 좁은 청진기 원본 비율.
+        let size = CGSize(width: GameConfig.stethoscopeWidth, height: GameConfig.stethoscopeHeight)
+        let texture = PixelSpriteRenderer.stethoscopeTexture()
+        super.init(texture: texture, color: .clear, size: size)
         name = "stethoscope"
         // Player/Enemy/StoneGuard/Professor(5)와 동급 zPosition — UI(100) 아래.
         zPosition = 5

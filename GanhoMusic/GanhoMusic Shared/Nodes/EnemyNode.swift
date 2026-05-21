@@ -2,46 +2,82 @@
 //  EnemyNode.swift
 //  GanhoMusic Shared
 //
-//  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)
-//  Phase 4-6 · 5초 도주 모드 추가 (isFleeing + startFleeing + update 방향 분기)
-//  Phase 4-7 · startFleeing 시그니처에 onEnd 콜백 매개변수 추가 (default = {})
-//  Phase 7-1 · 난이도별 base/max 속도 인스턴스 프로퍼티 외부화 + apply(_:Difficulty)
-//  Phase 8-2 · 단색 SKSpriteNode(.ganhoBloodAccent) → 픽셀 텍스처 모드. 백발 + 안경 + 캡 + 흰 간호사복.
-//             PlayerNode(Phase 8-1) 패턴 동형 — pixelDirection/pixelFrame/frameAccumulator + refreshTexture.
-//             physicsBody 정책(크기/카테고리/충돌) *완전 보존* — 게임 hitbox 회귀 0.
+//  Phase 2-6 · 수간호사 적 NPC (직선 추적 AI + 접촉 시 게임오버)  ← 폐기 (Sprint 10 Phase D)
+//  Phase 4-6 · 5초 도주 모드 (isFleeing + startFleeing)
+//  Phase 7-1 · 난이도별 base/max 속도 (Sprint 10 Phase D에서 폐기 — 패트롤로 대체)
+//  Phase 8-2 · 픽셀 텍스처 모드 (PlayerNode 패턴 동형)
+//  Sprint 10 Phase D · 4지점 사각 순환 패트롤 + 텔레그래프 상태 머신 + F/A burst 발사 (원본 1:1)
+//
+//  단일 진실 원천: SPEC.md §6 + docs/ORIGINAL_GAME_ANALYSIS.md L443~L500 + game.js L2584~L2791.
+//
+//  변경 사항(Sprint 10 Phase D):
+//   - update(deltaTime:targetPosition:speedT:) → update(deltaTime:)
+//   - 직선 추적(player 향한 단위벡터 × 보간속도) → updatePatrol(4지점 사각 순환)
+//   - F 발사는 SpawnSystem 외부 루프 → EnemyNode 내부 텔레그래프 상태 머신
+//   - 매혹(charm) 활성 시 F 대신 AItemNode 인스턴스 생성 (발사 시점 1회 검사)
+//   - baseSpeedStart/baseSpeedEnd 폐기 (인스턴스 프로퍼티 + 사용처 0건 → 함께 삭제)
 //
 
 import SpriteKit
 
-/// 수간호사 적 NPC. GameScene이 매 프레임 update(deltaTime:targetPosition:)을 호출하면
-/// player를 향해 정규화 벡터 × enemyBaseSpeed로 velocity 갱신. 직선 추적.
+/// 수간호사 적 NPC. Sprint 10 Phase D부터 player 추적 폐기 → 4지점 사각 순환 패트롤.
+/// telegraphDuration(0.4초) 동안 머리 위 "!" 깜빡 후 burst 발사 — 매혹 시 F→A 변환.
 /// PlayerNode 패턴(2-2) 정확 일치 — dynamic body, gravity/friction/damping 0.
 final class EnemyNode: SKSpriteNode {
 
-    // MARK: - State
-    /// Phase 4-6 — 도주 모드 플래그. true면 update에서 velocity 방향이 반전된다.
-    /// startFleeing(duration:) 메서드만 토글한다 (외부 직접 쓰기 금지 정책).
+    // MARK: - State (Phase 4-6 — Flee)
+    /// Phase 4-6 — 도주 모드 플래그. Sprint 10 Phase D부터 update 본체에서 직접 분기 0
+    /// (패트롤 정책이 도주 톤과 분리 — startFleeing은 Phase G 결합 예정).
+    /// 인터페이스만 보존 — 외부 호출(AIRFORCE 이스터에그) 사이트와의 ABI 회귀 0.
     var isFleeing: Bool = false
 
-    /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameConfig.enemyBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
-    /// update(deltaTime:targetPosition:speedT:)에서 base + (end - base) × speedT 보간식의 base.
-    var baseSpeedStart: CGFloat = GameConfig.enemyBaseSpeed
-    /// Phase 7-1 — 난이도별 끝 속도 (pt/s). default = GameConfig.enemyMaxSpeed → easy 동일 회귀 0.
-    var baseSpeedEnd: CGFloat = GameConfig.enemyMaxSpeed
+    // MARK: - State (Sprint 10 Phase D — Patrol + Throw)
+    /// 난이도별 패트롤 4지점 (혹은 easy 2지점). apply에서 set. 빈 배열이면 정지.
+    private var patrolWaypoints: [CGPoint] = []
+    /// 난이도별 패트롤 속도 (pt/s). apply에서 set. default 80(easy).
+    private var patrolSpeed: CGFloat = GameConfig.nurseChiefPatrolSpeedDefault
+    /// 현재 향하는 waypoint 인덱스. selectInitialWaypoint가 시작 인덱스를 결정.
+    private var currentWaypointIndex: Int = 0
 
-    // MARK: - Pixel Sprite State (Phase 8-2)
-    /// 현재 픽셀 텍스처가 표현하는 방향. velocity 부호 변화 시 갱신 후 refreshTexture 호출.
-    /// 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음(자연 톤).
+    /// 텔레그래프 상태 머신. idle → telegraph → (firing → idle). firing은 transient 1프레임.
+    private enum ThrowState { case idle, telegraph, firing }
+    private var throwState: ThrowState = .idle
+    /// idle 상태에서 매 프레임 dt 차감 → ≤0 도달 시 enterTelegraph.
+    private var throwTimer: TimeInterval = 0
+    /// telegraph 상태에서 매 프레임 dt 차감 → ≤0 도달 시 fireF + enterIdle.
+    private var telegraphRemaining: TimeInterval = 0
+    /// 현재 부착된 텔레그래프 노드 (있을 때만). enterIdle에서 removeFromParent.
+    private weak var telegraphNode: EnemyTelegraphNode?
+
+    // MARK: - Dependencies (Sprint 10 Phase D — GameScene+Setup이 주입)
+    /// 발사 baseAngle 계산에 사용. GameScene+Setup이 [weak scene] 캡처로 주입.
+    /// 미주입 시 .zero → fireF의 magnitude=0 가드로 자연 noop.
+    var targetProvider: () -> CGPoint = { .zero }
+    /// 발사된 F/A를 부착할 worldNode. nil이면 fireF가 early return → noop.
+    var worldProvider: () -> SKNode? = { nil }
+    /// 게임 진행률 (0~1) — F/A 속도 + 다음 throwTimer 보간에 사용.
+    var progressProvider: () -> Double = { 0 }
+    /// 발사 시점 매혹 활성 여부 검사. true면 F 대신 A 생성. 발사 시점 1회만 검사 (SPEC §5).
+    var charmActiveProvider: () -> Bool = { false }
+
+    /// 난이도별 burst 카운트. apply에서 set. easy=1, normal=3, hard=4.
+    var burstCount: Int = 1
+    /// F/A obs 시작 속도 (pt/s). apply에서 set.
+    var obsBaseSpeed: CGFloat = 120
+    /// F/A obs 끝 속도 (pt/s). apply에서 set.
+    var obsMaxSpeed: CGFloat = 220
+    /// 다음 발사 간격 시작값 (초). apply에서 set. enterIdle이 lerp(start, end, t)로 계산.
+    var fireIntervalStart: TimeInterval = 3.5
+    /// 다음 발사 간격 끝값 (초). apply에서 set.
+    var fireIntervalEnd: TimeInterval = 2.0
+
+    // MARK: - Pixel Sprite State (Phase 8-2 · 보존)
     private var pixelDirection: PixelDirection = .down
-    /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
     private var pixelFrame: PixelFrame = .idle
-    /// step1↔step2 교차 누적 시간 (초). GameConfig.pixelWalkFrameInterval 도달 시 토글 + 0 리셋.
     private var frameAccumulator: TimeInterval = 0
 
     // MARK: - Init
     init() {
-        // Phase 8-2 — physicsBody 크기는 그대로 16×20 (게임 hitbox 회귀 0).
-        // 시각 크기는 pixelSpriteScale(2)배 — 32×40pt 화면 픽셀 (PlayerNode 패턴 동형).
         let physicsSize = CGSize(
             width:  GameConfig.enemyWidth,
             height: GameConfig.enemyHeight
@@ -50,7 +86,6 @@ final class EnemyNode: SKSpriteNode {
             width:  GameConfig.enemyWidth  * GameConfig.pixelSpriteScale,
             height: GameConfig.enemyHeight * GameConfig.pixelSpriteScale
         )
-        // 초기 텍스처는 down/idle. update가 velocity 기반으로 즉시 갱신.
         let initialTexture = PixelSpriteRenderer.texture(
             from: PixelSprite.nurseChiefData(direction: .down, frame: .idle),
             palette: PixelPalette.chiefPalette
@@ -58,9 +93,7 @@ final class EnemyNode: SKSpriteNode {
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "enemy"
 
-        // PhysicsBody 부착 — PlayerNode와 동일 정책(dynamic, 회전/마찰/탄성/감쇠 0).
-        // collision은 wall만(외곽 벽/중앙 기둥에 막힘), contactTest는 player(닿으면 알림).
-        // Phase 8-2 — body 크기는 *시각 크기와 무관하게* physicsSize 사용 → 기존 hitbox 보존.
+        // PhysicsBody 부착 — PlayerNode와 동일 정책. (Sprint 10 Phase D 회귀 0 — body 코드 0줄 변경)
         let body = SKPhysicsBody(rectangleOf: physicsSize)
         body.isDynamic           = true
         body.allowsRotation      = false
@@ -68,110 +101,255 @@ final class EnemyNode: SKSpriteNode {
         body.restitution         = 0
         body.linearDamping       = 0
         body.categoryBitMask     = PhysicsCategory.enemy
-        body.collisionBitMask    = PhysicsCategory.wall    // 벽/기둥에 막힘
-        body.contactTestBitMask  = PhysicsCategory.player  // player와 닿으면 알림
+        body.collisionBitMask    = PhysicsCategory.wall
+        body.contactTestBitMask  = PhysicsCategory.player
         physicsBody = body
 
-        // Phase 2-6 hotfix 1 — 다른 노드(벽/음표/기둥) 위에 항상 그려지도록 zPosition 명시.
-        // HUD(100)/D-Pad(기본 0이지만 cameraNode 자식이라 별도 트리)보다 낮음 — UI를 가리지 않음.
         zPosition = 5
 
-        // Sprint 7 Phase F — 시각 보강 자식 노드 부착(헬로/차트/클립).
-        // physicsBody·AI·이동·texture 0줄 영향 — 자식 SKShapeNode만 추가.
-        setupVisualOverlay()
-
-        // Sprint 8 Phase G — 본체 PixelSprite 시각 차단(노드 트리/texture 갱신은 보존, color로 투명).
-        // refreshTexture()는 매 프레임 호출되지만 colorBlendFactor=1.0 + color=.clear 조합으로
-        // texture가 *완전히 투명*하게 합성됨 → AI/이동/충돌 본문 0줄 변경 보장.
-        // 시각 자식(Phase 7-F SKShapeNode 헬로/차트/클립)은 본체 color와 무관하게 그대로 노출.
-        self.color = .clear
-        self.colorBlendFactor = 1.0
+        // Sprint 10 Phase F — 자식 시각(헬로/차트/클립) 부착 폐기.
+        // 원본 game.js는 16×20 픽셀 본체만 노출 — setupVisualOverlay 호출 제거.
+        // Sprint 8 Phase G의 color clear / colorBlendFactor 1.0도 함께 제거 →
+        // super.init(color: .clear)로 이미 투명 처리되어 본체 픽셀 텍스처가 정상 노출됨.
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Apply
-    /// Phase 7-1 — 난이도 정체성 단일 진입점.
-    /// dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
-    /// GameScene+Setup.setupEnemy에서 1줄 호출.
+    // MARK: - Apply (Sprint 10 Phase D — 본문 교체)
+    /// 난이도 정체성 단일 진입점. GameScene+Setup.setupEnemy에서 1회 호출.
+    /// 패트롤 좌표/속도 + burst 카운트 + obs 속도 + 발사 간격 lerp 범위를 일괄 set.
+    /// 모든 dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
+    /// throwTimer는 fireIntervalStart로 초기화 — 첫 발사까지 충분한 학습 시간 제공.
     func apply(_ difficulty: Difficulty) {
-        baseSpeedStart = GameConfig.enemySpeedStartByDifficulty[difficulty] ?? GameConfig.enemyBaseSpeed
-        baseSpeedEnd   = GameConfig.enemySpeedEndByDifficulty[difficulty]   ?? GameConfig.enemyMaxSpeed
+        patrolWaypoints   = GameConfig.nurseChiefWaypointsByDifficulty[difficulty] ?? []
+        patrolSpeed       = GameConfig.nurseChiefPatrolSpeedByDifficulty[difficulty]
+            ?? GameConfig.nurseChiefPatrolSpeedDefault
+        burstCount        = GameConfig.projectileBurstCountByDifficulty[difficulty] ?? 1
+        obsBaseSpeed      = GameConfig.obsBaseSpeedByDifficulty[difficulty] ?? 120
+        obsMaxSpeed       = GameConfig.obsMaxSpeedByDifficulty[difficulty] ?? 220
+        fireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? 3.5
+        fireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty] ?? 2.0
+        throwTimer = fireIntervalStart
     }
 
-    // MARK: - Flee
-    /// 외부 호출 시 duration초간 도주 모드 진입. 만료 시 자동 복귀.
-    /// 이미 도주 중이면 무시(재호출 가드). [weak self]로 순환 참조 방지.
-    /// Phase 4-6 — DispatchQueue/Timer 금지. SKAction.sequence로 시간 흐름 표현.
-    /// Phase 4-7 — duration 종료 직후 onEnd 콜백 발화. 기본값 {}로 4-6 호출 사이트 호환.
+    // MARK: - Initial Waypoint (Sprint 10 Phase D)
+    /// 플레이어 위치에서 가장 먼 waypoint를 시작 위치로 결정.
+    /// 원본 game.js L2618~L2628 byte-equal — hypot 기반 최댓값 인덱스 탐색.
+    /// GameScene+Setup.setupEnemy에서 enemy.apply 직후 1회 호출.
+    func selectInitialWaypoint(from playerPosition: CGPoint) {
+        guard !patrolWaypoints.isEmpty else { return }
+        var maxDist: CGFloat = -1
+        var maxIndex: Int = 0
+        for (i, wp) in patrolWaypoints.enumerated() {
+            let d = hypot(wp.x - playerPosition.x, wp.y - playerPosition.y)
+            if d > maxDist {
+                maxDist = d
+                maxIndex = i
+            }
+        }
+        currentWaypointIndex = maxIndex
+        position = patrolWaypoints[maxIndex]
+    }
+
+    // MARK: - Flee (Phase 4-6 · Sprint 10 Phase G 본문 강화)
+    /// AIRFORCE 이스터에그용 — 외부 호출 사이트(GameScene.triggerAirforceEasterEgg) ABI 회귀 0.
+    /// 원본 game.js L3454~L3470 byte-equal 도주 단위벡터.
+    /// 1) 단위벡터: dirX = (x >= 맵중앙 ? 1 : -1) / √2 — 맵 중앙 *반대 방향* 후퇴.
+    /// 2) velocity = 단위벡터 × fleeSpeed(180 pt/s).
+    /// 3) throwTimer = 99 — telegraph/firing 무력화(updateThrowStateMachine은 isFleeing 가드로 즉시 차단).
+    /// 4) duration(5.0s) 후 isFleeing=false + velocity=.zero + onEnd 콜백 — F 재시딩 사이트.
+    /// isFleeing 다회 진입 가드(이미 도주 중이면 noop) 그대로 유지(OQ-7).
     func startFleeing(duration: TimeInterval, onEnd: @escaping () -> Void = {}) {
         if isFleeing { return }
-        let start = SKAction.run { [weak self] in self?.isFleeing = true }
-        let wait  = SKAction.wait(forDuration: duration)
-        let end   = SKAction.run { [weak self] in
-            self?.isFleeing = false
+        let halfMapX = GameConfig.originalMapWorldWidth / 2
+        let halfMapY = GameConfig.originalMapWorldHeight / 2
+        let inv = 1.0 / sqrt(2.0)
+        let dirX: CGFloat = (position.x >= halfMapX ? 1 : -1) * inv
+        let dirY: CGFloat = (position.y >= halfMapY ? 1 : -1) * inv
+        let fleeSpeed = GameConfig.enemyFleeSpeed
+        let start = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.isFleeing = true
+            // throwTimer 무력화 — 원본 game.js fleeUntil 동안 throwTimer=99 톤.
+            self.throwTimer = 99
+            self.physicsBody?.velocity = CGVector(dx: dirX * fleeSpeed, dy: dirY * fleeSpeed)
+        }
+        let wait = SKAction.wait(forDuration: duration)
+        let end  = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.isFleeing = false
+            self.physicsBody?.velocity = .zero
+            // throwTimer 복원 — 도주 중 99로 무력화한 값을 fireIntervalStart로 되돌려
+            // patrol/throw 정상 복귀. 진행률 lerp는 다음 enterIdle에서 갱신 — 본 시점은 학습 grace.
+            // (SPEC §13 합격 기준 #3 patrol/throw 정상 복귀를 위한 필수 연동 변경.)
+            self.throwTimer = self.fireIntervalStart
             onEnd()
         }
         run(.sequence([start, wait, end]))
     }
 
-    // MARK: - Update
-    /// 외부에서 매 프레임 호출. player 위치를 향한 단위 벡터 × 보간 속도 → velocity.
-    /// magnitude == 0 가드(NaN 방지).
-    /// - Parameters:
-    ///   - deltaTime: dt — 본 sprint에서는 미사용 (velocity 기반, 엔진이 dt 처리).
-    ///   - targetPosition: 추적 대상 좌표(worldNode 좌표계). 보통 player.position.
-    ///   - speedT: 게임 진행률 (0 ~ 1). 0 = 시작 속도(base), 1 = 최대 속도(max).
-    ///             GameScene이 매 프레임 1 - remainingTime / gameDuration 으로 계산.
-    func update(deltaTime: TimeInterval, targetPosition: CGPoint, speedT: CGFloat) {
-        let dx = targetPosition.x - position.x
-        let dy = targetPosition.y - position.y
-        let magnitude = hypot(dx, dy)
-        guard magnitude > 0 else {
-            physicsBody?.velocity = .zero
-            // Phase 8-2 — 추적 대상과 정확히 겹친 극히 드문 경우. 픽셀은 idle 프레임으로 정착.
-            tickWalkFrame(deltaTime: deltaTime, isMoving: false)
-            return
-        }
-        let unitX = dx / magnitude
-        let unitY = dy / magnitude
-        // Phase 2-8 — 선형 보간: speedT 0 = base, 1 = max.
-        // Phase 7-1 — GameConfig 상수 → 인스턴스 프로퍼티 참조(난이도별 차등).
-        // easy의 baseSpeedStart/End는 GameConfig.enemyBaseSpeed/MaxSpeed와 정확히 일치 → 회귀 0.
-        let speed = baseSpeedStart
-            + (baseSpeedEnd - baseSpeedStart) * speedT
-        // Phase 4-6 — 도주 모드면 player 반대 방향(-1). 추적이면 +1. 한 줄 분기.
-        let direction: CGFloat = isFleeing ? -1 : 1
-        let newVelocity = CGVector(
-            dx: unitX * speed * direction,
-            dy: unitY * speed * direction
-        )
-        physicsBody?.velocity = newVelocity
-
-        // Phase 8-2 — 픽셀 텍스처 자기 갱신 (PlayerNode 패턴 동형, GameScene 변경 0).
-        // velocity가 set된 *직후* 같은 벡터로 방향/프레임 갱신 — 이번 프레임 의도 즉시 반영.
-        // 도주 시 velocity 부호가 반전되므로 픽셀 방향도 자동으로 반대를 향함(자연 톤).
-        updatePixelDirection(newVelocity)
-        let isMoving = abs(newVelocity.dx) > 1.0 || abs(newVelocity.dy) > 1.0
-        tickWalkFrame(deltaTime: deltaTime, isMoving: isMoving)
+    // MARK: - Update (Sprint 10 Phase D — 시그니처 변경)
+    /// 매 프레임 GameScene.update가 호출. dt 1개만 받음 (player.position/speedT는 provider 경유로 캡처).
+    /// 1) updatePatrol — 4지점 사각 순환 velocity 갱신.
+    /// 2) updateThrowStateMachine — idle/telegraph/firing 상태 전이.
+    /// 3) updatePixelDirection + tickWalkFrame — 시각 텍스처 자기 갱신(PlayerNode 패턴 동형).
+    func update(deltaTime dt: TimeInterval) {
+        updatePatrol(dt: dt)
+        updateThrowStateMachine(dt: dt)
+        let v = physicsBody?.velocity ?? .zero
+        updatePixelDirection(v)
+        let isMoving = abs(v.dx) > 1.0 || abs(v.dy) > 1.0
+        tickWalkFrame(deltaTime: dt, isMoving: isMoving)
     }
 
-    // MARK: - Pixel Sprite (Phase 8-2)
+    // MARK: - Patrol (Sprint 10 Phase D)
+    /// 현재 waypoint를 향해 patrolSpeed로 이동. 도달 시(dist <= step) snap + 다음 waypoint로 진행.
+    /// 빈 배열(apply 누락) → velocity=.zero 정지 (graceful fallback).
+    /// 4지점 사각 순환 — currentWaypointIndex = (idx + 1) % count → 무한 루프.
+    /// Sprint 10 Phase G — isFleeing 진입 가드. AIRFORCE 이스터에그 도주 중에는 patrol velocity 덮어쓰기 0
+    /// (startFleeing이 부여한 단위벡터 × fleeSpeed velocity 유지).
+    private func updatePatrol(dt: TimeInterval) {
+        if isFleeing { return }
+        guard !patrolWaypoints.isEmpty else {
+            physicsBody?.velocity = .zero
+            return
+        }
+        let target = patrolWaypoints[currentWaypointIndex]
+        let dx = target.x - position.x
+        let dy = target.y - position.y
+        let dist = hypot(dx, dy)
+        let step = patrolSpeed * CGFloat(dt)
+        if dist <= step {
+            // 도달 — 정확히 snap 후 정지, 다음 waypoint 인덱스 진행.
+            position = target
+            physicsBody?.velocity = .zero
+            currentWaypointIndex = (currentWaypointIndex + 1) % patrolWaypoints.count
+        } else {
+            let unitX = dx / dist
+            let unitY = dy / dist
+            physicsBody?.velocity = CGVector(dx: unitX * patrolSpeed, dy: unitY * patrolSpeed)
+        }
+    }
+
+    // MARK: - Throw State Machine (Sprint 10 Phase D)
+    /// idle: throwTimer 차감 → 0 이하 도달 시 enterTelegraph (! 부착 + 깜빡임).
+    /// telegraph: telegraphRemaining 차감 → 0 이하 도달 시 fireF + enterIdle.
+    /// firing: transient 1프레임 (현재 정책은 fireF 직후 즉시 enterIdle이라 도달 0건이지만 안전망).
+    /// switch default 금지(주의사항) — 3 case 명시.
+    /// Sprint 10 Phase G — isFleeing 진입 가드. AIRFORCE 이스터에그 도주 중에는 telegraph/firing 정지
+    /// (startFleeing이 throwTimer=99로 idle 시간 무력화했고, 본 가드로 dt 차감 자체 0).
+    private func updateThrowStateMachine(dt: TimeInterval) {
+        if isFleeing { return }
+        switch throwState {
+        case .idle:
+            throwTimer -= dt
+            if throwTimer <= 0 {
+                enterTelegraph()
+            }
+        case .telegraph:
+            telegraphRemaining -= dt
+            if telegraphRemaining <= 0 {
+                fireF()
+                enterIdle()
+            }
+        case .firing:
+            enterIdle()
+        }
+    }
+
+    /// idle → telegraph 전이. EnemyTelegraphNode 부착 + 깜빡임 시작.
+    /// telegraphRemaining을 GameConfig 상수로 초기화 (0.4초).
+    private func enterTelegraph() {
+        throwState = .telegraph
+        telegraphRemaining = GameConfig.nurseChiefTelegraphDuration
+        let node = EnemyTelegraphNode()
+        node.position = CGPoint(x: 0, y: GameConfig.nurseChiefTelegraphOffsetY)
+        addChild(node)
+        telegraphNode = node
+        node.startBlinking()
+    }
+
+    /// telegraph/firing → idle 전이. 텔레그래프 노드 제거 + 다음 throwTimer lerp 계산.
+    /// progressProvider() 호출 — 게임 진행률 ↑ 시 throwTimer ↓ (긴박감 증가).
+    private func enterIdle() {
+        throwState = .idle
+        telegraphNode?.removeFromParent()
+        telegraphNode = nil
+        let t = progressProvider()
+        throwTimer = fireIntervalStart + (fireIntervalEnd - fireIntervalStart) * t
+    }
+
+    // MARK: - Fire (Sprint 10 Phase D · 원본 1:1 burst)
+    /// burst 카운트만큼 F(또는 A) 동시 발사. 원본 game.js L2746~L2791 byte-equal 알고리즘.
+    /// 1) baseAngle = atan2(player - chief) — provider 경유.
+    /// 2) spreadStep = π/12, jitter = ±0.025 — 각 발마다 미세한 각도 변화.
+    /// 3) spawnPoint = chief.position + unitVec(baseAngle) × 24pt (분산 시작점 1점 공통).
+    /// 4) speed = obsBase + (obsMax - obsBase) × curveT() — 진행률 ↑ 시 속도 ↑.
+    /// 5) isCharmed ? AItemNode : FProjectileNode — 발사 시점 1회 검사(SPEC §5).
+    private func fireF() {
+        guard let world = worldProvider() else { return }
+        let playerPos = targetProvider()
+        let dx = playerPos.x - position.x
+        let dy = playerPos.y - position.y
+        let magnitude = hypot(dx, dy)
+        // 플레이어와 정확히 겹친 극히 드문 경우 — 발사 무효 (NaN 방지).
+        guard magnitude > 0 else { return }
+        let baseAngle = atan2(dy, dx)
+        let isCharmed = charmActiveProvider()
+        let t = progressProvider()
+        let speed = obsBaseSpeed + (obsMaxSpeed - obsBaseSpeed) * CGFloat(t)
+        let spreadStep = GameConfig.nurseChiefSpreadRadians
+        let startOffset = GameConfig.nurseChiefFireStartOffset
+        let spawnPoint = CGPoint(
+            x: position.x + cos(baseAngle) * startOffset,
+            y: position.y + sin(baseAngle) * startOffset
+        )
+
+        for i in 0..<burstCount {
+            // 중앙(burstCount/2)을 0으로 두고 좌우 대칭. burstCount=1 → 단발(centerOffset=0).
+            let centerOffset = CGFloat(i) - CGFloat(burstCount - 1) / 2.0
+            let angle = baseAngle + centerOffset * spreadStep
+            let jitter = CGFloat.random(
+                in: -GameConfig.nurseChiefSpreadJitter ... GameConfig.nurseChiefSpreadJitter
+            )
+            let finalAngle = angle + jitter
+            let unitX = cos(finalAngle)
+            let unitY = sin(finalAngle)
+            let velocity = CGVector(dx: unitX * speed, dy: unitY * speed)
+            if isCharmed {
+                let a = AItemNode()
+                a.position = spawnPoint
+                a.physicsBody?.velocity = velocity
+                world.addChild(a)
+            } else {
+                let f = FProjectileNode()
+                f.position = spawnPoint
+                f.physicsBody?.velocity = velocity
+                world.addChild(f)
+            }
+        }
+    }
+
+    /// SpawnSystem.fireImmediately 호환 — 텔레그래프 우회 즉시 발사.
+    /// AIRFORCE 이스터에그 수간호사 복귀 직후 1발 발사(레거시 동작 보존).
+    /// 본문은 fireF() 한 줄 위임 — burst/F-A 분기 단일 진실 원천 유지.
+    func fireFOnce() {
+        fireF()
+    }
+
+    // MARK: - Pixel Sprite (Phase 8-2 · 보존)
     /// velocity 부호로 4방향 산출. 정지(임계값 미만) 시 마지막 방향 유지.
-    /// 텍스처 재생성은 *방향이 실제로 바뀐 프레임에만* — 매 프레임 호출이라도 정지 시 비용 0.
-    /// PlayerNode.updatePixelDirection과 정확히 동일 패턴 (Phase 8-1).
+    /// PlayerNode.updatePixelDirection과 정확히 동일 패턴.
     private func updatePixelDirection(_ velocity: CGVector) {
         let absDx = abs(velocity.dx)
         let absDy = abs(velocity.dy)
-        // 거의 정지(임계값 0.1 미만) — 방향 유지. 미세 잔존 velocity가 흔들림으로 보이지 않도록 가드.
         guard absDx > 0.1 || absDy > 0.1 else { return }
         let newDir: PixelDirection
         if absDx > absDy {
             newDir = velocity.dx >= 0 ? .right : .left
         } else {
-            // SpriteKit 좌표계: +y는 위쪽 → dy > 0이면 up.
             newDir = velocity.dy >= 0 ? .up : .down
         }
         if newDir != pixelDirection {
@@ -181,8 +359,6 @@ final class EnemyNode: SKSpriteNode {
     }
 
     /// 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
-    /// 텍스처 재생성은 *변경 순간에만* — 매 프레임 호출이라도 변화 없으면 비용 0.
-    /// PlayerNode.tickWalkFrame과 정확히 동일 패턴 (Phase 8-1).
     private func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
         guard isMoving else {
             if pixelFrame != .idle {
@@ -200,8 +376,7 @@ final class EnemyNode: SKSpriteNode {
         }
     }
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성 후 set. SKTexture는 ARC 자동 정리 — 메모리 누수 0.
-    /// PlayerNode.refreshTexture와 정확히 동일 패턴 (Phase 8-1). 팔레트만 chief로 분기.
+    /// 현재 방향/프레임 조합으로 텍스처 재생성.
     private func refreshTexture() {
         texture = PixelSpriteRenderer.texture(
             from: PixelSprite.nurseChiefData(direction: pixelDirection,
@@ -210,69 +385,9 @@ final class EnemyNode: SKSpriteNode {
         )
     }
 
-    // MARK: - Visual Overlay (Sprint 7 Phase F)
-    /// 수간호사 시각 단서 보강 — 외곽 헬로(권위감) + 차트(클립보드) + 코랄 클립.
-    /// init에서 1회 호출. physicsBody/AI/이동/texture 0줄 영향 — 자식 SKShapeNode만 추가.
-    /// 모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준, zPosition은 부모(5) 기준 상대값.
-    /// Sprint 9 Phase C — 시각 자식 부착 *직후* applyVisualScaleV9()로 일괄 1.4배 확대.
-    ///                     physicsBody는 본체 size 기준이라 hitbox 회귀 0.
-    private func setupVisualOverlay() {
-        attachHalo()
-        attachChart()
-        attachClip()
-        applyVisualScaleV9()
-    }
-
-    /// Sprint 9 Phase C — 시각 자식(halo/chart/clip) 일괄 setScale.
-    /// 자식 transform scale만 변경 — 본체 SKSpriteNode size·physicsBody 무영향.
-    /// 시뮬레이터에서 빌런 시각 면적 ≥ 24pt 확보 → 회피·전략 판단 가능.
-    private func applyVisualScaleV9() {
-        for child in children {
-            child.setScale(GameConfig.enemyVisualScaleV9)
-        }
-    }
-
-    /// 외곽 헬로 — navyMuted ellipse alpha 0.18. 픽셀 텍스처 뒤에서 살짝 보이는 *권위감 light bloom*.
-    /// zPos -0.1 → 부모 zPos 5 기준 4.9. 픽셀 텍스처(자식 미지정 = 0) 뒤로 배치.
-    private func attachHalo() {
-        let halo = SKShapeNode(ellipseOf: CGSize(
-            width:  GameConfig.enemyVisualHaloWidth,
-            height: GameConfig.enemyVisualHaloHeight
-        ))
-        halo.fillColor = .ganhoNavyMuted
-        halo.strokeColor = .clear
-        halo.alpha = GameConfig.enemyVisualHaloAlpha
-        halo.zPosition = -0.1
-        addChild(halo)
-    }
-
-    /// 차트(클립보드) — paper fill + navyDeep stroke. 우측 옆구리에 작게 부착.
-    /// zPos 0.1 → 픽셀 텍스처 위에 살짝 떠 보이게.
-    private func attachChart() {
-        let chart = SKShapeNode(rectOf: GameConfig.enemyVisualChartSize, cornerRadius: 0.6)
-        chart.fillColor = .ganhoPaper
-        chart.strokeColor = .ganhoNavyDeep
-        chart.lineWidth = 0.5
-        chart.position = GameConfig.enemyVisualChartOffset
-        chart.zPosition = 0.1
-        addChild(chart)
-    }
-
-    /// 차트 상단 코랄 클립 — 코랄 액센트로 *수간호사 권위* 정체성 강화.
-    /// 차트 위쪽 가장자리에 살짝 부착. zPos 0.2 → 차트(0.1) 위.
-    private func attachClip() {
-        let clipSize = CGSize(
-            width:  GameConfig.enemyVisualChartSize.width * 0.7,
-            height: 1.6
-        )
-        let clip = SKShapeNode(rectOf: clipSize)
-        clip.fillColor = .ganhoCoralPrimary
-        clip.strokeColor = .clear
-        clip.position = CGPoint(
-            x: GameConfig.enemyVisualChartOffset.x,
-            y: GameConfig.enemyVisualChartOffset.y + GameConfig.enemyVisualChartSize.height / 2
-        )
-        clip.zPosition = 0.2
-        addChild(clip)
-    }
+    // MARK: - Visual Overlay (Sprint 10 Phase F — 본문 삭제)
+    // setupVisualOverlay / attachHalo / attachChart / attachClip / applyVisualScaleV9 5개 메서드
+    // 본문 삭제. 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(헬로/차트/클립) 부착 정책 폐기.
+    // GameConfig.enemyVisualHaloWidth/Height/Alpha/ChartSize/ChartOffset/enemyVisualScaleV9 상수도
+    // 호출자 0건이 되었으나 본 Phase 변경 금지 우회 위해 GameConfig 본체 보존 — deprecate 주석 형태로 처리.
 }

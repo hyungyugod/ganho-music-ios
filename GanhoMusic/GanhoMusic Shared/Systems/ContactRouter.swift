@@ -36,6 +36,13 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     /// Phase 9-7 — stethoscope ↔ wall 접촉 시. 인자: 제거할 stethoscope 노드.
     /// onProjectileHitWall 패턴 답습 — 단순 노드 제거만.
     var onStethoscopeHitWall: (SKNode) -> Void = { _ in }
+    /// Sprint 10 Phase D — aItem(매혹 변환 A) ↔ player 접촉 시. 인자: 제거할 aItem 노드.
+    /// 호출부는 ScoreSystem.recordCharmedNoteHit으로 ×2 가산 후 `node.run(.removeFromParent())` SKAction 사용.
+    /// didBegin 즉시 removeFromParent 금지(주의사항 1).
+    var onAItemCollected: (SKNode) -> Void = { _ in }
+    /// Sprint 10 Phase D — aItem ↔ wall 접촉 시. 인자: 제거할 aItem 노드.
+    /// onProjectileHitWall 패턴 답습 — 단순 노드 제거만.
+    var onAItemHitWall: (SKNode) -> Void = { _ in }
 
     // MARK: - SKPhysicsContactDelegate
     func didBegin(_ contact: SKPhysicsContact) {
@@ -57,6 +64,12 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
         // projectile 다음에 둠 — 비트 값 오름차순(16 → 128) 자연 정렬.
         if categories & PhysicsCategory.stethoscope != 0 {
             handleStethoscopeContact(contact)
+            return
+        }
+        // Sprint 10 Phase D — aItem 분기. 별도 비트(256) — projectile/stethoscope/bonus와 단독 매치.
+        // 비트 오름차순(16 → 128 → 256) 자연 정렬 위치.
+        if categories & PhysicsCategory.aItem != 0 {
+            handleAItemContact(contact)
             return
         }
         // Phase 9-6 — bonus(변기) 분기. note 분기보다 *앞에* 둠 — bonus 비트는 단독으로 떠
@@ -132,6 +145,25 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
         if categories & PhysicsCategory.wall != 0 {
             guard let node = stethoscopeBody.node else { return }
             onStethoscopeHitWall(node)
+        }
+    }
+
+    /// Sprint 10 Phase D — aItem(매혹 변환 A) 카테고리 충돌 분기.
+    /// handleProjectileContact / handleStethoscopeContact 패턴 정확 답습.
+    /// player 우선 — wall과 동시 매치되는 경우는 비트가 단독(256)이라 실제로 없으나 분기 순서 결정성 유지.
+    private func handleAItemContact(_ contact: SKPhysicsContact) {
+        let categories = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        let aBody = contact.bodyA.categoryBitMask == PhysicsCategory.aItem
+            ? contact.bodyA
+            : contact.bodyB
+        if categories & PhysicsCategory.player != 0 {
+            guard let node = aBody.node else { return }
+            onAItemCollected(node)
+            return
+        }
+        if categories & PhysicsCategory.wall != 0 {
+            guard let node = aBody.node else { return }
+            onAItemHitWall(node)
         }
     }
 }

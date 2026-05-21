@@ -19,16 +19,35 @@ import SpriteKit
 /// 마지막 phase 종료 후 자기 자신을 disposable로 정리한다.
 final class CountdownNode: SKNode, SelfDismissingNode {
 
+    // MARK: - Context (Sprint 10 Phase J)
+    /// 카운트다운 시각 톤 컨텍스트. enum 자체는 인게임/메뉴 두 분기만 — switch default 0(SPEC §4 금지).
+    enum CountdownContext {
+        /// 인게임 8-bit 톤 — Menlo-Bold, 3·2·1 픽셀 화이트, GO! 픽셀 옐로.
+        case ingame
+        /// 메뉴 v2 카툰 톤 — Jua-Regular, 3·2·1 navyDeep, GO! coralPrimary. 호환성 보존(현재 호출 0).
+        case menu
+    }
+
     // MARK: - Properties
     /// 매 단계마다 text/color/scale이 바뀌는 라벨. SKNode 본체는 좌표/액션 호스트, label은 시각 콘텐츠.
     private let label: SKLabelNode
+    /// init에서 주입된 컨텍스트. start() 내 색 분기에 사용.
+    private let context: CountdownContext
 
     // MARK: - Init
     /// 라벨 1개 자식으로 부착. text는 빈 문자열로 시작 — start() 안 첫 setup 액션에서 "3"으로 갱신됨.
     /// zPosition = 250 (HitFlash 200 위) — 카운트다운 동안 어떤 UI도 덮는다.
-    /// Sprint 7 Phase E — fontDisplay(Jua-Regular) 부여. 시스템 폰트 fallback 제거 → v3 톤(타이틀과 동일 패밀리).
-    override init() {
-        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    /// Sprint 10 Phase J — context 분기 init. 기본 init()은 호환성 보존 → init(context:.ingame) 위임.
+    /// fontName은 컨텍스트별 — .ingame(fontPixel) / .menu(fontDisplay).
+    override convenience init() {
+        self.init(context: .ingame)
+    }
+
+    /// 신규 진입점. GameScene는 명시적으로 `.ingame`, 미래 메뉴 카운트다운(미사용)은 `.menu` 호출.
+    init(context: CountdownContext) {
+        self.context = context
+        let fontName = (context == .ingame) ? GameConfig.fontPixel : GameConfig.fontDisplay
+        self.label = SKLabelNode(fontNamed: fontName)
         super.init()
         name = "countdown"
         zPosition = GameConfig.countdownZPosition
@@ -53,11 +72,13 @@ final class CountdownNode: SKNode, SelfDismissingNode {
         onGo: @escaping () -> Void,
         onComplete: @escaping () -> Void
     ) {
-        // Sprint 7 Phase E — 3/2/1 모두 navyDeep 통일. "차분한 긴장 누적" 톤.
-        // GO!의 코랄과 색 대비를 통해 "준비 → 출발" 감정 전환 강조.
-        let step3 = stepAction(text: "3", color: .ganhoNavyDeep) { onTick(3) }
-        let step2 = stepAction(text: "2", color: .ganhoNavyDeep) { onTick(2) }
-        let step1 = stepAction(text: "1", color: .ganhoNavyDeep) { onTick(1) }
+        // Sprint 10 Phase J — context 분기:
+        // .ingame: 3·2·1 픽셀 화이트 (ganhoPixelHudWhite), GO! 픽셀 옐로 (ganhoPixelHudYellow)
+        // .menu: 3·2·1 navyDeep, GO! coralPrimary (Sprint 7 Phase E 톤 보존, 호환성).
+        let tickColor: UIColor = (context == .ingame) ? .ganhoPixelHudWhite : .ganhoNavyDeep
+        let step3 = stepAction(text: "3", color: tickColor) { onTick(3) }
+        let step2 = stepAction(text: "2", color: tickColor) { onTick(2) }
+        let step1 = stepAction(text: "1", color: tickColor) { onTick(1) }
         let stepGo = goAction(onGo: onGo)
         let cleanup = SKAction.removeFromParent()
         let notify = SKAction.run(onComplete)
@@ -93,11 +114,12 @@ final class CountdownNode: SKNode, SelfDismissingNode {
     /// fadeOut은 일반보다 긴 0.4초 — *시작의 잔향* 톤.
     /// SKAction.run 안에서 self 사용 → [weak self] 캡처 필수.
     private func goAction(onGo: @escaping () -> Void) -> SKAction {
+        // Sprint 10 Phase J — context 분기: .ingame 픽셀 옐로 / .menu 코랄 프라이머리(호환 톤).
+        let goColor: UIColor = (context == .ingame) ? .ganhoPixelHudYellow : .ganhoCoralPrimary
         let setup = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.label.text = "GO!"
-            // Sprint 7 Phase E — mint → coralPrimary. "출발의 폭발" 따뜻한 톤.
-            self.label.fontColor = .ganhoCoralPrimary
+            self.label.fontColor = goColor
             // Sprint 7 Phase E — GO! fontSize 140pt (숫자 120pt보다 큼). "더 큰 임팩트" 위계.
             self.label.fontSize = GameConfig.countdownGoFontSizeV3
             self.label.alpha = 0

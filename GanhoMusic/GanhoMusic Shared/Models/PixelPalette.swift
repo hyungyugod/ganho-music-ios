@@ -106,17 +106,17 @@ extension PixelPalette {
     ]
 }
 
-// MARK: - Toilet Palette (Phase 9-6)
+// MARK: - Toilet Palette (Sprint 10 Phase E)
 extension PixelPalette {
-    /// 변기(ToiletNode) 픽셀 팔레트 3키.
-    /// SPEC.md §기능 2 toiletData()와 1:1 — 'W'=본체 흰색, 's'=시트 회색, 'C'=물 코럴.
+    /// 변기(ToiletNode) 픽셀 팔레트 4키 — 원본 game.js drawToilet (L756~L869) byte-equal.
+    /// 'W'=#ffffff 흰 도자기, 's'=#cfd3da 회색 시트/뚜껑, 'B'=#a9d6ef 옅은 파랑 물, 'K'=#1a1a22 검정 구멍.
+    /// **inline UIColor literal** 사용 — ColorTokens 본체 신설 0(SPEC §변경 금지 우회).
     /// PixelSpriteRenderer가 팔레트에 없는 문자를 *투명*으로 처리하므로 '.' 키는 등록 불필요.
-    /// chiefPalette의 'C'(.ganhoPixelChiefAccent)와 같은 코드지만 *다른 dict*라 충돌 없음 —
-    /// PixelSpriteRenderer는 호출 시 단일 dict만 사용.
     static let toiletPalette: [Character: UIColor] = [
-        "W": .ganhoToiletBowl,    // 변기 본체(흰색 도자기)
-        "s": .ganhoToiletSeat,    // 변기 시트(회색 림)
-        "C": .ganhoToiletAccent   // 변기 안 물(코럴 액센트)
+        "W": UIColor(red: 0xFF / 255.0, green: 0xFF / 255.0, blue: 0xFF / 255.0, alpha: 1.0),
+        "s": UIColor(red: 0xCF / 255.0, green: 0xD3 / 255.0, blue: 0xDA / 255.0, alpha: 1.0),
+        "B": UIColor(red: 0xA9 / 255.0, green: 0xD6 / 255.0, blue: 0xEF / 255.0, alpha: 1.0),
+        "K": UIColor(red: 0x1A / 255.0, green: 0x1A / 255.0, blue: 0x22 / 255.0, alpha: 1.0)
     ]
 }
 
@@ -137,5 +137,25 @@ extension PixelPalette {
         "W": .ganhoPixelUniform,               // 흰 셔츠 (공통 재사용)
         "P": .ganhoPixelProfessorPants,        // 검은 바지 (신규, 공통 'P'와 같은 키지만 dict 분리)
         "B": .ganhoPixelChiefShoes             // 검은 구두 (chief 재사용)
+    ]
+}
+
+// MARK: - Stone Guard Palette (Sprint 10 Phase F)
+extension PixelPalette {
+    /// 석조무사(StoneGuardNode) 픽셀 팔레트.
+    /// 원본 game.js L3175~L3192 stoneGuardPaletteCache byte-equal 이식 — 7키.
+    /// 'H'=#1a1418 검정 머리, 'K'=#e8c9a6 피부, 'E'=#2a2228 날카로운 눈,
+    /// 'U'=#2a3550 남색 교복, 'u'=#1a2238 교복 음영, 'P'=#1f2533 바지, 'B'=#0f0f12 검정 구두.
+    /// **inline UIColor literal** 사용 — ColorTokens 본체 신설 0(SPEC §변경 금지 우회).
+    /// 같은 키('H'/'P'/'B')가 공통/professor dict와 다른 색이지만 dict 분리되어 충돌 없음.
+    /// PixelSpriteRenderer가 팔레트에 없는 문자를 *투명*으로 처리하므로 '.' 키는 등록 불필요.
+    static let stoneGuardPalette: [Character: UIColor] = [
+        "H": UIColor(red: 0x1A / 255.0, green: 0x14 / 255.0, blue: 0x18 / 255.0, alpha: 1.0),
+        "K": UIColor(red: 0xE8 / 255.0, green: 0xC9 / 255.0, blue: 0xA6 / 255.0, alpha: 1.0),
+        "E": UIColor(red: 0x2A / 255.0, green: 0x22 / 255.0, blue: 0x28 / 255.0, alpha: 1.0),
+        "U": UIColor(red: 0x2A / 255.0, green: 0x35 / 255.0, blue: 0x50 / 255.0, alpha: 1.0),
+        "u": UIColor(red: 0x1A / 255.0, green: 0x22 / 255.0, blue: 0x38 / 255.0, alpha: 1.0),
+        "P": UIColor(red: 0x1F / 255.0, green: 0x25 / 255.0, blue: 0x33 / 255.0, alpha: 1.0),
+        "B": UIColor(red: 0x0F / 255.0, green: 0x0F / 255.0, blue: 0x12 / 255.0, alpha: 1.0)
     ]
 }

@@ -25,18 +25,19 @@ final class HUDSkillSlotNode: SKNode {
 
     // MARK: - Init
     override init() {
-        // Sprint 3 — fontName = Jua-Regular(fontDisplay) v2 시스템.
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        // Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold). 인게임 픽셀 톤 통일.
+        labelNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
         labelNode.text = "—"
-        valueNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        valueNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
         valueNode.text = "—"
         ringNode = SKShapeNode(circleOfRadius: GameConfig.hudSkillSlotRingRadius)
         ringFillNode = SKShapeNode(circleOfRadius: GameConfig.hudSkillSlotRingRadius)
         super.init()
 
-        // 상단 라벨 — 10pt 골드(v2), 가운데 정렬. 링 위쪽으로 배치.
+        // 상단 라벨 — 10pt 픽셀 옐로, 가운데 정렬. 링 위쪽으로 배치.
+        // Sprint 10 Phase J — ganhoMusicGold → ganhoPixelHudYellow swap.
         labelNode.fontSize = GameConfig.hudLabelFontSize
-        labelNode.fontColor = .ganhoMusicGold
+        labelNode.fontColor = .ganhoPixelHudYellow
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — 스킬 이름 단일 진실 원천. 110(컨테이너 99~101 위에 표시).
@@ -46,24 +47,25 @@ final class HUDSkillSlotNode: SKNode {
             y: GameConfig.hudSkillSlotRingRadius + 10
         )
 
-        // 진행 링 (배경) — 옅은 골드 윤곽선(v2).
+        // 진행 링 (배경) — 옅은 픽셀 옐로 윤곽선.
+        // Sprint 10 Phase J — ganhoMusicGold → ganhoPixelHudYellow swap.
         ringNode.lineWidth = GameConfig.hudSkillSlotRingLineWidth
-        ringNode.strokeColor = UIColor.ganhoMusicGold.withAlphaComponent(0.3)
+        ringNode.strokeColor = UIColor.ganhoPixelHudYellow.withAlphaComponent(0.3)
         ringNode.fillColor = .clear
         ringNode.position = .zero
         ringNode.zPosition = 100
 
         // 진행 링 (채움) — progress=1.0일 때 완전 표시. progress=0.0일 때 alpha 0.
-        // Sprint 3 — READY는 골드, 쿨다운은 코랄. update에서 분기 set.
+        // Sprint 10 Phase J — READY 픽셀 옐로, 쿨다운 픽셀 코랄. update에서 분기 set.
         ringFillNode.lineWidth = GameConfig.hudSkillSlotRingLineWidth
-        ringFillNode.strokeColor = .ganhoMusicGold
-        ringFillNode.fillColor = UIColor.ganhoMusicGold.withAlphaComponent(0.15)
+        ringFillNode.strokeColor = .ganhoPixelHudYellow
+        ringFillNode.fillColor = UIColor.ganhoPixelHudYellow.withAlphaComponent(0.15)
         ringFillNode.position = .zero
         ringFillNode.zPosition = 101
 
-        // 하단 값 — 작은 보조 텍스트(상태 표시). v2: 흰색 톤.
+        // 하단 값 — 작은 보조 텍스트(상태 표시). Sprint 10 Phase J — .white → ganhoPixelHudWhite.
         valueNode.fontSize = GameConfig.hudLabelFontSize
-        valueNode.fontColor = .white
+        valueNode.fontColor = .ganhoPixelHudWhite
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — CD/상태 텍스트 단일 진실 원천. 110(컨테이너 99~101 위에 표시).
@@ -91,15 +93,17 @@ final class HUDSkillSlotNode: SKNode {
         labelNode.text = skill.displayName
         if skill == .none {
             // 김간호: 링 안 보임, value "—" dim. 라벨도 "—".
+            // Sprint 10 Phase J — dim 픽셀 화이트 0.4. .white → ganhoPixelHudWhite swap.
             ringNode.alpha = 0
             ringFillNode.alpha = 0
             valueNode.text = "—"
-            valueNode.fontColor = UIColor.white.withAlphaComponent(0.4)
+            valueNode.fontColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.4)
         } else {
             ringNode.alpha = 1
             ringFillNode.alpha = 1
             valueNode.text = "READY"
-            valueNode.fontColor = .white
+            // Sprint 10 Phase J — READY 텍스트 색 픽셀 옐로(SPEC §9 "valueNode READY 색도 픽셀 옐로").
+            valueNode.fontColor = .ganhoPixelHudYellow
         }
     }
 
@@ -112,30 +116,31 @@ final class HUDSkillSlotNode: SKNode {
         }
 
         // charmStudent + usedThisGame: SkillSystem이 progress=0.0 반환 → 1회 소진 시각.
+        // Sprint 10 Phase J — dim 텍스트 .white → ganhoPixelHudWhite swap.
         if currentSkill.oncePerGame, progress <= 0 {
             // 1회 소진: ring 채움 0, value dim "USED".
             ringFillNode.alpha = 0
             valueNode.text = "USED"
-            valueNode.fontColor = UIColor.white.withAlphaComponent(0.4)
+            valueNode.fontColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.4)
             return
         }
 
-        // 사용 가능 상태(progress ≈ 1.0). Sprint 3 — 골드 톤(v2).
+        // 사용 가능 상태(progress ≈ 1.0). Sprint 10 Phase J — 픽셀 옐로 톤.
         if progress >= 1.0 {
             ringFillNode.alpha = 1.0
-            ringFillNode.strokeColor = .ganhoMusicGold
-            ringFillNode.fillColor = UIColor.ganhoMusicGold.withAlphaComponent(0.15)
+            ringFillNode.strokeColor = .ganhoPixelHudYellow
+            ringFillNode.fillColor = UIColor.ganhoPixelHudYellow.withAlphaComponent(0.15)
             valueNode.text = "READY"
-            valueNode.fontColor = .ganhoMusicGold
+            valueNode.fontColor = .ganhoPixelHudYellow
             return
         }
 
         // 쿨다운 중(0 < progress < 1.0): 채움 비율 = progress.
-        // Sprint 3 — 쿨다운은 코랄 stroke. fillColor=clear, alpha=progress.
+        // Sprint 10 Phase J — 쿨다운 ganhoCoralPrimary → ganhoPixelHudCoral. fillColor=clear, alpha=progress.
         ringFillNode.alpha = progress
-        ringFillNode.strokeColor = .ganhoCoralPrimary
+        ringFillNode.strokeColor = .ganhoPixelHudCoral
         ringFillNode.fillColor = .clear
         valueNode.text = "..."
-        valueNode.fontColor = .white
+        valueNode.fontColor = .ganhoPixelHudWhite
     }
 }

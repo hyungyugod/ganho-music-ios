@@ -23,7 +23,8 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// 끊기는 순간의 콤보 값을 받아 텍스트로 노출.
     /// 텍스트 포맷 "x{N} BREAK" — 단순 "BREAK"보다 *내가 잃은 것*을 명확히 보여줘 손실감 강화.
     init(brokenCombo: Int) {
-        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        // Sprint 10 Phase J — fontDisplay → fontPixel. 인게임 픽셀 톤 통일.
+        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
         self.label.text = "x\(brokenCombo) BREAK"
         super.init()
         name = "comboBreak"
@@ -61,15 +62,17 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     /// 색은 단일 톤 — 환호(ComboPopupNode)는 등급별 4색이지만 끊김은 *값 하나*(임계값 10+).
     private func configureLabel() {
+        // Sprint 10 Phase J — ganhoCoralShadow → ganhoPixelComboRed.
         label.fontSize = GameConfig.comboBreakV2FontSize
-        label.fontColor = .ganhoCoralShadow
+        label.fontColor = .ganhoPixelComboRed
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         label.position = .zero
         label.zPosition = 0
     }
 
-    /// Sprint 3 — navy 외곽선 4방향 시뮬레이션. ComboPopupNode와 동일 패턴.
+    /// Sprint 10 Phase J — 픽셀 외곽선 4방향 시뮬레이션. ComboPopupNode와 동일 패턴.
+    /// fontDisplay → fontPixel, ganhoNavyDeep → ganhoPixelOutlineBlack swap.
     private func addOutline(text: String) {
         let offset = GameConfig.comboPopupV2OutlineWidth
         let offsets: [CGPoint] = [
@@ -79,10 +82,10 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
             CGPoint(x:  0,      y: +offset)
         ]
         for off in offsets {
-            let outline = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let outline = SKLabelNode(fontNamed: GameConfig.fontPixel)
             outline.text = text
             outline.fontSize = GameConfig.comboBreakV2FontSize
-            outline.fontColor = .ganhoNavyDeep
+            outline.fontColor = .ganhoPixelOutlineBlack
             outline.verticalAlignmentMode = .center
             outline.horizontalAlignmentMode = .center
             outline.position = off

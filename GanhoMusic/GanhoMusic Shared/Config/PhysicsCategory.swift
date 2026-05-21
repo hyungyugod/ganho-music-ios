@@ -19,4 +19,5 @@ struct PhysicsCategory {
     static let stoneGuard: UInt32 = 0b100000 // 32  ← Phase 4-2 신설
     static let bonus:      UInt32 = 0b1000000 // 64 ← Phase 9-6 신설 (변기 보너스)
     static let stethoscope: UInt32 = 0b10000000 // 128 ← Phase 9-7 신설 (이교수 청진기)
+    static let aItem:      UInt32 = 0b100000000 // 256 ← Sprint 10 Phase D 신설 (수간호사 매혹 시 F→A 변환 수집형 아이템)
 }

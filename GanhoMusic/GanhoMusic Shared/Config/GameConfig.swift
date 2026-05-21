@@ -10,6 +10,7 @@
 
 import Foundation
 import CoreGraphics
+import UIKit   // Sprint 10 Phase D — telegraph/F/A 색 UIColor 상수에 필요
 
 /// 게임 전역 상수 네임스페이스. case 없는 enum으로 인스턴스화 차단.
 enum GameConfig {
@@ -18,16 +19,38 @@ enum GameConfig {
     /// 한 판 길이 (초). GDD §1
     static let gameDuration: TimeInterval = 45
 
+    // MARK: - Original Map (Sprint 10 Phase B — 원본 1:1 정합)
+    // 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L14~L24 §0 (game.js L62~L74).
+    // 원본 웹게임 좌표계를 byte-equal로 iOS에 이식하기 위한 8개 상수.
+    // 산식: TILE_PT(20) × SCALE(2) = CELL_PT(40) → world(1280×800).
+    /// 원본 맵 가로 타일 수(원본 동일). game.js L18.
+    static let originalMapTileWidth: Int = 32
+    /// 원본 맵 세로 타일 수(원본 동일). game.js L19.
+    static let originalMapTileHeight: Int = 20
+    /// 원본 타일 1칸 픽셀 크기. game.js L17 TILE = 20.
+    static let originalMapTileSize: CGFloat = 20.0
+    /// 원본 스프라이트 화면 배율. game.js L101/L713 SCALE = 2.
+    static let originalMapPixelScale: CGFloat = 2.0
+    /// 시각상 한 셀 크기 (pt) = TILE_PT × SCALE = 40.
+    static let originalMapCellSize: CGFloat = originalMapTileSize * originalMapPixelScale
+    /// 월드 가로 전체 크기 (pt) = CELL_PT × MAP_W = 40 × 32 = 1280.
+    static let originalMapWorldWidth: CGFloat = originalMapCellSize * CGFloat(originalMapTileWidth)
+    /// 월드 세로 전체 크기 (pt) = CELL_PT × MAP_H = 40 × 20 = 800.
+    static let originalMapWorldHeight: CGFloat = originalMapCellSize * CGFloat(originalMapTileHeight)
+    /// MapNode z-position. 체크보드(-100) 위, 외곽 벽(0) 아래 — 좌표 그릇 시각 적층.
+    static let mapNodeZPosition: CGFloat = -50
+
     // MARK: - World
-    /// 타일 1칸 크기 (pt). GDD §6
-    static let tileSize: CGFloat = 20
-    /// 맵 가로 타일 수. Phase 1-5: 32 → 48 (드론 카메라 + 모바일 viewport 대응)
-    static let mapColumns: Int = 48
-    /// 맵 세로 타일 수. Phase 1-5: 20 → 24
-    static let mapRows: Int = 24
-    /// 맵 전체 가로 폭 (pt). tileSize × mapColumns = 960. (자동 갱신)
+    /// 타일 1칸 크기 (pt). Sprint 10 Phase B — 20pt → 40pt 승격(원본 1:1 산식 경유).
+    /// 호출자(외곽벽·체크보드·중앙기둥·hard/normal 맵·player position)는 이 단일 진입점만 참조 → 자동 정합.
+    static let tileSize: CGFloat = originalMapCellSize
+    /// 맵 가로 타일 수. Sprint 10 Phase B — 48 → 32 (원본 동일).
+    static let mapColumns: Int = originalMapTileWidth
+    /// 맵 세로 타일 수. Sprint 10 Phase B — 24 → 20 (원본 동일).
+    static let mapRows: Int = originalMapTileHeight
+    /// 맵 전체 가로 폭 (pt). tileSize × mapColumns = 1280 (Sprint 10 Phase B 산식 자동 갱신).
     static let mapWidth: CGFloat = tileSize * CGFloat(mapColumns)
-    /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 480. (자동 갱신)
+    /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 800 (Sprint 10 Phase B 산식 자동 갱신).
     static let mapHeight: CGFloat = tileSize * CGFloat(mapRows)
     /// 4 모서리 검증 마커 한 변 길이 (pt). 1-2/1-3 공용.
     static let cornerMarkerSize: CGFloat = 16
@@ -185,14 +208,19 @@ enum GameConfig {
     static let stoneGuardHeight: CGFloat = 20
     /// 석조무사 패트롤 속도 (pt/s). GDD §7-6 — 시간 보간 없음(단일 상수).
     static let stoneGuardSpeed: CGFloat = 55
+    /// Sprint 10 Phase F — 패트롤 SKAction 키. selectInitialWaypoint 재시작 시 removeAction(forKey:) 멱등 처리.
+    static let stoneGuardPatrolActionKey: String = "stoneGuardPatrol"
     /// 석조무사 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상).
     /// 맵 960×480, 중앙 기둥 (480, 240±40) 회피.
     /// 한 바퀴 둘레 = 1680pt → 1680/55 ≈ 30.5초.
+    /// Sprint 10 Phase F — 원본 game.js L3221~L3274 byte-equal 재정합.
+    /// 옛 200/760·100/380 4점 폐기 → 원본 80/540·80/300 4점 직접 사용.
+    /// 시계방향: 좌하(80,80) → 우하(540,80) → 우상(540,300) → 좌상(80,300).
     static let stoneGuardWaypoints: [CGPoint] = [
-        CGPoint(x: 200, y: 100),   // 좌하 — 시작 위치
-        CGPoint(x: 760, y: 100),   // 우하
-        CGPoint(x: 760, y: 380),   // 우상
-        CGPoint(x: 200, y: 380)    // 좌상
+        CGPoint(x: 80,  y: 80),    // 좌하 — 원본 leftX=80, topY=80
+        CGPoint(x: 540, y: 80),    // 우하 — 원본 rightX=540
+        CGPoint(x: 540, y: 300),   // 우상 — 원본 bottomY=300
+        CGPoint(x: 80,  y: 300)    // 좌상
     ]
 
     // MARK: - Airforce Easter Egg (Phase 4-3)
@@ -444,22 +472,27 @@ enum GameConfig {
     /// 노트 사라진 픽셀 위에 떠 있되 HUD 점수/타이머는 안 가림.
     static let scorePopupZPosition: CGFloat = 50
 
-    // MARK: - Difficulty (Phase 7-1)
-    /// 난이도별 플레이어 시작 속도 (pt/s). GDD §5 표. easy(140)는 기존 playerBaseSpeed와 동일 —
-    /// apply 누락 시 graceful fallback. PlayerNode가 자기 baseSpeedStart에 set.
+    // MARK: - Difficulty (Phase 7-1 → Sprint 10 Phase I)
+    /// 난이도별 플레이어 시작 속도 (pt/s). 원본 game.js L101~L105 DIFFICULTY.baseSpeed × SCALE(2).
+    /// Sprint 10 Phase I — 140/160/160 → 280/320/320으로 ×2 SCALE 보정 (원본 1:1).
+    /// 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L938~L951.
+    /// PlayerNode.apply(difficulty)가 baseSpeedStart에 set — apply 누락 시 playerBaseSpeed로 fallback.
     static let playerSpeedStartByDifficulty: [Difficulty: CGFloat] = [
-        .easy: 140, .normal: 160, .hard: 160
+        .easy: 280, .normal: 320, .hard: 320
     ]
-    /// 난이도별 플레이어 끝 속도 (pt/s). 본 sprint는 *보간 미적용* — 미리 추가만(주의사항 7).
-    /// 다음 보강 sprint에서 PlayerNode.update가 진행률 ↑ 시 baseSpeedEnd까지 보간.
+    /// 난이도별 플레이어 끝 속도 (pt/s). 원본 game.js L101~L105 DIFFICULTY.maxSpeed × SCALE(2).
+    /// Sprint 10 Phase I — 210/250/250 → 420/500/500으로 ×2 SCALE 보정 (원본 1:1).
+    /// 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L938~L951.
     static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
-        .easy: 210, .normal: 250, .hard: 250
+        .easy: 420, .normal: 500, .hard: 500
     ]
-    /// 난이도별 적 시작 속도 (pt/s). easy(60)는 기존 enemyBaseSpeed와 동일 — 회귀 0 보장.
+    /// Sprint 10 Phase D 이후 *미사용* (deprecated). 본래 적 추격 속도 보간용이었으나
+    /// Phase D에서 EnemyNode가 obs* 속도 dict를 직접 사용하면서 호출처 0건.
+    /// Phase I OQ-B: 즉시 삭제 대신 deprecated 표기만 — 후속 정리 sprint에서 제거 예정.
     static let enemySpeedStartByDifficulty: [Difficulty: CGFloat] = [
         .easy: 60, .normal: 170, .hard: 200
     ]
-    /// 난이도별 적 끝 속도 (pt/s). easy(110)는 기존 enemyMaxSpeed와 동일 — 회귀 0 보장.
+    /// Sprint 10 Phase D 이후 *미사용* (deprecated). Phase I OQ-B 보류 — 후속 정리.
     static let enemySpeedEndByDifficulty: [Difficulty: CGFloat] = [
         .easy: 110, .normal: 290, .hard: 340
     ]
@@ -489,6 +522,21 @@ enum GameConfig {
         .easy: 2.0, .normal: 0.35, .hard: 0.25
     ]
 
+    // MARK: - Sprint 10 Phase I — 원본 수치 봉인 (game.js L101~L105 1:1)
+    /// 난이도별 스턴 지속 시간 (초). 원본 DIFFICULTY.stun(ms) ÷ 1000. easy=0.4 / normal=0.7 / hard=0.7.
+    /// 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L938~L951.
+    /// 본 Phase는 *상수 추가만* — 적용 위치(스턴 적용 사이트)는 후속 Phase에서 사용 (위험 2).
+    static let stunDurationByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: 0.4, .normal: 0.7, .hard: 0.7
+    ]
+    /// 난이도별 음표 spawn 주기 (초). 원본 game.js L101~L105 noteSpawnInterval (시간은 SCALE 미적용).
+    /// easy=1.5 (기존 단일 noteSpawnInterval과 동일 → 회귀 0) / normal=0.4 / hard=0.3.
+    /// SpawnSystem.apply(difficulty)가 인스턴스 프로퍼티 noteSpawnInterval에 set.
+    /// 원본은 frame-fill(매 프레임 즉시 보충), iOS는 timer 차등 — OQ-C 후속 정밀화 보류.
+    static let noteSpawnIntervalByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: 1.5, .normal: 0.4, .hard: 0.3
+    ]
+
     /// 난이도 카드 1장 가로 (pt). 3장 일렬 — 더 큼직(80 vs 캐릭터카드 48) — 화면 상위 인터랙션.
     static let difficultyCardWidth: CGFloat = 80
     /// 난이도 카드 1장 세로 (pt). 이름 + 부제 두 라벨이 들어가야 해서 캐릭터카드(60)보다 약간 작은 56.
@@ -514,56 +562,93 @@ enum GameConfig {
     /// ResultScene 난이도 라벨 폰트 크기 (pt). resultStats(16)와 동급 — 보조 정보 톤.
     static let resultDifficultyFontSize: CGFloat = 18
 
-    // MARK: - Hard Map (Phase 7-2)
-    // 좌상 방
-    static let hardMapTopLeftRoomHWallCStart:  Int = 4
-    static let hardMapTopLeftRoomHWallCEnd:    Int = 9
-    static let hardMapTopLeftRoomHWallR:       Int = 18
-    static let hardMapTopLeftRoomVWallC:       Int = 9
-    static let hardMapTopLeftRoomVWallRStart:  Int = 18
-    static let hardMapTopLeftRoomVWallREnd:    Int = 21
-    static let hardMapTopLeftRoomDoorR:        Int = 20
+    // MARK: - Wall Tile (Sprint 10 Phase C — 원본 1:1)
+    // WallTileNode 1셀(40×40pt) 색·zPos·이름 단일 진실 원천.
+    // 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md §1.3 + L84 (#2a2233 hex).
+    // physicsBody 정책은 WallTileNode 본체에서 단일 응집(주의사항 11).
 
-    // 우상 방
-    static let hardMapTopRightRoomHWallCStart: Int = 38
-    static let hardMapTopRightRoomHWallCEnd:   Int = 43
-    static let hardMapTopRightRoomHWallR:      Int = 18
-    static let hardMapTopRightRoomVWallC:      Int = 38
-    static let hardMapTopRightRoomVWallRStart: Int = 18
-    static let hardMapTopRightRoomVWallREnd:   Int = 21
-    static let hardMapTopRightRoomDoorR:       Int = 20
+    /// 벽 셀 색(hex). 원본 픽셀 톤 — 옛 navyDeep을 본 Phase부터 대체.
+    static let wallTileColorHex: String = "#2a2233"
+    /// 벽 셀 양각 highlight 색(hex) — Phase J 픽셀 톤 외곽 효과 후보. 본 Phase에선 미사용.
+    static let wallTileHighlightColorHex: String = "#3a3245"
+    /// 벽 셀 zPosition. MapNode 자식 좌표계 기준 — MapNode 자체 zPos(-50) 위 적층.
+    static let wallTileZPosition: CGFloat = 0
+    /// 벽 셀 노드 이름. enumerate/디버그 검색용. breakableWallName("breakableWall")과 분리.
+    static let wallTileNodeName: String = "wallTile"
 
-    // 좌하 방
-    static let hardMapBottomLeftRoomHWallCStart: Int = 4
-    static let hardMapBottomLeftRoomHWallCEnd:   Int = 9
-    static let hardMapBottomLeftRoomHWallR:      Int = 5
-    static let hardMapBottomLeftRoomVWallC:      Int = 9
-    static let hardMapBottomLeftRoomVWallRStart: Int = 2
-    static let hardMapBottomLeftRoomVWallREnd:   Int = 5
-    static let hardMapBottomLeftRoomDoorR:       Int = 3
+    // MARK: - Easy Map (Sprint 10 Phase C — 원본 game.js L267~L271)
+    // 중앙 2×4 픽셀 기둥 1개 — 원본 좌표 m[r][c]=1 r∈[8..11], c∈[15..16].
+    // iosRow = 19 - origR로 변환(MapNode.convertOrigRowToIOS).
 
-    // 우하 방
-    static let hardMapBottomRightRoomHWallCStart: Int = 38
-    static let hardMapBottomRightRoomHWallCEnd:   Int = 43
-    static let hardMapBottomRightRoomHWallR:      Int = 5
-    static let hardMapBottomRightRoomVWallC:      Int = 38
-    static let hardMapBottomRightRoomVWallRStart: Int = 2
-    static let hardMapBottomRightRoomVWallREnd:   Int = 5
-    static let hardMapBottomRightRoomDoorR:       Int = 3
+    /// Easy 중앙 기둥 시작 원본 행(r=8).
+    static let easyMapCenterPillarOrigRStart: Int = 8
+    /// Easy 중앙 기둥 끝 원본 행(r=11).
+    static let easyMapCenterPillarOrigREnd:   Int = 11
+    /// Easy 중앙 기둥 시작 열(c=15).
+    static let easyMapCenterPillarColStart:   Int = 15
+    /// Easy 중앙 기둥 끝 열(c=16).
+    static let easyMapCenterPillarColEnd:     Int = 16
 
-    // 중앙 기둥
-    static let hardMapCenterLeftPillarC:        Int = 17
-    static let hardMapCenterLeftPillarRStart:   Int = 11
-    static let hardMapCenterLeftPillarREnd:     Int = 12
-    static let hardMapCenterRightPillarC:       Int = 30
-    static let hardMapCenterRightPillarRStart:  Int = 11
-    static let hardMapCenterRightPillarREnd:    Int = 12
-    static let hardMapCenterTopPillarCStart:    Int = 23
-    static let hardMapCenterTopPillarCEnd:      Int = 24
-    static let hardMapCenterTopPillarR:         Int = 15
-    static let hardMapCenterBottomPillarCStart: Int = 23
-    static let hardMapCenterBottomPillarCEnd:   Int = 24
-    static let hardMapCenterBottomPillarR:      Int = 8
+    // MARK: - Hard Map (Sprint 10 Phase C — 원본 game.js L288~L309)
+    // 4 모서리 방 + 중앙 기둥 4개. 모든 좌표는 *원본* 기준(origR) — iOS 변환은 MapNode가 담당.
+    // 옛 48×24 좌표 상수(Phase 7-2)는 본 Phase에서 제거 — 호출자(GameScene+Setup)도 함께 정리.
+
+    // 좌상 방 — m[5][4..9]=1 + m[2..5][9]=1 (문 m[3][9]=0)
+    /// 가로벽 행(r=5).
+    static let hardMapRoomTopLeftHWallOrigR:      Int = 5
+    static let hardMapRoomTopLeftHWallColStart:   Int = 4
+    static let hardMapRoomTopLeftHWallColEnd:     Int = 9
+    /// 세로벽 열(c=9).
+    static let hardMapRoomTopLeftVWallCol:        Int = 9
+    static let hardMapRoomTopLeftVWallOrigRStart: Int = 2
+    static let hardMapRoomTopLeftVWallOrigREnd:   Int = 5
+    /// 문 행(r=3) — 세로벽에서 1칸 건너뜀.
+    static let hardMapRoomTopLeftDoorOrigR:       Int = 3
+
+    // 우상 방 — m[5][22..27]=1 + m[2..5][22]=1 (문 m[3][22]=0)
+    static let hardMapRoomTopRightHWallOrigR:      Int = 5
+    static let hardMapRoomTopRightHWallColStart:   Int = 22
+    static let hardMapRoomTopRightHWallColEnd:     Int = 27
+    static let hardMapRoomTopRightVWallCol:        Int = 22
+    static let hardMapRoomTopRightVWallOrigRStart: Int = 2
+    static let hardMapRoomTopRightVWallOrigREnd:   Int = 5
+    static let hardMapRoomTopRightDoorOrigR:       Int = 3
+
+    // 좌하 방 — m[14][4..9]=1 + m[14..17][9]=1 (문 m[16][9]=0)
+    static let hardMapRoomBottomLeftHWallOrigR:      Int = 14
+    static let hardMapRoomBottomLeftHWallColStart:   Int = 4
+    static let hardMapRoomBottomLeftHWallColEnd:     Int = 9
+    static let hardMapRoomBottomLeftVWallCol:        Int = 9
+    static let hardMapRoomBottomLeftVWallOrigRStart: Int = 14
+    static let hardMapRoomBottomLeftVWallOrigREnd:   Int = 17
+    static let hardMapRoomBottomLeftDoorOrigR:       Int = 16
+
+    // 우하 방 — m[14][22..27]=1 + m[14..17][22]=1 (문 m[16][22]=0)
+    static let hardMapRoomBottomRightHWallOrigR:      Int = 14
+    static let hardMapRoomBottomRightHWallColStart:   Int = 22
+    static let hardMapRoomBottomRightHWallColEnd:     Int = 27
+    static let hardMapRoomBottomRightVWallCol:        Int = 22
+    static let hardMapRoomBottomRightVWallOrigRStart: Int = 14
+    static let hardMapRoomBottomRightVWallOrigREnd:   Int = 17
+    static let hardMapRoomBottomRightDoorOrigR:       Int = 16
+
+    // 중앙 기둥 4개 (원본 game.js)
+    // 중앙-좌: m[9..10][12]=1 (1×2 세로)
+    static let hardMapCenterLeftPillarCol:         Int = 12
+    static let hardMapCenterLeftPillarOrigRStart:  Int = 9
+    static let hardMapCenterLeftPillarOrigREnd:    Int = 10
+    // 중앙-우: m[9..10][19]=1 (1×2 세로)
+    static let hardMapCenterRightPillarCol:        Int = 19
+    static let hardMapCenterRightPillarOrigRStart: Int = 9
+    static let hardMapCenterRightPillarOrigREnd:   Int = 10
+    // 중앙-상: m[7][15..16]=1 (2×1 가로)
+    static let hardMapCenterTopPillarColStart:     Int = 15
+    static let hardMapCenterTopPillarColEnd:       Int = 16
+    static let hardMapCenterTopPillarOrigR:        Int = 7
+    // 중앙-하: m[12][15..16]=1 (2×1 가로)
+    static let hardMapCenterBottomPillarColStart:  Int = 15
+    static let hardMapCenterBottomPillarColEnd:    Int = 16
+    static let hardMapCenterBottomPillarOrigR:     Int = 12
 
     // MARK: - Cutscene (Phase 7-3)
     /// 컷씬 배경 SKSpriteNode 알파(반투명 검정). 0.85 = 게임 월드를 *흐릿하게* 보여주며 텍스트 가독성 확보.
@@ -755,39 +840,10 @@ enum GameConfig {
     /// 체크보드 컨테이너 노드 이름. 디버깅/탐색용 식별자 — 호출부 리터럴 노출 금지.
     static let checkerboardContainerName: String = "checkerboardFloor"
 
-    // MARK: - Normal Map (Phase 9-4)
-    /// normal 맵 — 좌·우 두 방 + 중앙 세로 분리벽 + 가운데 r=11~12 문 + 좌·우 장식 기둥.
-    /// 좌표계: 맵 48×24 타일, tileSize=20pt, 원점 좌하단.
-
-    /// 중앙 세로 분리벽 컬럼(c=23) — 맵 가로 정중앙 부근.
-    static let normalMapDividerC: Int = 23
-    /// 분리벽 윗 절반 시작 행. 문(r=11,12) 위쪽 구간.
-    static let normalMapDividerUpperRStart: Int = 2
-    /// 분리벽 윗 절반 끝 행. r=10까지 — r=11,12는 문으로 비워둠.
-    static let normalMapDividerUpperREnd: Int = 10
-    /// 분리벽 아랫 절반 시작 행. r=13부터 — r=11,12 문 아래.
-    static let normalMapDividerLowerRStart: Int = 13
-    /// 분리벽 아랫 절반 끝 행. r=21까지 — 외곽 벽(r=23) 안쪽 두 칸 여유.
-    static let normalMapDividerLowerREnd: Int = 21
-    /// 좌방 장식 기둥 시작 컬럼.
-    static let normalMapLeftPillarCStart: Int = 10
-    /// 좌방 장식 기둥 끝 컬럼. 2×2 타일 — (c=10..11, r=11..12).
-    static let normalMapLeftPillarCEnd: Int = 11
-    /// 좌방 장식 기둥 시작 행.
-    static let normalMapLeftPillarRStart: Int = 11
-    /// 좌방 장식 기둥 끝 행.
-    static let normalMapLeftPillarREnd: Int = 12
-    /// 우방 장식 기둥 시작 컬럼. 좌우 거울 대칭(mirroredC = 47 - leftC).
-    static let normalMapRightPillarCStart: Int = 36
-    /// 우방 장식 기둥 끝 컬럼.
-    static let normalMapRightPillarCEnd: Int = 37
-    /// 우방 장식 기둥 시작 행.
-    static let normalMapRightPillarRStart: Int = 11
-    /// 우방 장식 기둥 끝 행.
-    static let normalMapRightPillarREnd: Int = 12
-    /// addVerticalWall(doorR:)에 전달할 sentinel — 문 없음(전체 벽).
-    /// 음수 -1이라 `r != -1`이 모든 양의 r에서 true → 모든 칸 벽으로 채워짐.
-    static let normalMapNoDoorSentinel: Int = -1
+    // MARK: - Normal Map (Sprint 10 Phase C — DIFFICULTY 매핑상 hard 공유)
+    // 원본 game.js L102~L104: DIFFICULTY = { easy, normal: 'hard', hard }.
+    // normal 난이도는 hard 빌더를 그대로 호출 — 별도 좌표 상수 0(MapNode.buildWalls가 switch에서 .hard와 같은 케이스로 위임).
+    // 옛 48×24 좌표 상수(Phase 9-4 normalMapDividerC 등)는 본 Phase에서 제거 — 호출자(GameScene+Setup) 함께 정리.
 
     // MARK: - Skill (Phase 9-5)
     /// 캐릭터별 스킬 시스템. SkillSystem이 호출, HUDSkillSlotNode가 시각화.
@@ -914,17 +970,22 @@ enum GameConfig {
     /// 이교수 패트롤 속도 (pt/s). 석조무사(55)와 수간호사 base(60) 사이.
     /// 한 바퀴 둘레 = 2×(640-320) + 2×(280-200) = 640 + 160 = 800pt → 800/70 ≈ 11.4초.
     static let professorSpeed: CGFloat = 70
-    /// 이교수 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상). 맵 중앙 영역 순찰.
-    /// 석조무사와 동일 정책(시계방향 직사각형) — 외곽 벽/중앙 장애물 회피.
+    /// Sprint 10 Phase F — 원본 game.js L109~L115/L2983~L3019 byte-equal 8자(figure-8) 4점 순환.
+    /// 옛 시계방향 직사각형(320/640 × 200/280) 폐기 → 원본 8자 좌표 직접 사용.
+    /// 8자 순서: 좌하(120,100) → 우상(520,280) → 우하(520,100) → 좌상(120,280) → (loop).
+    /// 한 변 대각선 길이가 외곽 변보다 길어 패트롤 1바퀴 약 1620pt → 1620/70 ≈ 23.2s.
     static let professorWaypoints: [CGPoint] = [
-        CGPoint(x: 320, y: 200),  // 좌하 — 시작 위치
-        CGPoint(x: 640, y: 200),  // 우하
-        CGPoint(x: 640, y: 280),  // 우상
-        CGPoint(x: 320, y: 280)   // 좌상
+        CGPoint(x: 120, y: 100),   // 시작점 — 좌하
+        CGPoint(x: 520, y: 280),   // 대각선 우상 (8자 첫 교차 후)
+        CGPoint(x: 520, y: 100),   // 우하
+        CGPoint(x: 120, y: 280)    // 좌상 (8자 두 번째 교차)
     ]
     /// 청진기 발사 SKAction 키. stopThrowing/scheduleNextThrow가 공유 → endGame에서 removeAction(forKey:) 일괄 정지.
     /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
     static let professorThrowActionKey: String = "professorThrow"
+    /// Sprint 10 Phase F — 패트롤 SKAction 키. selectInitialWaypoint가 재시작 시 removeAction(forKey:)로 멱등 처리.
+    /// throw 키와 분리 — 패트롤/투척 정책 독립 정지·재시작 가능.
+    static let professorPatrolActionKey: String = "professorPatrol"
     /// 경고 컷씬 제목. 호출부 리터럴 노출 금지.
     static let professorWarningTitle: String = "경고 · 이교수 출현"
     /// 경고 컷씬 본문. GDD §10 + 사용자 요청 결합.
@@ -945,7 +1006,8 @@ enum GameConfig {
     /// 동시에 떠 있을 수 있는 청진기 최대 수. F(2~4)와 별도 — 4발까지 동시 가능.
     static let stethoscopeMaxConcurrent: Int = 4
     /// 청진기 회전 1회전 길이 (초). 시각 회전 SKAction.rotate — 충돌 박스 무관 (allowsRotation=false).
-    static let stethoscopeRotationDuration: TimeInterval = 0.5
+    /// Sprint 10 Phase E — 원본 game.js L2922~L2960 `now/100 % 2π` 일치(2π × 0.1 ≈ 0.628초).
+    static let stethoscopeRotationDuration: TimeInterval = 0.628
     /// "청진기 명중!" 0.9초 토스트 텍스트. 호출부 리터럴 노출 금지.
     static let stethoscopeToastText: String = "청진기 명중!"
 
@@ -2512,4 +2574,210 @@ enum GameConfig {
     static let resultDividerOffsetYV4: CGFloat = -68
     /// divider→stat 값 행 거리 V9(28pt). statValueY = resultDividerOffsetYV4 - 28 = -96 (V3 -98과 동급).
     static let resultStatGapFromDividerV9: CGFloat = 28
+
+    // MARK: - Nurse Chief Patrol (Sprint 10 Phase D)
+    // 원본 game.js L2584~L2638 (4지점 사각 순환 패트롤) + L2722~L2743 (텔레그래프) byte-equal.
+    // 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L443~L500 + SPEC.md §2/§3.
+    // iOS 좌표 = 원본 × 2 (mapWidth 1280pt vs 원본 640px).
+    /// 난이도별 패트롤 4지점 (혹은 easy 2지점). 원본 game.js L2584~L2616 byte-equal × 2.
+    /// fallback 정책: dict 미스 시 [] → updatePatrol이 velocity=.zero로 정지 (apply 누락 graceful fallback).
+    static let nurseChiefWaypointsByDifficulty: [Difficulty: [CGPoint]] = [
+        .easy:   [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 120)],
+        .normal: [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 640),
+                  CGPoint(x: 1120, y: 120), CGPoint(x: 120, y: 640)],
+        .hard:   [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 120),
+                  CGPoint(x: 1120, y: 640), CGPoint(x: 120, y: 640)]
+    ]
+    /// 난이도별 패트롤 속도 (pt/s). 원본 px/s × 2. 원본 L2587 (easy=40), L2598 (normal=60), L2611 (hard=100).
+    static let nurseChiefPatrolSpeedByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 80, .normal: 120, .hard: 200
+    ]
+    /// 패트롤 속도 default. apply 누락 시 EnemyNode 인스턴스 프로퍼티 graceful fallback.
+    static let nurseChiefPatrolSpeedDefault: CGFloat = 80
+    /// 텔레그래프 지속 시간 (초). 원본 game.js L2728 (TELEGRAPH_DURATION = 0.4) byte-equal.
+    static let nurseChiefTelegraphDuration: TimeInterval = 0.4
+    /// 텔레그래프 깜빡임 1주기 (초). 원본 game.js L968 (120ms on/off) byte-equal.
+    static let nurseChiefTelegraphBlinkInterval: TimeInterval = 0.12
+    /// 텔레그래프 ! 표시 y 오프셋 (pt). 원본 -42px × 2, SpriteKit Y↑ → +84.
+    static let nurseChiefTelegraphOffsetY: CGFloat = 84
+    /// 텔레그래프 ! 색. 원본 game.js L961 (#ff3b4e) byte-equal.
+    static let nurseChiefTelegraphColor: UIColor = UIColor(
+        red: 0xFF / 255.0, green: 0x3B / 255.0, blue: 0x4E / 255.0, alpha: 1.0
+    )
+    /// burst 스프레드 step (rad). 원본 game.js L2754 (Math.PI/12) byte-equal — ±15°.
+    static let nurseChiefSpreadRadians: CGFloat = .pi / 12
+    /// 각 발 jitter (±rad). 원본 game.js L2758 (±0.025) byte-equal.
+    static let nurseChiefSpreadJitter: CGFloat = 0.025
+    /// 발사 spawn offset — enemy 중심에서 baseAngle 방향으로 24pt 떨어진 곳에서 출현.
+    /// 원본 game.js L2762 (12px × 2 = 24pt).
+    static let nurseChiefFireStartOffset: CGFloat = 24
+
+    // MARK: - F/A Projectile Speed (Sprint 10 Phase D)
+    // 원본 game.js OBS_BASE_SPEED / OBS_MAX_SPEED — currentObsSpeed = base + (max-base) × curveT.
+    // 단일 진실 원천: SPEC.md §4.3 (ORIGINAL_GAME_ANALYSIS.md §6.1).
+    // iOS = 원본 px/s × 2.
+    /// F/A 발사 시작 속도 (pt/s). easy=120, normal=340, hard=400.
+    static let obsBaseSpeedByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 120, .normal: 340, .hard: 400
+    ]
+    /// F/A 발사 끝 속도 (pt/s). easy=220, normal=580, hard=680. curveT=1 도달 시.
+    static let obsMaxSpeedByDifficulty: [Difficulty: CGFloat] = [
+        .easy: 220, .normal: 580, .hard: 680
+    ]
+
+    // MARK: - F Projectile Visual (Sprint 10 Phase D)
+    // 원본 12×12 픽셀 매트릭스. PhysicsBody 16×16 hitbox 유지.
+    /// F/A 픽셀 매트릭스 한 변 셀 수 (12). 원본 game.js drawF / drawAItem.
+    static let fProjectileMatrixSize: Int = 12
+    /// F/A 시각 출력 크기 (pt). 12셀 → 24pt 화면 픽셀 (×2 픽셀 톤).
+    static let fProjectileVisualSize: CGFloat = 24
+    /// F/A physicsBody 한 변 (pt). 원본 hitbox 16×16 보존.
+    static let fProjectileSize: CGFloat = 16
+    /// F 색. 원본 game.js L791 (#ff3b4e) byte-equal — telegraph와 동색 (danger 톤).
+    static let fProjectileColor: UIColor = UIColor(
+        red: 0xFF / 255.0, green: 0x3B / 255.0, blue: 0x4E / 255.0, alpha: 1.0
+    )
+    /// A 색. 원본 game.js drawAItem (#ff6fa8) byte-equal — 분홍 매혹 톤.
+    static let aItemColor: UIColor = UIColor(
+        red: 0xFF / 255.0, green: 0x6F / 255.0, blue: 0xA8 / 255.0, alpha: 1.0
+    )
+
+    // MARK: - Combo 3-tier (Sprint 10 Phase E)
+    // 원본 game.js L811~L817 / L1048~L1052 — combo>=7 +4, >=5 +3, >=3 +2, else +1.
+    // 기존 comboBonusThreshold(3) + scorePerNoteCombo(2)는 보존 — 새 Mid/High 상수만 추가.
+    /// 콤보 점수 중간 임계. combo >= 5 → 3점 가산. 원본 L1049 (gain=3).
+    static let comboBonusThresholdMid: Int = 5
+    /// 콤보 점수 최고 임계. combo >= 7 → 4점 가산. 원본 L1048 (gain=4).
+    static let comboBonusThresholdHigh: Int = 7
+    /// 콤보 mid 발동 시 가산 점수 (3점). 원본 일치.
+    static let scorePerNoteComboMid: Int = 3
+    /// 콤보 high 발동 시 가산 점수 (4점). 원본 일치.
+    static let scorePerNoteComboHigh: Int = 4
+
+    // MARK: - Note Bob (Sprint 10 Phase E)
+    // 음표 ±2.4px y bob 0.7초 주기. 인스턴스 phase 랜덤 — 동시 스폰 시 모든 음표 동조 방지.
+    /// 음표 bob 진폭 (pt). ±이 값. 원본 톤 압축 — 빠르고 가벼운 *떠 있음* 시그널.
+    static let noteBobAmplitude: CGFloat = 2.4
+    /// 음표 bob 1주기 길이 (초). 0.7초 = 빠른 톤. SKAction sequence(up+down) 합.
+    static let noteBobDuration: TimeInterval = 0.7
+
+    // MARK: - Stethoscope Pixel (Sprint 10 Phase E)
+    // 원본 game.js L2922~L2960 drawStethoscope 14×8 매트릭스 → iOS 28×16 (×2).
+    // 기존 stethoscopeSize(18)는 보존 — physicsBody 호환 위해 별도 width/height 상수 신설.
+    /// 청진기 시각 가로 (pt). 원본 14셀 × 2 = 28. PhysicsBody size와 분리.
+    static let stethoscopeWidth: CGFloat = 28
+    /// 청진기 시각 세로 (pt). 원본 8셀 × 2 = 16.
+    static let stethoscopeHeight: CGFloat = 16
+
+    // MARK: - Professor Sprint 10 Phase F (이교수 텔레그래프 + 청진기 직렬화)
+    // 원본 game.js L3084~L3106 청진기 텔레그래프 + L4060~L4084 명중 직렬화 byte-equal.
+    // EnemyNode 텔레그래프(0.4s) 정책과 동형 — 단일 진실 원천 일관.
+
+    /// 이교수 청진기 발사 직전 "!" 텔레그래프 표시 시간 (초). 원본 0.4s 일치.
+    /// nurseChiefTelegraphDuration(0.4)과 동일 값 — 정책 일관성.
+    static let professorTelegraphDuration: TimeInterval = 0.4
+    /// 이교수 머리 위 텔레그래프 라벨 y 오프셋 (pt). 픽셀 본체(40pt 높이) 위 살짝 떠 있도록.
+    /// 시각 자식 제거 후 head 영역이 픽셀 본체 상단 부근(y ≈ +14) — 그 위에 "!" 표시.
+    static let professorTelegraphOffsetY: CGFloat = 14
+    /// 이교수 등장 후 첫 청진기 투척까지의 대기 시간 (초). 원본 3.0s.
+    /// 플레이어가 새 빌런을 인지·학습할 충분한 시간 제공.
+    static let professorInitialThrowDelay: TimeInterval = 3.0
+    /// 청진기 발사 시 spawnPoint를 이교수 본체에서 단위벡터 방향으로 밀어내는 거리 (pt).
+    /// 원본 L3094 chief + unitVec × 12px — 본체와 충돌해 즉시 사라지는 버그 방지.
+    static let stethoscopeFireStartOffset: CGFloat = 12
+
+    // MARK: - Stethoscope Hit Serialization (Sprint 10 Phase F)
+    // 원본 game.js L4060~L4084 청진기 명중 시 토스트 1s → freeze 2s 직렬화.
+
+    /// 청진기 명중 시 "청진기 명중!" 토스트 노출 시간 (초). 1.0s.
+    /// 토스트 종료 후 freeze 시작 — 두 시퀀스 직렬 연결.
+    static let stethoscopeToastDuration: TimeInterval = 1.0
+
+    // MARK: - Sprint 10 Phase G · Airforce Easter Egg Pixel Tone
+    // 원본 game.js L127~L144 / L3328~L3336 byte-equal 수치 + 픽셀 톤 통일.
+    // SPEC §10 신규 상수 9개 + §11 픽셀 톤 4색(GameConfig inline).
+
+    /// 비행기 16×5 도트 매트릭스 픽셀 확대 배수. 원본 SCALE=3 byte-equal → 48×15 px.
+    /// 호출부: AirplaneNode.init — PixelSpriteRenderer.texture(rows:palette:scale:)에 전달.
+    static let airplanePixelScale: Int = 3
+    /// 박병장 클로즈업 노드 zPosition. AirforceOverlayNode(200) 위, BombFlashNode(250) 아래.
+    /// 컷씬 t≤2.4 fadeOut 완료 후 비행기/폭탄 등장 — 겹침 0.
+    static let sergeantCloseupZPosition: CGFloat = 210
+    /// 박병장 클로즈업 cameraNode 자식 좌표계 y 오프셋(pt). 화면 중앙 위 살짝 — 토스트/하단 HUD 여백 확보.
+    static let sergeantCloseupOffsetY: CGFloat = 40
+    /// 박병장 클로즈업 fadeIn 길이 (초). 매우 짧은 부드러운 진입.
+    static let sergeantCloseupFadeInDuration: TimeInterval = 0.1
+    /// 박병장 클로즈업 머무름 길이 (초). t=0.1 ~ t=1.7 — 비행기 등장(t=2.4) 전 충분히 인식.
+    static let sergeantCloseupStayDuration: TimeInterval = 1.6
+    /// 박병장 클로즈업 fadeOut 길이 (초). t=1.7 ~ t=2.2 — 비행기 등장(t=2.4) 직전 완전 사라짐.
+    static let sergeantCloseupFadeOutDuration: TimeInterval = 0.5
+    /// 폭탄 화면 플래시 정점 알파(0~1). 원본 brightness 1→2.4 톤을 alpha 0.92로 환산.
+    /// 풀스크린 fadeAlpha(to:) 목표값. 1.0 완전 흰 화면 대비 살짝 절제 — 시각 부담 ↓.
+    static let bombFlashPeakAlpha: CGFloat = 0.92
+    /// 수간호사 도주 속도 (pt/s). 원본 fleeSpeed 180 byte-equal.
+    /// startFleeing 본문이 단위벡터에 곱해 velocity 부여.
+    static let enemyFleeSpeed: CGFloat = 180
+    /// 픽셀 톤 오버레이 폰트 이름. PressStart2P 미설치 → Menlo-Bold 폴백.
+    /// 원본 game.js 픽셀 톤 텍스트와 시각 정합 — 시스템 폰트(.systemFont)는 anti-alias로 톤 깨짐.
+    static let pixelOverlayFontName: String = "Menlo-Bold"
+
+    // MARK: - Cutscene (Sprint 10 Phase H — 원본 1:1 5종 컷씬 시스템)
+    /// 인트로 컷씬 진입 지연 (초). 원본 game.js L2268 — startGame 직후 250ms 후 표시.
+    /// 카운트다운/액션 직전 *짧은 호흡*으로 캐릭터 정체성 환기.
+    static let cutsceneIntroDelay: TimeInterval = 0.25
+    /// mid1 컷씬 트리거 임계 — 남은 시간 30초 이하(경과 ~15초)에서 1회 발화.
+    /// 원본 game.js L2417/L2469 — `state.timeLeft <= 30 && !cutscenesShown.has('mid1')` byte-equal.
+    /// 캐릭터별 속마음 본문 → 정체성·정서 재진입 신호.
+    static let cutsceneMid1Threshold: TimeInterval = 30
+    /// mid2 컷씬 트리거 임계 — 남은 시간 15초 이하(경과 ~30초)에서 1회 발화.
+    /// "수간호사의 눈초리" 공통 본문 → 최종 압박감 주입.
+    static let cutsceneMid2Threshold: TimeInterval = 15
+    /// 픽셀 톤 컷씬 폰트 이름. pixelOverlayFontName(Menlo-Bold)와 동일 값 — Phase H 컷씬 5종 모두
+    /// *픽셀 톤 시각 일관성* 확보. 별도 상수로 분리해 미래 컷씬 전용 폰트 교체 시 한 줄 변경.
+    /// CutsceneOverlayNode.present(fontName:)로 1줄 1줄 주입 — 본체 logic 미변경(SPEC §12).
+    static let pixelCutsceneFontName: String = "Menlo-Bold"
+
+    // MARK: - Sprint 10 Phase J · Pixel HUD/Effect Tokens (마지막 Phase)
+    //
+    // 인게임 HUD/오버레이/이펙트의 폰트·이펙트 토큰을 메뉴(v2 카툰 fontDisplay)와 분리.
+    // SPEC §17 byte-equal — 색은 ColorTokens.ganhoPixelHud*/Combo*/Outline*/Hit*/TensionEdge에서.
+
+    /// 인게임 픽셀 톤 폰트(Menlo-Bold). pixelOverlayFontName/pixelCutsceneFontName와 동일 값이나
+    /// *의미 분리* — HUD/이펙트 lookup 전용 별도 상수. 미래 PressStart2P 도입 시 한 줄 교체 안전.
+    static let fontPixel: String = "Menlo-Bold"
+    /// SparkleEffectNode .ingame 컨텍스트 입자 한 변 크기 (pt). 8개 × 3pt 정사각 픽셀 — 음표 한 변(16)의
+    /// 약 1/5. 둥근 원(sparkleParticleRadius=2 → 지름 4)과 비슷한 시각 무게이나 *각진 픽셀 톤*.
+    static let sparklePixelSize: CGFloat = 3
+    /// 5초 긴박감 비네트 가장자리 두께 (pt). 8pt — HUD(상단 4슬롯)와 dpad(하단)를 가리지 않는 *얇은 액자*.
+    static let tensionVignetteThickness: CGFloat = 8
+    /// 비네트 zPosition. HUD(100~101) 위 + countdownZPosition(250 ~ 300) 아래 → 인게임 중 HUD를
+    /// 살짝 덮되 카운트다운/플래시는 안 가림.
+    static let tensionVignetteZPosition: CGFloat = 110
+    /// 비네트 가장자리 기본 알파(0~1). 0.6 — *알아채되 시야 차단 0.3에 가깝지 않음*.
+    static let tensionVignetteEdgeAlpha: CGFloat = 0.6
+    /// 비네트 깜빡임 한 색 머무는 시간 (초). 0.5 — tensionBlinkHalfPeriod(0.5)와 동기 → HUD TIME 슬롯
+    /// 깜빡임과 *같은 박자*.
+    static let tensionVignetteBlinkHalfPeriod: TimeInterval = 0.5
+    /// 비네트 깜빡임 알파 진폭 하한(어두운 톤). 0.3 — edgeAlpha(0.6)의 절반.
+    static let tensionVignetteBlinkAlphaMin: CGFloat = 0.3
+    /// 비네트 깜빡임 알파 진폭 상한(밝은 톤). 0.7 — edgeAlpha(0.6)의 ~117%.
+    static let tensionVignetteBlinkAlphaMax: CGFloat = 0.7
+}
+
+// MARK: - Sprint 10 Phase G · Airforce Pixel Palette (inline UIColor — ColorTokens 본체 0줄)
+// SPEC §11 "대안" — ColorTokens 본체 변경 0줄 위해 GameConfig 같은 모듈 내 UIColor extension으로 우회.
+// Phase E 변기 패턴(stethoscopePalette inline literal) 동형. 호출부는 .ganhoPixelPlaneBody 등 .자 접근.
+// 상단 import UIKit(line 13) 재사용 — 같은 파일이므로 추가 import 0.
+
+extension UIColor {
+    /// 비행기 동체 본색 — 원본 game.js L3334 'A' #aab3c7. 항공기 메탈 회색 톤.
+    static let ganhoPixelPlaneBody = UIColor(hex: "#aab3c7")
+    /// 비행기 조종석 창문 — 원본 game.js L3334 'W' #e2e7ef. 밝은 청회 광택.
+    static let ganhoPixelPlaneWindow = UIColor(hex: "#e2e7ef")
+    /// 폭탄 화면 플래시 본색 — 누런 흰색. 원본 game.js 폭탄 saturation 1.3 톤 환산.
+    /// 순백(#ffffff) 대신 #fffce0 — 따뜻한 섬광(폭발) 정체성.
+    static let ganhoPixelFlashWhite = UIColor(hex: "#fffce0")
+    /// "나와라 박병장!" 픽셀 톤 경고색 — 골드(#FFD23F). ganhoYellowF와 hex 동일하나 *의미 단위 분리*
+    /// (픽셀 오버레이 lookup용) — Difficulty/Brand 토큰 분리 규칙 동형.
+    static let ganhoPixelWarning = UIColor(hex: "#FFD23F")
 }
