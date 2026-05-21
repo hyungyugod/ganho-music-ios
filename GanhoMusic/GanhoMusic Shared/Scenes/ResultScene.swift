@@ -589,7 +589,7 @@ final class ResultScene: SKScene {
         )
         scoreSubLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultScoreSubOffsetYV3
+            y: frame.midY + GameConfig.resultScoreSubOffsetYV4   // Sprint 10.5 Phase A — V3(-44) → V4(-50). score↔sub 56pt 호흡 확보 (이전 50pt 답답)
         )
         divider.position = CGPoint(
             x: frame.midX,

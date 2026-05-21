@@ -78,7 +78,7 @@ enum GameConfig {
 
     // MARK: - Note (Phase 2-3)
     /// 음표 한 변 길이 (pt). GDD §7-2 음표 스프라이트.
-    static let noteSize: CGFloat = 16
+    static let noteSize: CGFloat = 32   // Sprint 10.5 Phase B — 16 → 32 (2x 정수 스케일). 캐릭터 32×40pt 대비 80% 크기. PhysicsBody는 16 유지(NoteNode init 분리)
     /// 음표 스폰 주기 (초). GDD §5 easy.
     static let noteSpawnInterval: TimeInterval = 1.5
     /// 동시에 떠 있을 수 있는 음표 최대 개수. GDD §5 easy.
@@ -510,8 +510,9 @@ enum GameConfig {
         .easy: 2, .normal: 10, .hard: 14
     ]
     /// 난이도별 F 동시 burst 발사 수. easy=1 → 기존 1발 루프와 동일 → 회귀 0 (주의사항 4).
+    /// Sprint 10.5 Phase A — 사용자 결정: F 양 3배 (1/3/4 → 3/9/12). 부채꼴 ±82.5°(반원) 그대로 OK.
     static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
-        .easy: 1, .normal: 3, .hard: 4
+        .easy: 3, .normal: 9, .hard: 12
     ]
     /// 난이도별 F 발사 주기 시작값 (초). easy(3.5)는 기존 projectileFireInterval와 동일.
     static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
@@ -1424,7 +1425,7 @@ enum GameConfig {
     /// 우측 메타 칩 가로 간격(pt). 3개 사이.
     static let skillExplanationStatChipSpacing: CGFloat = 8
     /// 우측 메타 칩 행 y 오프셋(pt). frame.midY 기준.
-    static let skillExplanationStatChipRowOffsetY: CGFloat = -60
+    static let skillExplanationStatChipRowOffsetY: CGFloat = -78   // Sprint 10.5 Phase A — -60 → -78. stat 칩과 "1번 탭하면 발동" 힌트 사이 24pt 호흡 확보
 
     /// 컨트롤 힌트 컨테이너 폭(pt).
     static let skillExplanationControlHintContainerWidth: CGFloat = 280
@@ -2104,6 +2105,11 @@ enum GameConfig {
     /// SCORE 부제 y 오프셋(-44pt — V2의 -32보다 아래). 점수 라벨 아래로 떨어뜨림.
     static let resultScoreSubOffsetYV3: CGFloat = -44
 
+    /// Sprint 10.5 Phase A — SCORE 부제 V4 y 오프셋 (-50pt). Sprint 9 Phase D에서 score V4=+6,
+    /// divider V4=-68만 갱신됐고 scoreSub은 V3 -44 잔류 → score↔sub 50pt center 좁아 답답.
+    /// V4 -50으로 hop down → score(+6) ↔ sub(-50) 56pt + sub ↔ divider(-68) 18pt 호흡.
+    static let resultScoreSubOffsetYV4: CGFloat = -50
+
     // ResultScene V3 — divider · stat 라벨 위로 끌어올림 (bestLabel V2 자리 채움)
     /// divider y 오프셋(-78pt — V2의 -90보다 위). bestLabel V2 자리(-60) 비워 위로.
     static let resultDividerOffsetYV3: CGFloat = -78
@@ -2486,7 +2492,7 @@ enum GameConfig {
     /// QA 3회차(Case B): 카드를 *상향* + chip을 cardBottom anchor 단일 식으로 분리.
     /// iPhone 17 Pro Landscape(390pt)에서 cardBaseY = 214.5, cardBottom = 114.5, chip top = 94.5,
     /// buttonY = 18.5 (모두 양수, scene boundary 보존). mockup sprint9-character-select-v4.html 위치와 일치.
-    static let characterCardCenterYV9: CGFloat = 0.55
+    static let characterCardCenterYV9: CGFloat = 0.62   // Sprint 10.5 Phase A — 0.55 → 0.62. 카드/칩/다음 버튼 묶음 상향 → "다음" 버튼이 viewport 안에 들어옴
     /// 카드 bottom ↔ 확인 버튼 top 최소 gap(36pt) — 이전 clamp 식의 잔존 상수. V9 신규 식에서는 미사용.
     static let characterSelectConfirmButtonGapV9: CGFloat = 36
     /// 확인 버튼 ↔ 스킬칩 거리(64pt). 이전 식의 잔존 상수. V9 신규 식에서는 미사용(chip이 button에 종속되지 않음).
@@ -2581,12 +2587,18 @@ enum GameConfig {
     // iOS 좌표 = 원본 × 2 (mapWidth 1280pt vs 원본 640px).
     /// 난이도별 패트롤 4지점 (혹은 easy 2지점). 원본 game.js L2584~L2616 byte-equal × 2.
     /// fallback 정책: dict 미스 시 [] → updatePatrol이 velocity=.zero로 정지 (apply 누락 graceful fallback).
+    ///
+    /// Sprint 10.5 Phase C — 셀 중심 정렬 (120/640 → 140/660).
+    ///   원본 leftX=60 → iOS = TILE_PT(20)×3 + TILE_PT/2(10) = 70 × SCALE(2) = 140.
+    ///   기존 (120,120)은 SCALE 변환 누락 잔재 — 셀 *모서리* 좌표라 적 body 16×20이
+    ///   row 3 셀(y 120-160) 하단 모서리(y=110)에 10pt 클립되어 벽에 끼는 원인이었음.
+    ///   새 좌표 (140,140)은 셀 정중앙 → row 3 셀 완전 수용, col 9/22 vWall 도어(BL/BR row 16, TL/TR row 3) 통과 보장.
     static let nurseChiefWaypointsByDifficulty: [Difficulty: [CGPoint]] = [
-        .easy:   [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 120)],
-        .normal: [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 640),
-                  CGPoint(x: 1120, y: 120), CGPoint(x: 120, y: 640)],
-        .hard:   [CGPoint(x: 120, y: 120), CGPoint(x: 1120, y: 120),
-                  CGPoint(x: 1120, y: 640), CGPoint(x: 120, y: 640)]
+        .easy:   [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 140)],
+        .normal: [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 660),
+                  CGPoint(x: 1140, y: 140), CGPoint(x: 140, y: 660)],
+        .hard:   [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 140),
+                  CGPoint(x: 1140, y: 660), CGPoint(x: 140, y: 660)]
     ]
     /// 난이도별 패트롤 속도 (pt/s). 원본 px/s × 2. 원본 L2587 (easy=40), L2598 (normal=60), L2611 (hard=100).
     static let nurseChiefPatrolSpeedByDifficulty: [Difficulty: CGFloat] = [

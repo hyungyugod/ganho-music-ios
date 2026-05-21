@@ -19,15 +19,19 @@ final class NoteNode: SKSpriteNode {
 
     // MARK: - Init
     init() {
-        let size = CGSize(width: GameConfig.noteSize, height: GameConfig.noteSize)
+        // Sprint 10.5 Phase B — 시각/hitbox 분리.
+        //   visualSize = noteSize(32) — 사용자 요청 "사람의 반(캐릭터 32×40 대비 80%)".
+        //   hitboxSize = 16 — 게임 밸런스 회귀 0 (Phase E 이전 동일).
+        let visualSize = CGSize(width: GameConfig.noteSize, height: GameConfig.noteSize)
+        let hitboxSize = CGSize(width: 16, height: 16)
         // Sprint 10 Phase E — 원본 8분 음표 픽셀 텍스처. 글로우/펄스/링 자식 0개.
         let texture = PixelSpriteRenderer.notePixelTexture()
-        super.init(texture: texture, color: .clear, size: size)
+        super.init(texture: texture, color: .clear, size: visualSize)
         name = "note"
 
         // PhysicsBody 부착 — static, player에게는 통과(collision=0), 알림만(contactTest).
-        // **size = noteSize² (16×16) 절대 보존.**
-        let body = SKPhysicsBody(rectangleOf: size)
+        // **hitbox = 16×16 보존, 시각만 noteSize(32)로 확대 (Sprint 10.5 Phase B).**
+        let body = SKPhysicsBody(rectangleOf: hitboxSize)
         body.isDynamic           = false
         body.categoryBitMask     = PhysicsCategory.note
         body.collisionBitMask    = 0                          // player를 막지 않음
