@@ -19,12 +19,14 @@ import SpriteKit
 /// 마지막 phase 종료 후 자기 자신을 disposable로 정리한다.
 final class CountdownNode: SKNode, SelfDismissingNode {
 
-    // MARK: - Context (Sprint 10 Phase J)
+    // MARK: - Context (Sprint 10 Phase J / 10.6 폰트 회귀)
     /// 카운트다운 시각 톤 컨텍스트. enum 자체는 인게임/메뉴 두 분기만 — switch default 0(SPEC §4 금지).
+    /// Sprint 10.6 — 폰트는 두 컨텍스트 모두 Jua-Regular(fontDisplay)로 통일 (fontPixel + 큰 fontSize
+    /// SKLabelNode 렌더링 회귀 회피). 색만 컨텍스트별 — .ingame 픽셀 톤, .menu 카툰 톤.
     enum CountdownContext {
-        /// 인게임 8-bit 톤 — Menlo-Bold, 3·2·1 픽셀 화이트, GO! 픽셀 옐로.
+        /// 인게임 8-bit 색 톤 — 3·2·1 픽셀 화이트, GO! 픽셀 옐로. 폰트는 Jua-Regular(렌더 안정성).
         case ingame
-        /// 메뉴 v2 카툰 톤 — Jua-Regular, 3·2·1 navyDeep, GO! coralPrimary. 호환성 보존(현재 호출 0).
+        /// 메뉴 v2 카툰 톤 — 3·2·1 navyDeep, GO! coralPrimary. 호환성 보존(현재 호출 0).
         case menu
     }
 
@@ -44,10 +46,15 @@ final class CountdownNode: SKNode, SelfDismissingNode {
     }
 
     /// 신규 진입점. GameScene는 명시적으로 `.ingame`, 미래 메뉴 카운트다운(미사용)은 `.menu` 호출.
+    ///
+    /// Sprint 10.6 — fontName Menlo-Bold(fontPixel) → Jua-Regular(fontDisplay)로 복원.
+    /// 원인: Phase J에서 .ingame 분기에 fontPixel 적용 → fontSize 120/140pt 큰 폰트에서 SKLabelNode
+    /// 렌더링 회귀(콘솔 로그 onTick/onGo/onComplete 모두 발화하나 시각 미렌더링). 같은 fontPixel을
+    /// 쓰는 HUD(18pt) / ComboPopup(32pt) 등 다른 노드는 작은 fontSize라 정상 렌더.
+    /// Sprint 7 Phase E(QA 9.76 합격) 시점의 fontDisplay로 폰트만 회귀. 색 분기(.ingame 픽셀 톤)는 보존.
     init(context: CountdownContext) {
         self.context = context
-        let fontName = (context == .ingame) ? GameConfig.fontPixel : GameConfig.fontDisplay
-        self.label = SKLabelNode(fontNamed: fontName)
+        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
         super.init()
         name = "countdown"
         zPosition = GameConfig.countdownZPosition
