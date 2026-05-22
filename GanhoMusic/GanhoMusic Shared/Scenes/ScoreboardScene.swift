@@ -327,13 +327,14 @@ final class ScoreboardScene: SKScene {
             y: topY
         )
 
-        // V4 — stat 라벨을 매트릭스 마지막 행 bottom으로부터 24pt 아래에 동적 배치.
-        // V3 상수 scoreboardStatOffsetY(-150) 값은 byte-identical 보존 — 사용처만 동적 계산으로 교체.
+        // V4 → V6 — stat 라벨을 매트릭스 마지막 행 bottom으로부터 40pt 아래에 동적 배치.
+        // V3/V4 상수(scoreboardStatOffsetY=-150 / scoreboardStatBottomGapV4=24)는 byte-identical 보존.
+        // V6에서 24pt → 40pt 확대로 매트릭스↔stat 묶음 시각 분리 강화.
         let lastRowCenterY = dataRowCenterY(row: GameConfig.scoreboardMatrixRowCount - 1)
         let lastRowBottomY = lastRowCenterY - GameConfig.scoreboardCellHeight / 2
         statLabel.position = CGPoint(
             x: frame.midX,
-            y: lastRowBottomY - GameConfig.scoreboardStatBottomGapV4
+            y: lastRowBottomY - GameConfig.scoreboardStatBottomGapV6
         )
 
         // 매트릭스 자식 좌표 재계산 — 헬퍼 함수가 frame.midX/midY를 직접 참조하므로
@@ -404,7 +405,9 @@ final class ScoreboardScene: SKScene {
         return frame.midX - matrixTotalWidth / 2
     }
     private var matrixOriginTopY: CGFloat {
-        return frame.midY + GameConfig.scoreboardMatrixOffsetY + matrixTotalHeight / 2
+        // V6 — 매트릭스 zone -30pt 시프트. 부제(midY+112)와 열 헤더(midY+110) 겹침 해소.
+        // V3 scoreboardMatrixOffsetY(+10)는 byte-identical 보존 — 사용처만 V6 토큰으로 교체.
+        return frame.midY + GameConfig.scoreboardMatrixOffsetYV6 + matrixTotalHeight / 2
     }
 
     /// 열 헤더 (col = 0..2) 중심 좌표. 매트릭스 최상단 row(헤더 row).
@@ -417,17 +420,19 @@ final class ScoreboardScene: SKScene {
     }
 
     /// 행 헤더의 미니 얼굴 중심 좌표.
+    /// V6 — face↔name 거리 V3 22pt → 32pt 확대. V3 토큰 값은 byte-identical 보존, 참조만 V6로 교체.
     private func rowHeaderFacePosition(row: Int) -> CGPoint {
         let faceX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth / 2
-            - GameConfig.scoreboardRowHeaderShortNameOffsetX / 2
+            - GameConfig.scoreboardRowHeaderShortNameOffsetXV6 / 2
         let faceY = dataRowCenterY(row: row)
         return CGPoint(x: faceX, y: faceY)
     }
 
     /// 행 헤더의 약칭(이름 첫 글자) 라벨 중심 좌표.
+    /// V6 — face↔name 거리 V3 22pt → 32pt 확대. V3 토큰 값은 byte-identical 보존, 참조만 V6로 교체.
     private func rowHeaderNamePosition(row: Int) -> CGPoint {
         let nameX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth / 2
-            + GameConfig.scoreboardRowHeaderShortNameOffsetX / 2
+            + GameConfig.scoreboardRowHeaderShortNameOffsetXV6 / 2
         let nameY = dataRowCenterY(row: row)
         return CGPoint(x: nameX, y: nameY)
     }

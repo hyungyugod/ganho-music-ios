@@ -2692,6 +2692,90 @@ enum GameConfig {
     /// CharacterSelectScene 헤더 main label y 오프셋 V11(+160pt). V10=145 → +15pt — 카드 영역과 여백 확보.
     /// 기존 characterSelectHeaderOffsetYV10(145)는 값 보존.
     static let characterSelectHeaderOffsetYV11: CGFloat = 160
+
+    // MARK: - DifficultySelect V5 (좌측 카드 풀바디 픽셀화 + 헤더↔카드 호흡 확보)
+    //
+    // SkillExplanationScene와 동일한 풀바디 픽셀 스프라이트(PixelSpriteRenderer + PNG fallback)로
+    // 좌측 미니 카드 아바타를 통일하고, 헤더(난이도를 골라요)와 카드 윗선이 거의 맞붙어 보이는 답답함을
+    // 해소하기 위해 카드 전체를 30pt 하방 이동. 시작 버튼도 좌측 카드 bottom과의 충돌 + 화면 하단
+    // 클램프를 추가해 안전 배치한다.
+    //
+    // 기존 V3/V4 토큰(difficultySelectSummaryCardOffsetY=-10, difficultySelectStartButtonOffsetY=-160,
+    // difficultyCardWidthV4/HeightV4/GapV4 등)은 *byte-identical 보존* — 다른 사용처 회귀 위험 0.
+
+    /// V5 좌측 요약 카드 y offset (-40pt). 기존 V3(-10) 대비 -30pt 하방 이동 →
+    /// 카드 top = midY+90 ↔ 헤더 baseY(midY+140)와 50pt 호흡 확보(사용자 답답함 해소).
+    /// 카드 내부 4개 노드(NameBadge/Face/Skill/SpeedChip)는 baseY 기준 상대 OffsetY라
+    /// 자동으로 30pt 함께 하방 이동 — 추가 수정 0줄.
+    static let difficultySelectSummaryCardOffsetYV5: CGFloat = -40
+
+    /// V5 시작 버튼 y offset (-200pt). 기존 V3(-160) 대비 -40pt 하방 — "살짝" 톤 유지하되
+    /// 좌측 카드 bottom(midY-170)과 36pt 호흡 보장. layoutStartButton()에서 V3/V4/V5 산식 중
+    /// 가장 작은 y(가장 아래) 채택 → V5 좌측 카드 산식 결과(-230)가 dominant.
+    /// 그 후 화면 하단 safe margin 클램프 적용.
+    static let difficultySelectStartButtonOffsetYV5: CGFloat = -200
+
+    /// V5 시작 버튼 ↔ 카드 bottom 호흡 거리(36pt). V4와 동값이나 *V5 의미 단위 분리* —
+    /// 좌측 카드 bottom 산식에서도 이 값을 동일하게 사용해 좌/우 카드 모두 36pt 호흡 보장.
+    static let difficultySelectStartButtonBreathingGapV5: CGFloat = 36
+
+    /// V5 시작 버튼 화면 하단 안전 마진(24pt). frame.minY + 이 값 + buttonHalfHeight(24)이
+    /// 시작 버튼 y의 최소 허용치. 좁은 디바이스(iPhone SE landscape height ~390)에서도
+    /// 시작 버튼이 화면 밖으로 잘리지 않도록 동적 클램프.
+    static let difficultySelectStartButtonSafeBottomMarginV5: CGFloat = 24
+
+    /// V5 좌측 요약 카드 안 풀바디 픽셀 스프라이트 가로(80pt). 카드 폭(200pt) 안에 들어가고
+    /// 인지성(80×80 = 충분히 큰 캐릭터) + 컴팩트성 균형. SkillExplanationScene는 더 큰
+    /// avatarWidth/Height를 사용하지만 좌측 미니 카드는 더 작게 — 카드 내 위계 정합.
+    /// 기존 difficultySelectSummaryFaceScale(0.65)는 사용처 사라지지만 byte-identical 보존.
+    static let difficultySelectSummaryFullBodyWidthV5: CGFloat = 80
+
+    /// V5 좌측 요약 카드 안 풀바디 픽셀 스프라이트 세로(80pt). 가로(80)와 동일 정사각 —
+    /// 원본 픽셀 시트(16×20)를 정사각 80×80에 맞춰 .nearest 필터로 픽셀 perfect 확대.
+    static let difficultySelectSummaryFullBodyHeightV5: CGFloat = 80
+
+    // MARK: - Sprint V6 — ResultScene + ScoreboardScene 호흡 정리
+    //
+    // ScoreboardScene: 부제(midY+112)와 매트릭스 열 헤더(midY+110) 겹침 해소를 위해
+    //   매트릭스 zone을 -30pt 시프트하고, 행 헤더 미니 얼굴↔약칭 간격(22→32pt) 및
+    //   매트릭스↔stat gap(24→40pt)을 확대해 빽빽함을 해소한다.
+    // ResultScene: "SCORE" 캡션(scoreSubLabel) 시각 차단 + PLAYS/TOTAL 4라벨 alpha 회복(0.45→0.75)
+    //   + divider y 추가 하강(-68→-80) + 하단 3버튼 X 간격 확대로 군더더기 정리.
+    // 기존 V3/V4/V10/V11 토큰은 *값 byte-identical 보존* — 사용처(scene 본문)만 V6 토큰 참조로 교체.
+
+    // --- ScoreboardScene V6 ---
+    /// V6 — 매트릭스 zone -30pt 시프트. 부제(midY+112)와 열 헤더(midY+110) 겹침 해소.
+    /// V3 scoreboardMatrixOffsetY(+10)는 byte-identical 보존.
+    static let scoreboardMatrixOffsetYV6: CGFloat = -20
+
+    /// V6 — 행 헤더 미니 얼굴↔약칭 X 거리. V3 22pt → 32pt. face=-16, name=+16.
+    /// V3 scoreboardRowHeaderShortNameOffsetX(22pt) byte-identical 보존.
+    static let scoreboardRowHeaderShortNameOffsetXV6: CGFloat = 32
+
+    /// V6 — 매트릭스 마지막 행 ↔ stat 라벨 거리. V4 24pt → 40pt.
+    /// V4 scoreboardStatBottomGapV4(24pt) byte-identical 보존.
+    static let scoreboardStatBottomGapV6: CGFloat = 40
+
+    // --- ResultScene V6 ---
+    /// V6 — PLAYS/TOTAL stat 4라벨 alpha. V10(0.45) → V6(0.75) 명료성 회복.
+    /// V10 resultStatAlphaV10(0.45) byte-identical 보존.
+    static let resultStatAlphaV6: CGFloat = 0.75
+
+    /// V6 — divider y. V4(-68) → V6(-80). score↔stat 호흡 12pt 추가.
+    /// V4 resultDividerOffsetYV4(-68) byte-identical 보존.
+    static let resultDividerOffsetYV6: CGFloat = -80
+
+    /// V6 — share 버튼 X. V2(-70) → V6(-60).
+    /// V2 resultShareButtonXOffsetV2(-70) byte-identical 보존.
+    static let resultShareButtonXOffsetV6: CGFloat = -60
+
+    /// V6 — restart 버튼 X. V2(+80) → V6(+95).
+    /// V2 resultRestartButtonXOffsetV2(+80) byte-identical 보존.
+    static let resultRestartButtonXOffsetV6: CGFloat = 95
+
+    /// V6 — scoreboard 버튼이 share 좌측으로 떨어진 거리. V3(-110) → V6(-130).
+    /// V3 resultScoreboardButtonOffsetXFromShareV3(-110) byte-identical 보존.
+    static let resultScoreboardButtonOffsetXFromShareV6: CGFloat = -130
 }
 
 // MARK: - Sprint 10 Phase G · Airforce Pixel Palette (inline UIColor — ColorTokens 본체 0줄)

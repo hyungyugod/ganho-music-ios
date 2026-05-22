@@ -258,6 +258,10 @@ final class ResultScene: SKScene {
         // configureSubtitleLabelV2() 내부 configureLabelV2가 alpha=1 강제 세팅하므로 *호출 뒤* 위치 필수.
         // 노드 트리·텍스트·좌표 보존 — 기존 5개 라벨(characterLabel 등)과 동형 패턴.
         subtitleLabel.alpha = 0
+        // Sprint V6 — "SCORE"/"NEW SCORE" 캡션(scoreSubLabel)은 ♪ 아이콘 + 큰 점수 + BEST pill로 이미 전달.
+        // 중복 인상 제거 위해 alpha=0 시각 차단. configureScoreSubLabelV2() 내부 configureLabelV2가 alpha=1
+        // 강제 세팅하므로 *호출 뒤* 위치 필수. 노드 트리·configure·position 갱신 보존(subtitleLabel과 동형 패턴).
+        scoreSubLabel.alpha = 0
         configureDivider()
 
         // 데이터 합성.
@@ -462,13 +466,14 @@ final class ResultScene: SKScene {
             fontSize: GameConfig.resultStatTitleFontSizeV2,
             fontColor: .ganhoNavyMuted
         )
-        // Sprint 10.6 — PLAYS/TOTAL 4라벨을 "조용한 보조" 위계로 강등.
+        // Sprint V6 — PLAYS/TOTAL 4라벨 alpha 회복(V10 0.45 → V6 0.75). "조용한 보조" → "명료한 보조" 위계.
         // configureLabelV2가 alpha=1 강제 세팅 후 *뒤*에 약화 — 단일 진실 원천.
-        // divider도 함께 약화해 stat 묶음 시각 일관성 확보.
-        playsValueLabel.alpha = GameConfig.resultStatAlphaV10
-        playsTitleLabel.alpha = GameConfig.resultStatAlphaV10
-        totalValueLabel.alpha = GameConfig.resultStatAlphaV10
-        totalTitleLabel.alpha = GameConfig.resultStatAlphaV10
+        // divider alpha는 V10(0.7) 유지 — stat 라벨과 시각 가중치 분리.
+        // V10 토큰(resultStatAlphaV10=0.45 / resultDividerAlphaV10=0.7)은 *값 byte-identical 보존*.
+        playsValueLabel.alpha = GameConfig.resultStatAlphaV6
+        playsTitleLabel.alpha = GameConfig.resultStatAlphaV6
+        totalValueLabel.alpha = GameConfig.resultStatAlphaV6
+        totalTitleLabel.alpha = GameConfig.resultStatAlphaV6
         divider.alpha = GameConfig.resultDividerAlphaV10
         addChild(playsValueLabel)
         addChild(playsTitleLabel)
@@ -606,13 +611,16 @@ final class ResultScene: SKScene {
             x: frame.midX,
             y: frame.midY + GameConfig.resultScoreSubOffsetYV4   // Sprint 10.5 Phase A — V3(-44) → V4(-50). score↔sub 56pt 호흡 확보 (이전 50pt 답답)
         )
+        // Sprint V6 — divider y V4(-68) → V6(-80). score(midY+6)↔divider 호흡 12pt 추가(74→86pt).
+        // V4 토큰(resultDividerOffsetYV4=-68)은 byte-identical 보존, 참조만 V6로 교체.
         divider.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultDividerOffsetYV4
+            y: frame.midY + GameConfig.resultDividerOffsetYV6
         )
-        // 4-Bug Fix Sprint — stat 좌표는 divider V4 - statGap V11 상대식으로 의도 명시(위/아래 묶음 분리).
+        // V6 — stat 좌표는 divider V6 - statGap V11 상대식으로 의도 명시(위/아래 묶음 분리).
         // V11(14pt): V9(28pt) → 절반. stat 영역을 divider에 가깝게 올려 버튼 겹침 해소.
-        let statValueY = GameConfig.resultDividerOffsetYV4 - GameConfig.resultStatGapFromDividerV11
+        // divider 참조를 V4 → V6으로 교체해 동시 12pt 하향 이동(상대식 유지).
+        let statValueY = GameConfig.resultDividerOffsetYV6 - GameConfig.resultStatGapFromDividerV11
         let statTitleY = statValueY - 14
         playsValueLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
@@ -648,18 +656,20 @@ final class ResultScene: SKScene {
         let safe = SceneSafeArea.insets(for: self)
         // 4-Bug Fix Sprint — V11(30pt): V7+=56 → -26pt. 버튼 inset 축소로 stat 영역과 40pt 이상 여백 확보.
         let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInsetV11
-        let shareX = frame.midX + GameConfig.resultShareButtonXOffsetV2
+        // Sprint V6 — 하단 3버튼 X 간격 확대: share(-70→-60), restart(+80→+95),
+        //   scoreboard(share-110→share-130). 빽빽함 해소. V2/V3 토큰 값은 byte-identical 보존.
+        let shareX = frame.midX + GameConfig.resultShareButtonXOffsetV6
         shareButton?.position = CGPoint(
             x: shareX,
             y: buttonY
         )
         restartButton.position = CGPoint(
-            x: frame.midX + GameConfig.resultRestartButtonXOffsetV2,
+            x: frame.midX + GameConfig.resultRestartButtonXOffsetV6,
             y: buttonY
         )
-        // Sprint 7 Phase D — V3 신규 "📊 기록 보기" GlassPill — shareButton 좌측 -110pt.
+        // Sprint 7 Phase D → V6 — "📊 기록 보기" GlassPill을 shareButton 좌측 -130pt(V3 -110에서 -20pt 확대).
         scoreboardButton?.position = CGPoint(
-            x: shareX + GameConfig.resultScoreboardButtonOffsetXFromShareV3,
+            x: shareX + GameConfig.resultScoreboardButtonOffsetXFromShareV6,
             y: buttonY
         )
 

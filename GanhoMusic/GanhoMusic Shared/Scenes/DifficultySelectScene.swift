@@ -8,7 +8,7 @@
 //    - 상단 좌: GlassPill 백버튼(`← 스킬 다시`, .kim일 땐 `← 캐릭터 다시`)
 //    - 상단 우: DarkContextChip 브레드크럼 `캐릭터 · 스킬 · [난이도]`
 //    - 중앙 헤더: AccentLine + Jua 26pt "난이도를 골라요" + Gowun Dodum 부제
-//    - 좌측 미니 카드: 코랄 이름 뱃지 + CharacterFaceNode(scale 0.65) + 스킬명/속도 칩
+//    - 좌측 미니 카드: 코랄 이름 뱃지 + 풀바디 픽셀 SKSpriteNode(80×80, V5) + 스킬명/속도 칩
 //    - 우측 난이도 3장: DifficultyCardNode 기존 컴포넌트 그대로
 //    - 하단 PrimaryButton "시작"
 //
@@ -21,7 +21,7 @@
 import SpriteKit
 
 /// 5단계 흐름의 마지막 결정 씬. characterID 불변 + 난이도만 골라서 GameScene으로 진입.
-final class DifficultySelectScene: SKScene {
+final class DifficultySelectScene: BaseMenuScene {
 
     // MARK: - Properties
     /// init 주입된 캐릭터 ID. 불변.
@@ -37,7 +37,6 @@ final class DifficultySelectScene: SKScene {
     private let headerLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     private let accentLine = AccentLineNode()
-    private var gradientBackground: GradientBackgroundNode?
     private var musicNoteEmitter: MusicNoteEmitterNode?
 
     // 상단 바.
@@ -48,7 +47,10 @@ final class DifficultySelectScene: SKScene {
     private var summaryContainer: SKShapeNode?
     private var summaryNameBadge: SKShapeNode?
     private let summaryNameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private var summaryFace: CharacterFaceNode?
+    /// V5 — 좌측 카드 풀바디 픽셀 스프라이트(SkillExplanationScene와 동일 패턴).
+    /// CharacterFaceNode 본체는 다른 화면(CharacterSelectScene 등)이 사용 중이므로
+    /// 본체 변경 0줄 + 본 씬 내 타입만 SKSpriteNode로 교체.
+    private var summaryFace: SKSpriteNode?
     private let summarySkillLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private var summarySpeedChip: SKShapeNode?
     private let summarySpeedLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
@@ -91,7 +93,7 @@ final class DifficultySelectScene: SKScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgWarmTop
-        setupGradientBackground()
+        setupWarmGradientBackground()
         setupMusicNoteEmitter()
         setupHeader()
         setupTopBar()
@@ -104,32 +106,13 @@ final class DifficultySelectScene: SKScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildGradientBackground()
+        rebuildWarmGradientBackground()
         rebuildMusicNoteEmitter()
         layoutHeader()
         layoutTopBar()
         layoutSummaryCard()
         layoutDifficultyCards()
         layoutStartButton()
-    }
-
-    // MARK: - Setup (Background)
-    private func setupGradientBackground() {
-        let node = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        node.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradientBackground = node
-        addChild(node)
-    }
-
-    private func rebuildGradientBackground() {
-        gradientBackground?.removeFromParent()
-        gradientBackground = nil
-        setupGradientBackground()
     }
 
     private func setupMusicNoteEmitter() {
@@ -269,9 +252,26 @@ final class DifficultySelectScene: SKScene {
         summaryNameLabel.zPosition = 111
         addChild(summaryNameLabel)
 
-        // 미니 아바타 — CharacterFaceNode 작게.
-        let face = CharacterFaceNode(id: characterID)
-        face.setScale(GameConfig.difficultySelectSummaryFaceScale)
+        // V5 — 풀바디 픽셀 아바타(SkillExplanationScene Line 80~99 패턴 byte-identical 복사).
+        // PNG 자산(Characters/{id}_down_idle_1) 우선, 미보유 시 PixelSpriteRenderer fallback.
+        // 텍스처 생성은 setupSummaryCard()에서 1회 — 매 프레임 비용 0.
+        let texture: SKTexture = {
+            let pngName = "\(characterID.rawValue)_down_idle_1"
+            if UIImage(named: pngName) != nil {
+                let tex = SKTexture(imageNamed: pngName)
+                tex.filteringMode = .linear  // 부드러운 스케일링
+                return tex
+            }
+            // Fallback — 픽셀 렌더링 (.nearest 자동 설정 → 80×80 확대 시에도 픽셀 perfect)
+            let frame = PixelSprite.data(for: characterID, direction: .down, frame: .idle)
+            let palette = PixelPalette.palette(for: characterID)
+            return PixelSpriteRenderer.texture(from: frame, palette: palette)
+        }()
+        let face = SKSpriteNode(texture: texture)
+        face.size = CGSize(
+            width: GameConfig.difficultySelectSummaryFullBodyWidthV5,
+            height: GameConfig.difficultySelectSummaryFullBodyHeightV5
+        )
         face.zPosition = 105
         summaryFace = face
         addChild(face)
@@ -322,7 +322,9 @@ final class DifficultySelectScene: SKScene {
     private func layoutSummaryCard() {
         // Sprint 7 — 우측 3장 카드가 1.4배 커지면서 시각 균형을 위해 좌측 summary를 V3 offset(-260)으로 추가 좌측 이동.
         let baseX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3
-        let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetY
+        // V5 — 헤더(midY+140)와 카드 top 호흡 50pt 확보 위해 OffsetY V5(-40) 채택.
+        // 기존 V3(-10)는 byte-identical 보존 — 다른 사용처 회귀 위험 0.
+        let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5
         summaryContainer?.position = CGPoint(x: baseX, y: baseY)
         let badgeY = baseY + GameConfig.difficultySelectSummaryNameBadgeOffsetY
         summaryNameBadge?.position = CGPoint(x: baseX, y: badgeY)
@@ -419,21 +421,42 @@ final class DifficultySelectScene: SKScene {
         layoutStartButton()
     }
 
-    /// Sprint 8 Phase D — 카드 V4(200pt) 확대로 V3 startButtonOffsetY(-160)가 카드와 가까워짐.
-    /// 카드 bottom edge로부터 36pt+ 호흡을 보장하기 위해 카드 bottom과 V3 offset 산식 중 *더 아래쪽*을 채택.
-    /// V3 offset 산식 미흡 시 동적 보정 — V4 시각 합격선 §5.5 항목 4 충족.
+    /// Sprint 10.5+ V5 — 좌측 카드도 V5로 30pt 하방 이동(midY-170 bottom)되어
+    /// V3/V4 산식만으론 좌측 카드 bottom과 시작 버튼 top이 충돌. V5 산식 추가 +
+    /// 화면 하단 safe margin 클램프로 좁은 디바이스에서도 버튼 잘림 0 보장.
+    ///
+    /// 산식 위계(가장 아래 y 채택):
+    ///  - v3Y       = midY + V5 offset(-200)
+    ///  - v4RightY  = 우측 카드 bottom - 36 - 24
+    ///  - v5LeftY   = 좌측 카드 bottom(midY-170) - 36 - 24 = midY-230
+    /// → min(v3, v4Right, v5Left) → 마지막에 frame.minY 기준 safe margin으로 max 클램프.
     private func layoutStartButton() {
-        // V3 기존 산식 — 다른 화면(StartScene 등) 정책 회귀 0.
-        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetY
-        // V4 카드 bottom edge로부터 호흡 확보.
-        let cardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY
-        let cardBottomY = cardCenterY - GameConfig.difficultyCardHeightV4 / 2
-        // 시작 버튼 halfHeight 보정 — primaryButtonHeight(48) 가정. 카드 bottom과 버튼 top 사이 36pt+ 보장.
+        // V3/V5 — 기존 V3 산식은 byte-identical 보존, 본 호출은 V5 offset(-200) 사용.
+        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetYV5
+
         let buttonHalfHeight: CGFloat = 24
-        let breathingGap: CGFloat = 36
-        let v4Y = cardBottomY - breathingGap - buttonHalfHeight
-        // 더 아래쪽(작은 y) 채택 — V3 산식 그대로 충분하면 그것을, V4가 더 아래면 V4 채택.
-        let buttonY = min(v3Y, v4Y)
+        let breathingGap = GameConfig.difficultySelectStartButtonBreathingGapV5
+
+        // V4 — 우측 난이도 3장 카드 bottom 호흡 산식(기존 톤 유지).
+        let rightCardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY
+        let rightCardBottomY = rightCardCenterY - GameConfig.difficultyCardHeightV4 / 2
+        let v4RightY = rightCardBottomY - breathingGap - buttonHalfHeight
+
+        // V5 신규 — 좌측 요약 카드 bottom 호흡 산식.
+        let leftCardCenterY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5
+        let leftCardBottomY = leftCardCenterY
+            - GameConfig.difficultySelectSummaryCardHeight / 2
+        let v5LeftY = leftCardBottomY - breathingGap - buttonHalfHeight
+
+        // 가장 아래(작은 y) 채택 — 어떤 카드와도 36pt+ 호흡 보장.
+        let dynamicY = min(v3Y, min(v4RightY, v5LeftY))
+
+        // 화면 하단 safe margin 클램프 — 좁은 디바이스에서 버튼이 화면 밖으로 나가지 않도록.
+        let minAllowedY = frame.minY
+            + GameConfig.difficultySelectStartButtonSafeBottomMarginV5
+            + buttonHalfHeight
+        let buttonY = max(dynamicY, minAllowedY)
+
         let pos = CGPoint(x: frame.midX, y: buttonY)
         startButton.position = pos
         startButtonHalo?.position = CGPoint(
