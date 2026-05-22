@@ -1,256 +1,76 @@
-# Sprint 10 Phase J — HUD · iOS 이펙트 픽셀 톤 변환 (마지막 Phase)
+# 4-Bug Fix Sprint — 갇힘 + 난이도 + ResultScene 겹침 + CharacterSelect 헤더
 
-## 1. 개요
-인게임 HUD/오버레이/이펙트의 모든 시각 톤을 v2 카툰(Jua-Regular + 코랄/네이비) → **8-bit 픽셀 톤(Menlo-Bold + 픽셀 옐로/페이퍼화이트)** 으로 일관 변환. Phase A~I로 인게임 본체가 픽셀화된 상태에서, 마지막으로 UI/이펙트 레이어를 통일해 시각 분기(메뉴=카툰 / 인게임=픽셀)를 완성.
+## 개요
 
-## 2. 변경 유형
-**비주얼** (픽셀 톤 변환 — 게임 로직/AI/물리/스폰/충돌 0건 변경)
+수간호사(EnemyNode)가 `collisionBitMask = PhysicsCategory.wall` 설정으로 인해 waypoint 경로상 벽에 막혀 패트롤이 stuck 되는 4가지 독립 버그를 수정한다. 원본 game.js에서 수간호사는 벽을 자유롭게 통과하므로 iOS에서도 동일하게 맞춰야 한다. easy 난이도 F 발사 주기와 음표 spawn 밀도를 높이고, ResultScene stat 영역과 버튼의 y 좌표 겹침, CharacterSelectScene 헤더 타이틀 위치와 부제목을 정리한다.
 
-## 3. 게임 경험 의도
-메뉴 부드러운 카툰 UI → 인게임 진입 시 8-bit HUD/팝업/카운트다운으로 톤 통째 전환. 점수 +1·콤보 ×3·GO! 모든 텍스트 픽셀 폰트, sparkle 1×1 사각 픽셀, 5초 긴박감 픽셀 비네트로 패미컴 절체절명 환기.
+## 변경 유형
 
-## 4. Sprint 범위 계약
+게임플레이 + 비주얼 혼합
 
-**허용**: HUDNode/HUDSkillSlotNode/ComboPopupNode/ComboBreakNode/ScorePopupNode/SparkleEffectNode/CountdownNode/HitFlashNode/BombFlashNode 폰트·색·외곽선·입자 모양 교체. GameConfig 픽셀 톤 상수 추가. TensionVignetteNode 신규.
+## 게임 경험 의도
 
-**금지**: SPEC 외 새 이펙트/HUD 슬롯, SKAction 본문 변경, 외부 API 시그니처 변경.
+수간호사가 어떤 난이도의 맵에서도 벽을 통과해 정해진 경로를 순환하며 F 투사체를 지속적으로 발사해야 플레이어가 긴장감을 느낄 수 있다. easy 난이도도 투사체 밀도가 충분해야 회피 플레이의 재미가 살아나며, 결과 화면과 캐릭터 선택 화면은 어떤 기기 크기에서도 UI 요소가 겹치지 않아야 한다.
 
-## 5. 사용자 의사결정 7건 (§3 그대로)
+## Sprint 범위 계약
 
-| # | 항목 | 결정 |
-|---|---|---|
-| 1 | 카메라 follow 유지, 맵 32×20 | |
-| 2 | 박병장 유지 + 비행기/폭탄/5초 도주 | |
-| 3 | EnemyNode 자식 시각 제거 | |
-| 4 | iOS 고유 이펙트 픽셀 톤 변환 유지 | |
-| 5 | BGM/SE 유지 | |
-| 6 | dpad 유지 | |
-| 7 | 캐릭터 5명 byte-equal | |
+- **허용**: EnemyNode.init 물리 충돌 비트마스크 1줄 수정, GameConfig spawn rate 상수 조정(easy 전용), ResultScene layoutLabels() 3곳 y 오프셋 상수 교체, CharacterSelectScene setupHeader() 부제목 숨김 1줄, GameConfig에 V11 상수 4개 추가
+- **금지**: 새 적/스킬/씬 추가, 기존 게임 흐름 변경, PixelSprite·PixelPalette·PixelSpriteRenderer·CharacterFaceNode·NurseAvatarNode 본체 변경, 메뉴 씬 6개 중 CharacterSelectScene setupHeader()/layoutHeader() 이외 변경, SPEC에 없는 새 이펙트 추가
+- **판단 기준**: "이 변경이 없으면 SPEC 기능이 제대로 동작하지 않는가?" → YES면 허용, NO면 금지
 
-Phase J 특히 #4 적용.
+## 변경 범위
 
-## 6. 픽셀 톤 단일 정책
+### 수정할 파일
 
-### 폰트
-- 인게임: `GameConfig.fontPixel = "Menlo-Bold"` (Phase G/H 사용)
-- 메뉴: fontDisplay = "Jua-Regular" 유지
+- `GanhoMusic Shared/Nodes/EnemyNode.swift`: init의 `collisionBitMask = PhysicsCategory.wall` → `0`
+- `GanhoMusic Shared/Config/GameConfig.swift`: easy spawn rate 상수 3개 수정 + V11 레이아웃 상수 4개 추가
+- `GanhoMusic Shared/Scenes/ResultScene.swift`: `layoutLabels()` 내 3곳 상수 교체
+- `GanhoMusic Shared/Scenes/CharacterSelectScene.swift`: `setupHeader()` 부제목 숨김 1줄 + `layoutHeader()` 상수 교체
 
-### 색 팔레트
+### 추가할 파일
 
-| 토큰 | hex | 용도 |
-|---|---|---|
-| ganhoPixelHudYellow | #FFD23F | HUD 라벨/COMBO hot/GO!/×10 |
-| ganhoPixelHudWhite | #FFFCE0 | HUD 값/3·2·1/+1 점수 |
-| ganhoPixelHudCoral | #FF6E5A | TIME 경고/쿨다운 링 |
-| ganhoPixelComboGold | #FFC830 | 콤보 ×3 |
-| ganhoPixelComboRed | #E0463A | 콤보 ×5·×20 + ComboBreak |
-| ganhoPixelOutlineBlack | #0F1118 | 픽셀 텍스트 외곽선 |
-| ganhoPixelHitRed | #C8281A | HitFlash 풀스크린 |
-| ganhoPixelTensionEdge | #FF3D2E | 5초 비네트 |
+없음
 
-### zPosition
-모든 노드 기존 zPosition 상수 0줄 변경. 톤만 swap.
+## 기능 상세
 
-## 7. 변경 범위
+### 기능 1: 수간호사 벽 통과 (갇힘 + F 미생성 해결)
 
-### 수정 (9개)
-- GameConfig.swift: 픽셀 톤 상수 신규 (추가만)
-- HUDNode.swift: HUDSlotNode 라벨/값 fontName + fontColor 픽셀 톤 swap
-- HUDSkillSlotNode.swift: fontName + 링 stroke READY=옐로/쿨다운=코랄
-- ComboPopupNode.swift: fontDisplay → fontPixel, color(for:) 픽셀 팔레트
-- ComboBreakNode.swift: fontPixel + ganhoPixelComboRed + 외곽선
-- ScorePopupNode.swift: fontPixel + color(for:) 픽셀 톤
-- SparkleEffectNode.swift: context 분기, .ingame 픽셀 입자 / .menu 원형 유지
-- CountdownNode.swift: context 분기, 3·2·1 픽셀화이트 / GO! 픽셀옐로
-- HitFlashNode.swift: ganhoPixelHitRed + blendMode .add
+- **설명**: 원본 game.js에서 수간호사는 직접 픽셀 좌표를 갱신하며 벽 타일과 물리 충돌이 없다. iOS 이식에서 `collisionBitMask = PhysicsCategory.wall`이 추가돼 normal/hard 맵의 방 구조 벽에 막히면 waypoint snap 조건(`dist <= step`)이 영구적으로 불충족 → 패트롤 stuck. `collisionBitMask = 0`으로 변경해 원본과 동일하게 벽을 통과시킨다.
+- **구현 위치**: `EnemyNode.swift` — `// MARK: - Init` 내부, physicsBody 설정 블록
+- **핵심 코드 구조**:
+  ```swift
+  // BEFORE
+  body.collisionBitMask    = PhysicsCategory.wall
+  
+  // AFTER (원본 game.js 1:1 — 수간호사는 벽 물리 반응 없음)
+  body.collisionBitMask    = 0
+  ```
+- **중요**: `body.contactTestBitMask = PhysicsCategory.player | PhysicsCategory.wall`은 **절대 변경 금지**. contact(감지)와 collision(물리 반응)은 독립 비트마스크다.
 
-### 신규 (1개)
-- TensionVignetteNode.swift: 5초 긴박감 픽셀 비네트
+### 기능 2: easy 난이도 spawn rate 상향
 
-### 검증만 (0줄)
-- BombFlashNode.swift (Phase G 적용 완료)
+- **설명**: easy 난이도의 F 발사 주기(3.5→2.5초)가 너무 길고 음표 동시 최대(5개)가 적어 게임이 싱겁다. 발사 주기를 2.5→1.2초로, 음표 spawn 간격을 1.5→1.2초로, 동시 최대를 6개로 올린다. normal/hard는 현재 수치 유지.
+- **구현 위치**: `GameConfig.swift` — `// MARK: - Difficulty` 섹션의 Dictionary 리터럴
 
-## 8. 기능 1 — HUDNode
+### 기능 3: ResultScene stat 영역 ↔ 버튼 겹침 수정
 
-```swift
-labelNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
-labelNode.fontColor = .ganhoPixelHudYellow
-valueNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
-valueNode.fontColor = .ganhoPixelHudWhite
-// setWarn: ganhoCoralShadow → ganhoPixelHudCoral
-```
+- **설명**: iPhone Landscape에서 stat 그룹과 버튼 Y좌표가 충돌. stat y를 위로 올리고 버튼 inset을 줄여 40pt 이상 여백 확보. titleLabel도 +90으로 올려 scoreLabel 상단과 간격 확보.
+- **GameConfig에 추가할 상수**:
+  - `resultTitleOffsetYV11: CGFloat = 90` (70→90)
+  - `resultStatGapFromDividerV11: CGFloat = 14` (28→14)
+  - `resultButtonBottomInsetV11: CGFloat = 30` (56→30)
+- **기존 상수 보존**: 삭제 금지
 
-외부 API(update/setCharacterName/startTensionBlink/stopTensionBlink) 시그니처 0줄.
+### 기능 4: CharacterSelectScene 헤더 겹침 수정 + 부제목 완전 제거
 
-## 9. 기능 2 — HUDSkillSlotNode
+- **설명**: 헤더 y를 +145→+160으로 올려 카드 영역과 여백 확보. 부제목 "친구마다 다른 스킬과 이동속도를 가져요"는 `isHidden = true`로 완전 숨김.
+- **GameConfig에 추가할 상수**:
+  - `characterSelectHeaderOffsetYV11: CGFloat = 160` (145→160)
+- **isHidden vs removeFromParent**: `removeFromParent()` 금지. `isHidden = true` 사용.
 
-fontName 픽셀. ringNode.strokeColor ganhoMusicGold(0.3) → ganhoPixelHudYellow(0.3). ringFillNode READY .ganhoMusicGold → .ganhoPixelHudYellow. 쿨다운 .ganhoCoralPrimary → .ganhoPixelHudCoral. valueNode READY 색도 픽셀 옐로. 4상태 분기/configure/oncePerGame/alpha 보간 0줄.
+## 주의사항
 
-## 10. 기능 3 — ComboPopupNode
-
-fontDisplay → fontPixel. addOutline navy → ganhoPixelOutlineBlack. color(for:) 매핑:
-- 3 → ganhoPixelComboGold
-- 5 → ganhoPixelComboRed
-- 10 → ganhoPixelHudYellow
-- 20 → ganhoPixelComboRed
-
-animate SKAction 0줄, zRotation -8° 유지.
-
-## 11. 기능 4 — ComboBreakNode
-
-fontPixel + .ganhoPixelComboRed + 외곽선 .ganhoPixelOutlineBlack. animate 0줄.
-
-## 12. 기능 5 — ScorePopupNode
-
-fontNamed: fontPixel. color(for:):
-- scorePerNote → ganhoPixelHudWhite
-- scorePerNoteCombo → ganhoPixelHudYellow
-
-spawn 정적 팩토리 시그니처 0줄.
-
-## 13. 기능 6 — SparkleEffectNode (context 분기)
-
-```swift
-enum SparkleContext { case ingame, menu }
-
-init(context: SparkleContext = .ingame) {
-    super.init()
-    self.context = context
-    buildParticles()
-}
-
-private func buildParticles() {
-    for _ in 0..<GameConfig.sparkleParticleCount {
-        let particle: SKNode
-        switch context {
-        case .ingame:
-            particle = SKSpriteNode(color: .ganhoPixelHudWhite,
-                                    size: CGSize(width: GameConfig.sparklePixelSize,
-                                                 height: GameConfig.sparklePixelSize))
-        case .menu:
-            let shape = SKShapeNode(circleOfRadius: GameConfig.sparkleParticleRadius)
-            shape.fillColor = .white
-            shape.strokeColor = .clear
-            particle = shape
-        }
-        particle.position = .zero
-        addChild(particle)
-    }
-}
-```
-
-호출부:
-- GameScene.swift L567/L657 → `.ingame`
-- ResultScene.swift L788 → `.menu`
-
-emit SKAction 0줄.
-
-## 14. 기능 7 — CountdownNode (context 분기)
-
-```swift
-enum CountdownContext { case ingame, menu }
-override init() { self.init(context: .ingame) }   // 호환성
-init(context: CountdownContext) {
-    let fontName = (context == .ingame) ? GameConfig.fontPixel : GameConfig.fontDisplay
-    self.label = SKLabelNode(fontNamed: fontName)
-    ...
-}
-// 3·2·1: .ganhoPixelHudWhite (vs .ganhoNavyDeep 메뉴)
-// GO!: .ganhoPixelHudYellow (vs .ganhoCoralPrimary 메뉴)
-```
-
-SKAction sequence/fadeIn/fadeOut/hold/scaleUp 0줄.
-
-## 15. 기능 8 — HitFlashNode
-
-```swift
-super.init(texture: nil, color: .ganhoPixelHitRed, size: .zero)
-blendMode = .add
-```
-
-peakAlpha 0.6 → 0.5 조정 허용 (시뮬레이터 검증 후). SKAction 0줄.
-
-## 16. 기능 9 — TensionVignetteNode 신규
-
-```swift
-final class TensionVignetteNode: SKNode {
-    init(sceneSize: CGSize) {
-        super.init()
-        name = "tensionVignette"
-        zPosition = GameConfig.tensionVignetteZPosition   // 110 (HUD 100~101 위, countdown 250 아래)
-        let thickness = GameConfig.tensionVignetteThickness   // 8pt
-        // 상/하/좌/우 4 SKSpriteNode 가장자리 inset
-        // 색 ganhoPixelTensionEdge, alpha 0.6
-        // 4 자식 모두 SKAction.repeatForever blink (fadeAlpha 0.3 ↔ 0.7, 0.5s)
-    }
-    required init?(coder: NSCoder) { fatalError() }
-}
-```
-
-GameScene에서 `startTensionBlink` 호출 직후 attach, `stopTensionBlink`에서 removeFromParent. cameraNode 자식.
-
-HUDNode.startTensionBlink/stopTensionBlink 시그니처 0줄. GameScene가 비네트 attach/detach 2~3줄만 추가.
-
-## 17. GameConfig 신규 상수
-
-```swift
-// Sprint 10 Phase J
-static let fontPixel: String = "Menlo-Bold"
-static let sparklePixelSize: CGFloat = 3
-static let tensionVignetteThickness: CGFloat = 8
-static let tensionVignetteZPosition: CGFloat = 110
-static let tensionVignetteEdgeAlpha: CGFloat = 0.6
-static let tensionVignetteBlinkHalfPeriod: TimeInterval = 0.5
-```
-
-ColorTokens 또는 GameConfig 픽셀 팔레트 enum에 색 8개 추가 (§6 표).
-
-## 18. 변경 금지 (git diff 0줄)
-
-- PixelSprite/PixelPalette/PixelSpriteRenderer 본체
-- GameScene+Setup.swift (게임 루프/스폰/충돌/맵/AI) — 단, 비네트 attach/detach 2~3줄만 GameScene.swift에 추가
-- ContactRouter, SergeantParkNode, AirplaneNode 본체
-- 5종 컷씬 노드 (IntroCutsceneNode/MidCutsceneNode/IntroVillainCutsceneNode/CutsceneOverlayNode/CutsceneTexts)
-- BombFlashNode (Phase G 완료)
-- 메뉴 6 씬 + 메뉴 노드 14 (단, ResultScene SparkleEffectNode 호출부 `.menu` 인자 명시 1줄만 예외)
-- Phase A~I 산물
-
-## 19. 합격 기준
-
-1. 인게임 모든 텍스트 Menlo-Bold (HUD 4슬롯 + 스킬 슬롯 + 콤보 팝업/브레이크 + 점수 팝업 + 카운트다운)
-2. 메뉴 UI Jua-Regular + 코랄/네이비 카툰 그대로
-3. HUD 색: 라벨=픽셀옐로, 값=픽셀화이트, TIME 경고=픽셀코랄
-4. sparkle 인게임 8 × 3pt 사각 / ResultScene 신기록 원형 유지
-5. 카운트다운 3·2·1 픽셀화이트, GO! 픽셀옐로
-6. 5초 긴박감 TIME 깜빡임 + 픽셀 비네트 동시 활성, 정확 detach
-7. HitFlash 픽셀톤 빨강 + .add
-8. Phase A~I 산물 + 메뉴 6+14 git diff 0줄 (ResultScene 1줄 예외)
-9. 가중 평균 7.5 이상
-
-## 20. 평가 5축
-
-| 축 | 가중 | 합격선 |
-|---|---|---|
-| Swift/SpriteKit 패턴 | 20% | 7.0 |
-| 원본 1:1 일치도 | 30% | 7.5 |
-| 성능 | 15% | 7.0 |
-| 시각 일관성 | 20% | 7.5 |
-| 기능 완성도 | 15% | 8.0 |
-
-가중 평균 7.5 이상 → 합격 → **Sprint 10 전체 완료**.
-
-## 21. 잠재 위험 / OQ
-
-- **OQ-1** HUD 폰트 자릿수: Menlo-Bold가 Jua-Regular보다 폭 넓을 수 있음. SCORE/COMBO 3자리 시 알약 폭 초과 검증. 초과 시 신규 hudSlotPixelValueFontSize 추가.
-- **OQ-2** SparkleEffectNode context 누락: ResultScene `.menu` 명시 누락 시 신기록 픽셀 입자로 톤 충돌. 호출부 grep + 명시 필수.
-- **OQ-3** CountdownNode context: 현재 호출 1곳(인게임)만, 기본값 `.ingame`으로 호환.
-- **OQ-4** 비네트 SRP: HUD startTensionBlink는 timeSlot 깜빡임만, 비네트는 별도 노드. GameScene가 두 책임 순차 호출.
-- **OQ-5** BombFlashNode 검증: Phase G 완료, Phase J 0줄.
-- **OQ-6** HitFlashNode .add 합성: 기존 peakAlpha 0.6 + .add 너무 밝을 위험. 0.6 → 0.5 1줄 조정 허용.
-
-## 22. 관련 파일
-
-- Nodes/HUDNode.swift, HUDSkillSlotNode.swift, ComboPopupNode.swift, ComboBreakNode.swift, ScorePopupNode.swift, SparkleEffectNode.swift, CountdownNode.swift, HitFlashNode.swift, TensionVignetteNode.swift(신규), BombFlashNode.swift(0줄)
-- Config/GameConfig.swift, ColorTokens.swift
-- GameScene.swift (비네트 attach/detach 2~3줄)
-- Scenes/ResultScene.swift (SparkleEffectNode 호출부 1줄)
+1. **EnemyNode contact 비트마스크 보존**: `body.contactTestBitMask = PhysicsCategory.player | PhysicsCategory.wall` 변경 금지. collision만 0으로 바꾼다.
+2. **GameConfig 기존 상수 삭제 금지**: V11 상수를 **추가**하고 호출부만 교체.
+3. **변경 금지 파일**: `PixelSprite.swift`, `PixelPalette.swift`, `PixelSpriteRenderer.swift`, `CharacterFaceNode.swift`, `NurseAvatarNode.swift` 본체.
+4. **easy 맵 벽 통과 시각**: easy에서 수간호사가 외곽 벽을 통과하는 장면이 보일 수 있다. 원본 game.js도 동일 동작이므로 허용 범위.

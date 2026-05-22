@@ -27,12 +27,8 @@ enum GameConfig {
     static let originalMapTileWidth: Int = 32
     /// 원본 맵 세로 타일 수(원본 동일). game.js L19.
     static let originalMapTileHeight: Int = 20
-    /// 원본 타일 1칸 픽셀 크기. game.js L17 TILE = 20.
-    static let originalMapTileSize: CGFloat = 20.0
-    /// 원본 스프라이트 화면 배율. game.js L101/L713 SCALE = 2.
-    static let originalMapPixelScale: CGFloat = 2.0
-    /// 시각상 한 셀 크기 (pt) = TILE_PT × SCALE = 40.
-    static let originalMapCellSize: CGFloat = originalMapTileSize * originalMapPixelScale
+    /// 시각상 한 셀 크기 (pt) = TILE_PT(20) × SCALE(2) = 40. game.js L17 TILE × L101/L713 SCALE.
+    static let originalMapCellSize: CGFloat = 40.0
     /// 월드 가로 전체 크기 (pt) = CELL_PT × MAP_W = 40 × 32 = 1280.
     static let originalMapWorldWidth: CGFloat = originalMapCellSize * CGFloat(originalMapTileWidth)
     /// 월드 세로 전체 크기 (pt) = CELL_PT × MAP_H = 40 × 20 = 800.
@@ -52,9 +48,6 @@ enum GameConfig {
     static let mapWidth: CGFloat = tileSize * CGFloat(mapColumns)
     /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 800 (Sprint 10 Phase B 산식 자동 갱신).
     static let mapHeight: CGFloat = tileSize * CGFloat(mapRows)
-    /// 4 모서리 검증 마커 한 변 길이 (pt). 1-2/1-3 공용.
-    static let cornerMarkerSize: CGFloat = 16
-
     // MARK: - Player (Phase 1-3 정식)
     /// 플레이어 기본 속도 (pt/s). easy 난이도 기준점.
     static let playerBaseSpeed: CGFloat = 140
@@ -85,17 +78,8 @@ enum GameConfig {
     static let noteMaxConcurrent: Int = 5
 
     // MARK: - HUD (Phase 2-4)
-    /// HUD 라벨 폰트 크기 (pt). 시스템 폰트 기준.
-    static let hudFontSize: CGFloat = 18
-    /// HUD 좌측 가장자리 안쪽 마진 (pt).
-    static let hudMarginX: CGFloat = 24
-    /// HUD 상단 가장자리 안쪽 마진 (pt).
-    static let hudMarginY: CGFloat = 24
     /// HUD 알파 (반투명, 가독성 우선). D-Pad 0.3보다 큼.
     static let hudAlpha: CGFloat = 0.85
-    /// Phase 5-4 — HUD 우상단 캐릭터 이름 라벨의 x 위치 (HUDNode 좌상단 anchor 기준 오른쪽 offset, pt).
-    /// landscape 1024-width 기본 캔버스 가정. 라벨 자체는 .right/.top 정렬이라 이 좌표가 라벨의 우상단 점.
-    static let hudCharacterNameOffsetX: CGFloat = 760
 
     // MARK: - Combo (Phase 2-5)
     /// 콤보 윈도우 (초). 마지막 수집 후 이 시간 이내 재수집 안 하면 콤보 0. GDD §8.
@@ -108,12 +92,6 @@ enum GameConfig {
     static let scorePerNoteCombo: Int = 2
 
     // MARK: - Enemy (Phase 2-6)
-    /// 적 기본 속도 (pt/s). easy 난이도 시작값. GDD §5 obsBaseSpeed.
-    /// Phase 2-8에서 시간 보간(→110)이 들어옴 — 본 sprint는 단일 상수.
-    static let enemyBaseSpeed: CGFloat = 60
-    /// 적 최대 속도 (pt/s). 게임 종료 시점 도달값. GDD §5 obsMaxSpeed.
-    /// Phase 2-8 — 시간 보간으로 enemyBaseSpeed(60)에서 이 값(110)까지 선형 증가.
-    static let enemyMaxSpeed: CGFloat = 110
     /// 수간호사 박스 가로 (pt). GDD §7-4 16×20.
     static let enemyWidth: CGFloat = 16
     /// 수간호사 박스 세로 (pt). GDD §7-4 16×20.
@@ -122,8 +100,6 @@ enum GameConfig {
     // MARK: - Projectile (Phase 2-7)
     /// F 투사체 한 변 (pt). GDD §7-5 16×16.
     static let projectileSize: CGFloat = 16
-    /// F 투사체 속도 (pt/s). 추적 적(60)보다 빠름 — 회피 시 빠른 이동 필요.
-    static let projectileSpeed: CGFloat = 160
     /// F 발사 주기 시작값 (초). GDD §5 easy 시작값. Phase 2-9에서 IntervalEnd(2.0)까지 선형 보간.
     static let projectileFireInterval: TimeInterval = 3.5
     /// F 발사 주기 끝값 (초). 게임 종료 시점 도달값. GDD §5 easy.
@@ -135,25 +111,6 @@ enum GameConfig {
     // MARK: - Scene Transition (Phase 3-1+2)
     /// 씬 전환 fade 길이 (초). TitleScene ↔ GameScene 양방향 공용.
     static let sceneTransitionDuration: TimeInterval = 0.4
-
-    // MARK: - Title Scene (Phase 3-1+2)
-    /// 타이틀 메인 라벨 폰트 크기 (pt). "김간호는 음악박사".
-    static let titleFontSize: CGFloat = 36
-    /// 타이틀 안내 라벨 폰트 크기 (pt). "TAP TO START".
-    static let titlePromptFontSize: CGFloat = 18
-    /// 타이틀 메인 라벨 y 오프셋 (pt). 화면 중심 기준 위쪽.
-    /// Phase 3-4 — bestLabel(중앙)이 끼면서 40 → 60으로 위로 이동(시각 균형).
-    /// Phase 3-5 — playsLabel(-20) 신설로 60 → 80, 라벨 4개 간격 40pt 균등.
-    /// Phase 7-5 — 80 → 120. 난이도 카드(+80)를 titleLabel 아래/bestLabel 위에 두기 위해 titleLabel을 위로 이동.
-    static let titleLabelOffsetY: CGFloat = 120
-    /// 타이틀 안내 라벨 y 오프셋 (pt). 화면 중심 기준 아래쪽.
-    /// Phase 3-4 — bestLabel(중앙) 신설로 -40 → -60.
-    /// Phase 3-5 — playsLabel(-20)과 간격 확보 위해 -60 → -80.
-    static let titlePromptOffsetY: CGFloat = -80
-    /// 타이틀 안내 라벨 깜빡임 알파 최저값.
-    static let titlePromptBlinkMinAlpha: CGFloat = 0.3
-    /// 타이틀 안내 라벨 깜빡임 한 사이클(in/out 각각) 길이 (초).
-    static let titlePromptBlinkDuration: TimeInterval = 0.6
 
     // MARK: - Result Scene (Phase 3-3)
     /// ResultScene "GAME OVER" 라벨 폰트 크기 (pt).
@@ -183,11 +140,6 @@ enum GameConfig {
     /// ResultScene BEST 라벨 y 오프셋. score(+20)와 prompt(-60) 사이 가운데.
     /// Phase 3-5 — score(+40)/statsLabel(-40) 사이 가운데로 -20 → 0.
     static let resultBestOffsetY: CGFloat = 0
-    /// TitleScene BEST 라벨 폰트 크기 (pt). prompt(18)와 동급.
-    static let titleBestFontSize: CGFloat = 18
-    /// TitleScene BEST 라벨 y 오프셋. title(+60)과 prompt(-60)의 정중앙.
-    /// Phase 3-5 — title(+80)/playsLabel(-20) 사이 균등 배치 위해 0 → 20.
-    static let titleBestOffsetY: CGFloat = 20
 
     // MARK: - Statistics (Phase 3-5)
     /// UserDefaults에 누적 통계(GameStats)를 JSON Data로 저장할 키. 호출부에 리터럴 노출 금지.
@@ -196,10 +148,6 @@ enum GameConfig {
     static let resultStatsFontSize: CGFloat = 16
     /// ResultScene PLAYS/TOTAL 라벨 y 오프셋. best(0)와 prompt(-80) 사이 균등 배치(-40).
     static let resultStatsOffsetY: CGFloat = -40
-    /// TitleScene PLAYS 라벨 폰트 크기 (pt). prompt(18)와 best(18) 동급보다 살짝 작게.
-    static let titlePlaysFontSize: CGFloat = 16
-    /// TitleScene PLAYS 라벨 y 오프셋. best(+20)와 prompt(-80) 사이 균등 배치(-20).
-    static let titlePlaysOffsetY: CGFloat = -20
 
     // MARK: - Stone Guard (Phase 4-1)
     /// 석조무사 박스 가로 (pt). GDD §7-6 — 수간호사와 동일 16×20.
@@ -224,10 +172,6 @@ enum GameConfig {
     ]
 
     // MARK: - Airforce Easter Egg (Phase 4-3)
-    /// 비행기 가로 (pt). 가로로 긴 막대형.
-    static let airplaneWidth: CGFloat = 32
-    /// 비행기 세로 (pt). 가로형 비율.
-    static let airplaneHeight: CGFloat = 16
     /// 비행기 좌→우 가로지르기 duration (초). 너무 빠르면 못 보고, 너무 느리면 게임 방해.
     static let airplaneCrossDuration: TimeInterval = 2.0
     /// 화면 상단에서 비행기 y 위치까지의 거리 (pt). cameraNode 자식 좌표계: y = +(halfH - 60).
@@ -265,11 +209,6 @@ enum GameConfig {
     /// 캐릭터 선택 카드 1장 세로 (pt). Sprint 7+ — 60 → 104 (1.73×).
     /// 세로 비율을 더 키워 친구 카드 느낌. 가로 76 × 세로 104 = 1:1.37.
     static let characterCardHeight: CGFloat = 104
-    /// 카드 사이 간격 (pt). 5장 일렬 — 전체 폭 = 5×48 + 4×10 = 280.
-    static let characterCardSpacing: CGFloat = 10
-    /// 카드 이름 라벨 폰트 크기 (pt). 카드 폭(48) 안에 한국어 3자 들어가야 함.
-    static let characterCardFontSize: CGFloat = 12
-    // Phase 7-1 — characterCardOffsetY는 §"Difficulty"(파일 하단)로 이동 — 값 -160 → -200으로 난이도 행 신설에 맞춰 한 칸 더 내림.
     /// 선택되지 않은 카드 알파. 선택 카드(1.0)와 시각 대비.
     static let characterCardDeselectedAlpha: CGFloat = 0.5
     /// Phase 5-5 — 선택된 카드 확대 배율. 1.0 기본에서 1.08배. 인접 카드 spacing(10pt)와 검증:
@@ -343,8 +282,6 @@ enum GameConfig {
     /// 콤보 마일스톤 발화 임계값 목록. 한 판 내 같은 마일스톤은 1회만 발화(멱등).
     /// 3 = 첫 환호 / 5 = 정착 / 10 = 황금기 / 20 = 클라이맥스. 자전적 곡 클라이맥스 모델.
     static let comboMilestones: [Int] = [3, 5, 10, 20]
-    /// 콤보 팝업 텍스트 폰트 크기 (pt). HUD(18)의 ~2.7배 — *임팩트 강조*.
-    static let comboPopupFontSize: CGFloat = 48
     /// 콤보 팝업이 위로 떠오르는 거리 (pt). 별이 하늘로 올라가는 톤.
     static let comboPopupFlyUpDistance: CGFloat = 80
     /// 팝업 1회 표시 총 길이 (초). group 액션(move + fade + scale) 묶음 duration.
@@ -361,8 +298,6 @@ enum GameConfig {
     /// 콤보 끊김 시 BREAK 시각 발화 임계값. 이 값 이상의 콤보에서 0으로 떨어졌을 때만 발화.
     /// 1→0, 2→0은 평범한 흐름이라 무시. 10 = 콤보 마일스톤 "황금기" 톤과 일치 — 손실감이 *체감*되는 지점.
     static let comboBreakThreshold: Int = 10
-    /// BREAK 라벨 폰트 크기 (pt). comboPopupFontSize(48)와 동일 — 환호/실망 시각 강도 대칭.
-    static let comboBreakFontSize: CGFloat = 48
     /// BREAK가 아래로 떨어지는 거리 (pt). comboPopupFlyUpDistance(80)보다 짧음 — *떨어짐*은 짧고 단호.
     static let comboBreakFallDistance: CGFloat = 60
     /// BREAK 1회 표시 총 길이 (초). comboPopupDuration(1.0)과 동일 — 환호/실망 시간축 대칭.
@@ -486,19 +421,10 @@ enum GameConfig {
     static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
         .easy: 420, .normal: 500, .hard: 500
     ]
-    /// Sprint 10 Phase D 이후 *미사용* (deprecated). 본래 적 추격 속도 보간용이었으나
-    /// Phase D에서 EnemyNode가 obs* 속도 dict를 직접 사용하면서 호출처 0건.
-    /// Phase I OQ-B: 즉시 삭제 대신 deprecated 표기만 — 후속 정리 sprint에서 제거 예정.
-    static let enemySpeedStartByDifficulty: [Difficulty: CGFloat] = [
-        .easy: 60, .normal: 170, .hard: 200
-    ]
-    /// Sprint 10 Phase D 이후 *미사용* (deprecated). Phase I OQ-B 보류 — 후속 정리.
-    static let enemySpeedEndByDifficulty: [Difficulty: CGFloat] = [
-        .easy: 110, .normal: 290, .hard: 340
-    ]
-    /// 난이도별 동시 음표 최대 수. easy(5)는 기존 noteMaxConcurrent와 동일 — 회귀 0 보장.
+    /// 난이도별 동시 음표 최대 수. easy(6) — 4-Bug Fix Sprint: 5→6으로 상향해 게임 밀도 강화.
+    /// normal/hard(4)는 현재 수치 유지.
     static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
-        .easy: 5, .normal: 4, .hard: 4
+        .easy: 6, .normal: 4, .hard: 4
     ]
     /// 난이도별 음표 TTL (초). easy = `.infinity` → applyLifetime 가드로 자가 소멸 미부착 → 기존 동작 정확 보존.
     /// normal/hard만 자가 소멸 SKAction 부착(주의사항 2).
@@ -514,9 +440,10 @@ enum GameConfig {
     static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
         .easy: 3, .normal: 9, .hard: 12
     ]
-    /// 난이도별 F 발사 주기 시작값 (초). easy(3.5)는 기존 projectileFireInterval와 동일.
+    /// 난이도별 F 발사 주기 시작값 (초). easy(1.2) — 4-Bug Fix Sprint: 3.5→1.2으로 단축해 회피 플레이 긴장감 강화.
+    /// normal/hard는 현재 수치 유지.
     static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 3.5, .normal: 1.0, .hard: 0.8
+        .easy: 1.2, .normal: 1.0, .hard: 0.8
     ]
     /// 난이도별 F 발사 주기 끝값 (초). easy(2.0)는 기존 projectileFireIntervalEnd와 동일.
     static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
@@ -531,30 +458,19 @@ enum GameConfig {
         .easy: 0.4, .normal: 0.7, .hard: 0.7
     ]
     /// 난이도별 음표 spawn 주기 (초). 원본 game.js L101~L105 noteSpawnInterval (시간은 SCALE 미적용).
-    /// easy=1.5 (기존 단일 noteSpawnInterval과 동일 → 회귀 0) / normal=0.4 / hard=0.3.
+    /// easy=1.2 (4-Bug Fix Sprint: 1.5→1.2 단축, 음표 spawn 밀도 강화) / normal=0.4 / hard=0.3.
     /// SpawnSystem.apply(difficulty)가 인스턴스 프로퍼티 noteSpawnInterval에 set.
     /// 원본은 frame-fill(매 프레임 즉시 보충), iOS는 timer 차등 — OQ-C 후속 정밀화 보류.
     static let noteSpawnIntervalByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 1.5, .normal: 0.4, .hard: 0.3
+        .easy: 1.2, .normal: 0.4, .hard: 0.3
     ]
 
     /// 난이도 카드 1장 가로 (pt). 3장 일렬 — 더 큼직(80 vs 캐릭터카드 48) — 화면 상위 인터랙션.
     static let difficultyCardWidth: CGFloat = 80
     /// 난이도 카드 1장 세로 (pt). 이름 + 부제 두 라벨이 들어가야 해서 캐릭터카드(60)보다 약간 작은 56.
     static let difficultyCardHeight: CGFloat = 56
-    /// 난이도 카드 사이 간격 (pt). 3장 일렬 — 전체 폭 = 3×80 + 2×16 = 272pt.
-    static let difficultyCardSpacing: CGFloat = 16
-    /// 난이도 카드 줄 y 오프셋 (pt). frame.midY 기준.
-    /// Phase 7-1 — -120(promptLabel 하단). Phase 7-5 — +80으로 *상단 이동* — titleLabel(+120) 아래 / bestLabel(+20) 위.
-    /// 작은 화면(640pt)에서 5장 캐릭터 카드 + 3장 난이도 카드를 *위/아래*로 분리해 절단 회피.
-    static let difficultyCardOffsetY: CGFloat = 80
-    /// 난이도 카드 이름 라벨 폰트 크기 (pt). "하/중/상" 한 글자 강조 — 캐릭터카드(12)보다 크게.
-    static let difficultyCardFontSize: CGFloat = 20
     /// 난이도 카드 부제 라벨 폰트 크기 (pt). 한국어 5~7자가 80pt 폭 안에 들어가야 함.
     static let difficultyCardSubtitleFontSize: CGFloat = 10
-    /// 캐릭터 카드 줄 y 오프셋 (pt) — Phase 7-1 — 난이도 행(-120) 신설로 -160 → -200으로 한 칸 더 내림.
-    /// Phase 7-5 — 난이도 카드가 상단(+80)으로 이동 → -200 → -160 *되돌림*. 작은 화면(640pt) 절단 회피.
-    static let characterCardOffsetY: CGFloat = -160
     /// UserDefaults에 마지막 난이도 선택을 raw String으로 저장할 키.
     /// 호출부에 리터럴 노출 금지 — DifficultyPreferenceRepository만 사용.
     static let difficultyPreferenceUserDefaultsKey: String = "selectedDifficulty"
@@ -570,8 +486,6 @@ enum GameConfig {
 
     /// 벽 셀 색(hex). 원본 픽셀 톤 — 옛 navyDeep을 본 Phase부터 대체.
     static let wallTileColorHex: String = "#2a2233"
-    /// 벽 셀 양각 highlight 색(hex) — Phase J 픽셀 톤 외곽 효과 후보. 본 Phase에선 미사용.
-    static let wallTileHighlightColorHex: String = "#3a3245"
     /// 벽 셀 zPosition. MapNode 자식 좌표계 기준 — MapNode 자체 zPos(-50) 위 적층.
     static let wallTileZPosition: CGFloat = 0
     /// 벽 셀 노드 이름. enumerate/디버그 검색용. breakableWallName("breakableWall")과 분리.
@@ -683,11 +597,6 @@ enum GameConfig {
     /// 컷씬 TAP 라벨 alpha. 0.7 = 본문·제목(1.0)과 시각 위계 + *깜빡임 없이도* 부속 안내임이 전달.
     /// dpadAlpha(0.7)와 동급 — *조작 안내 톤*과 일관.
     static let cutsceneTapLabelAlpha: CGFloat = 0.7
-    /// Phase 7-5 — 인트로 컷씬 1회 노출 가드 UserDefaults 키.
-    /// bool 기본값 false(Apple 보장) → 최초 사용자에게는 자동 컷씬 표시. dismiss 콜백에서 true set 후 이후 영구 스킵.
-    /// 신규 키 — 기존 키와 충돌 0.
-    static let hasSeenIntroCutsceneUserDefaultsKey: String = "hasSeenIntroCutscene"
-
     // MARK: - Diploma (Phase 7-4)
     /// 난이도별 졸업 목표 점수. 캐릭터 × 난이도 매트릭스에서 이 점수 이상 달성하면 그 난이도 "통과".
     /// easy 60 > normal 50 > hard 30 — 어려운 난이도일수록 목표는 낮지만 *달성 자체가 어려운* 균형.
@@ -762,34 +671,6 @@ enum GameConfig {
     static let uiRadius: CGFloat = 10
     /// --radius-sm 6px — 작은 카드 코너
     static let uiRadiusSm: CGFloat = 6
-    /// 캡슐 코너 반경 — border-radius: 999px (난이도 버튼)
-    static let uiRadiusPill: CGFloat = 999
-    /// 일반 패널 max-width 360px
-    static let uiPanelMaxWidth: CGFloat = 360
-    /// character 패널 max-width 480px (.game-overlay__panel--character)
-    static let uiPanelCharacterMaxWidth: CGFloat = 480
-    /// 패널 좌우 padding (pt)
-    static let uiPanelPaddingH: CGFloat = 20
-    /// 패널 상하 padding (pt)
-    static let uiPanelPaddingV: CGFloat = 22
-    /// 패널 안 요소 사이 gap (pt)
-    static let uiPanelGap: CGFloat = 14
-    /// 제목 텍스트 font-size 22px
-    static let uiTitleFontSize: CGFloat = 22
-    /// 본문 텍스트 font-size 12px
-    static let uiBodyFontSize: CGFloat = 12
-    /// 보조 hint 텍스트 font-size 11px
-    static let uiHintFontSize: CGFloat = 11
-    /// HUD 값 font-size 22px (큰 숫자/점수)
-    static let uiHudValueFontSize: CGFloat = 22
-    /// HUD 라벨 font-size 10px (작은 캡션)
-    static let uiHudLabelFontSize: CGFloat = 10
-    /// 카드 이름 font-size 12px
-    static let uiCardNameFontSize: CGFloat = 12
-    /// 카드 태그(부제) font-size 10px
-    static let uiCardTagFontSize: CGFloat = 10
-    /// 카드 BEST 라벨 font-size 10px
-    static let uiCardBestFontSize: CGFloat = 10
     /// 패널/카드 보더 line-width 1px
     static let uiPanelLineWidth: CGFloat = 1
 
@@ -802,8 +683,6 @@ enum GameConfig {
     static let resultPanelMaxWidth: CGFloat = 380
     /// 카드 패널 height (pt) — 모바일 풀스크린 비율에 맞춰. 라벨 6개(+155 ~ -80)가 패널 안에 들어가도록 560.
     static let resultPanelHeight: CGFloat = 560
-    /// 카드 패널 padding (pt) — 원본 padding 16 18 (좌우)
-    static let resultPanelPadding: CGFloat = 18
     /// 점수 숫자 font-size — 원본 40px serif (모바일 32). 큰 점수 라벨 (.score-num)
     static let resultScoreNumFontSize: CGFloat = 40
     /// 점수 라벨 font-size — 원본 14px text-muted (.game-overlay__score)
@@ -993,7 +872,7 @@ enum GameConfig {
     static let professorWarningBody: String = "학교에서 나온 깐깐한 이교수가 청진기를 들고 순찰을 돕니다! 맞으면 잠시 움직일 수 없게 됩니다. 피하세요."
 
     // MARK: - Stethoscope (Phase 9-7)
-    /// 청진기 투사체 — ProjectileNode(F)와 분리된 별도 PhysicsCategory.stethoscope 사용.
+    /// 청진기 투사체 — FProjectileNode(F)와 분리된 별도 PhysicsCategory.stethoscope 사용.
     /// 적중 시 즉시 게임오버가 아닌 *2초 정지* — F와 정체성 분리.
 
     /// 청진기 한 변 (pt). projectile(16)/note(16)보다 살짝 크게 — *위협 시그널* 강조.
@@ -1074,13 +953,14 @@ enum GameConfig {
     /// 헤더 폰트 크기 (pt). titleFontSize(36)보다 작음 — 부분 화면 헤더 톤.
     static let characterSelectHeaderFontSize: CGFloat = 22
     /// 헤더 y 오프셋. 패널 상단 부근.
+    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(170).
     static let characterSelectHeaderOffsetY: CGFloat = 170
     /// 캐릭터 카드 행 y 오프셋. 헤더 아래 적당한 간격.
     static let characterSelectCardOffsetY: CGFloat = 30
     /// 태그 라벨 폰트 크기 (pt). characterCardWidth(48) 안에 1~5자 작은 태그.
     static let characterSelectTagFontSize: CGFloat = 10
     /// 태그 라벨 y 오프셋 (카드 *외부*, 카드 위치 기준). 카드 아래쪽 -45pt.
-    static let characterSelectTagOffsetY: CGFloat = -45
+    static let characterSelectTagOffsetY: CGFloat = -60
     /// 버튼 행 y 오프셋. 카드 아래 충분한 간격.
     static let characterSelectButtonRowOffsetY: CGFloat = -160
     /// 두 버튼 좌우 간격 (pt). frame.midX 기준 ±(spacing/2).
@@ -1292,8 +1172,10 @@ enum GameConfig {
     /// 헤더 부제 텍스트.
     static let characterSelectHeaderSubText: String = "친구마다 다른 스킬과 이동속도를 가져요"
     /// 헤더 부제 y 오프셋(pt). headerLabel 아래 -22.
+    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(-22).
     static let characterSelectHeaderSubOffsetY: CGFloat = -22
     /// 헤더 AccentLine y 오프셋(pt). headerLabel 위 +24.
+    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(24).
     static let characterSelectAccentLineOffsetY: CGFloat = 24
 
     /// 뒤로 GlassPill 텍스트.
@@ -2774,6 +2656,42 @@ enum GameConfig {
     static let tensionVignetteBlinkAlphaMin: CGFloat = 0.3
     /// 비네트 깜빡임 알파 진폭 상한(밝은 톤). 0.7 — edgeAlpha(0.6)의 ~117%.
     static let tensionVignetteBlinkAlphaMax: CGFloat = 0.7
+
+    // MARK: - Sprint 10.6 · CharacterSelect Header Repositioning V10
+    /// 헤더 main label y 오프셋 V10(+145pt). V9=170 → 헤더 묶음을 25pt 아래로 — 좌우 카드 top(midY+147)과 30pt 호흡 확보.
+    /// V9 상수(characterSelectHeaderOffsetY=170)는 값 보존 — 회귀 안전망.
+    static let characterSelectHeaderOffsetYV10: CGFloat = 145
+    /// 헤더 부제 y 오프셋 V10(-28pt — headerLabel 기준). V9=-22 → -6pt 더 떨어뜨려 sub 폰트 12pt × 호흡 확보.
+    static let characterSelectHeaderSubOffsetYV10: CGFloat = -28
+    /// AccentLine y 오프셋 V10(+18pt — headerLabel 기준). V9=+24 → -6pt — AccentLine을 헤더에 더 가까이.
+    static let characterSelectAccentLineOffsetYV10: CGFloat = 18
+
+    // MARK: - Sprint 10.6 · Result Visual Hierarchy V10
+    /// SCORE 부제 라벨 alpha V10(0.55). BEST pill과 시각 동급 인상 제거 — 점수 라벨의 보조 캡션 톤다운.
+    static let resultScoreSubAlphaV10: CGFloat = 0.55
+    /// PLAYS/TOTAL stat 4라벨 통일 alpha V10(0.45). "조용한 보조" 위계로 강등.
+    static let resultStatAlphaV10: CGFloat = 0.45
+    /// divider alpha V10(0.7). stat 묶음 시각 일관성 — fillColor가 navyDeep*0.18이라 0.7 곱하면 ≈0.126.
+    static let resultDividerAlphaV10: CGFloat = 0.7
+
+    // MARK: - 4-Bug Fix Sprint · V11 Layout Constants
+    // 기존 상수(V4/V9/V10) 보존 — 호출부 교체만.
+
+    /// ResultScene titleLabel y 오프셋 V11(+90pt). V4=100 → -10pt 내려 scoreLabel 상단과 간격 확보.
+    /// 기존 resultTitleOffsetYV4(100)는 값 보존.
+    static let resultTitleOffsetYV11: CGFloat = 90
+
+    /// ResultScene divider → stat 행 거리 V11(14pt). V9=28 → 절반 — stat 영역을 divider에 가깝게 올림.
+    /// stat 그룹과 버튼 Y 겹침 해소. 기존 resultStatGapFromDividerV9(28)는 값 보존.
+    static let resultStatGapFromDividerV11: CGFloat = 14
+
+    /// ResultScene 두 버튼(공유/다시시작) safeArea.bottom 기준 안쪽 거리 V11(30pt). V7+=56 → -26pt.
+    /// 겹침 여백 40pt 이상 확보. 기존 resultButtonBottomInset(56)는 값 보존.
+    static let resultButtonBottomInsetV11: CGFloat = 30
+
+    /// CharacterSelectScene 헤더 main label y 오프셋 V11(+160pt). V10=145 → +15pt — 카드 영역과 여백 확보.
+    /// 기존 characterSelectHeaderOffsetYV10(145)는 값 보존.
+    static let characterSelectHeaderOffsetYV11: CGFloat = 160
 }
 
 // MARK: - Sprint 10 Phase G · Airforce Pixel Palette (inline UIColor — ColorTokens 본체 0줄)

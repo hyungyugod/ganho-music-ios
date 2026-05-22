@@ -101,7 +101,9 @@ final class EnemyNode: SKSpriteNode {
         body.restitution         = 0
         body.linearDamping       = 0
         body.categoryBitMask     = PhysicsCategory.enemy
-        body.collisionBitMask    = PhysicsCategory.wall
+        // 원본 game.js 1:1 — 수간호사는 벽 물리 반응 없음. waypoint 도달 판정이 무한 불충족되지 않도록.
+        // contactTestBitMask(감지)는 절대 변경 금지 — collision(물리 반응)과 독립 비트마스크.
+        body.collisionBitMask    = 0
         body.contactTestBitMask  = PhysicsCategory.player
         physicsBody = body
 

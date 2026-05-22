@@ -18,7 +18,7 @@ import SpriteKit
 
 /// 캐릭터 선택 단일 결정 씬. v2 리스킨 + Sprint 6 흐름 재편.
 /// Sprint 6 — difficulty 필드 제거. 캐릭터 ID만 결정해서 다음 씬으로 넘김.
-final class CharacterSelectScene: SKScene {
+final class CharacterSelectScene: BaseMenuScene {
 
     // MARK: - Properties
     /// 씬 전환 가드.
@@ -47,8 +47,6 @@ final class CharacterSelectScene: SKScene {
     private var skillInfoChip: DarkContextChipNode?
     private let confirmButton = PrimaryButtonNode(text: "다음")
     private let preferenceRepo = CharacterPreferenceRepository()
-    /// Sprint 2 — 그라데이션 배경 노드. didChangeSize 시 재생성을 위해 참조 보관.
-    private var gradientBackground: GradientBackgroundNode?
 
     // Sprint 8 Phase B — 스와이프 페이지 상태 (4 properties).
     /// 5장 카드 중 현재 중앙 카드 인덱스. didMove에서 selectedCharacterID 기준으로 초기화.
@@ -87,7 +85,7 @@ final class CharacterSelectScene: SKScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgWarmTop  // Sprint 2 — 1프레임 fallback도 warm.
-        setupGradientBackground()           // Sprint 2 — 3-stop warm gradient.
+        setupWarmGradientBackground()       // Sprint 2 — 3-stop warm gradient.
         setupHeader()                       // Sprint 2 — AccentLine + Jua + Gowun Dodum 부제.
         setupTopBar()                       // Sprint 6 — GlassPill 뒤로만 (난이도 칩 제거).
         selectedCharacterID = preferenceRepo.current
@@ -108,7 +106,7 @@ final class CharacterSelectScene: SKScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildGradientBackground()
+        rebuildWarmGradientBackground()
         layoutHeader()
         layoutTopBar()
         layoutCardContainers()
@@ -126,25 +124,6 @@ final class CharacterSelectScene: SKScene {
         layoutCards(animated: false)
     }
 
-    // MARK: - Setup (Sprint 2 · Background)
-    private func setupGradientBackground() {
-        let node = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        node.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradientBackground = node
-        addChild(node)
-    }
-
-    private func rebuildGradientBackground() {
-        gradientBackground?.removeFromParent()
-        gradientBackground = nil
-        setupGradientBackground()
-    }
-
     // MARK: - Setup (Sprint 2 · Header)
     private func setupHeader() {
         headerLabel.fontName = GameConfig.fontDisplay
@@ -159,6 +138,9 @@ final class CharacterSelectScene: SKScene {
         headerSubLabel.fontColor = .ganhoNavyMuted
         headerSubLabel.horizontalAlignmentMode = .center
         headerSubLabel.verticalAlignmentMode = .center
+        // 4-Bug Fix Sprint — 부제 "친구마다 다른 스킬과 이동속도를 가져요"를 완전 숨김.
+        // removeFromParent() 금지(노드 트리 보존). isHidden=true로 시각만 차단.
+        headerSubLabel.isHidden = true
         addChild(headerSubLabel)
 
         addChild(accentLine)
@@ -166,16 +148,18 @@ final class CharacterSelectScene: SKScene {
     }
 
     private func layoutHeader() {
+        // 4-Bug Fix Sprint — 헤더 묶음 V11 좌표.
+        // V10(145)에서 +15pt 더 올려 카드 영역과 여백 확보.
         let centerX = frame.midX
-        let baseY = frame.midY + GameConfig.characterSelectHeaderOffsetY
+        let baseY = frame.midY + GameConfig.characterSelectHeaderOffsetYV11
         headerLabel.position = CGPoint(x: centerX, y: baseY)
         headerSubLabel.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.characterSelectHeaderSubOffsetY
+            y: baseY + GameConfig.characterSelectHeaderSubOffsetYV10
         )
         accentLine.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.characterSelectAccentLineOffsetY
+            y: baseY + GameConfig.characterSelectAccentLineOffsetYV10
         )
     }
 

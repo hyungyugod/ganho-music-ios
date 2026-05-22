@@ -254,6 +254,10 @@ final class ResultScene: SKScene {
         configureBestLabelV2()
         configureScoreSubLabelV2()
         configureSubtitleLabelV2()
+        // Sprint 10.6 — "수고했어요"/"실습 종료" 중복 타이틀 정리. subtitleLabel을 alpha=0으로 시각 차단.
+        // configureSubtitleLabelV2() 내부 configureLabelV2가 alpha=1 강제 세팅하므로 *호출 뒤* 위치 필수.
+        // 노드 트리·텍스트·좌표 보존 — 기존 5개 라벨(characterLabel 등)과 동형 패턴.
+        subtitleLabel.alpha = 0
         configureDivider()
 
         // 데이터 합성.
@@ -381,6 +385,7 @@ final class ResultScene: SKScene {
     }
 
     /// Sprint 5 — scoreSubLabel v2 토큰. 분기 A("SCORE") / B("NEW SCORE") navyMuted.
+    /// Sprint 10.6 — BEST pill과 시각 동급 인상 제거 위해 alpha 0.55 톤다운(점수 라벨의 보조 캡션).
     private func configureScoreSubLabelV2() {
         configureLabelV2(
             scoreSubLabel,
@@ -389,6 +394,8 @@ final class ResultScene: SKScene {
             fontSize: GameConfig.resultStatTitleFontSizeV2,
             fontColor: .ganhoNavyMuted
         )
+        // configureLabelV2가 alpha=1 강제 세팅 후 *뒤*에 톤다운 — 단일 진실 원천.
+        scoreSubLabel.alpha = GameConfig.resultScoreSubAlphaV10
     }
 
     /// Sprint 5 — subtitleLabel v2 토큰. 분기 A("수고했어요! 한 번 더 해볼까요?") / B("최고 기록을 갱신했어요!").
@@ -455,6 +462,14 @@ final class ResultScene: SKScene {
             fontSize: GameConfig.resultStatTitleFontSizeV2,
             fontColor: .ganhoNavyMuted
         )
+        // Sprint 10.6 — PLAYS/TOTAL 4라벨을 "조용한 보조" 위계로 강등.
+        // configureLabelV2가 alpha=1 강제 세팅 후 *뒤*에 약화 — 단일 진실 원천.
+        // divider도 함께 약화해 stat 묶음 시각 일관성 확보.
+        playsValueLabel.alpha = GameConfig.resultStatAlphaV10
+        playsTitleLabel.alpha = GameConfig.resultStatAlphaV10
+        totalValueLabel.alpha = GameConfig.resultStatAlphaV10
+        totalTitleLabel.alpha = GameConfig.resultStatAlphaV10
+        divider.alpha = GameConfig.resultDividerAlphaV10
         addChild(playsValueLabel)
         addChild(playsTitleLabel)
         addChild(totalValueLabel)
@@ -541,7 +556,7 @@ final class ResultScene: SKScene {
         // 기존 라벨 위치(레거시) — alpha=0이어도 노드 트리 보존.
         titleLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultTitleOffsetYV2
+            y: frame.midY + GameConfig.resultTitleOffsetYV11
         )
         scoreLabel.position = CGPoint(
             x: frame.midX,
@@ -595,9 +610,9 @@ final class ResultScene: SKScene {
             x: frame.midX,
             y: frame.midY + GameConfig.resultDividerOffsetYV4
         )
-        // Sprint 9 Phase D — stat 좌표는 divider V4 - statGap V9 상대식으로 의도 명시(위/아래 묶음 분리).
-        // V3 statValueY(-98) 대비 -96 → -2pt 미세 차이, V3 statTitle pitch(-14)는 보존.
-        let statValueY = GameConfig.resultDividerOffsetYV4 - GameConfig.resultStatGapFromDividerV9
+        // 4-Bug Fix Sprint — stat 좌표는 divider V4 - statGap V11 상대식으로 의도 명시(위/아래 묶음 분리).
+        // V11(14pt): V9(28pt) → 절반. stat 영역을 divider에 가깝게 올려 버튼 겹침 해소.
+        let statValueY = GameConfig.resultDividerOffsetYV4 - GameConfig.resultStatGapFromDividerV11
         let statTitleY = statValueY - 14
         playsValueLabel.position = CGPoint(
             x: frame.midX - GameConfig.resultStatGroupSpacingXV2,
@@ -631,7 +646,8 @@ final class ResultScene: SKScene {
         // 기존 resultButtonOffsetYV2(-180)는 값 보존 — 다른 곳 참조 가능성.
         // frame.midY + offset 식은 디바이스에 따라 두 버튼이 잘렸다.
         let safe = SceneSafeArea.insets(for: self)
-        let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInset
+        // 4-Bug Fix Sprint — V11(30pt): V7+=56 → -26pt. 버튼 inset 축소로 stat 영역과 40pt 이상 여백 확보.
+        let buttonY = frame.minY + safe.bottom + GameConfig.resultButtonBottomInsetV11
         let shareX = frame.midX + GameConfig.resultShareButtonXOffsetV2
         shareButton?.position = CGPoint(
             x: shareX,
