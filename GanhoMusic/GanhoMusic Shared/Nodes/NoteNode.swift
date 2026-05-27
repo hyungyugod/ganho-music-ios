@@ -28,6 +28,7 @@ final class NoteNode: SKSpriteNode {
         let texture = PixelSpriteRenderer.notePixelTexture()
         super.init(texture: texture, color: .clear, size: visualSize)
         name = "note"
+        addReadableHalo()
 
         // PhysicsBody 부착 — static, player에게는 통과(collision=0), 알림만(contactTest).
         // **hitbox = 16×16 보존, 시각만 noteSize(32)로 확대 (Sprint 10.5 Phase B).**
@@ -48,7 +49,7 @@ final class NoteNode: SKSpriteNode {
                                  duration: GameConfig.noteBobDuration / 2)
         let down = up.reversed()
         let bob = SKAction.sequence([up, down])
-        run(.sequence([waitPhase, .repeatForever(bob)]), withKey: "noteBob")
+        run(.sequence([waitPhase, .repeatForever(bob)]), withKey: GameConfig.noteBobActionKey)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -65,6 +66,28 @@ final class NoteNode: SKSpriteNode {
         let wait   = SKAction.wait(forDuration: ttl)
         let fade   = SKAction.fadeOut(withDuration: 0.2)
         let remove = SKAction.removeFromParent()
-        run(.sequence([wait, fade, remove]), withKey: "noteLifetime")
+        run(.sequence([wait, fade, remove]), withKey: GameConfig.noteLifetimeActionKey)
+    }
+
+    // MARK: - Readability
+    private func addReadableHalo() {
+        let halo = SKShapeNode(circleOfRadius: GameConfig.noteReadableHaloRadius)
+        halo.strokeColor = UIColor.ganhoIngameReward
+            .withAlphaComponent(GameConfig.noteReadableHaloAlpha)
+        halo.lineWidth = GameConfig.ingameObjectHaloLineWidth
+        halo.fillColor = UIColor.ganhoIngameRewardMint
+            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha * GameConfig.ingameHalfAlphaMultiplier)
+        halo.zPosition = -1
+        addChild(halo)
+
+        let sparkle = SKShapeNode(circleOfRadius: GameConfig.noteReadableSparkleRadius)
+        sparkle.fillColor = .ganhoPixelHudWhite
+        sparkle.strokeColor = .clear
+        sparkle.position = CGPoint(
+            x: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio,
+            y: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio
+        )
+        sparkle.zPosition = 2
+        addChild(sparkle)
     }
 }

@@ -106,7 +106,8 @@ final class CountdownNode: SKNode, SelfDismissingNode {
             self.label.fontColor = color
             // Sprint 7 Phase E — 매 단계 fontSize 갱신 (숫자 120pt). GO! 단계에서 140pt로 바뀐 후 다시 1로 돌아올 때도 안정.
             self.label.fontSize = GameConfig.countdownNumberFontSizeV3
-            self.label.alpha = 0
+            self.alpha = 0
+            self.label.alpha = 1
             self.label.setScale(1.0)
             onTick()
         }
@@ -129,7 +130,8 @@ final class CountdownNode: SKNode, SelfDismissingNode {
             self.label.fontColor = goColor
             // Sprint 7 Phase E — GO! fontSize 140pt (숫자 120pt보다 큼). "더 큰 임팩트" 위계.
             self.label.fontSize = GameConfig.countdownGoFontSizeV3
-            self.label.alpha = 0
+            self.alpha = 0
+            self.label.alpha = 1
             // Sprint 7 Phase E — 시작 scale 1.0 → 1.2. 등장부터 임팩트 확보.
             self.label.setScale(GameConfig.countdownGoStartScaleV3)
             onGo()

@@ -434,15 +434,15 @@ extension CharacterCardNode {
         let isCenter: Bool
         switch role {
         case .center:
-            targetScale = GameConfig.characterSwipeCardScaleCenterV4
+            targetScale = GameConfig.characterSwipeCardScaleCenterV12
             targetAlpha = 1.0
             isCenter = true
         case .left, .right:
-            targetScale = GameConfig.characterSwipeCardScaleSideV4
-            targetAlpha = GameConfig.characterSwipeCardAlphaSideV4
+            targetScale = GameConfig.characterSwipeCardScaleSideV12
+            targetAlpha = GameConfig.characterSwipeCardAlphaSideV12
             isCenter = false
         case .offscreen:
-            targetScale = GameConfig.characterSwipeCardScaleSideV4
+            targetScale = GameConfig.characterSwipeCardScaleSideV12
             targetAlpha = 0
             isCenter = false
         }

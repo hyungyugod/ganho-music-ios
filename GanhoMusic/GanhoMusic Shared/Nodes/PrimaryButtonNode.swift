@@ -120,5 +120,17 @@ final class PrimaryButtonNode: SKNode {
         textLabel.verticalAlignmentMode = .center
         textLabel.position = .zero
         textLabel.zPosition = 2
+        fitTextLabel()
+    }
+
+    private func fitTextLabel() {
+        textLabel.setScale(1.0)
+        let maxWidth = GameConfig.primaryButtonWidth
+            - GameConfig.primaryButtonTextHorizontalPadding * 2
+            - GameConfig.primaryButtonArrowReservedWidth
+        let width = textLabel.calculateAccumulatedFrame().width
+        guard width > maxWidth, width > 0 else { return }
+        let scale = max(GameConfig.labelMinimumScale, maxWidth / width)
+        textLabel.setScale(scale)
     }
 }

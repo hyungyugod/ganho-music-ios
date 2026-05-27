@@ -2,16 +2,8 @@
 //  StartScene.swift
 //  GanhoMusic Shared
 //
-//  Phase 10-1a · 시작 시퀀스 1단계 — 제목 + BEST/PLAYS + 스토리 박스 + 난이도 3장 + 시작 버튼
-//  Phase 10-2 · 모던 리스킨 (병동의 새벽 톤) — 그라데이션 배경 + 음표 파티클 + 제목 글로우 +
-//               카드 spring/링 글로우 + 시작 버튼 pulse + 전환 잔향. *게임플레이 변경 0건*.
-//  Sprint 2 · 메뉴 v2 리스킨 — 3-stop warm gradient + GlassPill BEST/PLAYS + Jua 2-라인 타이틀
-//               + AccentLine + Gowun Dodum 태그라인. overlay 패널 제거. 음표 emitter는 보존.
-//  Sprint 6 · 흐름 재편 — 난이도 카드 3장을 *제거*하고 좌측에 NurseAvatarNode 큰 그림을 부착.
-//               난이도 결정은 5단계 흐름의 *마지막*(DifficultySelectScene)으로 이동.
-//               transitionToNext는 CharacterSelectScene을 *인자 없이* 호출(difficulty 제거).
-//
-//  10-1b 완성 시점부터 "시작" → CharacterSelectScene 전환.
+//  앱 첫 진입 화면. 통계 pill, 타이틀, NurseAvatar, 시작 버튼을 배치하고
+//  시작 탭 이후 CharacterSelectScene으로 넘긴다.
 //
 
 import SpriteKit
@@ -19,7 +11,7 @@ import SpriteKit
 /// 앱 첫 진입 씬. v2 리스킨: 그라데이션 + AccentLine + 2-라인 Jua 타이틀 + 태그라인 +
 /// 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill + 좌측 NurseAvatarNode + 시작 버튼.
 /// Sprint 6 — 난이도 카드/repo/select 로직 모두 삭제. characterRepo만 유지(다음 씬이 자기 repo로 다시 읽음).
-final class StartScene: SKScene {
+final class StartScene: BaseMenuScene {
 
     // MARK: - Properties
     /// 씬 전환이 시작됐는지 여부. true가 되면 추가 탭은 무시 — 더블 enter 방지.
@@ -39,9 +31,6 @@ final class StartScene: SKScene {
     /// 캐릭터 선택 영속 계층. didMove에서 .current로 복원 — 10-1a는 GameScene 직진 시점에 사용.
     /// 10-1b 이후는 CharacterSelectScene이 자기 repo로 다시 읽는다(불변 흐름).
     private let characterRepo = CharacterPreferenceRepository()
-    /// Phase 10-2 — 그라데이션 배경 노드. didChangeSize 시 재생성을 위해 *참조 보관*.
-    /// 옵셔널 — didMove 전엔 nil.
-    private var gradientBackground: GradientBackgroundNode?
     /// Phase 10-2 — 음표 파티클 컨테이너. 씬 사이즈 의존 — didChangeSize 시 재생성.
     private var musicNoteEmitter: MusicNoteEmitterNode?
     /// Sprint 6 — 좌측 김간호 큰 그림. SKShapeNode 컨테이너. didChangeSize에서 재배치.
@@ -59,7 +48,7 @@ final class StartScene: SKScene {
     override func didMove(to view: SKView) {
         // Sprint 2 — 1프레임 fallback도 warm top으로 (다크 플래시 회피).
         backgroundColor = .ganhoBgWarmTop
-        setupGradientBackground()             // Sprint 2 — 3-stop warm gradient. zPos -20.
+        setupWarmGradientBackground()         // Sprint 2 — 3-stop warm gradient. zPos -20.
         setupMusicNoteEmitter()               // Phase 10-2 — 보존. zPos -15.
         setupStatPills()                      // Sprint 2 — BEST/PLAYS GlassPill 2개.
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
@@ -71,34 +60,12 @@ final class StartScene: SKScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         // Phase 10-2 — 그라데이션/음표 emitter는 sceneSize 의존 → 사이즈 변경 시 재생성.
-        rebuildGradientBackground()
+        rebuildWarmGradientBackground()
         rebuildMusicNoteEmitter()
         layoutStatPills()
         layoutTitleBlock()
         layoutNurseAvatar()                   // Sprint 6.
         layoutStartButton()
-    }
-
-    // MARK: - Setup (Sprint 2 · Background)
-    /// Sprint 2 — 3-stop warm gradient(피치 → 코랄 → 라벤더). zPos -20.
-    /// didChangeSize에서 재생성하기 위해 인스턴스 참조 보관.
-    private func setupGradientBackground() {
-        let node = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        node.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradientBackground = node
-        addChild(node)
-    }
-
-    /// 사이즈 변경 시 그라데이션 재생성. 기존 노드는 removeFromParent.
-    private func rebuildGradientBackground() {
-        gradientBackground?.removeFromParent()
-        gradientBackground = nil
-        setupGradientBackground()
     }
 
     /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
@@ -140,13 +107,22 @@ final class StartScene: SKScene {
 
     private func layoutStatPills() {
         guard let best = bestPill, let plays = playsPill else { return }
-        let y = frame.maxY - GameConfig.startSceneStatPillTopMargin
+        let safe = menuSafeInsets()
+        let scale = menuCompactScale()
+        best.setScale(scale)
+        plays.setScale(scale)
+        let y = topBarY(
+            extraInset: max(
+                0,
+                GameConfig.startSceneStatPillTopMargin - GameConfig.menuTopSafePadding
+            )
+        )
         best.position = CGPoint(
-            x: frame.minX + GameConfig.startSceneStatPillSideMargin,
+            x: frame.minX + safe.left + GameConfig.startSceneStatPillSideMargin * scale,
             y: y
         )
         plays.position = CGPoint(
-            x: frame.maxX - GameConfig.startSceneStatPillSideMargin,
+            x: frame.maxX - safe.right - GameConfig.startSceneStatPillSideMargin * scale,
             y: y
         )
     }
@@ -186,22 +162,55 @@ final class StartScene: SKScene {
     }
 
     private func layoutTitleBlock() {
-        let anchorX = frame.maxX - GameConfig.startSceneTitleBlockRightMargin
-        let centerY = frame.midY + GameConfig.startSceneTitleBlockOffsetY
+        let safe = menuSafeInsets()
+        let scale = menuCompactScale()
+        titleLine1.setScale(scale)
+        titleLine2.setScale(scale)
+        taglineLabel.setScale(scale)
+        accentLine.setScale(scale)
+        taglineLabel.preferredMaxLayoutWidth = GameConfig.startSceneTaglineMaxWidth * scale
+        let avatarReservedWidth = GameConfig.startSceneAvatarReservedWidth * avatarScale()
+        let leftLimit = frame.minX
+            + safe.left
+            + avatarReservedWidth
+            + GameConfig.startSceneMinTitleAvatarGap * scale
+        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+        let anchorX = min(
+            frame.maxX - GameConfig.startSceneTitleBlockRightMargin * scale,
+            rightLimit
+        )
+        let compactOffsetY = size.height < GameConfig.compactLandscapeMinHeight
+            ? GameConfig.startSceneCompactTitleOffsetY
+            : GameConfig.startSceneTitleBlockOffsetY
+        let titleHeight = (
+            GameConfig.startSceneAccentLineAboveTitleOffset
+            + GameConfig.startSceneTitleLineSpacing
+            - GameConfig.startSceneTaglineBelowTitleOffset
+        ) * scale
+        let maxCenterY = frame.maxY
+            - safe.top
+            - GameConfig.menuTopSafePadding
+            - titleHeight / 2
+        let minCenterY = bottomCTAAnchorY(
+            buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2
+        ) + GameConfig.primaryButtonHeight * scale
+        let preferredCenterY = frame.midY + compactOffsetY * scale
+        let centerY = min(max(preferredCenterY, minCenterY), maxCenterY)
+        let resolvedAnchorX = min(max(anchorX, leftLimit), rightLimit)
         // 타이틀 1행은 위, 타이틀 2행은 아래 — 줄간 lineSpacing.
-        let line1Y = centerY + GameConfig.startSceneTitleLineSpacing / 2
-        let line2Y = centerY - GameConfig.startSceneTitleLineSpacing / 2
-        titleLine1.position = CGPoint(x: anchorX, y: line1Y)
-        titleLine2.position = CGPoint(x: anchorX, y: line2Y)
+        let line1Y = centerY + GameConfig.startSceneTitleLineSpacing * scale / 2
+        let line2Y = centerY - GameConfig.startSceneTitleLineSpacing * scale / 2
+        titleLine1.position = CGPoint(x: resolvedAnchorX, y: line1Y)
+        titleLine2.position = CGPoint(x: resolvedAnchorX, y: line2Y)
         // AccentLine은 타이틀1 위로 +offset, 우측 정렬에 맞춰 우측 끝을 anchorX에 맞춤.
         accentLine.position = CGPoint(
-            x: anchorX - GameConfig.accentLineWidth / 2,
-            y: line1Y + GameConfig.startSceneAccentLineAboveTitleOffset
+            x: resolvedAnchorX - GameConfig.accentLineWidth * scale / 2,
+            y: line1Y + GameConfig.startSceneAccentLineAboveTitleOffset * scale
         )
         // 태그라인은 타이틀2 아래.
         taglineLabel.position = CGPoint(
-            x: anchorX,
-            y: line2Y + GameConfig.startSceneTaglineBelowTitleOffset
+            x: resolvedAnchorX,
+            y: line2Y + GameConfig.startSceneTaglineBelowTitleOffset * scale
         )
     }
 
@@ -218,9 +227,12 @@ final class StartScene: SKScene {
     }
 
     private func layoutNurseAvatar() {
+        let safe = menuSafeInsets()
+        let scale = GameConfig.nurseAvatarScale * menuCompactScale() * avatarScale()
+        nurseAvatar?.setScale(scale)
         nurseAvatar?.position = CGPoint(
-            x: frame.minX + GameConfig.nurseAvatarOffsetX,
-            y: frame.midY + GameConfig.nurseAvatarOffsetY
+            x: frame.minX + safe.left + GameConfig.nurseAvatarOffsetX * avatarScale(),
+            y: frame.midY + GameConfig.nurseAvatarOffsetY * menuCompactScale()
         )
     }
 
@@ -236,29 +248,38 @@ final class StartScene: SKScene {
     /// 새 식: frame.minY + safeArea.bottom + startButtonBottomInset → 모든 디바이스 보장.
     /// 기존 GameConfig.startSceneStartButtonOffsetY(-180)는 값만 보존(다른 곳 참조 가능성).
     private func layoutStartButton() {
-        let safe = SceneSafeArea.insets(for: self)
-        // frame.minY는 SpriteKit 좌표계에서 화면 하단. safeArea.bottom + inset만큼 위로.
+        let scale = menuCompactScale()
+        startButton.setScale(scale)
         startButton.position = CGPoint(
             x: frame.midX,
-            y: frame.minY + safe.bottom + GameConfig.startButtonBottomInset
+            y: bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
         )
+        attachStartButtonPulse()
+    }
+
+    private func avatarScale() -> CGFloat {
+        return size.height < GameConfig.compactLandscapeMinHeight
+            ? GameConfig.startSceneAvatarCompactScale
+            : 1.0
     }
 
     /// Phase 10-2 — 시작 버튼에 호흡 pulse. 0.98 ↔ 1.02, 한 주기 2초.
     /// 외부에서 부착 — PrimaryButtonNode 내부 구조 변경 0.
     /// 씬 전환 시 transitionToNext에서 액션 키로 정리.
     private func attachStartButtonPulse() {
+        let baseScale = menuCompactScale()
         let down = SKAction.scale(
-            to: GameConfig.startButtonPulseScaleMin,
+            to: baseScale * GameConfig.startButtonPulseScaleMin,
             duration: GameConfig.startButtonPulseHalfDuration
         )
         down.timingMode = .easeInEaseOut
         let up = SKAction.scale(
-            to: GameConfig.startButtonPulseScaleMax,
+            to: baseScale * GameConfig.startButtonPulseScaleMax,
             duration: GameConfig.startButtonPulseHalfDuration
         )
         up.timingMode = .easeInEaseOut
         let pulse = SKAction.sequence([down, up])
+        startButton.removeAction(forKey: "startButtonPulse")
         startButton.run(
             SKAction.repeatForever(pulse),
             withKey: "startButtonPulse"

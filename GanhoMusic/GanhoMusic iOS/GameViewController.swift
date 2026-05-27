@@ -35,8 +35,6 @@ class GameViewController: UIViewController {
         #if DEBUG
         skView.showsFPS = true
         skView.showsNodeCount = true
-        skView.showsDrawCount = true
-        skView.showsPhysics = true   // 물리바디 경계 박스 (offset 조정용)
         #endif
     }
 

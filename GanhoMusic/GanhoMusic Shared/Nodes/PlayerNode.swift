@@ -78,6 +78,7 @@ final class PlayerNode: SKSpriteNode {
     /// static — PlayerNode 인스턴스 전환(캐릭터 재선택 후 재시작)에도 1회 워밍 유지.
     /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전.
     private static var textureCache: [CharacterID: [PixelDirection: SKTexture]] = [:]
+    private let nearMissWarning = PlayerNearMissWarningNode()
 
     // MARK: - Init
     init() {
@@ -115,6 +116,7 @@ final class PlayerNode: SKSpriteNode {
                                  | PhysicsCategory.bonus   // Phase 2-3 + 2-6 + 2-7 + 9-6 변기 보너스
                                  | PhysicsCategory.aItem   // Sprint 10 Phase D — 수간호사 매혹 분기 시 F→A 수집
         physicsBody = body
+        addChild(nearMissWarning)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -148,6 +150,11 @@ final class PlayerNode: SKSpriteNode {
     func apply(_ difficulty: Difficulty) {
         baseSpeedStart = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
         baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
+    }
+
+    func updateNearMissWarning(closestProjectileDistance distance: CGFloat?,
+                               profile: DangerWarningProfile) {
+        nearMissWarning.update(closestProjectileDistance: distance, profile: profile)
     }
 
     // MARK: - Pixel Sprite Child Attachment (Sprint 10 Phase A)

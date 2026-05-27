@@ -63,7 +63,7 @@ final class SkillSystem {
             let next = max(0, durationRemaining - dt)
             durationRemaining = next
             // 0에 *방금 도달한* 프레임에 만료 처리.
-            // charmStudent만 만료 시 활성 F의 enchanted를 일괄 해제.
+            // charmStudent는 새 발사체 변환 창만 닫고, 이미 매혹된 F/A는 보상으로 유지한다.
             if next == 0 {
                 onDurationExpired()
             }
@@ -148,13 +148,7 @@ final class SkillSystem {
             // 각자 자체 SKAction 콜백에서 정리 — 여기선 noop.
             return
         case .charmStudent:
-            // 매혹 만료 — 활성 F의 enchanted 일괄 해제(아직 살아있는 F만).
-            guard let world = scene?.worldNode else { return }
-            world.enumerateChildNodes(withName: "projectile") { node, _ in
-                if let projectile = node as? ProjectileNode {
-                    projectile.clearEnchanted()
-                }
-            }
+            return
         }
     }
 
@@ -168,22 +162,27 @@ final class SkillSystem {
 
         // 시작/끝 좌표 계산.
         let start = player.position
-        let end = CGPoint(
+        let rawEnd = CGPoint(
             x: start.x + direction.dx * GameConfig.dashClimbDistance,
             y: start.y + direction.dy * GameConfig.dashClimbDistance
         )
+        let end = clampedToMap(rawEnd)
 
         // 경로 위 breakableWall 1칸 식별 및 파괴.
         // enumerate는 발동 시 1회만 — 매 프레임 호출 아님(성능 핵심).
         breakFirstBreakableWall(from: start, to: end)
 
         // 무적 + 이동.
+        player.currentDirection = .zero
+        player.physicsBody?.velocity = .zero
         player.isInvulnerable = true
+        player.removeAction(forKey: "dashClimbMove")
         let move = SKAction.move(to: end, duration: GameConfig.dashClimbDuration)
         let endAction = SKAction.run { [weak player] in
             player?.isInvulnerable = false
+            player?.physicsBody?.velocity = .zero
         }
-        player.run(.sequence([move, endAction]))
+        player.run(.sequence([move, endAction]), withKey: "dashClimbMove")
     }
 
     /// DPad → lastDirection → 기본 우측 순서로 방향 벡터 결정.
@@ -256,65 +255,52 @@ final class SkillSystem {
     }
 
     // MARK: - 3. Charm Student (임간호)
-    /// 모든 활성 F를 enchanted로 전환. 새로 발사되는 F는 SpawnSystem 가드가 처리.
-    /// 1.5초 후 update의 onDurationExpired가 일괄 해제.
+    /// 모든 활성 F를 enchanted로 전환. 새로 발사되는 F는 EnemyNode의 charmActiveProvider가 A로 바꾼다.
+    /// 매혹된 F/A는 지속시간이 끝나도 보상 상태를 유지해 사용자가 효과를 명확히 체감하게 한다.
     private func performCharmStudent() {
-        guard let world = scene?.worldNode else { return }
+        guard let scene = scene else { return }
+        let world = scene.worldNode
+        ToastLabelNode.spawn(text: "매혹!", at: scene.enemy.position, parent: world)
         world.enumerateChildNodes(withName: "projectile") { node, _ in
-            if let projectile = node as? ProjectileNode {
+            if let projectile = node as? FProjectileNode {
                 projectile.applyEnchanted()
             }
         }
     }
 
     // MARK: - 4. Taiwan Trip (이간호)
-    /// 4방향 후보 셔플 → 맵 경계 + 벽 미겹침 첫 후보로 텔레포트.
+    /// 현재 위치의 반대 대각선 코너 쪽 안전 지점으로 멀리 텔레포트.
     /// 0.5초 무적 + 깜빡임 액션.
     private func performTaiwanTrip() {
         guard let scene = scene else { return }
         let player = scene.player
-        let candidates: [CGVector] = [
-            CGVector(dx:  1, dy:  0),
-            CGVector(dx: -1, dy:  0),
-            CGVector(dx:  0, dy:  1),
-            CGVector(dx:  0, dy: -1)
-        ].shuffled()
-
-        let distance = GameConfig.taiwanTripJumpDistance
         let start = player.position
-        var targetPosition = start  // fallback — 후보 모두 실패 시 *제자리* 무적만.
-
-        for direction in candidates {
-            let candidate = CGPoint(
-                x: start.x + direction.dx * distance,
-                y: start.y + direction.dy * distance
-            )
-            if isValidTeleportTarget(candidate) {
-                targetPosition = candidate
-                break
-            }
-        }
+        let targetPosition = taiwanTripTarget(from: start)
 
         // 즉시 위치 이동.
         player.position = targetPosition
 
         // 무적 + 깜빡임. 동시에 set/clear.
         player.isInvulnerable = true
+        player.removeAction(forKey: "taiwanTripBlink")
+        player.removeAction(forKey: "taiwanTripInvulnerable")
 
         // 깜빡임 액션: alpha 1.0 ↔ taiwanTripFlashAlpha 반복.
         let half = GameConfig.taiwanTripFlashHalfPeriod
         let fadeOut = SKAction.fadeAlpha(to: GameConfig.taiwanTripFlashAlpha, duration: half)
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
         let cycle = SKAction.sequence([fadeOut, fadeIn])
-        // 0.5초 / 한 사이클 0.2초 → 2.5사이클 반복.
         let totalDuration = GameConfig.taiwanTripInvulnerableDuration
-        let cycleCount = max(1, Int(totalDuration / (half * 2)))
-        let blink = SKAction.repeat(cycle, count: cycleCount)
+        player.run(SKAction.repeatForever(cycle), withKey: "taiwanTripBlink")
         let restore = SKAction.run { [weak player] in
+            player?.removeAction(forKey: "taiwanTripBlink")
             player?.isInvulnerable = false
             player?.alpha = 1.0
         }
-        player.run(.sequence([blink, restore]))
+        player.run(.sequence([
+            .wait(forDuration: totalDuration),
+            restore
+        ]), withKey: "taiwanTripInvulnerable")
     }
 
     /// 텔레포트 후보가 맵 안 + 벽 미겹침인지 검사.
@@ -330,5 +316,56 @@ final class SkillSystem {
             return false
         }
         return true
+    }
+
+    private func clampedToMap(_ point: CGPoint) -> CGPoint {
+        let margin = GameConfig.tileSize
+        return CGPoint(
+            x: min(max(point.x, margin), GameConfig.mapWidth - margin),
+            y: min(max(point.y, margin), GameConfig.mapHeight - margin)
+        )
+    }
+
+    private func taiwanTripTarget(from start: CGPoint) -> CGPoint {
+        let margin = GameConfig.tileSize
+        let center = CGPoint(x: GameConfig.mapWidth / 2, y: GameConfig.mapHeight / 2)
+        let oppositeCorner = CGPoint(
+            x: start.x < center.x ? GameConfig.mapWidth - margin : margin,
+            y: start.y < center.y ? GameConfig.mapHeight - margin : margin
+        )
+        if isValidTeleportTarget(oppositeCorner) {
+            return oppositeCorner
+        }
+
+        let step = GameConfig.tileSize
+        let maxRing = GameConfig.taiwanTripFallbackSearchRings
+        var best: CGPoint?
+        var bestDistanceToCorner = CGFloat.greatestFiniteMagnitude
+        for ring in 1...maxRing {
+            for dx in -ring...ring {
+                for dy in -ring...ring {
+                    guard abs(dx) == ring || abs(dy) == ring else { continue }
+                    let candidate = CGPoint(
+                        x: oppositeCorner.x + CGFloat(dx) * step,
+                        y: oppositeCorner.y + CGFloat(dy) * step
+                    )
+                    let clamped = clampedToMap(candidate)
+                    guard isValidTeleportTarget(clamped) else { continue }
+                    let distanceToCorner = hypot(
+                        clamped.x - oppositeCorner.x,
+                        clamped.y - oppositeCorner.y
+                    )
+                    if distanceToCorner < bestDistanceToCorner {
+                        bestDistanceToCorner = distanceToCorner
+                        best = clamped
+                    }
+                }
+            }
+            if let best = best {
+                return best
+            }
+        }
+
+        return start
     }
 }

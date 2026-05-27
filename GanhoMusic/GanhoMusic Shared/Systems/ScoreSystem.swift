@@ -25,7 +25,8 @@ final class ScoreSystem {
     ///   combo >= 7 → +4, >= 5 → +3, >= 3 → +2, else → +1.
     /// 변기 ×2 보너스(recordToiletBonus)는 본 함수 2회 호출 → 새 분기 자연 적용.
     /// - Parameter now: 현재 게임 시각 (보통 lastUpdateTime).
-    func recordNoteHit(at now: TimeInterval) {
+    @discardableResult
+    func recordNoteHit(at now: TimeInterval) -> Int {
         let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
         combo = isInWindow ? combo + 1 : 1
         let gain: Int
@@ -40,6 +41,7 @@ final class ScoreSystem {
         }
         score += gain
         lastCollectAt = now
+        return gain
     }
 
     /// 콤보 윈도우 만료 검사. update 안에서 매 프레임 호출.
@@ -65,9 +67,11 @@ final class ScoreSystem {
     ///
     /// 두 번째 호출도 같은 `now`를 사용 → 콤보 윈도우 안에서 확실히 연속 카운트 +1 보장
     /// (isInWindow=true 분기 → combo+1, 첫 호출이 combo=N→N+1, 두 번째가 N+1→N+2 = 콤보+2).
-    func recordToiletBonus(at now: TimeInterval) {
-        recordNoteHit(at: now)
-        recordNoteHit(at: now)
+    @discardableResult
+    func recordToiletBonus(at now: TimeInterval) -> [Int] {
+        let firstGain = recordNoteHit(at: now)
+        let secondGain = recordNoteHit(at: now)
+        return [firstGain, secondGain]
     }
 
     /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).

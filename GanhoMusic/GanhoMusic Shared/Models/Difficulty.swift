@@ -25,9 +25,9 @@ enum Difficulty: String, CaseIterable {
     /// 카드 부제 라벨. 난이도의 *톤*을 짧은 한글 문구로 전달 — "어렵다"가 아니라 "이 게임의 색".
     var subtitle: String {
         switch self {
-        case .easy:   return "여유로운 실습"
-        case .normal: return "긴장의 병동"
-        case .hard:   return "이교수의 청진기"
+        case .easy:   return "처음 실습용"
+        case .normal: return "박자와 회피 균형"
+        case .hard:   return "이교수까지 등장"
         }
     }
 
@@ -58,9 +58,21 @@ enum Difficulty: String, CaseIterable {
     /// 회귀를 막기 위함(SPEC §주의사항 4).
     var description: String {
         switch self {
-        case .easy:   return "느린 템포로 패턴을 천천히 익혀요"
-        case .normal: return "표준 템포. 김간호의 평일 컨디션"
-        case .hard:   return "이교수의 청진기가 따라옵니다"
+        case .easy:   return "느린 템포로 패턴을 익혀요"
+        case .normal: return "표준 템포로 점수와 회피를 같이 봐요"
+        case .hard:   return "청진기까지 피해 가야 합니다"
+        }
+    }
+
+    /// Sprint 2 — 결과 화면/졸업 판정이 같은 목표 점수를 읽도록 하는 얇은 래퍼.
+    var targetScore: Int {
+        switch self {
+        case .easy:
+            return GameConfig.targetScoreByDifficulty[.easy] ?? Int.max
+        case .normal:
+            return GameConfig.targetScoreByDifficulty[.normal] ?? Int.max
+        case .hard:
+            return GameConfig.targetScoreByDifficulty[.hard] ?? Int.max
         }
     }
 

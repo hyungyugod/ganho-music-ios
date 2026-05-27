@@ -18,7 +18,7 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     /// player ↔ stoneGuard 접촉 시. Phase 4-2 — stub. 본체는 4-3에서.
     var onStoneGuardContact: () -> Void = {}
     /// player ↔ projectile 접촉 시. Phase 9-5 — projectile 노드 인자 추가
-    /// (enchanted 상태 분기 필수). 콜백 본문에서 `node as? ProjectileNode` 캐스팅 후
+    /// (enchanted 상태 분기 필수). 콜백 본문에서 `node as? FProjectileNode` 캐스팅 후
     /// `isEnchanted` 가드 → 점수 가산 + 노드 제거 / 일반 F는 endGame 흐름.
     var onProjectileHitPlayer: (SKNode) -> Void = { _ in }
     /// projectile ↔ wall 접촉 시. 인자: 제거할 projectile 노드.
@@ -26,18 +26,18 @@ final class ContactRouter: NSObject, SKPhysicsContactDelegate {
     /// player ↔ note 접촉 시. 인자: 제거할 note 노드.
     var onNoteCollected: (SKNode) -> Void = { _ in }
     /// Phase 9-6 — player ↔ toilet(bonus) 접촉 시. 인자: 제거할 toilet 노드.
-    /// 호출부는 콜백 본문 마지막에 `toilet.run(.removeFromParent())` SKAction 사용 — didBegin 진행 중
-    /// 즉시 removeFromParent 호출은 물리 엔진과 충돌 시 크래시 가능(SpriteKit 공식 권고).
+    /// 호출부는 `deferRemoveAfterContact(_:)`로 다음 액션 틱 제거 — didBegin 진행 중
+    /// 즉시 removeFromParent 호출은 물리 엔진과 충돌 시 크래시 가능.
     var onToiletCollected: (SKNode) -> Void = { _ in }
     /// Phase 9-7 — stethoscope ↔ player 접촉 시. 인자: 제거할 stethoscope 노드.
-    /// 호출부는 player.freeze 발화 후 `node.run(.removeFromParent())` SKAction 사용 — didBegin 즉시 제거 금지.
+    /// 호출부는 player.freeze 발화 후 `deferRemoveAfterContact(_:)` 사용 — didBegin 즉시 제거 금지.
     /// 무적(isInvulnerable) 가드는 호출부 책임 — ContactRouter는 분기만 담당.
     var onStethoscopeHitPlayer: (SKNode) -> Void = { _ in }
     /// Phase 9-7 — stethoscope ↔ wall 접촉 시. 인자: 제거할 stethoscope 노드.
     /// onProjectileHitWall 패턴 답습 — 단순 노드 제거만.
     var onStethoscopeHitWall: (SKNode) -> Void = { _ in }
     /// Sprint 10 Phase D — aItem(매혹 변환 A) ↔ player 접촉 시. 인자: 제거할 aItem 노드.
-    /// 호출부는 ScoreSystem.recordCharmedNoteHit으로 ×2 가산 후 `node.run(.removeFromParent())` SKAction 사용.
+    /// 호출부는 ScoreSystem.recordCharmedNoteHit으로 ×2 가산 후 `deferRemoveAfterContact(_:)` 사용.
     /// didBegin 즉시 removeFromParent 금지(주의사항 1).
     var onAItemCollected: (SKNode) -> Void = { _ in }
     /// Sprint 10 Phase D — aItem ↔ wall 접촉 시. 인자: 제거할 aItem 노드.

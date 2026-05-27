@@ -29,6 +29,17 @@ final class CharacterSelectScene: BaseMenuScene {
     private let accentLine = AccentLineNode()
     /// Sprint 2 — 헤더 아래 Gowun Dodum 부제.
     private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    /// Sprint 10.7 — 중앙 카드 뒤 스포트라이트 패널. 헤더와 카드 영역을 시각적으로 분리한다.
+    private let stagePanel = SKShapeNode()
+    /// Sprint 10.7 — 카드 바닥 그림자. 중앙 카드가 무대 위에 떠 있는 느낌을 만든다.
+    private let stageShadow = SKShapeNode()
+    /// Sprint 10.8 — 선택 캐릭터 상세 정보 패널. 화면 오른쪽을 캐릭터 포스터처럼 사용한다.
+    private let profilePanel = SKShapeNode()
+    private let profileAccentDot = SKShapeNode(circleOfRadius: 6)
+    private let profileNameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let profileTagLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let profileSkillLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let profileMetaLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     /// 현재 선택된 캐릭터. 기본 .kim. didMove에서 repo.current로 복원.
     private var selectedCharacterID: CharacterID = .kim
     /// 5 카드 인스턴스 보관. setup/layout/hit test에 재사용.
@@ -63,6 +74,10 @@ final class CharacterSelectScene: BaseMenuScene {
     private var leftArrowChip: GlassPillNode?
     /// 오른쪽 화살표("›") — currentIndex+1로 스와이프. 끝(index max)에서 isHidden=true.
     private var rightArrowChip: GlassPillNode?
+    private let leftSwipeHintLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let rightSwipeHintLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    /// Sprint 10.8 — 캐러셀 페이지 점. 현재 위치와 넘김 가능성을 동시에 보여준다.
+    private var pageIndicatorDots: [SKShapeNode] = []
 
     // MARK: - Factory
     /// Sprint 6 — 인자 제거. StartScene이 유일 호출자.
@@ -91,6 +106,8 @@ final class CharacterSelectScene: BaseMenuScene {
         selectedCharacterID = preferenceRepo.current
         // Sprint 8 Phase B — 복원된 캐릭터의 인덱스로 currentIndex 동기화.
         currentIndex = characters.firstIndex(of: selectedCharacterID) ?? 0
+        setupStageBackdrop()                // Sprint 10.7 — 중앙 카드 전용 스테이지.
+        setupProfilePanel()                 // Sprint 10.8 — 선택 캐릭터 포스터형 상세 패널.
         setupCardContainers()               // Sprint 2 — 카드 외곽 글래스 5개.
         setupCharacterCards()
         setupCharacterFaces()               // Sprint 6 — 얼굴 노드 5개.
@@ -100,6 +117,7 @@ final class CharacterSelectScene: BaseMenuScene {
         setupConfirmButton()
         rebuildSkillInfoPanel(for: selectedCharacterID)
         setupArrowChips()                   // Sprint 9 Phase A — 좌우 ‹/› 화살표 2개.
+        setupPageIndicators()               // Sprint 10.8 — 넘김 가능성 시각 힌트.
         // Sprint 8 Phase B — 스와이프 페이지 초기 배치(애니메이션 없이).
         layoutCards(animated: false)
     }
@@ -109,6 +127,8 @@ final class CharacterSelectScene: BaseMenuScene {
         rebuildWarmGradientBackground()
         layoutHeader()
         layoutTopBar()
+        layoutStageBackdrop()
+        layoutProfilePanel()
         layoutCardContainers()
         layoutCharacterCards()
         layoutCharacterFaces()              // Sprint 6.
@@ -120,6 +140,7 @@ final class CharacterSelectScene: BaseMenuScene {
         layoutSkillInfoChip()
         layoutConfirmButton()
         layoutArrowChips()                  // Sprint 9 Phase A.
+        layoutPageIndicators()
         // Sprint 8 Phase B — 회전/사이즈 변경 시 카드 즉시 재배치(애니메이션 없이).
         layoutCards(animated: false)
     }
@@ -129,38 +150,175 @@ final class CharacterSelectScene: BaseMenuScene {
         headerLabel.fontName = GameConfig.fontDisplay
         headerLabel.fontSize = GameConfig.characterSelectHeaderFontSize
         headerLabel.fontColor = .ganhoNavyDeep
-        headerLabel.horizontalAlignmentMode = .center
+        headerLabel.horizontalAlignmentMode = .left
         headerLabel.verticalAlignmentMode = .center
+        headerLabel.zPosition = 330
         addChild(headerLabel)
 
         headerSubLabel.text = GameConfig.characterSelectHeaderSubText
         headerSubLabel.fontSize = GameConfig.characterSelectHeaderSubFontSize
         headerSubLabel.fontColor = .ganhoNavyMuted
-        headerSubLabel.horizontalAlignmentMode = .center
+        headerSubLabel.horizontalAlignmentMode = .left
         headerSubLabel.verticalAlignmentMode = .center
+        headerSubLabel.zPosition = 330
         // 4-Bug Fix Sprint — 부제 "친구마다 다른 스킬과 이동속도를 가져요"를 완전 숨김.
         // removeFromParent() 금지(노드 트리 보존). isHidden=true로 시각만 차단.
         headerSubLabel.isHidden = true
         addChild(headerSubLabel)
 
+        accentLine.zPosition = 329
         addChild(accentLine)
         layoutHeader()
     }
 
     private func layoutHeader() {
-        // 4-Bug Fix Sprint — 헤더 묶음 V11 좌표.
-        // V10(145)에서 +15pt 더 올려 카드 영역과 여백 확보.
-        let centerX = frame.midX
-        let baseY = frame.midY + GameConfig.characterSelectHeaderOffsetYV11
-        headerLabel.position = CGPoint(x: centerX, y: baseY)
+        // Sprint 10.7 — 중앙 카드 위에 얹혀 있던 헤더를 좌측 상단으로 분리.
+        // 카드 스테이지는 중앙, 헤더는 문서 제목처럼 좌상단에 둬 겹침을 구조적으로 제거한다.
+        let safe = SceneSafeArea.insets(for: self)
+        let leftX = frame.minX + safe.left + GameConfig.characterSelectHeaderLeftInsetV12
+        let baseY = frame.maxY - safe.top - GameConfig.characterSelectHeaderTopInsetV12
+        headerLabel.position = CGPoint(x: leftX, y: baseY)
         headerSubLabel.position = CGPoint(
-            x: centerX,
+            x: leftX,
             y: baseY + GameConfig.characterSelectHeaderSubOffsetYV10
         )
         accentLine.position = CGPoint(
-            x: centerX,
+            x: leftX + GameConfig.characterSelectAccentLineLeftOffsetXV12,
             y: baseY + GameConfig.characterSelectAccentLineOffsetYV10
         )
+    }
+
+    // MARK: - Setup (Sprint 10.7 · Character Stage)
+    /// 카드 캐러셀 뒤에 넓은 반투명 무대를 깔아 중앙 카드가 헤더와 분리되어 보이게 한다.
+    private func setupStageBackdrop() {
+        stagePanel.fillColor = UIColor.white.withAlphaComponent(GameConfig.characterSelectStageFillAlphaV12)
+        stagePanel.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.characterSelectStageStrokeAlphaV12)
+        stagePanel.lineWidth = 1.5
+        stagePanel.zPosition = 82
+        stagePanel.name = "characterSelectStagePanel"
+        addChild(stagePanel)
+
+        stageShadow.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterSelectStageShadowAlphaV12)
+        stageShadow.strokeColor = .clear
+        stageShadow.lineWidth = 0
+        stageShadow.zPosition = 81
+        stageShadow.name = "characterSelectStageShadow"
+        addChild(stageShadow)
+
+        layoutStageBackdrop()
+    }
+
+    private func layoutStageBackdrop() {
+        let panelSize = CGSize(
+            width: GameConfig.characterSelectStageWidthV12,
+            height: GameConfig.characterSelectStageHeightV12
+        )
+        stagePanel.path = CGPath(
+            roundedRect: CGRect(
+                x: -panelSize.width / 2,
+                y: -panelSize.height / 2,
+                width: panelSize.width,
+                height: panelSize.height
+            ),
+            cornerWidth: GameConfig.characterSelectStageCornerRadiusV12,
+            cornerHeight: GameConfig.characterSelectStageCornerRadiusV12,
+            transform: nil
+        )
+        stagePanel.position = CGPoint(x: carouselCenterX, y: cardBaseY(for: .kim))
+
+        let shadowSize = CGSize(
+            width: GameConfig.characterSelectStageShadowWidthV12,
+            height: GameConfig.characterSelectStageShadowHeightV12
+        )
+        stageShadow.path = CGPath(
+            ellipseIn: CGRect(
+                x: -shadowSize.width / 2,
+                y: -shadowSize.height / 2,
+                width: shadowSize.width,
+                height: shadowSize.height
+            ),
+            transform: nil
+        )
+        stageShadow.position = CGPoint(
+            x: carouselCenterX,
+            y: cardBaseY(for: .kim) + GameConfig.characterSelectStageShadowOffsetYV12
+        )
+    }
+
+    // MARK: - Setup (Sprint 10.8 · Profile Poster)
+    private func setupProfilePanel() {
+        profilePanel.fillColor = UIColor.white.withAlphaComponent(GameConfig.characterSelectProfilePanelFillAlphaV13)
+        profilePanel.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterSelectProfilePanelStrokeAlphaV13)
+        profilePanel.lineWidth = 1.2
+        profilePanel.zPosition = 310
+        profilePanel.name = "characterSelectProfilePanel"
+        addChild(profilePanel)
+
+        profileAccentDot.strokeColor = .clear
+        profileAccentDot.lineWidth = 0
+        profileAccentDot.zPosition = 311
+        addChild(profileAccentDot)
+
+        [profileNameLabel, profileTagLabel, profileSkillLabel, profileMetaLabel].forEach { label in
+            label.horizontalAlignmentMode = .left
+            label.verticalAlignmentMode = .center
+            label.zPosition = 312
+            addChild(label)
+        }
+
+        profileNameLabel.fontName = GameConfig.fontDisplay
+        profileNameLabel.fontSize = GameConfig.characterSelectProfilePanelTitleFontSizeV13
+        profileNameLabel.fontColor = .ganhoNavyDeep
+
+        profileTagLabel.fontName = GameConfig.fontBody
+        profileTagLabel.fontSize = GameConfig.characterSelectProfilePanelTagFontSizeV13
+        profileTagLabel.fontColor = .ganhoNavyMuted
+
+        profileSkillLabel.fontName = GameConfig.fontDisplay
+        profileSkillLabel.fontSize = GameConfig.characterSelectProfilePanelSkillFontSizeV13
+        profileSkillLabel.fontColor = .ganhoCoralPrimary
+
+        profileMetaLabel.fontName = GameConfig.fontBody
+        profileMetaLabel.fontSize = GameConfig.characterSelectProfilePanelMetaFontSizeV13
+        profileMetaLabel.fontColor = .ganhoNavyMuted
+
+        updateProfilePanel(for: selectedCharacterID)
+        layoutProfilePanel()
+    }
+
+    private func layoutProfilePanel() {
+        let size = CGSize(
+            width: GameConfig.characterSelectProfilePanelWidthV13,
+            height: GameConfig.characterSelectProfilePanelHeightV13
+        )
+        profilePanel.path = CGPath(
+            roundedRect: CGRect(
+                x: -size.width / 2,
+                y: -size.height / 2,
+                width: size.width,
+                height: size.height
+            ),
+            cornerWidth: GameConfig.characterSelectProfilePanelCornerRadiusV13,
+            cornerHeight: GameConfig.characterSelectProfilePanelCornerRadiusV13,
+            transform: nil
+        )
+        let center = profilePanelCenter
+        profilePanel.position = center
+
+        let leftX = center.x - size.width / 2 + GameConfig.characterSelectProfilePanelTextInsetXV13
+        profileAccentDot.position = CGPoint(x: leftX, y: center.y + 58)
+        profileNameLabel.position = CGPoint(x: leftX + 18, y: center.y + 58)
+        profileTagLabel.position = CGPoint(x: leftX, y: center.y + 26)
+        profileSkillLabel.position = CGPoint(x: leftX, y: center.y - 16)
+        profileMetaLabel.position = CGPoint(x: leftX, y: center.y - 48)
+    }
+
+    private func updateProfilePanel(for id: CharacterID) {
+        profileAccentDot.fillColor = id.dotColor
+        profileNameLabel.text = id.displayName
+        profileTagLabel.text = id.tag
+        profileSkillLabel.text = (id.skill == .none) ? "스킬 없음" : "스킬 · \(id.skill.displayName)"
+        profileMetaLabel.text = "속도 ×\(formatted(id.playerSpeedMultiplier))  ·  쿨다운 \(id.skill.cooldownText)"
     }
 
     // MARK: - Setup (Sprint 6 · Top Bar — 백버튼만)
@@ -351,19 +509,14 @@ final class CharacterSelectScene: BaseMenuScene {
     /// 기존 characterSelectConfirmButtonOffsetY(-180)는 값 보존(다른 곳 참조 가능성).
     private func layoutConfirmButton() {
         let safe = SceneSafeArea.insets(for: self)
-        let baseY = frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin
-            + GameConfig.characterSelectConfirmButtonBottomInset
-        // Sprint 9 Phase A QA 3차 — chip 위치를 산식으로 직접 산출(chip 노드 의존성 0).
-        // chip 노드가 아직 생성되지 않은 시점(setupConfirmButton 단계)에서도 안전.
-        let chipY = skillChipBaselineY
-        let chipBottom = chipY - GameConfig.darkContextChipHeight / 2
-        // button top(buttonY + halfHeight) ≤ chipBottom − characterCardConfirmButtonBelowChipV9.
-        // 즉, buttonY ≤ chipBottom − 24 − primaryButtonHeight/2.
-        let maxAllowedY = chipBottom
-            - GameConfig.characterCardConfirmButtonBelowChipV9
+        let panelCenter = profilePanelCenter
+        let panelBottom = panelCenter.y - GameConfig.characterSelectProfilePanelHeightV13 / 2
+        let targetY = panelBottom
+            - GameConfig.characterSelectConfirmButtonBelowProfileV13
             - GameConfig.primaryButtonHeight / 2
-        let buttonY = min(baseY, maxAllowedY)
-        confirmButton.position = CGPoint(x: frame.midX, y: buttonY)
+        let minY = frame.minY + safe.bottom + GameConfig.adaptiveBottomMargin
+            + GameConfig.primaryButtonHeight / 2
+        confirmButton.position = CGPoint(x: panelCenter.x, y: max(targetY, minY))
     }
 
     /// Sprint 9 Phase A QA 3차 — chip y baseline의 단일 진실 원천(cardBottom anchor).
@@ -391,6 +544,7 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         let chip = DarkContextChipNode(label: label, badge: nil)
         skillInfoChip = chip
+        chip.isHidden = true
         addChild(chip)
         layoutSkillInfoChip()
     }
@@ -404,7 +558,7 @@ final class CharacterSelectScene: BaseMenuScene {
     private func layoutSkillInfoChip() {
         guard let chip = skillInfoChip else { return }
         // Sprint 9 Phase A QA 3차 — cardBottom anchor 단일 식. confirmButton 위치에 종속되지 않음.
-        chip.position = CGPoint(x: frame.midX, y: skillChipBaselineY)
+        chip.position = CGPoint(x: carouselCenterX, y: skillChipBaselineY)
         // Sprint 7 Phase A — 폭 clamp. 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
         // 칩 자체는 라벨 너비 기반 자동 폭이므로 setScale(maxW / currentW)로 축소.
         let maxW = GameConfig.characterSelectSkillInfoMaxWidth
@@ -437,27 +591,48 @@ final class CharacterSelectScene: BaseMenuScene {
         )
         let left = GlassPillNode(text: "‹", size: size)
         left.name = "characterSelectArrowLeft"
-        left.zPosition = GameConfig.characterSelectArrowChipZPositionV9
+        left.zPosition = GameConfig.characterSelectArrowCueZPositionV13
         leftArrowChip = left
         addChild(left)
 
         let right = GlassPillNode(text: "›", size: size)
         right.name = "characterSelectArrowRight"
-        right.zPosition = GameConfig.characterSelectArrowChipZPositionV9
+        right.zPosition = GameConfig.characterSelectArrowCueZPositionV13
         rightArrowChip = right
         addChild(right)
 
+        setupSwipeHintChevrons()
         layoutArrowChips()
         updateArrowVisibility()
     }
 
+    private func setupSwipeHintChevrons() {
+        [(leftSwipeHintLabel, "‹"), (rightSwipeHintLabel, "›")].forEach { label, text in
+            label.text = text
+            label.fontSize = GameConfig.characterSelectSwipeHintChevronFontSizeV13
+            label.fontColor = .ganhoCoralPrimary
+            label.horizontalAlignmentMode = .center
+            label.verticalAlignmentMode = .center
+            label.zPosition = GameConfig.characterSelectArrowCueZPositionV13 + 1
+            addChild(label)
+        }
+    }
+
     /// 좌우 화살표 위치 갱신 — 카드 y(cardBaseY)와 같은 높이, 화면 중앙에서 ±260pt.
     private func layoutArrowChips() {
-        let offsetX = GameConfig.characterSelectArrowChipOffsetXV9
+        let offsetX = GameConfig.characterSelectArrowChipOffsetXV12
         // 카드 y와 동일(어느 캐릭터를 넣어도 같은 y). 임의 .kim 기준.
         let y = cardBaseY(for: .kim)
-        leftArrowChip?.position = CGPoint(x: frame.midX - offsetX, y: y)
-        rightArrowChip?.position = CGPoint(x: frame.midX + offsetX, y: y)
+        leftArrowChip?.position = CGPoint(x: carouselCenterX - offsetX, y: y)
+        rightArrowChip?.position = CGPoint(x: carouselCenterX + offsetX, y: y)
+        leftSwipeHintLabel.position = CGPoint(
+            x: carouselCenterX - GameConfig.characterSelectSwipeHintChevronOffsetXV13,
+            y: y
+        )
+        rightSwipeHintLabel.position = CGPoint(
+            x: carouselCenterX + GameConfig.characterSelectSwipeHintChevronOffsetXV13,
+            y: y
+        )
     }
 
     /// 끝 index 도달 시 해당 방향 화살표 isHidden=true. 그 외는 false.
@@ -465,6 +640,88 @@ final class CharacterSelectScene: BaseMenuScene {
     private func updateArrowVisibility() {
         leftArrowChip?.isHidden = (currentIndex <= 0)
         rightArrowChip?.isHidden = (currentIndex >= characters.count - 1)
+        leftSwipeHintLabel.isHidden = (currentIndex <= 0)
+        rightSwipeHintLabel.isHidden = (currentIndex >= characters.count - 1)
+        [leftArrowChip, rightArrowChip].forEach { chip in
+            chip?.removeAction(forKey: "arrowCuePulse")
+            guard chip?.isHidden == false else {
+                chip?.setScale(1.0)
+                return
+            }
+            let up = SKAction.scale(
+                to: GameConfig.characterSelectArrowCuePulseScaleV13,
+                duration: 0.45
+            )
+            up.timingMode = .easeInEaseOut
+            let down = SKAction.scale(to: 1.0, duration: 0.45)
+            down.timingMode = .easeInEaseOut
+            chip?.run(SKAction.repeatForever(SKAction.sequence([up, down])), withKey: "arrowCuePulse")
+        }
+        [leftSwipeHintLabel, rightSwipeHintLabel].forEach { label in
+            label.removeAction(forKey: "swipeHintPulse")
+            guard !label.isHidden else {
+                label.setScale(1.0)
+                return
+            }
+            let up = SKAction.scale(
+                to: GameConfig.characterSelectArrowCuePulseScaleV13,
+                duration: 0.45
+            )
+            up.timingMode = .easeInEaseOut
+            let down = SKAction.scale(to: 1.0, duration: 0.45)
+            down.timingMode = .easeInEaseOut
+            label.run(SKAction.repeatForever(SKAction.sequence([up, down])), withKey: "swipeHintPulse")
+        }
+    }
+
+    // MARK: - Setup (Sprint 10.8 · Page Indicators)
+    private func setupPageIndicators() {
+        pageIndicatorDots = characters.indices.map { index in
+            let isActive = index == currentIndex
+            let radius = isActive
+                ? GameConfig.characterSelectPageIndicatorActiveRadiusV13
+                : GameConfig.characterSelectPageIndicatorDotRadiusV13
+            let dot = SKShapeNode(circleOfRadius: radius)
+            dot.fillColor = isActive
+                ? .ganhoCoralPrimary
+                : UIColor.ganhoNavyDeep.withAlphaComponent(0.24)
+            dot.strokeColor = .clear
+            dot.lineWidth = 0
+            dot.zPosition = 320
+            dot.name = "characterSelectPageDot_\(index)"
+            addChild(dot)
+            return dot
+        }
+        layoutPageIndicators()
+        updatePageIndicators(animated: false)
+    }
+
+    private func layoutPageIndicators() {
+        let spacing = GameConfig.characterSelectPageIndicatorSpacingV13
+        let totalWidth = CGFloat(max(0, pageIndicatorDots.count - 1)) * spacing
+        let startX = carouselCenterX - totalWidth / 2
+        let y = cardBaseY(for: .kim) + GameConfig.characterSelectPageIndicatorOffsetYV13
+        for (index, dot) in pageIndicatorDots.enumerated() {
+            dot.position = CGPoint(x: startX + CGFloat(index) * spacing, y: y)
+        }
+    }
+
+    private func updatePageIndicators(animated: Bool) {
+        for (index, dot) in pageIndicatorDots.enumerated() {
+            let isActive = index == currentIndex
+            dot.fillColor = isActive
+                ? .ganhoCoralPrimary
+                : UIColor.ganhoNavyDeep.withAlphaComponent(0.24)
+            let targetScale: CGFloat = isActive ? 1.18 : 1.0
+            dot.removeAction(forKey: "pageDotScale")
+            if animated {
+                let scale = SKAction.scale(to: targetScale, duration: 0.16)
+                scale.timingMode = .easeInEaseOut
+                dot.run(scale, withKey: "pageDotScale")
+            } else {
+                dot.setScale(targetScale)
+            }
+        }
     }
 
     // MARK: - Card Geometry Helpers (Sprint 8 Phase B · 스와이프 페이지)
@@ -474,9 +731,22 @@ final class CharacterSelectScene: BaseMenuScene {
     /// 기존 동적 spacing/zigzag 식은 폐기 — 스와이프 페이지에서는 *중앙 1장 단일 시선*이 단일 진실 원천.
     /// (characterSelectCardSpacingV3 / characterSelectCardZigzagOffsetV3 등 상수는 값 보존)
     private func cardBaseX(for id: CharacterID) -> CGFloat {
-        guard let index = characters.firstIndex(of: id) else { return frame.midX }
-        let offset = CGFloat(index - currentIndex) * GameConfig.characterSwipeOffsetXV4
-        return frame.midX + offset
+        guard let index = characters.firstIndex(of: id) else { return carouselCenterX }
+        let offset = CGFloat(index - currentIndex) * GameConfig.characterSwipeOffsetXV12
+        return carouselCenterX + offset
+    }
+
+    private var carouselCenterX: CGFloat {
+        frame.midX + GameConfig.characterSelectCarouselCenterOffsetXV13
+    }
+
+    private var profilePanelCenter: CGPoint {
+        let safe = SceneSafeArea.insets(for: self)
+        let x = frame.maxX
+            - safe.right
+            - GameConfig.characterSelectProfilePanelRightInsetV13
+            - GameConfig.characterSelectProfilePanelWidthV13 / 2
+        return CGPoint(x: x, y: cardBaseY(for: .kim) + 8)
     }
 
     /// 카드 y 좌표 — 모든 카드가 동일한 y. zigzag 폐기.
@@ -485,7 +755,7 @@ final class CharacterSelectScene: BaseMenuScene {
     /// V4 상수(0.50)는 값 보존 — 다른 사용처 참조 가능성.
     /// 매개변수 `_`: 모든 카드가 동일 y를 공유하므로 id는 사용하지 않음 — 호출부 시그니처 호환을 위해 인자만 유지.
     private func cardBaseY(for _: CharacterID) -> CGFloat {
-        return frame.minY + frame.height * GameConfig.characterCardCenterYV9
+        return frame.minY + frame.height * GameConfig.characterCardCenterYV12
     }
 
     // MARK: - Sprint 8 Phase B · 스와이프 페이지 layout
@@ -528,7 +798,7 @@ final class CharacterSelectScene: BaseMenuScene {
             let targetFaceAlpha: CGFloat
             switch role {
             case .center:    targetFaceAlpha = 1.0
-            case .left, .right: targetFaceAlpha = GameConfig.characterSwipeCardAlphaSideV4
+            case .left, .right: targetFaceAlpha = GameConfig.characterSwipeCardAlphaSideV12
             case .offscreen: targetFaceAlpha = 0
             }
             if let face = characterFaces[id] {
@@ -561,6 +831,7 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         // Sprint 9 Phase A — 끝 index 도달 시 좌/우 화살표 isHidden 갱신.
         updateArrowVisibility()
+        updatePageIndicators(animated: animated)
     }
 
     /// 스와이프(또는 양옆 카드 탭)로 중앙 카드 변경.
@@ -575,6 +846,7 @@ final class CharacterSelectScene: BaseMenuScene {
         preferenceRepo.save(newID)
         layoutCards(animated: true)
         rebuildSkillInfoPanel(for: newID)
+        updateProfilePanel(for: newID)
     }
 
     // MARK: - Selection
@@ -587,6 +859,7 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         applyGlassContainerSelection(id: id)
         rebuildSkillInfoPanel(for: id)
+        updateProfilePanel(for: id)
     }
 
     /// Sprint 2 — 외곽 글래스 컨테이너 선택 상태 시각 동기화.

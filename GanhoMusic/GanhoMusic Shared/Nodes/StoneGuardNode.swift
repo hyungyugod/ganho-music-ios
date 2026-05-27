@@ -33,6 +33,7 @@ final class StoneGuardNode: SKSpriteNode {
     private var lastPosition: CGPoint = .zero
     /// lastPosition 첫 초기화 여부. 첫 update에서 자기 자신과 비교 → 거짓 정지 신호 방지.
     private var hasLastPosition: Bool = false
+    private let proximityWarning = EnemyProximityWarningNode(color: .ganhoIngameDanger)
 
     // MARK: - Init
     init() {
@@ -67,6 +68,7 @@ final class StoneGuardNode: SKSpriteNode {
         body.collisionBitMask    = 0
         body.contactTestBitMask  = PhysicsCategory.player
         physicsBody = body
+        addChild(proximityWarning)
 
         // Sprint 10 Phase F — 자식 시각(armor + 일자눈) 부착 폐기 + color clear 제거.
         // setupVisualOverlay 호출 제거 → 본체 픽셀 텍스처만 노출.
@@ -165,6 +167,10 @@ final class StoneGuardNode: SKSpriteNode {
         if needsRefresh {
             refreshTexture()
         }
+    }
+
+    func updateProximityWarning(distanceToPlayer distance: CGFloat, profile: DangerWarningProfile) {
+        proximityWarning.update(distanceToPlayer: distance, profile: profile)
     }
 
     /// 현재 방향/프레임 조합으로 텍스처 재생성.

@@ -30,6 +30,7 @@ final class ToiletNode: SKSpriteNode {
         super.init(texture: texture, color: .clear, size: size)
         name = "toilet"
         zPosition = GameConfig.toiletZPosition
+        addBonusRing()
 
         // PhysicsBody: static(isDynamic=false), 충돌 없음(collisionBitMask=0),
         // player와만 contactTestBitMask 매칭 → didBegin 콜백 발화.
@@ -48,13 +49,35 @@ final class ToiletNode: SKSpriteNode {
 
     // MARK: - Lifetime
     /// 스폰 직후 1회 호출. toiletLifetime(8초) 후 fadeOut + removeFromParent.
-    /// withKey "toiletLifetime"으로 부착 → 동일 키 재호출 시 SpriteKit이 이전 액션 자동 교체(자연 멱등).
+    /// GameConfig.toiletLifetimeActionKey로 부착 → 동일 키 재호출 시 SpriteKit이 이전 액션 자동 교체(자연 멱등).
     /// 수집된 노드는 GameScene 콜백이 SKAction.removeFromParent() 호출 → parent==nil 이후 본 액션 도달 시 noop.
     /// SpriteKit의 removeFromParent SKAction은 parent==nil인 노드에 실행 시 안전 noop(공식 문서).
     func applyLifetime() {
         let wait   = SKAction.wait(forDuration: GameConfig.toiletLifetime)
         let fade   = SKAction.fadeOut(withDuration: GameConfig.toiletFadeOutDuration)
         let remove = SKAction.removeFromParent()
-        run(.sequence([wait, fade, remove]), withKey: "toiletLifetime")
+        run(.sequence([wait, fade, remove]), withKey: GameConfig.toiletLifetimeActionKey)
+    }
+
+    // MARK: - Readability
+    private func addBonusRing() {
+        let ring = SKShapeNode(circleOfRadius: GameConfig.toiletBonusRingRadius)
+        ring.strokeColor = .ganhoIngameRewardMint
+        ring.lineWidth = GameConfig.toiletBonusRingLineWidth
+        ring.fillColor = UIColor.ganhoPixelHudWhite
+            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
+        ring.zPosition = -1
+        addChild(ring)
+
+        let fadeDown = SKAction.fadeAlpha(
+            to: GameConfig.toiletBonusPulseAlpha,
+            duration: GameConfig.toiletBonusPulseHalfDuration
+        )
+        let fadeUp = SKAction.fadeAlpha(
+            to: 1.0,
+            duration: GameConfig.toiletBonusPulseHalfDuration
+        )
+        ring.run(.repeatForever(.sequence([fadeDown, fadeUp])),
+                 withKey: GameConfig.toiletBonusPulseActionKey)
     }
 }

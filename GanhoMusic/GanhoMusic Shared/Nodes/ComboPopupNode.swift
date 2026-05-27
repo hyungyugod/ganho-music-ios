@@ -8,7 +8,7 @@
 
 import SpriteKit
 
-/// 콤보 마일스톤(3/5/10/20) 도달 시 화면 중앙에 떠오르는 자가 소멸 텍스트.
+/// 콤보 마일스톤 도달 시 화면 중앙에 떠오르는 자가 소멸 텍스트.
 /// PhysicsBody 부착 0 — 순수 시각. cameraNode 자식으로 화면 중앙 고정.
 /// AirplaneNode / AirforceOverlayNode / BombFlashNode / SparkleEffectNode / HitFlashNode 패턴 답습 —
 /// 자가 소멸 노드 6회차.
@@ -21,19 +21,20 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     private let label: SKLabelNode
 
     // MARK: - Init
-    /// 마일스톤 값(3/5/10/20 등)을 받아 텍스트와 색을 결정.
-    /// 텍스트 포맷 "x\(milestone)" — 라벨 1개로 깔끔한 단일 메시지.
+    /// 마일스톤 값을 받아 텍스트와 색을 결정.
+    /// 텍스트는 마일스톤별 점수 티어 힌트까지 포함해 단일 메시지로 표시한다.
     init(milestone: Int) {
         // Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold). 인게임 픽셀 톤.
+        let text = Self.text(for: milestone)
         self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
-        self.label.text = "x\(milestone)"
+        self.label.text = text
         super.init()
         name = "comboPopup"
         zPosition = GameConfig.comboPopupZPosition
         let color = Self.color(for: milestone)
         configureLabel(color: color)
         // Sprint 3 — navy 외곽선 시뮬레이션: 4방향(±1pt) 자식 4개를 라벨 *뒤*(z=-1)에 배치.
-        addOutline(text: "x\(milestone)")
+        addOutline(text: text)
         addChild(label)
         // Sprint 3 — 살짝 비스듬한 회전 (-8°).
         zRotation = GameConfig.comboPopupV2RotationDegrees * .pi / 180
@@ -44,11 +45,11 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     }
 
     // MARK: - Animate
-    /// 부모(cameraNode)에 addChild 직후 호출. group(move + fade + scale) 동시 진행 → 자가 제거.
-    /// SKAction.group은 [move, fade, scale] 3개를 *동시* 실행 — CompletableFuture.allOf 패턴.
+    /// 부모(cameraNode)에 addChild 직후 호출. 짧은 beat pop 뒤 move + fade + scale 동시 진행 → 자가 제거.
     /// self 미사용 — [weak self] 캡처 불필요.
-    /// **Sprint 3: SKAction 본문 0건 변경.**
     func animate() {
+        let beatPop = SKAction.scale(to: GameConfig.comboPopupBeatPopScale,
+                                     duration: GameConfig.comboPopupBeatPopDuration)
         let moveUp  = SKAction.moveBy(x: 0,
                                        y: GameConfig.comboPopupFlyUpDistance,
                                        duration: GameConfig.comboPopupDuration)
@@ -57,7 +58,7 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
                                       duration: GameConfig.comboPopupDuration)
         let group   = SKAction.group([moveUp, fadeOut, scaleUp])
         let cleanup = SKAction.removeFromParent()
-        run(.sequence([group, cleanup]))
+        run(.sequence([beatPop, group, cleanup]))
     }
 
     // MARK: - Configure
@@ -96,15 +97,27 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
         }
     }
 
+    private static func text(for milestone: Int) -> String {
+        switch milestone {
+        case 3:  return GameConfig.comboPopupTextMilestone3
+        case 5:  return GameConfig.comboPopupTextMilestone5
+        case 7:  return GameConfig.comboPopupTextMilestone7
+        case 10: return GameConfig.comboPopupTextMilestone10
+        case 20: return GameConfig.comboPopupTextMilestone20
+        default: return "x\(milestone)"
+        }
+    }
+
     // MARK: - Color Mapping (Sprint 10 Phase J · Pixel Palette)
-    /// 마일스톤 값 → 픽셀 컬러 매핑. SPEC §10 byte-equal.
-    /// case 3 픽셀 콤보 골드, 5 픽셀 콤보 레드, 10 픽셀 HUD 옐로(황금기), 20 픽셀 콤보 레드(클라이맥스).
+    /// 마일스톤 값 → 픽셀 컬러 매핑.
+    /// case 7은 최고 가산점 진입을 10콤보와 같은 HUD 옐로 톤으로 표시한다.
     /// 정적 메서드: 외부 상태 의존 0 — 입력 같으면 출력 같음(pure function).
     private static func color(for milestone: Int) -> UIColor {
         switch milestone {
         case 3:  return .ganhoPixelComboGold   // 첫 도달 — 따뜻한 픽셀 골드
         case 5:  return .ganhoPixelComboRed    // 음악의 강렬함 — 픽셀 레드
-        case 10: return .ganhoPixelHudYellow   // 노트의 황금기 — HUD 옐로와 동일 톤
+        case 7,
+             10: return .ganhoPixelHudYellow   // 노트의 황금기 — HUD 옐로와 동일 톤
         case 20: return .ganhoPixelComboRed    // 클라이맥스 — 짙은 픽셀 레드
         default: return .ganhoPixelComboGold   // 미래 마일스톤 graceful fallback
         }

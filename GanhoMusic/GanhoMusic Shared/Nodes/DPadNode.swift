@@ -23,6 +23,10 @@ final class DPadNode: SKNode {
     private let rightButton: SKShapeNode
     /// 중앙 데드존 — navy α 라운드 사각형. 시각만, 터치 흡수 0.
     private let centerDeadzone: SKShapeNode
+    private let upIcon: SKLabelNode
+    private let downIcon: SKLabelNode
+    private let leftIcon: SKLabelNode
+    private let rightIcon: SKLabelNode
 
     /// 외부 노출 — 지금 누르고 있는 방향 (정규화 단위 벡터). 안 누르면 .zero.
     /// 4방향 단일 정책 — 한 번에 .up/.down/.left/.right 중 하나.
@@ -53,6 +57,10 @@ final class DPadNode: SKNode {
             rectOf: deadzoneSize,
             cornerRadius: GameConfig.dpadCenterDeadzoneCornerRadius
         )
+        upIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        downIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        leftIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        rightIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
 
         super.init()
 
@@ -67,12 +75,17 @@ final class DPadNode: SKNode {
 
         // Sprint 3 — fill/stroke 색 일괄. white 0.75 + navy α 0.25 stroke + 두께 2.
         for button in [upButton, downButton, leftButton, rightButton] {
-            button.fillColor = UIColor.white
+            button.fillColor = UIColor.ganhoIngameControlFill
                 .withAlphaComponent(GameConfig.dpadButtonFillAlpha)
             button.strokeColor = UIColor.ganhoNavyDeep
                 .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
             button.lineWidth = GameConfig.dpadButtonStrokeLineWidth
         }
+
+        configureIcon(upIcon, text: GameConfig.dpadUpIconText, position: upButton.position)
+        configureIcon(downIcon, text: GameConfig.dpadDownIconText, position: downButton.position)
+        configureIcon(leftIcon, text: GameConfig.dpadLeftIconText, position: leftButton.position)
+        configureIcon(rightIcon, text: GameConfig.dpadRightIconText, position: rightButton.position)
 
         // 중앙 데드존 — navy α 0.4. strokeColor=clear.
         centerDeadzone.fillColor = UIColor.ganhoNavyDeep
@@ -84,8 +97,12 @@ final class DPadNode: SKNode {
         addChild(downButton)
         addChild(leftButton)
         addChild(rightButton)
+        addChild(upIcon)
+        addChild(downIcon)
+        addChild(leftIcon)
+        addChild(rightIcon)
 
-        alpha = GameConfig.dpadAlpha          // 자식까지 일괄 반투명
+        alpha = GameConfig.ingameControlReadableAlpha
         isUserInteractionEnabled = true       // 핵심! 안 켜면 touch가 부모로 흐름
 
         upButton.name    = "dpadUp"
@@ -111,10 +128,17 @@ final class DPadNode: SKNode {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         currentDirection = .zero
+        applyPressedState(for: nil)
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         currentDirection = .zero
+        applyPressedState(for: nil)
+    }
+
+    func resetDirection() {
+        currentDirection = .zero
+        applyPressedState(for: nil)
     }
 
     // MARK: - Direction Resolution
@@ -130,7 +154,84 @@ final class DPadNode: SKNode {
         // .zero 입력은 Direction.init?(vector:)가 nil 반환 → 자연 noop. touchesEnded/Cancelled는
         // 본 함수를 호출하지 않으므로(.zero set만 함) 정지 시 콜백 미발화 → 마지막 방향 유지.
         if let dir = Direction(vector: currentDirection) {
+            applyPressedState(for: dir)
             onDirectionChanged?(dir)
+        }
+    }
+
+    // MARK: - Visual State
+    private func configureIcon(_ icon: SKLabelNode, text: String, position: CGPoint) {
+        icon.text = text
+        icon.fontSize = GameConfig.dpadIconFontSize
+        icon.fontColor = .ganhoNavyDeep
+        icon.horizontalAlignmentMode = .center
+        icon.verticalAlignmentMode = .center
+        icon.position = position
+        icon.zPosition = 2
+    }
+
+    private func applyPressedState(for direction: Direction?) {
+        resetButtonStyles()
+        guard let direction = direction else { return }
+        let button = buttonNode(for: direction)
+        let icon = iconNode(for: direction)
+        button.fillColor = UIColor.ganhoIngameControlPressed
+            .withAlphaComponent(GameConfig.dpadPressedFillAlpha)
+        button.strokeColor = .ganhoPixelHudYellow
+        icon.fontColor = .ganhoPixelOutlineBlack
+        button.run(
+            .scale(to: GameConfig.ingamePressScale, duration: GameConfig.ingamePressDuration),
+            withKey: GameConfig.ingamePressActionKey
+        )
+        icon.run(
+            .scale(to: GameConfig.ingamePressScale, duration: GameConfig.ingamePressDuration),
+            withKey: GameConfig.ingamePressActionKey
+        )
+    }
+
+    private func resetButtonStyles() {
+        for button in [upButton, downButton, leftButton, rightButton] {
+            button.fillColor = UIColor.ganhoIngameControlFill
+                .withAlphaComponent(GameConfig.dpadButtonFillAlpha)
+            button.strokeColor = UIColor.ganhoNavyDeep
+                .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
+            button.run(
+                .scale(to: GameConfig.dpadReleasedScale, duration: GameConfig.ingamePressDuration),
+                withKey: GameConfig.ingamePressActionKey
+            )
+        }
+        for icon in [upIcon, downIcon, leftIcon, rightIcon] {
+            icon.fontColor = .ganhoNavyDeep
+            icon.run(
+                .scale(to: GameConfig.dpadReleasedScale, duration: GameConfig.ingamePressDuration),
+                withKey: GameConfig.ingamePressActionKey
+            )
+        }
+    }
+
+    private func buttonNode(for direction: Direction) -> SKShapeNode {
+        switch direction {
+        case .back:
+            return upButton
+        case .front:
+            return downButton
+        case .left:
+            return leftButton
+        case .right:
+            return rightButton
+        }
+    }
+
+    private func iconNode(for direction: Direction) -> SKLabelNode {
+        switch direction {
+        case .back:
+            return upIcon
+        case .front:
+            return downIcon
+        case .left:
+            return leftIcon
+        case .right:
+            return rightIcon
         }
     }
 }

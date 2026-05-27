@@ -70,6 +70,15 @@ final class EnemyNode: SKSpriteNode {
     var fireIntervalStart: TimeInterval = 3.5
     /// 다음 발사 간격 끝값 (초). apply에서 set.
     var fireIntervalEnd: TimeInterval = 2.0
+    /// 난이도별 위험 경고 표시량. 실제 발사 수치가 아니라 시각 정보량만 제어한다.
+    private var warningProfile = GameConfig.warningProfileFallback
+    /// 텔레그래프 시작 시점에 확정한 실제 발사 각도. 경고선과 발사 방향 정합에 사용.
+    private var pendingShotAngles: [CGFloat] = []
+    private var pendingShotBaseAngle: CGFloat?
+    private let proximityWarning = EnemyProximityWarningNode(color: .ganhoIngameDanger)
+    private let charmAura = SKShapeNode(circleOfRadius: GameConfig.enemyDangerRingRadius)
+    private let charmHeartEyes = SKNode()
+    private var isCharmVisualActive = false
 
     // MARK: - Pixel Sprite State (Phase 8-2 · 보존)
     private var pixelDirection: PixelDirection = .down
@@ -108,6 +117,9 @@ final class EnemyNode: SKSpriteNode {
         physicsBody = body
 
         zPosition = 5
+        addChild(proximityWarning)
+        setupCharmAura()
+        setupCharmHeartEyes()
 
         // Sprint 10 Phase F — 자식 시각(헬로/차트/클립) 부착 폐기.
         // 원본 game.js는 16×20 픽셀 본체만 노출 — setupVisualOverlay 호출 제거.
@@ -133,6 +145,7 @@ final class EnemyNode: SKSpriteNode {
         obsMaxSpeed       = GameConfig.obsMaxSpeedByDifficulty[difficulty] ?? 220
         fireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? 3.5
         fireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty] ?? 2.0
+        warningProfile    = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
         throwTimer = fireIntervalStart
     }
 
@@ -198,12 +211,79 @@ final class EnemyNode: SKSpriteNode {
     /// 2) updateThrowStateMachine — idle/telegraph/firing 상태 전이.
     /// 3) updatePixelDirection + tickWalkFrame — 시각 텍스처 자기 갱신(PlayerNode 패턴 동형).
     func update(deltaTime dt: TimeInterval) {
+        updateCharmVisual(isActive: charmActiveProvider())
         updatePatrol(dt: dt)
         updateThrowStateMachine(dt: dt)
         let v = physicsBody?.velocity ?? .zero
         updatePixelDirection(v)
         let isMoving = abs(v.dx) > 1.0 || abs(v.dy) > 1.0
         tickWalkFrame(deltaTime: dt, isMoving: isMoving)
+    }
+
+    func updateProximityWarning(distanceToPlayer distance: CGFloat, profile: DangerWarningProfile) {
+        proximityWarning.update(distanceToPlayer: distance, profile: profile)
+    }
+
+    private func setupCharmAura() {
+        charmAura.name = "charmAura"
+        charmAura.zPosition = 24
+        charmAura.alpha = 0
+        charmAura.lineWidth = 2
+        charmAura.strokeColor = GameConfig.aItemColor.withAlphaComponent(0.88)
+        charmAura.fillColor = GameConfig.aItemColor.withAlphaComponent(0.12)
+        addChild(charmAura)
+    }
+
+    private func setupCharmHeartEyes() {
+        charmHeartEyes.name = "charmHeartEyes"
+        charmHeartEyes.zPosition = 30
+        charmHeartEyes.alpha = 0
+        addChild(charmHeartEyes)
+
+        let eyeY = GameConfig.enemyHeight * GameConfig.pixelSpriteScale * 0.08
+        let eyeGap = GameConfig.enemyWidth * GameConfig.pixelSpriteScale * 0.18
+        for x in [-eyeGap, eyeGap] {
+            let heart = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            heart.text = "♥"
+            heart.fontSize = 16
+            heart.fontColor = GameConfig.aItemColor
+            heart.horizontalAlignmentMode = .center
+            heart.verticalAlignmentMode = .center
+            heart.position = CGPoint(x: x, y: eyeY)
+            charmHeartEyes.addChild(heart)
+        }
+    }
+
+    private func updateCharmVisual(isActive: Bool) {
+        guard isActive != isCharmVisualActive else { return }
+        isCharmVisualActive = isActive
+        charmAura.removeAllActions()
+        charmHeartEyes.removeAllActions()
+        if isActive {
+            charmAura.alpha = 1
+            charmHeartEyes.alpha = 1
+            let heartPulse = SKAction.sequence([
+                .scale(to: 1.16, duration: 0.18),
+                .scale(to: 0.96, duration: 0.18)
+            ])
+            let auraPulse = SKAction.sequence([
+                .group([
+                    .scale(to: 1.18, duration: 0.28),
+                    .fadeAlpha(to: 0.52, duration: 0.28)
+                ]),
+                .group([
+                    .scale(to: 0.96, duration: 0.28),
+                    .fadeAlpha(to: 1.0, duration: 0.28)
+                ])
+            ])
+            charmAura.run(.repeatForever(auraPulse), withKey: "charmAuraPulse")
+            charmHeartEyes.run(.repeatForever(heartPulse), withKey: "charmHeartPulse")
+        } else {
+            charmAura.setScale(1.0)
+            charmAura.run(.fadeOut(withDuration: 0.12))
+            charmHeartEyes.setScale(1.0)
+            charmHeartEyes.run(.fadeOut(withDuration: 0.12))
+        }
     }
 
     // MARK: - Patrol (Sprint 10 Phase D)
@@ -266,10 +346,18 @@ final class EnemyNode: SKSpriteNode {
     private func enterTelegraph() {
         throwState = .telegraph
         telegraphRemaining = GameConfig.nurseChiefTelegraphDuration
+        let shotPlan = makeShotPlan()
+        pendingShotBaseAngle = shotPlan.baseAngle
+        pendingShotAngles = shotPlan.angles
         let node = EnemyTelegraphNode()
         node.position = CGPoint(x: 0, y: GameConfig.nurseChiefTelegraphOffsetY)
         addChild(node)
         telegraphNode = node
+        node.attachWarningLines(
+            angles: visibleWarningAngles(from: pendingShotAngles),
+            profile: warningProfile,
+            originOffsetY: -GameConfig.nurseChiefTelegraphOffsetY
+        )
         node.startBlinking()
     }
 
@@ -292,31 +380,23 @@ final class EnemyNode: SKSpriteNode {
     /// 5) isCharmed ? AItemNode : FProjectileNode — 발사 시점 1회 검사(SPEC §5).
     private func fireF() {
         guard let world = worldProvider() else { return }
-        let playerPos = targetProvider()
-        let dx = playerPos.x - position.x
-        let dy = playerPos.y - position.y
-        let magnitude = hypot(dx, dy)
-        // 플레이어와 정확히 겹친 극히 드문 경우 — 발사 무효 (NaN 방지).
-        guard magnitude > 0 else { return }
-        let baseAngle = atan2(dy, dx)
+        let shotPlan: (baseAngle: CGFloat, angles: [CGFloat])
+        if let baseAngle = pendingShotBaseAngle, !pendingShotAngles.isEmpty {
+            shotPlan = (baseAngle, pendingShotAngles)
+        } else {
+            shotPlan = makeShotPlan()
+        }
+        guard !shotPlan.angles.isEmpty else { return }
         let isCharmed = charmActiveProvider()
         let t = progressProvider()
         let speed = obsBaseSpeed + (obsMaxSpeed - obsBaseSpeed) * CGFloat(t)
-        let spreadStep = GameConfig.nurseChiefSpreadRadians
         let startOffset = GameConfig.nurseChiefFireStartOffset
         let spawnPoint = CGPoint(
-            x: position.x + cos(baseAngle) * startOffset,
-            y: position.y + sin(baseAngle) * startOffset
+            x: position.x + cos(shotPlan.baseAngle) * startOffset,
+            y: position.y + sin(shotPlan.baseAngle) * startOffset
         )
 
-        for i in 0..<burstCount {
-            // 중앙(burstCount/2)을 0으로 두고 좌우 대칭. burstCount=1 → 단발(centerOffset=0).
-            let centerOffset = CGFloat(i) - CGFloat(burstCount - 1) / 2.0
-            let angle = baseAngle + centerOffset * spreadStep
-            let jitter = CGFloat.random(
-                in: -GameConfig.nurseChiefSpreadJitter ... GameConfig.nurseChiefSpreadJitter
-            )
-            let finalAngle = angle + jitter
+        for finalAngle in shotPlan.angles {
             let unitX = cos(finalAngle)
             let unitY = sin(finalAngle)
             let velocity = CGVector(dx: unitX * speed, dy: unitY * speed)
@@ -332,6 +412,35 @@ final class EnemyNode: SKSpriteNode {
                 world.addChild(f)
             }
         }
+        pendingShotAngles.removeAll()
+        pendingShotBaseAngle = nil
+    }
+
+    private func makeShotPlan() -> (baseAngle: CGFloat, angles: [CGFloat]) {
+        let playerPos = targetProvider()
+        let dx = playerPos.x - position.x
+        let dy = playerPos.y - position.y
+        let magnitude = hypot(dx, dy)
+        guard magnitude > 0 else { return (0, []) }
+        let baseAngle = atan2(dy, dx)
+        let spreadStep = GameConfig.nurseChiefSpreadRadians
+        var angles: [CGFloat] = []
+        for i in 0..<burstCount {
+            let centerOffset = CGFloat(i) - CGFloat(burstCount - 1) / 2.0
+            let angle = baseAngle + centerOffset * spreadStep
+            let jitter = CGFloat.random(
+                in: -GameConfig.nurseChiefSpreadJitter ... GameConfig.nurseChiefSpreadJitter
+            )
+            angles.append(angle + jitter)
+        }
+        return (baseAngle, angles)
+    }
+
+    private func visibleWarningAngles(from angles: [CGFloat]) -> [CGFloat] {
+        guard !warningProfile.showAllBurstLines, angles.count > 3 else { return angles }
+        guard let first = angles.first, let last = angles.last else { return angles }
+        let middle = angles[angles.count / 2]
+        return [first, middle, last]
     }
 
     /// SpawnSystem.fireImmediately 호환 — 텔레그래프 우회 즉시 발사.

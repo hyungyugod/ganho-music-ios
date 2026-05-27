@@ -60,9 +60,7 @@ final class HUDNode: SKNode {
         let seconds = max(0, Int(ceil(remainingTime)))
         timeSlot.setValue(String(format: "00:%02d", seconds))
         comboSlot.setValue("\(combo)")
-        // Sprint 10 Phase J — 콤보 hot 색 픽셀 톤 swap (ganhoMusicGold → ganhoPixelHudYellow,
-        // .white → ganhoPixelHudWhite). 3+ 픽셀 옐로, 그 외 페이퍼 화이트.
-        comboSlot.setValueColor(combo >= 3 ? .ganhoPixelHudYellow : .ganhoPixelHudWhite)
+        comboSlot.setValueColor(colorForCombo(combo))
 
         // Sprint 3 — TIME 경고 색 swap + 진행바 갱신.
         // tensionWindow 이하 진입 시 코랄 경고 배경. 그 외엔 navy 기본.
@@ -73,12 +71,34 @@ final class HUDNode: SKNode {
         timeSlot.setTimeBar(progress: progress)
     }
 
+    // MARK: - Style
+    func applyReadableStyle() {
+        alpha = GameConfig.ingameHUDReadableAlpha
+    }
+
+    // MARK: - Collect Feedback
+    func pulseCombo(combo: Int) {
+        comboSlot.setValueColor(colorForCombo(combo))
+        comboSlot.pulseValue(
+            scale: GameConfig.hudComboPulseScale,
+            upDuration: GameConfig.hudComboPulseUpDuration,
+            downDuration: GameConfig.hudComboPulseDownDuration
+        )
+    }
+
+    private func colorForCombo(_ combo: Int) -> UIColor {
+        if combo >= GameConfig.comboBonusThresholdHigh { return .ganhoPixelComboRed }
+        if combo >= GameConfig.comboBonusThresholdMid { return .ganhoPixelComboGold }
+        if combo >= GameConfig.comboBonusThreshold { return .ganhoPixelHudYellow }
+        return .ganhoPixelHudWhite
+    }
+
     // MARK: - Character Name
     /// Phase 5-4 — 선택 캐릭터 이름을 HUD nameSlot 값 라벨에 1회 주입.
     /// 한 판 안에서 호출은 1회만 권장 (런타임 변경 미지원).
     /// 빈 문자열을 넘기면 값 라벨이 비어 보이지 않는다(텍스트만 사라짐).
     func setCharacterName(_ name: String) {
-        nameSlot.setValue(name)
+        nameSlot.setValue(name, fitToWidth: true)
     }
 
     // MARK: - Tension (Phase 6-14)
@@ -108,6 +128,7 @@ final class HUDSlotNode: SKNode {
 
     // MARK: - Properties
     /// navy 0.78 알약 배경. setWarn(true) 진입 시 코랄로 swap.
+    private let shadowNode: SKShapeNode
     private let backgroundChip: SKShapeNode
     private let labelNode: SKLabelNode
     private let valueNode: SKLabelNode
@@ -127,13 +148,27 @@ final class HUDSlotNode: SKNode {
             width: GameConfig.hudSlotWidth,
             height: GameConfig.hudSlotHeight
         )
+        shadowNode = SKShapeNode(
+            rectOf: chipSize,
+            cornerRadius: GameConfig.hudSlotCornerRadius
+        )
         backgroundChip = SKShapeNode(
             rectOf: chipSize,
             cornerRadius: GameConfig.hudSlotCornerRadius
         )
+        shadowNode.fillColor = UIColor.ganhoPixelOutlineBlack
+            .withAlphaComponent(GameConfig.hudSlotShadowAlpha)
+        shadowNode.strokeColor = .clear
+        shadowNode.position = CGPoint(
+            x: GameConfig.hudSlotShadowOffsetX,
+            y: GameConfig.hudSlotShadowOffsetY
+        )
+        shadowNode.zPosition = 98
         backgroundChip.fillColor = UIColor.ganhoNavyDeep
             .withAlphaComponent(GameConfig.hudSlotBgAlpha)
-        backgroundChip.strokeColor = .clear
+        backgroundChip.strokeColor = UIColor.ganhoPixelHudYellow
+            .withAlphaComponent(GameConfig.hudSlotStrokeAlpha)
+        backgroundChip.lineWidth = GameConfig.hudSlotStrokeWidth
         backgroundChip.zPosition = 99
 
         // (2) 라벨/값 SKLabelNode. Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold).
@@ -201,7 +236,8 @@ final class HUDSlotNode: SKNode {
             y: -GameConfig.hudSlotV2LabelFontSize / 2 - GameConfig.hudSlotInnerGap
         )
 
-        // (6) 자식 부착 — 배경(99) → 진행바(100/101, TIME만) → 라벨/값(100).
+        // (6) 자식 부착 — 그림자(98) → 배경(99) → 진행바(100/101, TIME만) → 라벨/값(100).
+        addChild(shadowNode)
         addChild(backgroundChip)
         if let bg = timeBarBg { addChild(bg) }
         if let fill = timeBarFill { addChild(fill) }
@@ -219,9 +255,23 @@ final class HUDSlotNode: SKNode {
         valueNode.text = s
     }
 
+    func setValue(_ s: String, fitToWidth: Bool) {
+        valueNode.text = s
+        guard fitToWidth else { return }
+        fitValueLabel()
+    }
+
     /// 값 라벨 색 갱신. 콤보 hot 색 갈아 끼움(3+ 골드, 그 외 흰).
     func setValueColor(_ c: UIColor) {
         valueNode.fontColor = c
+    }
+
+    func pulseValue(scale: CGFloat, upDuration: TimeInterval, downDuration: TimeInterval) {
+        valueNode.removeAction(forKey: GameConfig.hudComboPulseActionKey)
+        valueNode.setScale(1.0)
+        let grow = SKAction.scale(to: scale, duration: upDuration)
+        let shrink = SKAction.scale(to: 1.0, duration: downDuration)
+        valueNode.run(.sequence([grow, shrink]), withKey: GameConfig.hudComboPulseActionKey)
     }
 
     // MARK: - Sprint 3 v2 · Warn / TimeBar
@@ -233,6 +283,9 @@ final class HUDSlotNode: SKNode {
         backgroundChip.fillColor = on
             ? UIColor.ganhoPixelHudCoral.withAlphaComponent(GameConfig.hudSlotWarnBgAlpha)
             : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.hudSlotBgAlpha)
+        backgroundChip.strokeColor = on
+            ? UIColor.ganhoPixelTensionEdge
+            : UIColor.ganhoPixelHudYellow.withAlphaComponent(GameConfig.hudSlotStrokeAlpha)
     }
 
     /// TIME 슬롯 진행바 갱신. progress 1.0 = 가득, 0.0 = 비움.
@@ -259,5 +312,13 @@ final class HUDSlotNode: SKNode {
     func stopBlink(restoreColor: UIColor) {
         valueNode.removeAction(forKey: GameConfig.tensionBlinkActionKey)
         valueNode.fontColor = restoreColor
+    }
+
+    private func fitValueLabel() {
+        valueNode.setScale(1.0)
+        let maxWidth = GameConfig.hudSlotWidth - GameConfig.hudSlotInnerGap * 2
+        let width = valueNode.calculateAccumulatedFrame().width
+        guard width > maxWidth, width > 0 else { return }
+        valueNode.setScale(max(GameConfig.labelMinimumScale, maxWidth / width))
     }
 }

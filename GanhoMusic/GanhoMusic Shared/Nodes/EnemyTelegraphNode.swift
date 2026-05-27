@@ -18,6 +18,7 @@ final class EnemyTelegraphNode: SKNode {
     // MARK: - State
     /// 깜빡일 라벨. zPos 1 → 부모(EnemyNode) 픽셀 텍스처 위에 또렷이 노출.
     private let label: SKLabelNode
+    private weak var warningLine: ProjectileWarningLineNode?
 
     // MARK: - Init
     override init() {
@@ -46,6 +47,19 @@ final class EnemyTelegraphNode: SKNode {
         let off = SKAction.fadeAlpha(to: 0.0, duration: 0)
         let wait = SKAction.wait(forDuration: GameConfig.nurseChiefTelegraphBlinkInterval)
         let blink = SKAction.repeatForever(.sequence([on, wait, off, wait]))
-        run(blink, withKey: "blink")
+        run(blink, withKey: GameConfig.telegraphBlinkActionKey)
+    }
+
+    func attachWarningLines(angles: [CGFloat], profile: DangerWarningProfile, originOffsetY: CGFloat) {
+        warningLine?.removeFromParent()
+        let line = ProjectileWarningLineNode(
+            angles: angles,
+            length: profile.telegraphLineLength,
+            color: GameConfig.nurseChiefTelegraphColor,
+            alpha: profile.telegraphLineAlpha
+        )
+        line.position = CGPoint(x: 0, y: originOffsetY)
+        addChild(line)
+        warningLine = line
     }
 }

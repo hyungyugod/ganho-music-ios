@@ -2,20 +2,8 @@
 //  DifficultySelectScene.swift
 //  GanhoMusic Shared
 //
-//  Sprint 6 · 5단계 흐름 마지막 — 캐릭터 요약 + 스킬 요약 + 난이도 3장 + 시작
-//
-//  레이아웃:
-//    - 상단 좌: GlassPill 백버튼(`← 스킬 다시`, .kim일 땐 `← 캐릭터 다시`)
-//    - 상단 우: DarkContextChip 브레드크럼 `캐릭터 · 스킬 · [난이도]`
-//    - 중앙 헤더: AccentLine + Jua 26pt "난이도를 골라요" + Gowun Dodum 부제
-//    - 좌측 미니 카드: 코랄 이름 뱃지 + 풀바디 픽셀 SKSpriteNode(80×80, V5) + 스킬명/속도 칩
-//    - 우측 난이도 3장: DifficultyCardNode 기존 컴포넌트 그대로
-//    - 하단 PrimaryButton "시작"
-//
-//  김간호 분기: .kim이면 백버튼 텍스트가 "← 캐릭터 다시" + 백 타깃이 CharacterSelectScene.
-//  그 외 4명은 "← 스킬 다시" + SkillExplanationScene.
-//
-//  difficultyRepo: didMove에서 1회 .current로 복원. select 시 save. 저장 포맷 회귀 0건.
+//  캐릭터와 스킬 요약을 보여준 뒤 마지막으로 난이도를 선택하는 화면.
+//  난이도 저장 포맷과 GameScene 진입 시그니처는 변경하지 않는다.
 //
 
 import SpriteKit
@@ -152,15 +140,22 @@ final class DifficultySelectScene: BaseMenuScene {
 
     private func layoutHeader() {
         let centerX = frame.midX
-        let baseY = frame.midY + GameConfig.difficultySelectHeaderOffsetY
+        let scale = menuCompactScale()
+        headerLabel.setScale(scale)
+        headerSubLabel.setScale(scale)
+        accentLine.setScale(scale)
+        let baseY = min(
+            frame.midY + GameConfig.difficultySelectHeaderOffsetY * scale,
+            topBarY(extraInset: GameConfig.difficultySelectBackPillHeight)
+        )
         headerLabel.position = CGPoint(x: centerX, y: baseY)
         headerSubLabel.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.difficultySelectHeaderSubOffsetY
+            y: baseY + GameConfig.difficultySelectHeaderSubOffsetY * scale
         )
         accentLine.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.difficultySelectAccentLineOffsetY
+            y: baseY + GameConfig.difficultySelectAccentLineOffsetY * scale
         )
     }
 
@@ -192,16 +187,25 @@ final class DifficultySelectScene: BaseMenuScene {
     }
 
     private func layoutTopBar() {
-        let y = frame.maxY - GameConfig.difficultySelectTopBarMarginY
+        let safe = menuSafeInsets()
+        let scale = menuCompactScale()
+        let y = topBarY(
+            extraInset: max(
+                0,
+                GameConfig.difficultySelectTopBarMarginY - GameConfig.menuTopSafePadding
+            )
+        )
+        backPill?.setScale(scale)
+        breadcrumbChip?.setScale(scale)
         backPill?.position = CGPoint(
-            x: frame.minX + GameConfig.difficultySelectTopBarMarginX
-                + GameConfig.difficultySelectBackPillWidth / 2,
+            x: frame.minX + safe.left + GameConfig.difficultySelectTopBarMarginX * scale
+                + GameConfig.difficultySelectBackPillWidth * scale / 2,
             y: y
         )
         if let chip = breadcrumbChip {
             let halfWidth = chip.calculateAccumulatedFrame().width / 2
             chip.position = CGPoint(
-                x: frame.maxX - GameConfig.difficultySelectTopBarMarginX - halfWidth,
+                x: frame.maxX - safe.right - GameConfig.difficultySelectTopBarMarginX * scale - halfWidth,
                 y: y
             )
         }
@@ -321,10 +325,31 @@ final class DifficultySelectScene: BaseMenuScene {
 
     private func layoutSummaryCard() {
         // Sprint 7 — 우측 3장 카드가 1.4배 커지면서 시각 균형을 위해 좌측 summary를 V3 offset(-260)으로 추가 좌측 이동.
-        let baseX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3
+        let scale = difficultyLayoutScale()
+        summaryContainer?.setScale(scale)
+        summaryNameBadge?.setScale(scale)
+        summaryNameLabel.setScale(scale)
+        summaryFace?.setScale(scale)
+        summarySkillLabel.setScale(scale)
+        summarySpeedChip?.setScale(scale)
+        summarySpeedLabel.setScale(scale)
+        let safe = menuSafeInsets()
+        let halfWidth = GameConfig.difficultySelectSummaryCardWidth * scale / 2
+        let preferredX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3 * scale
+        let minX = frame.minX
+            + safe.left
+            + GameConfig.menuHorizontalSafePadding
+            + halfWidth
+        let cardsLeftEdge = difficultyCardsLeftEdge(scale: scale)
+        let maxX = cardsLeftEdge
+            - GameConfig.difficultySelectColumnMinGap * scale
+            - halfWidth
+        let baseX = maxX > minX
+            ? min(max(preferredX, minX), maxX)
+            : minX
         // V5 — 헤더(midY+140)와 카드 top 호흡 50pt 확보 위해 OffsetY V5(-40) 채택.
         // 기존 V3(-10)는 byte-identical 보존 — 다른 사용처 회귀 위험 0.
-        let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5
+        let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5 * scale
         summaryContainer?.position = CGPoint(x: baseX, y: baseY)
         let badgeY = baseY + GameConfig.difficultySelectSummaryNameBadgeOffsetY
         summaryNameBadge?.position = CGPoint(x: baseX, y: badgeY)
@@ -370,15 +395,29 @@ final class DifficultySelectScene: BaseMenuScene {
     private func layoutDifficultyCards() {
         let count = difficultyCards.count
         guard count > 0 else { return }
+        let safe = menuSafeInsets()
+        let availableWidth = size.width
+            - safe.left
+            - safe.right
+            - GameConfig.menuHorizontalSafePadding * 2
+        let scale = min(
+            difficultyLayoutScale(),
+            availableWidth < GameConfig.difficultyCompactWidthThreshold
+                ? GameConfig.difficultyCompactScale
+                : menuCompactScale()
+        )
         let width = GameConfig.difficultyCardWidthV4
         let spacing = GameConfig.difficultyCardGapV4
-        let totalWidth = width * CGFloat(count) + spacing * CGFloat(count - 1)
-        let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetX
-        let startX = centerX - totalWidth / 2 + width / 2
-        let y = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY
+        let totalWidth = (width * CGFloat(count) + spacing * CGFloat(count - 1)) * scale
+        let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetX * scale
+        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+        let clampedCenterX = min(centerX, rightLimit - totalWidth / 2)
+        let startX = clampedCenterX - totalWidth / 2 + width * scale / 2
+        let y = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY * scale
         for (index, card) in difficultyCards.enumerated() {
+            card.setLayoutScale(scale)
             card.position = CGPoint(
-                x: startX + CGFloat(index) * (width + spacing),
+                x: startX + CGFloat(index) * (width + spacing) * scale,
                 y: y
             )
         }
@@ -432,29 +471,30 @@ final class DifficultySelectScene: BaseMenuScene {
     /// → min(v3, v4Right, v5Left) → 마지막에 frame.minY 기준 safe margin으로 max 클램프.
     private func layoutStartButton() {
         // V3/V5 — 기존 V3 산식은 byte-identical 보존, 본 호출은 V5 offset(-200) 사용.
-        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetYV5
+        let scale = difficultyLayoutScale()
+        startButton.setScale(scale)
+        startButtonHalo?.setScale(scale)
+        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetYV5 * scale
 
-        let buttonHalfHeight: CGFloat = 24
-        let breathingGap = GameConfig.difficultySelectStartButtonBreathingGapV5
+        let buttonHalfHeight = GameConfig.primaryButtonHeight * scale / 2
+        let breathingGap = GameConfig.difficultySelectStartButtonBreathingGapV5 * scale
 
         // V4 — 우측 난이도 3장 카드 bottom 호흡 산식(기존 톤 유지).
-        let rightCardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY
-        let rightCardBottomY = rightCardCenterY - GameConfig.difficultyCardHeightV4 / 2
+        let rightCardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY * scale
+        let rightCardBottomY = rightCardCenterY - GameConfig.difficultyCardHeightV4 * scale / 2
         let v4RightY = rightCardBottomY - breathingGap - buttonHalfHeight
 
         // V5 신규 — 좌측 요약 카드 bottom 호흡 산식.
-        let leftCardCenterY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5
+        let leftCardCenterY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5 * scale
         let leftCardBottomY = leftCardCenterY
-            - GameConfig.difficultySelectSummaryCardHeight / 2
+            - GameConfig.difficultySelectSummaryCardHeight * scale / 2
         let v5LeftY = leftCardBottomY - breathingGap - buttonHalfHeight
 
         // 가장 아래(작은 y) 채택 — 어떤 카드와도 36pt+ 호흡 보장.
         let dynamicY = min(v3Y, min(v4RightY, v5LeftY))
 
         // 화면 하단 safe margin 클램프 — 좁은 디바이스에서 버튼이 화면 밖으로 나가지 않도록.
-        let minAllowedY = frame.minY
-            + GameConfig.difficultySelectStartButtonSafeBottomMarginV5
-            + buttonHalfHeight
+        let minAllowedY = bottomCTAAnchorY(buttonHalfHeight: buttonHalfHeight)
         let buttonY = max(dynamicY, minAllowedY)
 
         let pos = CGPoint(x: frame.midX, y: buttonY)
@@ -463,6 +503,39 @@ final class DifficultySelectScene: BaseMenuScene {
             x: pos.x,
             y: pos.y + GameConfig.difficultySelectStartButtonHaloOffsetY
         )
+    }
+
+    private func difficultyLayoutScale() -> CGFloat {
+        let safe = menuSafeInsets()
+        let availableWidth = size.width
+            - safe.left
+            - safe.right
+            - GameConfig.menuHorizontalSafePadding * 2
+        let summaryWidth = GameConfig.difficultySelectSummaryCardWidth
+        let cardsWidth = GameConfig.difficultyCardWidthV4 * CGFloat(Difficulty.allCases.count)
+            + GameConfig.difficultyCardGapV4 * CGFloat(Difficulty.allCases.count - 1)
+        let requiredWidth = summaryWidth
+            + GameConfig.difficultySelectColumnMinGap
+            + cardsWidth
+        let widthScale = availableWidth / requiredWidth
+        return max(
+            GameConfig.difficultySelectMinimumLayoutScale,
+            min(menuCompactScale(), widthScale)
+        )
+    }
+
+    private func difficultyCardsLeftEdge(scale: CGFloat) -> CGFloat {
+        let safe = menuSafeInsets()
+        let count = CGFloat(max(difficultyCards.count, Difficulty.allCases.count))
+        let totalWidth = (
+            GameConfig.difficultyCardWidthV4 * count
+            + GameConfig.difficultyCardGapV4 * (count - 1)
+        ) * scale
+        let preferredCenterX = frame.midX
+            + GameConfig.difficultySelectDifficultyRowOffsetX * scale
+        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+        let centerX = min(preferredCenterX, rightLimit - totalWidth / 2)
+        return centerX - totalWidth / 2
     }
 
     // MARK: - Touch

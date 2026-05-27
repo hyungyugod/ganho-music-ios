@@ -27,10 +27,39 @@ final class WallTileNode: SKSpriteNode {
             width:  GameConfig.originalMapCellSize,
             height: GameConfig.originalMapCellSize
         )
-        let color = UIColor(hex: GameConfig.wallTileColorHex)
+        let color = UIColor.ganhoIngameWallFill
         super.init(texture: nil, color: color, size: size)
         name = GameConfig.wallTileNodeName
         zPosition = GameConfig.wallTileZPosition
+
+        let shadow = SKSpriteNode(
+            color: .ganhoIngameWallShadow,
+            size: CGSize(width: size.width, height: GameConfig.wallTileShadowHeight)
+        )
+        shadow.position = CGPoint(
+            x: 0,
+            y: -size.height / 2 + GameConfig.wallTileShadowHeight / 2
+        )
+        shadow.zPosition = 1
+        addChild(shadow)
+
+        let topLine = SKSpriteNode(
+            color: .ganhoIngameWallHighlight,
+            size: CGSize(width: size.width, height: GameConfig.wallTileHighlightHeight)
+        )
+        topLine.position = CGPoint(
+            x: 0,
+            y: size.height / 2 - GameConfig.wallTileHighlightHeight / 2
+        )
+        topLine.zPosition = 2
+        addChild(topLine)
+
+        let outline = SKShapeNode(rectOf: size)
+        outline.strokeColor = .ganhoPixelOutlineBlack
+        outline.lineWidth = GameConfig.ingameWallStrokeWidth
+        outline.fillColor = .clear
+        outline.zPosition = 3
+        addChild(outline)
 
         // PhysicsBody — 옛 addRectPillar 정책과 byte-equal(주의사항 3·11).
         // isDynamic=false → 외부 힘으로 안 움직임. friction/restitution 0 → 부딪힘 시 미끄러짐 0/반사 0.

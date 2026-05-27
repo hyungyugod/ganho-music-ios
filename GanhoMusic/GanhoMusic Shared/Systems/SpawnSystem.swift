@@ -164,10 +164,9 @@ final class SpawnSystem {
     /// A(name="aItem", 매혹 변환)는 보존 — 원본 game.js L3419~L3447 'type==F 전부 삭제' byte-equal.
     /// SKAction.removeFromParent 사용 — didBegin/물리 콜백 진행 중 즉시 removeFromParent 회피
     /// (주의사항 1: 물리 충돌 노드 즉시 삭제 금지).
-    /// ProjectileNode(deprecated)와 FProjectileNode(Phase D 신규) 모두 name="projectile" 공유 →
-    /// type-agnostic 정책: 이름 기준 일괄 제거 (grep 검증: name="projectile" 사이트 2곳 / name="aItem" 분리).
-    /// 매혹된 ProjectileNode(레거시 isEnchanted=true)는 화면 보존되지 않음 — Phase D 이후 매혹 변환은
-    /// 발사 시점에 AItemNode로 분기되어 name="aItem" 별도. 즉 "projectile" 이름은 항상 일반 F만 보유.
+    /// FProjectileNode가 name="projectile"로 등록됨 (ContactRouter 콜백과 정합).
+    /// 매혹된 F(isEnchanted=true)는 SkillSystem이 시각만 분홍으로 토글 — name="projectile" 그대로 유지.
+    /// 발사 시점에 매혹 만료된 F는 AItemNode(name="aItem")로 별도 분기되어 본 enumerate에 잡히지 않음.
     func purgeAllF() {
         guard let world = worldNode else { return }
         world.enumerateChildNodes(withName: "projectile") { node, _ in

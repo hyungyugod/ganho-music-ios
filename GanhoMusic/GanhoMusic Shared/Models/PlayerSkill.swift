@@ -29,10 +29,10 @@ extension PlayerSkill {
     var displayName: String {
         switch self {
         case .none:           return "—"
-        case .dashClimb:      return "돌진"
-        case .bookClubRally:  return "북클럽"
-        case .charmStudent:   return "매혹"
-        case .taiwanTrip:     return "대만"
+        case .dashClimb:      return "암벽등반 돌진"
+        case .bookClubRally:  return "북클럽 소집"
+        case .charmStudent:   return "모범생의 매혹"
+        case .taiwanTrip:     return "대만여행"
         }
     }
 
@@ -80,8 +80,8 @@ extension PlayerSkill {
         case .none:           return ""
         case .dashClimb:      return "바라보는 방향으로 3타일 돌진. 벽 1칸 파괴. 쿨다운 22초."
         case .bookClubRally:  return "주변 6타일 안 음표를 한 번에 끌어와 수집. 쿨다운 20초."
-        case .charmStudent:   return "수간호사를 매혹. F 대신 A 투척(수집 시 점수 2배). 게임당 1회."
-        case .taiwanTrip:     return "가장 먼 빈 타일로 순간이동. 착지 후 0.5초 무적. 쿨다운 22초."
+        case .charmStudent:   return "수간호사를 4초간 매혹. F 대신 A 투척(수집 시 점수 2배). 게임당 1회."
+        case .taiwanTrip:     return "현재 위치의 반대 대각선 방향으로 멀리 순간이동. 착지 후 0.5초 무적. 쿨다운 22초."
         }
     }
 
@@ -93,7 +93,7 @@ extension PlayerSkill {
         case .dashClimb:      return "3타일"
         case .bookClubRally:  return "6타일"
         case .charmStudent:   return "전역"
-        case .taiwanTrip:     return "최원거리"
+        case .taiwanTrip:     return "반대 대각"
         }
     }
 

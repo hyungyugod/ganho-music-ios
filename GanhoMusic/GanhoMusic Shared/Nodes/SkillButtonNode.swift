@@ -110,6 +110,11 @@ final class SkillButtonNode: SKNode {
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
         alpha = enabled ? GameConfig.skillButtonActiveAlpha : GameConfig.skillButtonInactiveAlpha
+        backgroundNode.fillColor = enabled ? .ganhoCoralPrimary : .ganhoIngameControlDisabled
+        backgroundNode.strokeColor = enabled
+            ? UIColor.ganhoPixelHudYellow
+            : UIColor.ganhoPixelHudWhite.withAlphaComponent(GameConfig.skillButtonInactiveStrokeAlpha)
+        labelNode.fontColor = enabled ? .ganhoPixelHudWhite : .ganhoPixelHudWhite.withAlphaComponent(0.5)
         isUserInteractionEnabled = enabled
     }
 

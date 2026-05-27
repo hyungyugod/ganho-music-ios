@@ -94,13 +94,15 @@ final class HUDSkillSlotNode: SKNode {
         if skill == .none {
             // 김간호: 링 안 보임, value "—" dim. 라벨도 "—".
             // Sprint 10 Phase J — dim 픽셀 화이트 0.4. .white → ganhoPixelHudWhite swap.
-            ringNode.alpha = 0
+            ringNode.alpha = GameConfig.hudSkillSlotUsedAlpha
             ringFillNode.alpha = 0
+            ringNode.strokeColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.25)
             valueNode.text = "—"
             valueNode.fontColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.4)
         } else {
             ringNode.alpha = 1
             ringFillNode.alpha = 1
+            ringNode.strokeColor = UIColor.ganhoPixelHudYellow.withAlphaComponent(0.3)
             valueNode.text = "READY"
             // Sprint 10 Phase J — READY 텍스트 색 픽셀 옐로(SPEC §9 "valueNode READY 색도 픽셀 옐로").
             valueNode.fontColor = .ganhoPixelHudYellow
@@ -119,7 +121,9 @@ final class HUDSkillSlotNode: SKNode {
         // Sprint 10 Phase J — dim 텍스트 .white → ganhoPixelHudWhite swap.
         if currentSkill.oncePerGame, progress <= 0 {
             // 1회 소진: ring 채움 0, value dim "USED".
-            ringFillNode.alpha = 0
+            ringFillNode.alpha = GameConfig.hudSkillSlotUsedAlpha
+            ringFillNode.strokeColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.35)
+            ringFillNode.fillColor = .clear
             valueNode.text = "USED"
             valueNode.fontColor = UIColor.ganhoPixelHudWhite.withAlphaComponent(0.4)
             return
@@ -137,7 +141,7 @@ final class HUDSkillSlotNode: SKNode {
 
         // 쿨다운 중(0 < progress < 1.0): 채움 비율 = progress.
         // Sprint 10 Phase J — 쿨다운 ganhoCoralPrimary → ganhoPixelHudCoral. fillColor=clear, alpha=progress.
-        ringFillNode.alpha = progress
+        ringFillNode.alpha = max(GameConfig.hudSkillSlotCooldownMinAlpha, progress)
         ringFillNode.strokeColor = .ganhoPixelHudCoral
         ringFillNode.fillColor = .clear
         valueNode.text = "..."

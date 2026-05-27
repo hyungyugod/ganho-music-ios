@@ -42,6 +42,9 @@ final class ProfessorNode: SKSpriteNode {
     private var targetProvider: () -> CGPoint? = { nil }
     /// 게임 진행률(0..1) 공급자. 발사 주기 보간에 사용.
     private var progressProvider: () -> Double = { 0 }
+    /// 난이도별 경고 표시량. 실제 발사 주기/속도에는 관여하지 않는다.
+    var warningProfile = GameConfig.warningProfileFallback
+    private let proximityWarning = EnemyProximityWarningNode(color: .ganhoCoralPrimary)
 
     // MARK: - Init
     init() {
@@ -59,6 +62,7 @@ final class ProfessorNode: SKSpriteNode {
         zPosition = 5
 
         // physicsBody 미부착 — *통과형* NPC. 위협은 청진기가 담당.
+        addChild(proximityWarning)
 
         // Sprint 10 Phase F — 자식 시각(disc/tube) 부착 폐기 + color clear 제거.
         // setupVisualOverlay 호출 제거 → 본체 픽셀 텍스처만 노출.
@@ -174,6 +178,12 @@ final class ProfessorNode: SKSpriteNode {
         let telegraph = ProfessorTelegraphNode()
         telegraph.position = CGPoint(x: 0, y: GameConfig.professorTelegraphOffsetY)
         addChild(telegraph)
+        let angle = atan2(target.y - position.y, target.x - position.x)
+        telegraph.attachWarningLine(
+            angle: angle,
+            profile: warningProfile,
+            originOffsetY: -GameConfig.professorTelegraphOffsetY
+        )
         telegraph.startBlinking()
         let wait = SKAction.wait(forDuration: GameConfig.professorTelegraphDuration)
         let fire = SKAction.run { [weak self, weak telegraph, weak world] in
@@ -264,6 +274,14 @@ final class ProfessorNode: SKSpriteNode {
         if needsRefresh {
             refreshTexture()
         }
+    }
+
+    func updateProximityWarning(distanceToPlayer distance: CGFloat, profile: DangerWarningProfile) {
+        proximityWarning.update(
+            distanceToPlayer: distance,
+            profile: profile,
+            alphaMultiplier: profile.professorRingAlphaMultiplier
+        )
     }
 
     /// 현재 방향/프레임 조합으로 텍스처 재생성.

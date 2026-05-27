@@ -51,6 +51,10 @@ final class DifficultyCardNode: SKNode {
     /// 카드 배경보다 *살짝 큰* 캡슐로 외곽에서 빛나는 톤.
     /// Sprint 7 Phase C — strokeColor를 id.cardGlowColor로 카드별 분기.
     private let ringGlow: SKShapeNode
+    /// 화면 폭이 좁을 때 Scene이 주입하는 기본 배율. 선택 scale은 이 값에 곱해 적용한다.
+    private var layoutScale: CGFloat = 1.0
+    /// 현재 선택 상태. resize/layout 재계산 시 선택 카드 scale을 보존한다.
+    private var isSelected = false
     /// Sprint 7 Phase C — 누적된 lift 오프셋(현재 y 위치가 base 대비 얼마나 올라가 있는지).
     /// setSelected 중복 호출 시 position.y 누적 방지 — 증분 액션으로 변경.
     private var liftCurrentOffset: CGFloat = 0
@@ -129,17 +133,18 @@ final class DifficultyCardNode: SKNode {
     /// position.y +8pt lift 액션 — liftCurrentOffset 증분 추적으로 중복 호출 안전.
     /// nameLabel / nameLabelStroke / subtitleLabel / descriptionLabel 모두 색 동기화.
     func setSelected(_ selected: Bool) {
+        isSelected = selected
         alpha = selected ? 1.0 : GameConfig.difficultyCardDeselectedAlphaV3
         removeAction(forKey: "cardScale")
         if selected {
             // Phase 10-2 — spring: overshoot 1.12 → settle 1.08.
             let overshoot = SKAction.scale(
-                to: GameConfig.difficultyCardSpringOvershootScale,
+                to: layoutScale * GameConfig.difficultyCardSpringOvershootScale,
                 duration: GameConfig.difficultyCardSpringPhase1Duration
             )
             overshoot.timingMode = .easeOut
             let settle = SKAction.scale(
-                to: GameConfig.characterCardSelectedScale,
+                to: layoutScale * GameConfig.characterCardSelectedScale,
                 duration: GameConfig.difficultyCardSpringPhase2Duration
             )
             settle.timingMode = .easeInEaseOut
@@ -149,7 +154,7 @@ final class DifficultyCardNode: SKNode {
             )
         } else {
             run(
-                SKAction.scale(to: 1.0, duration: GameConfig.characterCardScaleDuration),
+                SKAction.scale(to: layoutScale, duration: GameConfig.characterCardScaleDuration),
                 withKey: "cardScale"
             )
         }
@@ -206,6 +211,14 @@ final class DifficultyCardNode: SKNode {
         liftCurrentOffset = targetY
     }
 
+    /// Scene resize 대응용 기본 배율. 선택 상태 애니메이션과 같은 scale 축을 공유한다.
+    func setLayoutScale(_ scale: CGFloat) {
+        layoutScale = scale
+        removeAction(forKey: "cardScale")
+        let selectedScale = isSelected ? GameConfig.characterCardSelectedScale : 1.0
+        setScale(layoutScale * selectedScale)
+    }
+
     // MARK: - Configure
     /// 이름(상단) + 부제(중단) + 설명(하단) 3행 스타일.
     /// 카드 내부 *상대 좌표*(background 중심 기준)로 배치 — Sprint 8 Phase D V4 layout.
@@ -246,6 +259,11 @@ final class DifficultyCardNode: SKNode {
         nameLabel.verticalAlignmentMode = .center
         nameLabel.position = CGPoint(x: 0, y: nameCenterY)
         nameLabel.zPosition = 5
+        fitLabel(
+            nameLabel,
+            maxWidth: wrapWidth,
+            minimumScale: GameConfig.labelMinimumScale
+        )
 
         // Sprint 7 Phase C — stroke 라벨. nameLabel과 같은 텍스트, 폰트는 nameFontSize + stroke×2,
         // fontColor는 id.cardStrokeColor — 위에 nameLabel(navy)이 덮으며 외곽선 효과 근사.
@@ -259,6 +277,11 @@ final class DifficultyCardNode: SKNode {
         nameLabelStroke.verticalAlignmentMode = .center
         nameLabelStroke.position = CGPoint(x: 0, y: nameCenterY)
         nameLabelStroke.zPosition = nameLabel.zPosition - 0.1
+        fitLabel(
+            nameLabelStroke,
+            maxWidth: wrapWidth,
+            minimumScale: GameConfig.labelMinimumScale
+        )
 
         // 부제 — 중단. Sprint 8 Phase D — attributedText + lineHeightMultiple 1.4.
         subtitleLabel.fontName = GameConfig.fontBody
@@ -333,5 +356,16 @@ final class DifficultyCardNode: SKNode {
             .paragraphStyle: style
         ]
         return NSAttributedString(string: text, attributes: attributes)
+    }
+
+    private func fitLabel(
+        _ label: SKLabelNode,
+        maxWidth: CGFloat,
+        minimumScale: CGFloat
+    ) {
+        label.setScale(1.0)
+        let width = label.calculateAccumulatedFrame().width
+        guard width > maxWidth, width > 0 else { return }
+        label.setScale(max(minimumScale, maxWidth / width))
     }
 }

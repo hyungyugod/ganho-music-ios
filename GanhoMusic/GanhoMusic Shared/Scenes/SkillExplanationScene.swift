@@ -2,10 +2,10 @@
 //  SkillExplanationScene.swift
 //  GanhoMusic Shared
 //
-//  Phase 10-1c · 시작 시퀀스 3단계 — 큰 아바타 + 스킬명 + 설명 + 조작 안내 + 뒤로/시작 버튼
+//  Phase 10-1c · 시작 시퀀스 3단계 — 큰 아바타 + 스킬명 + 설명 + 뒤로/시작 버튼
 //  Sprint 2 · 메뉴 v2 리스킨 — 3-stop warm gradient + AccentLine 헤더 + GlassPill 뒤로 +
-//               DarkContextChip 브레드크럼 + 좌측 글래스 아바타 카드 + 우측 코랄 메타 + Jua 36pt 스킬명 +
-//               인용 박스(좌 3px 코랄 보더) + 메타 칩 3개 + 컨트롤 힌트 "B" 키 마크 + 하단 버튼 2개.
+//               DarkContextChip 브레드크럼 + 좌측 글래스 아바타 카드 + Jua 36pt 스킬명 +
+//               인용 박스(좌 3px 코랄 보더) + 메타 칩 3개 + 중앙 다음 버튼.
 //
 //  characterID + difficulty 둘 다 init 인자로 *불변 입력*. 김간호는 이 씬을 *스킵*하므로
 //  실제 도달하는 캐릭터는 .jung/.geon/.im/.lee 4명. (방어적으로 .none 분기도 빈 문자열 처리.)
@@ -15,9 +15,9 @@
 
 import SpriteKit
 
-/// 스킬 설명 단일 결정 씬. v2 리스킨 — 좌측 글래스 아바타 카드 + 우측 코랄 메타/Jua 스킬명/인용 박스/메타 칩 3개.
+/// 스킬 설명 단일 결정 씬. v2 리스킨 — 좌측 글래스 아바타 카드 + 우측 스킬명/인용 박스/메타 칩 3개.
 /// characterID/difficulty는 모두 *불변 입력*. 사용자는 *수정 불가* — 뒤로 가서 캐릭터 다시 선택.
-final class SkillExplanationScene: SKScene {
+final class SkillExplanationScene: BaseMenuScene {
 
     // MARK: - Properties
     private let characterID: CharacterID
@@ -40,8 +40,8 @@ final class SkillExplanationScene: SKScene {
     /// Sprint 2 — 아바타 카드 아래 role 라벨(Gowun Dodum) + 속도 칩.
     private let avatarRoleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     private var avatarSpeedChip: DarkContextChipNode?
-    /// Sprint 2 — 우측 메타 라벨(코랄, Gowun Dodum 11pt).
-    private let metaLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    /// Sprint 10.9 — 우측 스킬 정보를 하나의 브리핑 패널로 묶어 밀집감을 낮춘다.
+    private var briefingPanel: SKShapeNode?
     /// Sprint 2 — 우측 Jua 36pt 스킬명.
     private let skillNameLabel = SKLabelNode(text: "")
     /// Sprint 2 — 우측 인용 박스(좌 3px 코랄 보더 + 글래스 fill).
@@ -49,17 +49,8 @@ final class SkillExplanationScene: SKScene {
     private let skillQuoteLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     /// Sprint 2 — 우측 메타 칩 3개(CD / 범위 / 즉발).
     private var statChips: [DarkContextChipNode] = []
-    /// Sprint 2 — 컨트롤 힌트 다크 컨테이너 + "B" 키 원 + 라벨.
-    private var controlHintContainer: SKShapeNode?
-    private let controlHintKeyCircle = SKShapeNode(circleOfRadius: GameConfig.skillExplanationControlHintKeyCircleRadius)
-    private let controlHintKeyLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let controlHintLabel = SKLabelNode(text: GameConfig.skillExplanationControlHintText)
-    /// 하단 BackButtonNode "← 캐릭터 다시" — 기능 K6 — 기존 좌우 배치 유지.
-    private let backButton = BackButtonNode(text: "← 캐릭터 다시")
     /// Sprint 6 — "시작"이 아니라 "다음" — 다음 단계가 DifficultySelectScene이므로.
     private let startButton = PrimaryButtonNode(text: "다음")
-    /// Sprint 2 — 그라데이션 배경 노드.
-    private var gradientBackground: GradientBackgroundNode?
 
     // MARK: - Factory
     /// Sprint 6 — difficulty 인자 제거. 난이도 결정은 흐름의 *마지막*(DifficultySelectScene)으로 이동.
@@ -108,55 +99,34 @@ final class SkillExplanationScene: SKScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         backgroundColor = .ganhoBgWarmTop
-        setupGradientBackground()
+        setupWarmGradientBackground()
         setupHeader()
         setupTopBar()
         setupAvatarCard()
         setupAvatar()
         setupAvatarNameBadge()
         setupAvatarRoleAndSpeed()
-        setupMetaLabel()
+        setupBriefingPanel()
         setupSkillName()
         setupSkillQuoteBox()
         setupStatChips()
-        setupControlHint()
         setupButtons()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildGradientBackground()
+        rebuildWarmGradientBackground()
         layoutHeader()
         layoutTopBar()
         layoutAvatarCard()
         layoutAvatar()
         layoutAvatarNameBadge()
         layoutAvatarRoleAndSpeed()
-        // Sprint 7 Phase B — layoutMetaLabel() 호출 제거 (씬 그래프 외부 노드).
+        layoutBriefingPanel()
         layoutSkillName()
         layoutSkillQuoteBox()
         layoutStatChips()
-        layoutControlHint()
         layoutButtons()
-    }
-
-    // MARK: - Setup (Sprint 2 · Background)
-    private func setupGradientBackground() {
-        let node = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        node.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradientBackground = node
-        addChild(node)
-    }
-
-    private func rebuildGradientBackground() {
-        gradientBackground?.removeFromParent()
-        gradientBackground = nil
-        setupGradientBackground()
     }
 
     // MARK: - Setup (Sprint 2 · Header)
@@ -173,6 +143,7 @@ final class SkillExplanationScene: SKScene {
         headerSubLabel.fontColor = .ganhoNavyMuted
         headerSubLabel.horizontalAlignmentMode = .center
         headerSubLabel.verticalAlignmentMode = .center
+        headerSubLabel.isHidden = true
         addChild(headerSubLabel)
 
         addChild(accentLine)
@@ -181,15 +152,22 @@ final class SkillExplanationScene: SKScene {
 
     private func layoutHeader() {
         let centerX = frame.midX
-        let baseY = frame.midY + GameConfig.skillExplanationHeaderOffsetY
+        let scale = skillLayoutScale()
+        headerLabel.setScale(scale)
+        headerSubLabel.setScale(scale)
+        accentLine.setScale(scale)
+        let baseY = min(
+            frame.midY + GameConfig.skillExplanationHeaderOffsetY * scale,
+            topBarY(extraInset: GameConfig.skillExplanationBackPillHeight)
+        )
         headerLabel.position = CGPoint(x: centerX, y: baseY)
         headerSubLabel.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.skillExplanationHeaderSubOffsetY
+            y: baseY + GameConfig.skillExplanationHeaderSubOffsetY * scale
         )
         accentLine.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.skillExplanationAccentLineOffsetY
+            y: baseY + GameConfig.skillExplanationAccentLineOffsetY * scale
         )
     }
 
@@ -219,16 +197,25 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutTopBar() {
-        let y = frame.maxY - GameConfig.skillExplanationTopBarMarginY
+        let safe = menuSafeInsets()
+        let scale = skillLayoutScale()
+        let y = topBarY(
+            extraInset: max(
+                0,
+                GameConfig.skillExplanationTopBarMarginY - GameConfig.menuTopSafePadding
+            )
+        )
+        topBackPill?.setScale(scale)
+        breadcrumbChip?.setScale(scale)
         topBackPill?.position = CGPoint(
-            x: frame.minX + GameConfig.skillExplanationTopBarMarginX
-                + GameConfig.skillExplanationBackPillWidth / 2,
+            x: frame.minX + safe.left + GameConfig.skillExplanationTopBarMarginX * scale
+                + GameConfig.skillExplanationBackPillWidth * scale / 2,
             y: y
         )
         if let chip = breadcrumbChip {
             let halfWidth = chip.calculateAccumulatedFrame().width / 2
             chip.position = CGPoint(
-                x: frame.maxX - GameConfig.skillExplanationTopBarMarginX - halfWidth,
+                x: frame.maxX - safe.right - GameConfig.skillExplanationTopBarMarginX * scale - halfWidth,
                 y: y
             )
         }
@@ -257,9 +244,11 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutAvatarCard() {
+        let scale = skillLayoutScale()
+        avatarCard?.setScale(scale)
         avatarCard?.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationAvatarCardOffsetX,
-            y: frame.midY + GameConfig.skillExplanationAvatarCardOffsetY
+            x: contentLeftX(scale: scale),
+            y: contentCenterY(scale: scale)
         )
     }
 
@@ -270,9 +259,11 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutAvatar() {
+        let scale = skillLayoutScale()
+        avatarSprite.setScale(scale)
         avatarSprite.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationAvatarCardOffsetX,
-            y: frame.midY + GameConfig.skillExplanationAvatarCardOffsetY
+            x: contentLeftX(scale: scale),
+            y: contentCenterY(scale: scale)
         )
     }
 
@@ -305,9 +296,12 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutAvatarNameBadge() {
-        let baseX = frame.midX + GameConfig.skillExplanationAvatarCardOffsetX
-        let baseY = frame.midY + GameConfig.skillExplanationAvatarCardOffsetY
-        let badgeY = baseY + GameConfig.skillExplanationAvatarNameBadgeOffsetY
+        let scale = skillLayoutScale()
+        avatarNameBadge?.setScale(scale)
+        avatarNameLabel.setScale(scale)
+        let baseX = contentLeftX(scale: scale)
+        let baseY = contentCenterY(scale: scale)
+        let badgeY = baseY + GameConfig.skillExplanationAvatarNameBadgeOffsetY * scale
         avatarNameBadge?.position = CGPoint(x: baseX, y: badgeY)
         avatarNameLabel.position = CGPoint(x: baseX, y: badgeY)
     }
@@ -330,45 +324,60 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutAvatarRoleAndSpeed() {
-        let baseX = frame.midX + GameConfig.skillExplanationAvatarCardOffsetX
-        let baseY = frame.midY + GameConfig.skillExplanationAvatarCardOffsetY
+        let scale = skillLayoutScale()
+        avatarRoleLabel.setScale(scale)
+        avatarSpeedChip?.setScale(scale)
+        let baseX = contentLeftX(scale: scale)
+        let baseY = contentCenterY(scale: scale)
         avatarRoleLabel.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.skillExplanationAvatarRoleOffsetY
+            y: baseY + GameConfig.skillExplanationAvatarRoleOffsetY * scale
         )
         avatarSpeedChip?.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.skillExplanationAvatarSpeedChipOffsetY
+            y: baseY + GameConfig.skillExplanationAvatarSpeedChipOffsetY * scale
         )
     }
 
-    // MARK: - Sprint 7 Phase B · Right Side Meta + Skill Name (metaLabel 미부착)
-    // SPRINT_7_REQUEST.md §3 — metaLabel("XX의 스킬")은 우상단 브레드크럼이 단독 책임.
-    //                          화면에서 제거(addChild 호출 안 함). 인스턴스 자체는 보존(시그니처 0 변경).
-    //                          layoutMetaLabel 호출도 제거 — 씬 그래프 외부 노드의 좌표 계산 불필요.
-    private func setupMetaLabel() {
-        metaLabel.text = "\(characterID.displayName)의 스킬"
-        metaLabel.fontSize = GameConfig.skillExplanationMetaLabelFontSize
-        metaLabel.fontColor = .ganhoCoralPrimary
-        metaLabel.horizontalAlignmentMode = .center
-        metaLabel.verticalAlignmentMode = .center
-        metaLabel.zPosition = 100
-        // Sprint 7 Phase B — addChild(metaLabel) / layoutMetaLabel() 호출 제거.
+    // MARK: - Sprint 10.9 · Right Briefing Panel
+    private func setupBriefingPanel() {
+        let panelSize = CGSize(
+            width: GameConfig.skillExplanationBriefingPanelWidthV4,
+            height: GameConfig.skillExplanationBriefingPanelHeightV4
+        )
+        let panel = SKShapeNode(
+            rectOf: panelSize,
+            cornerRadius: GameConfig.skillExplanationBriefingPanelCornerRadiusV4
+        )
+        panel.fillColor = UIColor.white
+            .withAlphaComponent(GameConfig.skillExplanationBriefingPanelFillAlphaV4)
+        panel.strokeColor = UIColor.ganhoNavyDeep
+            .withAlphaComponent(GameConfig.skillExplanationBriefingPanelStrokeAlphaV4)
+        panel.lineWidth = 1.2
+        panel.zPosition = 84
+        panel.name = "skillBriefingPanel"
+        briefingPanel = panel
+        addChild(panel)
+        layoutBriefingPanel()
     }
 
-    private func layoutMetaLabel() {
-        metaLabel.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationMetaLabelOffsetX,
-            y: frame.midY + GameConfig.skillExplanationMetaLabelOffsetY
+    private func layoutBriefingPanel() {
+        let scale = skillLayoutScale()
+        briefingPanel?.setScale(scale)
+        briefingPanel?.position = CGPoint(
+            x: contentRightX(scale: scale),
+            y: contentCenterY(scale: scale)
+                + GameConfig.skillExplanationBriefingPanelOffsetYV4 * scale
         )
     }
 
+    // MARK: - Sprint 7 Phase B · Right Side Skill Name
     private func setupSkillName() {
         skillNameLabel.text = characterID.skill.displayName
         skillNameLabel.fontName = GameConfig.fontDisplay
         skillNameLabel.fontSize = GameConfig.skillExplanationSkillNameFontSize
         skillNameLabel.fontColor = .ganhoNavyDeep
-        skillNameLabel.horizontalAlignmentMode = .center
+        skillNameLabel.horizontalAlignmentMode = .left
         skillNameLabel.verticalAlignmentMode = .center
         skillNameLabel.zPosition = 100
         addChild(skillNameLabel)
@@ -376,9 +385,12 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutSkillName() {
+        let scale = skillLayoutScale()
+        skillNameLabel.setScale(scale)
         skillNameLabel.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationSkillNameOffsetX,
-            y: frame.midY + GameConfig.skillExplanationSkillNameOffsetY
+            x: briefingPanelLeftTextX(scale: scale),
+            y: contentCenterY(scale: scale)
+                + GameConfig.skillExplanationSkillNameOffsetYV4 * scale
         )
     }
 
@@ -388,15 +400,15 @@ final class SkillExplanationScene: SKScene {
     /// Sprint 7 Phase B — 폭 300→332(≈52%), 보더 3→4px. V3 상수만 참조, v2 상수 값 변경 0.
     private func setupSkillQuoteBox() {
         let boxSize = CGSize(
-            width: GameConfig.skillExplanationQuoteBoxWidthV3,
-            height: GameConfig.skillExplanationQuoteBoxHeight
+            width: GameConfig.skillExplanationQuoteBoxWidthV4,
+            height: GameConfig.skillExplanationQuoteBoxHeightV4
         )
         let box = SKShapeNode(
             rectOf: boxSize,
             cornerRadius: GameConfig.skillExplanationQuoteBoxCornerRadius
         )
         box.fillColor = UIColor.white
-            .withAlphaComponent(GameConfig.skillExplanationQuoteBoxFillAlpha)
+            .withAlphaComponent(0.92)
         box.strokeColor = .clear
         box.lineWidth = 0
         box.zPosition = 90
@@ -432,9 +444,16 @@ final class SkillExplanationScene: SKScene {
     }
 
     private func layoutSkillQuoteBox() {
+        let scale = skillLayoutScale()
+        skillQuoteBox?.setScale(scale)
+        // Label width is parent-local: the quote box itself receives the compact scale.
+        skillQuoteLabel.preferredMaxLayoutWidth =
+            GameConfig.skillExplanationQuoteBoxWidthV4
+            - GameConfig.skillExplanationQuoteBoxHorizontalPadding * 2
         skillQuoteBox?.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationStoryBoxOffsetX,
-            y: frame.midY + GameConfig.skillExplanationQuoteBoxOffsetY
+            x: contentRightX(scale: scale),
+            y: contentCenterY(scale: scale)
+                + GameConfig.skillExplanationQuoteBoxOffsetYV4 * scale
         )
     }
 
@@ -468,13 +487,18 @@ final class SkillExplanationScene: SKScene {
 
     private func layoutStatChips() {
         guard !statChips.isEmpty else { return }
+        let scale = skillLayoutScale()
+        for chip in statChips {
+            chip.setScale(scale)
+        }
         // 가로 정렬 — 누적 폭 계산 후 우측 영역 중앙(MetaLabelOffsetX) 기준 정렬.
         let widths = statChips.map { $0.calculateAccumulatedFrame().width }
         // Sprint 7 Phase B — V3 spacing 10pt (v2 8pt → v3 10pt). 메타 칩 호흡 +2pt.
-        let spacing = GameConfig.skillExplanationStatChipSpacingV3
+        let spacing = GameConfig.skillExplanationStatChipSpacingV3 * scale
         let total = widths.reduce(0, +) + spacing * CGFloat(statChips.count - 1)
-        let centerX = frame.midX + GameConfig.skillExplanationMetaLabelOffsetX
-        let y = frame.midY + GameConfig.skillExplanationStatChipRowOffsetY
+        let centerX = contentRightX(scale: scale)
+        let y = contentCenterY(scale: scale)
+            + GameConfig.skillExplanationStatChipRowOffsetYV4 * scale
         var cursorX = centerX - total / 2
         for (index, chip) in statChips.enumerated() {
             let w = widths[index]
@@ -483,110 +507,95 @@ final class SkillExplanationScene: SKScene {
         }
     }
 
-    // MARK: - Setup (Sprint 2 · Control Hint with "B" Key)
-    // Sprint 8 Phase C — container height만 V4(36pt) 교체.
-    // V3 상수 skillExplanationControlHintContainerHeight(=32)는 GameConfig 안 값 byte-identical 보존,
-    // 사용처만 V4로 이동. 내부 padding 6→8pt 확장에 대응하는 호흡 강화.
-    private func setupControlHint() {
-        let containerSize = CGSize(
-            width: GameConfig.skillExplanationControlHintContainerWidth,
-            height: GameConfig.skillExplanationControlHintContainerHeightV4
-        )
-        let container = SKShapeNode(
-            rectOf: containerSize,
-            cornerRadius: containerSize.height / 2
-        )
-        container.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.skillExplanationControlHintContainerFillAlpha)
-        container.strokeColor = .clear
-        container.lineWidth = 0
-        container.zPosition = 100
-        container.name = "controlHintContainer"
-        controlHintContainer = container
-        addChild(container)
-
-        controlHintKeyCircle.fillColor = .ganhoCoralPrimary
-        controlHintKeyCircle.strokeColor = .clear
-        controlHintKeyCircle.lineWidth = 0
-        controlHintKeyCircle.zPosition = 101
-        container.addChild(controlHintKeyCircle)
-
-        controlHintKeyLabel.text = "B"
-        controlHintKeyLabel.fontSize = GameConfig.skillExplanationControlHintKeyFontSize
-        controlHintKeyLabel.fontColor = .white
-        controlHintKeyLabel.horizontalAlignmentMode = .center
-        controlHintKeyLabel.verticalAlignmentMode = .center
-        controlHintKeyLabel.zPosition = 102
-        container.addChild(controlHintKeyLabel)
-
-        controlHintLabel.fontName = GameConfig.fontBody
-        controlHintLabel.fontSize = GameConfig.skillExplanationControlHintLabelFontSize
-        controlHintLabel.fontColor = .ganhoBgWarmTop
-        controlHintLabel.horizontalAlignmentMode = .left
-        controlHintLabel.verticalAlignmentMode = .center
-        controlHintLabel.zPosition = 102
-        container.addChild(controlHintLabel)
-        layoutControlHint()
-    }
-
-    private func layoutControlHint() {
-        let container = controlHintContainer
-        // Sprint 8 Phase C — containerY 동적 산출(V4).
-        // V3 상수 skillExplanationControlHintContainerOffsetY(=-120)는 GameConfig 값 byte-identical 보존,
-        // 사용처만 startButton 기준 동적 계산으로 교체. PrimaryButtonNode 본체 정의(GameConfig.primaryButtonHeight=48)
-        // 참조 — Generator 자율 결정 1에 따라 fileprivate 보조 상수 추가 없이 GameConfig 직접 참조.
-        //
-        // 산식: startButtonTop + V4 gap(28) + container height/2 → container 중심 y
-        //      = (midY + ButtonRowOffsetY) + (primaryButtonHeight/2) + bottomButtonGapV4 + (containerHeightV4/2)
-        //      = (midY - 160) + 24 + 28 + 18 = midY - 90  (V3는 midY - 120 → 30pt 상향, visual gap 0 → 28pt).
-        let startButtonY = frame.midY + GameConfig.skillExplanationButtonRowOffsetY
-        let primaryButtonHalfHeight = GameConfig.primaryButtonHeight / 2
-        let containerHalfHeight = GameConfig.skillExplanationControlHintContainerHeightV4 / 2
-        let containerY = startButtonY
-            + primaryButtonHalfHeight
-            + GameConfig.skillExplanationBottomButtonGapV4
-            + containerHalfHeight
-        container?.position = CGPoint(
-            x: frame.midX + GameConfig.skillExplanationStoryBoxOffsetX,
-            y: containerY
-        )
-        let containerWidth = GameConfig.skillExplanationControlHintContainerWidth
-        let padding = GameConfig.skillExplanationControlHintHorizontalPadding
-        let keyRadius = GameConfig.skillExplanationControlHintKeyCircleRadius
-        let keyX = -containerWidth / 2 + padding + keyRadius
-        controlHintKeyCircle.position = CGPoint(x: keyX, y: 0)
-        controlHintKeyLabel.position = CGPoint(x: keyX, y: 0)
-        let labelX = keyX + keyRadius + GameConfig.skillExplanationControlHintKeySpacing
-        controlHintLabel.position = CGPoint(x: labelX, y: 0)
-    }
-
     // MARK: - Sprint 7 Phase B · Bottom Buttons (startButton 단독 중앙)
-    // SPRINT_7_REQUEST.md §3 — backButton은 좌상단 topBackPill이 단독 책임.
-    //                          하단에서 제거(addChild 호출 안 함). 인스턴스/시그니처/touchesBegan 가드는 보존.
-    //                          부모(씬) 없는 노드의 hit-test는 false 반환 → 회귀 0.
     private func setupButtons() {
         addChild(startButton)
         layoutButtons()
     }
 
     private func layoutButtons() {
-        let y = frame.midY + GameConfig.skillExplanationButtonRowOffsetY
-        // Sprint 7 Phase B — startButton 단독 중앙 배치.
-        startButton.position = CGPoint(x: frame.midX, y: y)
+        let scale = skillLayoutScale()
+        startButton.setScale(scale)
+        let panelBottom = contentCenterY(scale: scale)
+            + GameConfig.skillExplanationBriefingPanelOffsetYV4 * scale
+            - GameConfig.skillExplanationBriefingPanelHeightV4 * scale / 2
+        let targetY = panelBottom
+            - GameConfig.skillExplanationButtonRightPanelGapV4 * scale
+            - GameConfig.primaryButtonHeight * scale / 2
+        let minY = bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
+        startButton.position = CGPoint(
+            x: contentRightX(scale: scale),
+            y: max(targetY, minY)
+        )
+    }
+
+    // MARK: - Layout
+
+    private func skillLayoutScale() -> CGFloat {
+        let safe = menuSafeInsets()
+        let availableWidth = size.width
+            - safe.left
+            - safe.right
+            - GameConfig.menuHorizontalSafePadding * 2
+        let requiredWidth = GameConfig.skillExplanationAvatarCardWidth
+            + GameConfig.difficultySelectColumnMinGap
+            + GameConfig.skillExplanationBriefingPanelWidthV4
+        let widthScale = availableWidth / requiredWidth
+        return max(
+            GameConfig.skillExplanationMinimumLayoutScale,
+            min(menuCompactScale(), widthScale)
+        )
+    }
+
+    private func contentCenterY(scale: CGFloat) -> CGFloat {
+        let buttonY = bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
+        let topLimit = topBarY(extraInset: GameConfig.skillExplanationBackPillHeight)
+            - GameConfig.skillExplanationHeaderFontSize * scale
+        let preferred = frame.midY + GameConfig.skillExplanationAvatarCardOffsetY * scale
+        let cardHalfHeight = GameConfig.skillExplanationAvatarCardHeight * scale / 2
+        let minY = buttonY
+            + GameConfig.primaryButtonHeight * scale / 2
+            + GameConfig.menuBottomSafePadding
+            + cardHalfHeight
+        let maxY = topLimit - cardHalfHeight
+        return maxY > minY ? min(max(preferred, minY), maxY) : preferred
+    }
+
+    private func contentLeftX(scale: CGFloat) -> CGFloat {
+        let safe = menuSafeInsets()
+        let halfWidth = GameConfig.skillExplanationAvatarCardWidth * scale / 2
+        let preferred = frame.midX + GameConfig.skillExplanationAvatarCardOffsetXV4 * scale
+        let minX = frame.minX
+            + safe.left
+            + GameConfig.menuHorizontalSafePadding
+            + halfWidth
+        return max(preferred, minX)
+    }
+
+    private func contentRightX(scale: CGFloat) -> CGFloat {
+        let safe = menuSafeInsets()
+        let halfWidth = GameConfig.skillExplanationBriefingPanelWidthV4 * scale / 2
+        let preferred = frame.midX + GameConfig.skillExplanationBriefingPanelOffsetXV4 * scale
+        let maxX = frame.maxX
+            - safe.right
+            - GameConfig.menuHorizontalSafePadding
+            - halfWidth
+        return min(preferred, maxX)
+    }
+
+    private func briefingPanelLeftTextX(scale: CGFloat) -> CGFloat {
+        contentRightX(scale: scale)
+            - GameConfig.skillExplanationBriefingPanelWidthV4 * scale / 2
+            + GameConfig.skillExplanationBriefingPanelTextInsetXV4 * scale
     }
 
     // MARK: - Touch
-    /// 우선순위: top GlassPill 뒤로 → 하단 backButton → startButton.
-    /// 두 뒤로 입력은 동일 전환을 트리거 — 사용자가 어느 쪽을 탭하든 동일 결과.
+    /// 우선순위: top GlassPill 뒤로 → startButton.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         if topBackPill?.contains(location) == true {
-            transitionToCharacterSelect()
-            return
-        }
-        if backButton.contains(location) {
             transitionToCharacterSelect()
             return
         }

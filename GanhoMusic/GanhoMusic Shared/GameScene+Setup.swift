@@ -2,11 +2,8 @@
 //  GameScene+Setup.swift
 //  GanhoMusic Shared
 //
-//  Phase 3 종결 후 리팩터 — setup/add 9개 메서드를 GameScene 본체에서 분리.
-//  Swift `private`은 *같은 파일+같은 타입* 한정 → 다른 파일 extension에선 접근 불가.
-//  본체 멤버를 internal(기본)으로 1단계 완화하고, 본체 호출자(didMove)에서 사용한다.
-//  기능 변화 0 — 코드 결과는 한 줄도 바뀌지 않는다.
-//  Phase 9-8 — setupStoneGuard에 hard 난이도 가드 추가(stoneGuard 미등록 → 이스터에그 진입 0).
+//  GameScene의 노드 부착과 화면 고정 UI 레이아웃을 분리한다.
+//  setup은 didMove(to:)에서 1회, layout은 size 변경 때마다 멱등으로 재계산한다.
 //
 
 import SpriteKit
@@ -52,8 +49,8 @@ extension GameScene {
 
         let t = GameConfig.tileSize
         let half = t / 2
-        let floorA = UIColor(hex: GameConfig.checkerboardFloorAHex)
-        let floorB = UIColor(hex: GameConfig.checkerboardFloorBHex)
+        let floorA = UIColor.ganhoIngameFloorA
+        let floorB = UIColor.ganhoIngameFloorB
         let tileSize = CGSize(width: t, height: t)
 
         for c in 0..<GameConfig.mapColumns {
@@ -113,6 +110,7 @@ extension GameScene {
 
     func setupHUD() {
         cameraNode.addChild(hud)
+        hud.applyReadableStyle()
         hud.setCharacterName(characterID.displayName)   // Phase 5-4 — TitleScene 선택 캐릭터 이름을 HUD 우상단에 1회 주입
         layoutHUD()
     }
@@ -162,6 +160,7 @@ extension GameScene {
     func setupProfessor() {
         guard difficulty == .hard else { return }
         let node = ProfessorNode()
+        node.warningProfile = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
         worldNode.addChild(node)
         professor = node
         // Sprint 10 Phase F — farthest-first 시작 정책. worldNode 부착 직후 selectInitialWaypoint이
@@ -209,9 +208,10 @@ extension GameScene {
     func layoutSkillButton() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
+        let safe = SceneSafeArea.insets(for: self)
         skillButton.position = CGPoint(
-            x: -(halfW - GameConfig.skillButtonMarginX),
-            y: -(halfH - GameConfig.skillButtonMarginY)
+            x: -(halfW - safe.left - GameConfig.skillButtonMarginX),
+            y: -(halfH - safe.bottom - GameConfig.skillButtonMarginY)
         )
     }
 
@@ -220,9 +220,10 @@ extension GameScene {
     func layoutHUDSkillSlot() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
+        let safe = SceneSafeArea.insets(for: self)
         hudSkillSlot.position = CGPoint(
-            x: -(halfW - GameConfig.skillButtonMarginX),
-            y: -(halfH - GameConfig.skillButtonMarginY) + GameConfig.hudSkillSlotOffsetY
+            x: -(halfW - safe.left - GameConfig.skillButtonMarginX),
+            y: -(halfH - safe.bottom - GameConfig.skillButtonMarginY) + GameConfig.hudSkillSlotOffsetY
         )
     }
 
@@ -240,9 +241,10 @@ extension GameScene {
     func layoutPauseButton() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
+        let safe = SceneSafeArea.insets(for: self)
         pauseButton.position = CGPoint(
-            x: +(halfW - GameConfig.pauseButtonMarginX),
-            y: +(halfH - GameConfig.pauseButtonMarginY)
+            x: +(halfW - safe.right - GameConfig.pauseButtonMarginX),
+            y: +(halfH - safe.top - GameConfig.pauseButtonMarginY)
         )
     }
 

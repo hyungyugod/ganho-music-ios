@@ -17,7 +17,6 @@
 		A1C0F1680000000000000008 /* NoteNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1580000000000000008 /* NoteNode.swift */; };
 		A1C0F1690000000000000009 /* HUDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1590000000000000009 /* HUDNode.swift */; };
 		A1C0F16A000000000000000A /* EnemyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15A000000000000000A /* EnemyNode.swift */; };
-		A1C0F16B000000000000000B /* ProjectileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15B000000000000000B /* ProjectileNode.swift */; };
 		A1C0F16C000000000000000C /* SpawnSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15C000000000000000C /* SpawnSystem.swift */; };
 		A1C0F16E000000000000000E /* ContactRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15E000000000000000E /* ContactRouter.swift */; };
 		A1C0F16F000000000000000F /* ScoreSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F15F000000000000000F /* ScoreSystem.swift */; };
@@ -61,22 +60,18 @@
 		A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004A /* ToastLabelNode.swift */; };
 		A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004B /* ProfessorNode.swift */; };
 		A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004C /* StethoscopeNode.swift */; };
-		A1C0F1B0000000000000004D /* StoryBoxNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004D /* StoryBoxNode.swift */; };
 		A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */; };
 		A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004F /* BackButtonNode.swift */; };
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
+		A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A000000000000000F0 /* BaseMenuScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
 		A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000052 /* SkillExplanationScene.swift */; };
 		A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */; };
 		A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */; };
-		A1C0F1B00000000000000055 /* GlowingTitleNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000055 /* GlowingTitleNode.swift */; };
 		A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000056 /* GlassPillNode.swift */; };
 		A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000057 /* AccentLineNode.swift */; };
 		A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000058 /* DarkContextChipNode.swift */; };
 		A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000059 /* PauseButtonNode.swift */; };
-		A1C0F1B00000000000000060 /* Jua-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000060 /* Jua-Regular.ttf */; };
-		A1C0F1B00000000000000061 /* GowunDodum-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000061 /* GowunDodum-Regular.ttf */; };
-		A1C0F1B00000000000000062 /* NotoSansKR-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000062 /* NotoSansKR-Bold.ttf */; };
 		A1C0F1B00000000000000070 /* CharacterFaceNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000070 /* CharacterFaceNode.swift */; };
 		A1C0F1B00000000000000071 /* NurseAvatarNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000071 /* NurseAvatarNode.swift */; };
 		A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000072 /* DifficultySelectScene.swift */; };
@@ -95,6 +90,11 @@
 		A1C0F1B00000000000000080 /* IntroVillainCutsceneNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000080 /* IntroVillainCutsceneNode.swift */; };
 		A1C0F1B00000000000000081 /* CutsceneTexts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000081 /* CutsceneTexts.swift */; };
 		A1C0F1B00000000000000082 /* TensionVignetteNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000082 /* TensionVignetteNode.swift */; };
+		A1C0F1B00000000000000083 /* DangerWarningProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000083 /* DangerWarningProfile.swift */; };
+		A1C0F1B00000000000000084 /* ProjectileWarningLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000084 /* ProjectileWarningLineNode.swift */; };
+		A1C0F1B00000000000000085 /* EnemyProximityWarningNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000085 /* EnemyProximityWarningNode.swift */; };
+		A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */; };
+		A1C0F1B00000000000000087 /* GameScene+DangerWarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000087 /* GameScene+DangerWarnings.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -108,7 +108,6 @@
 		A1C0F1580000000000000008 /* NoteNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteNode.swift; sourceTree = "<group>"; };
 		A1C0F1590000000000000009 /* HUDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/Nodes/HUDNode.swift"; sourceTree = "<group>"; };
 		A1C0F15A000000000000000A /* EnemyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyNode.swift; sourceTree = "<group>"; };
-		A1C0F15B000000000000000B /* ProjectileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectileNode.swift; sourceTree = "<group>"; };
 		A1C0F15C000000000000000C /* SpawnSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnSystem.swift; sourceTree = "<group>"; };
 		A1C0F15E000000000000000E /* ContactRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactRouter.swift; sourceTree = "<group>"; };
 		A1C0F15F000000000000000F /* ScoreSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSystem.swift; sourceTree = "<group>"; };
@@ -152,22 +151,18 @@
 		A1C0F1A0000000000000004A /* ToastLabelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastLabelNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004B /* ProfessorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessorNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004C /* StethoscopeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StethoscopeNode.swift; sourceTree = "<group>"; };
-		A1C0F1A0000000000000004D /* StoryBoxNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryBoxNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004F /* BackButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
+		A1C0F1A000000000000000F0 /* BaseMenuScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseMenuScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000052 /* SkillExplanationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillExplanationScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackgroundNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicNoteEmitterNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000055 /* GlowingTitleNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowingTitleNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000056 /* GlassPillNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPillNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000057 /* AccentLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentLineNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000058 /* DarkContextChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkContextChipNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000059 /* PauseButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseButtonNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000060 /* Jua-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Jua-Regular.ttf"; path = "GanhoMusic Shared/Resources/Fonts/Jua-Regular.ttf"; sourceTree = "<group>"; };
-		A1C0F1A00000000000000061 /* GowunDodum-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GowunDodum-Regular.ttf"; path = "GanhoMusic Shared/Resources/Fonts/GowunDodum-Regular.ttf"; sourceTree = "<group>"; };
-		A1C0F1A00000000000000062 /* NotoSansKR-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "NotoSansKR-Bold.ttf"; path = "GanhoMusic Shared/Resources/Fonts/NotoSansKR-Bold.ttf"; sourceTree = "<group>"; };
 		A1C0F1A00000000000000070 /* CharacterFaceNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterFaceNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000071 /* NurseAvatarNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NurseAvatarNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000072 /* DifficultySelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultySelectScene.swift; sourceTree = "<group>"; };
@@ -186,6 +181,11 @@
 		A1C0F1A00000000000000080 /* IntroVillainCutsceneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroVillainCutsceneNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000081 /* CutsceneTexts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CutsceneTexts.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000082 /* TensionVignetteNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TensionVignetteNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000083 /* DangerWarningProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DangerWarningProfile.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000084 /* ProjectileWarningLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectileWarningLineNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000085 /* EnemyProximityWarningNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyProximityWarningNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerNearMissWarningNode.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000087 /* GameScene+DangerWarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+DangerWarnings.swift"; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -200,6 +200,14 @@
 				GameScene.sks,
 				GameScene.swift,
 				"GameScene+Setup.swift",
+				"GameScene+Contact.swift",
+				"GameScene+Feedback.swift",
+				"GameScene+EasterEgg.swift",
+				"GameScene+Camera.swift",
+				"GameScene+GameState.swift",
+				"GameScene+Cutscene.swift",
+				"GameScene+Countdown.swift",
+				"GameScene+Layout.swift",
 				"Resources/Fonts/Jua-Regular.ttf",
 				"Resources/Fonts/GowunDodum-Regular.ttf",
 				"Resources/Fonts/NotoSansKR-Bold.ttf",
@@ -221,6 +229,9 @@
 				GameScene.sks,
 				GameScene.swift,
 				"GameScene+Setup.swift",
+				"GameScene+Cutscene.swift",
+				"GameScene+Countdown.swift",
+				"GameScene+Layout.swift",
 			);
 			target = C75D46392FA627C20016BB86 /* GanhoMusic tvOS */;
 		};
@@ -239,6 +250,9 @@
 				GameScene.sks,
 				GameScene.swift,
 				"GameScene+Setup.swift",
+				"GameScene+Cutscene.swift",
+				"GameScene+Countdown.swift",
+				"GameScene+Layout.swift",
 			);
 			target = C75D46492FA627C20016BB86 /* GanhoMusic macOS */;
 		};
@@ -323,7 +337,6 @@
 				A1C0F1560000000000000006 /* DPadNode.swift */,
 				A1C0F1580000000000000008 /* NoteNode.swift */,
 				A1C0F15A000000000000000A /* EnemyNode.swift */,
-				A1C0F15B000000000000000B /* ProjectileNode.swift */,
 				A1C0F1A00000000000000017 /* StoneGuardNode.swift */,
 				A1C0F1A00000000000000018 /* AirplaneNode.swift */,
 				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
@@ -345,12 +358,10 @@
 				A1C0F1A0000000000000004A /* ToastLabelNode.swift */,
 				A1C0F1A0000000000000004B /* ProfessorNode.swift */,
 				A1C0F1A0000000000000004C /* StethoscopeNode.swift */,
-				A1C0F1A0000000000000004D /* StoryBoxNode.swift */,
 				A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */,
 				A1C0F1A0000000000000004F /* BackButtonNode.swift */,
 				A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */,
 				A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */,
-				A1C0F1A00000000000000055 /* GlowingTitleNode.swift */,
 				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
 				A1C0F1A00000000000000057 /* AccentLineNode.swift */,
 				A1C0F1A00000000000000058 /* DarkContextChipNode.swift */,
@@ -365,6 +376,9 @@
 				A1C0F1A0000000000000007B /* FProjectileNode.swift */,
 				A1C0F1A0000000000000007C /* AItemNode.swift */,
 				A1C0F1A0000000000000007D /* ProfessorTelegraphNode.swift */,
+				A1C0F1A00000000000000084 /* ProjectileWarningLineNode.swift */,
+				A1C0F1A00000000000000085 /* EnemyProximityWarningNode.swift */,
+				A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */,
 				A1C0F1A0000000000000007E /* IntroCutsceneNode.swift */,
 				A1C0F1A0000000000000007F /* MidCutsceneNode.swift */,
 				A1C0F1A00000000000000080 /* IntroVillainCutsceneNode.swift */,
@@ -379,6 +393,7 @@
 			children = (
 				A1C0F1A00000000000000012 /* ResultScene.swift */,
 				A1C0F1A00000000000000050 /* StartScene.swift */,
+				A1C0F1A000000000000000F0 /* BaseMenuScene.swift */,
 				A1C0F1A00000000000000051 /* CharacterSelectScene.swift */,
 				A1C0F1A00000000000000052 /* SkillExplanationScene.swift */,
 				A1C0F1A00000000000000072 /* DifficultySelectScene.swift */,
@@ -426,6 +441,7 @@
 				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
 				A1C0F1A00000000000000076 /* Direction.swift */,
 				A1C0F1A00000000000000081 /* CutsceneTexts.swift */,
+				A1C0F1A00000000000000083 /* DangerWarningProfile.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -455,6 +471,7 @@
 			isa = PBXGroup;
 			children = (
 				C75D46202FA627C10016BB86 /* GanhoMusic Shared */,
+				A1C0F1A00000000000000087 /* GameScene+DangerWarnings.swift */,
 				A1C0F1500000000000000000 /* Config */,
 				A1C0F1570000000000000007 /* Nodes */,
 				A1C0F1C00000000000000012 /* Scenes */,
@@ -596,9 +613,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1C0F1B00000000000000060 /* Jua-Regular.ttf in Resources */,
-				A1C0F1B00000000000000061 /* GowunDodum-Regular.ttf in Resources */,
-				A1C0F1B00000000000000062 /* NotoSansKR-Bold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -632,7 +646,6 @@
 				A1C0F1680000000000000008 /* NoteNode.swift in Sources */,
 				A1C0F1690000000000000009 /* HUDNode.swift in Sources */,
 				A1C0F16A000000000000000A /* EnemyNode.swift in Sources */,
-				A1C0F16B000000000000000B /* ProjectileNode.swift in Sources */,
 				A1C0F16C000000000000000C /* SpawnSystem.swift in Sources */,
 				A1C0F16E000000000000000E /* ContactRouter.swift in Sources */,
 				A1C0F16F000000000000000F /* ScoreSystem.swift in Sources */,
@@ -676,15 +689,14 @@
 				A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */,
 				A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */,
 				A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */,
-				A1C0F1B0000000000000004D /* StoryBoxNode.swift in Sources */,
 				A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */,
 				A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */,
 				A1C0F1B00000000000000050 /* StartScene.swift in Sources */,
+				A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */,
 				A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */,
 				A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */,
 				A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */,
 				A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */,
-				A1C0F1B00000000000000055 /* GlowingTitleNode.swift in Sources */,
 				A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */,
 				A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */,
 				A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */,
@@ -708,6 +720,11 @@
 				A1C0F1B00000000000000080 /* IntroVillainCutsceneNode.swift in Sources */,
 				A1C0F1B00000000000000081 /* CutsceneTexts.swift in Sources */,
 				A1C0F1B00000000000000082 /* TensionVignetteNode.swift in Sources */,
+				A1C0F1B00000000000000083 /* DangerWarningProfile.swift in Sources */,
+				A1C0F1B00000000000000084 /* ProjectileWarningLineNode.swift in Sources */,
+				A1C0F1B00000000000000085 /* EnemyProximityWarningNode.swift in Sources */,
+				A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */,
+				A1C0F1B00000000000000087 /* GameScene+DangerWarnings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
