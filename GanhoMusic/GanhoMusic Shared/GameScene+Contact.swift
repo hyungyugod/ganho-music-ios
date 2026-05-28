@@ -38,26 +38,30 @@ extension GameScene {
 
         contactRouter.onNoteCollected = { [weak self] note in
             guard let self = self else { return }
-            let gainedPoints = self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
+            let noteNode = note as? NoteNode
+            let previousCombo = self.scoreSystem.combo
+            let collectHitCount = noteNode?.collectHitCount ?? 1
+            var gains: [Int] = []
+            for _ in 0..<collectHitCount {
+                gains.append(self.scoreSystem.recordNoteHit(at: self.lastUpdateTime))
+            }
             let currentCombo = self.scoreSystem.combo
+            let gainedPoints = gains.max() ?? GameConfig.scorePerNote
             self.playNoteCollectFeedback(gainedPoints: gainedPoints, combo: currentCombo)
 
             let sparkleOrigin = note.position
-            let sparkle = SparkleEffectNode(context: .ingame)
-            sparkle.position = sparkleOrigin
-            self.worldNode.addChild(sparkle)
-            sparkle.emit()
+            self.emitNoteCollectSparkles(at: sparkleOrigin, count: noteNode?.sparkleBurstCount ?? 1)
+            self.spawnNoteScorePopups(at: sparkleOrigin, gains: gains)
 
-            ScorePopupNode.spawn(at: sparkleOrigin, gainedPoints: gainedPoints, parent: self.worldNode)
-
-            if GameConfig.comboMilestones.contains(currentCombo),
-               !self.triggeredComboMilestones.contains(currentCombo) {
-                self.triggeredComboMilestones.insert(currentCombo)
-                self.playComboMilestoneFeedback(for: currentCombo)
-                let popup = ComboPopupNode(milestone: currentCombo)
-                popup.position = CGPoint(x: 0, y: GameConfig.comboPopupStartOffsetY)
-                self.cameraNode.addChild(popup)
-                popup.animate()
+            for milestone in GameConfig.comboMilestones where milestone > previousCombo && milestone <= currentCombo {
+                if !self.triggeredComboMilestones.contains(milestone) {
+                    self.triggeredComboMilestones.insert(milestone)
+                    self.playComboMilestoneFeedback(for: milestone)
+                    let popup = ComboPopupNode(milestone: milestone)
+                    popup.position = CGPoint(x: 0, y: GameConfig.comboPopupStartOffsetY)
+                    self.cameraNode.addChild(popup)
+                    popup.animate()
+                }
             }
             self.deferRemoveAfterContact(note)
         }
@@ -147,5 +151,34 @@ extension GameScene {
             .wait(forDuration: 0),
             .removeFromParent()
         ]))
+    }
+
+    private func emitNoteCollectSparkles(at origin: CGPoint, count: Int) {
+        let bursts = max(1, count)
+        for index in 0..<bursts {
+            let offset = fanOutOffset(index: index, count: bursts)
+            let sparkle = SparkleEffectNode(context: .ingame)
+            sparkle.position = CGPoint(x: origin.x + offset, y: origin.y)
+            worldNode.addChild(sparkle)
+            sparkle.emit()
+        }
+    }
+
+    private func spawnNoteScorePopups(at origin: CGPoint, gains: [Int]) {
+        let popupGains = gains.isEmpty ? [GameConfig.scorePerNote] : gains
+        for (index, gain) in popupGains.enumerated() {
+            let offset = fanOutOffset(index: index, count: popupGains.count)
+            ScorePopupNode.spawn(
+                at: CGPoint(x: origin.x + offset, y: origin.y),
+                gainedPoints: gain,
+                parent: worldNode
+            )
+        }
+    }
+
+    private func fanOutOffset(index: Int, count: Int) -> CGFloat {
+        guard count > 1 else { return 0 }
+        let centered = CGFloat(index) - CGFloat(count - 1) / 2
+        return centered * GameConfig.noteCollectBurstFanOut
     }
 }

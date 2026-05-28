@@ -95,6 +95,19 @@
 		A1C0F1B00000000000000085 /* EnemyProximityWarningNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000085 /* EnemyProximityWarningNode.swift */; };
 		A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */; };
 		A1C0F1B00000000000000087 /* GameScene+DangerWarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000087 /* GameScene+DangerWarnings.swift */; };
+		A1C0F1B00000000000000088 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000088 /* UserProfile.swift */; };
+		A1C0F1B00000000000000089 /* UserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000089 /* UserProfileRepository.swift */; };
+		A1C0F1B0000000000000008A /* FirebaseBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000008A /* FirebaseBootstrap.swift */; };
+		A1C0F1B0000000000000008B /* FirebaseAccountRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000008B /* FirebaseAccountRepository.swift */; };
+		A1C0F1B0000000000000008C /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0F1A0000000000000008C /* FirebaseCore */; };
+		A1C0F1B0000000000000008D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0F1A0000000000000008D /* FirebaseAuth */; };
+		A1C0F1B0000000000000008E /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0F1A0000000000000008E /* FirebaseFirestore */; };
+		A1C0F1B00000000000000093 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0F1A00000000000000093 /* FirebaseStorage */; };
+		A1C0F1B00000000000000090 /* GameRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000090 /* GameRecord.swift */; };
+		A1C0F1B00000000000000091 /* FirebaseRecordRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000091 /* FirebaseRecordRepository.swift */; };
+		A1C0F1B00000000000000092 /* FirebaseDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000092 /* FirebaseDiagnostics.swift */; };
+		A1C0F1B00000000000000094 /* ProfilePhotoRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000094 /* ProfilePhotoRepository.swift */; };
+		A1C0F1B00000000000000095 /* CharacterUnlockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000095 /* CharacterUnlockRepository.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -186,6 +199,15 @@
 		A1C0F1A00000000000000085 /* EnemyProximityWarningNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyProximityWarningNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerNearMissWarningNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000087 /* GameScene+DangerWarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+DangerWarnings.swift"; sourceTree = "<group>"; };
+		A1C0F1A00000000000000088 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000089 /* UserProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A0000000000000008A /* FirebaseBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBootstrap.swift; sourceTree = "<group>"; };
+		A1C0F1A0000000000000008B /* FirebaseAccountRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAccountRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000090 /* GameRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRecord.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000091 /* FirebaseRecordRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseRecordRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000092 /* FirebaseDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseDiagnostics.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000094 /* ProfilePhotoRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePhotoRepository.swift; sourceTree = "<group>"; };
+		A1C0F1A00000000000000095 /* CharacterUnlockRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockRepository.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -297,6 +319,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C0F1B0000000000000008C /* FirebaseCore in Frameworks */,
+				A1C0F1B0000000000000008D /* FirebaseAuth in Frameworks */,
+				A1C0F1B0000000000000008E /* FirebaseFirestore in Frameworks */,
+				A1C0F1B00000000000000093 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,6 +451,11 @@
 				A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */,
 				A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */,
 				A1C0F1A00000000000000040 /* GraduationRepository.swift */,
+				A1C0F1A00000000000000089 /* UserProfileRepository.swift */,
+				A1C0F1A0000000000000008B /* FirebaseAccountRepository.swift */,
+				A1C0F1A00000000000000091 /* FirebaseRecordRepository.swift */,
+				A1C0F1A00000000000000094 /* ProfilePhotoRepository.swift */,
+				A1C0F1A00000000000000095 /* CharacterUnlockRepository.swift */,
 			);
 			name = Repositories;
 			path = "GanhoMusic Shared/Repositories";
@@ -442,6 +473,8 @@
 				A1C0F1A00000000000000076 /* Direction.swift */,
 				A1C0F1A00000000000000081 /* CutsceneTexts.swift */,
 				A1C0F1A00000000000000083 /* DangerWarningProfile.swift */,
+				A1C0F1A00000000000000088 /* UserProfile.swift */,
+				A1C0F1A00000000000000090 /* GameRecord.swift */,
 			);
 			name = Models;
 			path = "GanhoMusic Shared/Models";
@@ -462,6 +495,8 @@
 				A1C0F1A00000000000000025 /* HapticsManager.swift */,
 				A1C0F1A00000000000000026 /* AudioManager.swift */,
 				A1C0F1A00000000000000027 /* BGMPlayer.swift */,
+				A1C0F1A0000000000000008A /* FirebaseBootstrap.swift */,
+				A1C0F1A00000000000000092 /* FirebaseDiagnostics.swift */,
 			);
 			name = Managers;
 			path = "GanhoMusic Shared/Managers";
@@ -517,6 +552,10 @@
 			);
 			name = "GanhoMusic iOS";
 			packageProductDependencies = (
+				A1C0F1A0000000000000008C /* FirebaseCore */,
+				A1C0F1A0000000000000008D /* FirebaseAuth */,
+				A1C0F1A0000000000000008E /* FirebaseFirestore */,
+				A1C0F1A00000000000000093 /* FirebaseStorage */,
 			);
 			productName = "GanhoMusic iOS";
 			productReference = C75D46292FA627C20016BB86 /* GanhoMusic.app */;
@@ -599,6 +638,9 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C75D462A2FA627C20016BB86 /* Products */;
 			projectDirPath = "";
+			packageReferences = (
+				A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			projectRoot = "";
 			targets = (
 				C75D46282FA627C20016BB86 /* GanhoMusic iOS */,
@@ -725,6 +767,15 @@
 				A1C0F1B00000000000000085 /* EnemyProximityWarningNode.swift in Sources */,
 				A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */,
 				A1C0F1B00000000000000087 /* GameScene+DangerWarnings.swift in Sources */,
+				A1C0F1B00000000000000088 /* UserProfile.swift in Sources */,
+				A1C0F1B00000000000000089 /* UserProfileRepository.swift in Sources */,
+				A1C0F1B0000000000000008A /* FirebaseBootstrap.swift in Sources */,
+				A1C0F1B0000000000000008B /* FirebaseAccountRepository.swift in Sources */,
+				A1C0F1B00000000000000090 /* GameRecord.swift in Sources */,
+				A1C0F1B00000000000000091 /* FirebaseRecordRepository.swift in Sources */,
+				A1C0F1B00000000000000092 /* FirebaseDiagnostics.swift in Sources */,
+				A1C0F1B00000000000000094 /* ProfilePhotoRepository.swift in Sources */,
+				A1C0F1B00000000000000095 /* CharacterUnlockRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -744,12 +795,47 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1C0F1A0000000000000008C /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		A1C0F1A0000000000000008D /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		A1C0F1A0000000000000008E /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		A1C0F1A00000000000000093 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0F1A0000000000000008F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 /* Begin XCBuildConfiguration section */
 		C75D46612FA627C20016BB86 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "GanhoMusic iOS/GanhoMusic.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -783,6 +869,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "GanhoMusic iOS/GanhoMusic.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

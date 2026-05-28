@@ -11,7 +11,7 @@ import UIKit
 /// 5 캐릭터 식별자. raw String — case 이름이 그대로 raw value("kim", "jung"...).
 /// CaseIterable 채택으로 `.allCases` 자동 생성 — TitleScene이 5 카드 일괄 생성에 사용.
 /// 본 sprint(5-1)는 *UI 골격*만 — 스킬·외형 적용은 5-2 이후.
-enum CharacterID: String, CaseIterable {
+enum CharacterID: String, CaseIterable, Codable {
     case kim, jung, geon, im, lee
 
     /// 카드 라벨에 표시되는 한국어 이름. GDD §4 기준.

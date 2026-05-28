@@ -38,6 +38,8 @@ final class ScoreboardScene: SKScene {
     private let statsRepo = StatisticsRepository()
     /// 졸업 일시 사전 — 하단 stat 라벨의 졸업장 개수 소스. count = current.keys 수.
     private let graduationRepo = GraduationRepository()
+    /// 사용자 프로필 — 기록 화면 타이틀 개인화 소스.
+    private let userProfileRepo = UserProfileRepository()
 
     // 자식 노드 — didMove에서 부착, layoutAll에서 좌표만 갱신.
 
@@ -132,6 +134,7 @@ final class ScoreboardScene: SKScene {
         accentLine.zPosition = 5
         addChild(accentLine)
 
+        titleLabel.text = userProfileRepo.current.recordTitle
         titleLabel.fontName = GameConfig.fontDisplay
         titleLabel.fontSize = GameConfig.scoreboardTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep

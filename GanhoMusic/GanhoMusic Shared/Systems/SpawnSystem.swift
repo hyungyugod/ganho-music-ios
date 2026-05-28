@@ -26,6 +26,8 @@ final class SpawnSystem {
     // MARK: - Tunable (Phase 7-1 / Sprint 10 Phase I)
     /// 동시 음표 최대 수. default = GameConfig.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
     var noteMaxConcurrent: Int = GameConfig.noteMaxConcurrent
+    /// 한 스폰 틱에 보충할 음표 수. 화면에 수집 목표가 끊기지 않게 한다.
+    var noteSpawnBatchCount: Int = 1
     /// 음표 TTL (초). easy = .infinity → NoteNode.applyLifetime이 가드로 noop → 무한 TTL 유지.
     var noteLifetime: TimeInterval = .infinity
     /// Sprint 10 Phase I — 음표 spawn 주기 (초). default = GameConfig.noteSpawnInterval(1.5, easy)
@@ -50,6 +52,7 @@ final class SpawnSystem {
     /// 모든 dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
     func apply(_ difficulty: Difficulty) {
         noteMaxConcurrent          = GameConfig.noteMaxConcurrentByDifficulty[difficulty]          ?? GameConfig.noteMaxConcurrent
+        noteSpawnBatchCount        = GameConfig.noteSpawnBatchByDifficulty[difficulty]             ?? 1
         noteLifetime               = GameConfig.noteLifetimeByDifficulty[difficulty]               ?? .infinity
         projectileMaxConcurrent    = GameConfig.projectileMaxConcurrentByDifficulty[difficulty]    ?? GameConfig.projectileMaxConcurrent
         projectileBurstCount       = GameConfig.projectileBurstCountByDifficulty[difficulty]       ?? 1
@@ -103,9 +106,15 @@ final class SpawnSystem {
     /// apply(difficulty)가 set한 난이도별 dict 값을 그대로 반영 — easy=1.5(회귀 0)/normal=0.4/hard=0.3.
     private func startNoteSpawnLoop() {
         let wait  = SKAction.wait(forDuration: self.noteSpawnInterval)
-        let spawn = SKAction.run { [weak self] in self?.trySpawnNote() }
+        let spawn = SKAction.run { [weak self] in self?.trySpawnNoteBatch() }
         let loop  = SKAction.repeatForever(.sequence([wait, spawn]))
         scene?.run(loop, withKey: "spawnNotes")
+    }
+
+    private func trySpawnNoteBatch() {
+        for _ in 0..<noteSpawnBatchCount {
+            trySpawnNote()
+        }
     }
 
     /// 한 사이클당 1회 호출. 동시 음표 수 미만일 때만 1개 spawn.
@@ -115,7 +124,7 @@ final class SpawnSystem {
         guard let world = worldNode else { return }
         guard currentNoteCount() < noteMaxConcurrent else { return }
         guard let position = randomNotePosition() else { return }
-        let note = NoteNode()
+        let note = NoteNode(variant: .random())
         note.position = position
         world.addChild(note)
         note.applyLifetime(noteLifetime)

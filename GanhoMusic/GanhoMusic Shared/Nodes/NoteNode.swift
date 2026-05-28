@@ -12,22 +12,105 @@
 
 import SpriteKit
 
+enum NoteVariant {
+    case small
+    case normal
+    case large
+
+    static func random() -> NoteVariant {
+        let roll = CGFloat.random(in: 0..<1)
+        if roll < GameConfig.noteSmallSpawnChance { return .small }
+        if roll > 1 - GameConfig.noteLargeSpawnChance { return .large }
+        return .normal
+    }
+
+    var visualSize: CGSize {
+        let side = GameConfig.noteSize * visualScale
+        return CGSize(width: side, height: side)
+    }
+
+    var hitboxSize: CGSize {
+        let side: CGFloat
+        switch self {
+        case .small:
+            side = GameConfig.noteSmallHitboxSize
+        case .normal:
+            side = GameConfig.noteNormalHitboxSize
+        case .large:
+            side = GameConfig.noteLargeHitboxSize
+        }
+        return CGSize(width: side, height: side)
+    }
+
+    var collectHitCount: Int {
+        switch self {
+        case .large:
+            return GameConfig.noteLargeCollectHitCount
+        case .small, .normal:
+            return 1
+        }
+    }
+
+    var sparkleBurstCount: Int {
+        switch self {
+        case .large:
+            return GameConfig.noteLargeSparkleBurstCount
+        case .small, .normal:
+            return 1
+        }
+    }
+
+    var readabilityScale: CGFloat {
+        switch self {
+        case .small:
+            return GameConfig.noteSmallVisualScale
+        case .normal:
+            return 1
+        case .large:
+            return GameConfig.noteLargeVisualScale
+        }
+    }
+
+    private var visualScale: CGFloat {
+        switch self {
+        case .small:
+            return GameConfig.noteSmallVisualScale
+        case .normal:
+            return 1
+        case .large:
+            return GameConfig.noteLargeVisualScale
+        }
+    }
+}
+
 /// 음표 16×16 — 원본 12×12 픽셀 매트릭스 + ox/oy 2px padding으로 16×16 SKTexture.
 /// PhysicsBody는 static — player와 *contact 알림*만 받고 *collision*은 0 (통과).
 /// **PhysicsBody size/category/contact/dynamic 완전 보존** (Phase E 변경 금지).
 final class NoteNode: SKSpriteNode {
 
+    private let variant: NoteVariant
+
+    var collectHitCount: Int {
+        return variant.collectHitCount
+    }
+
+    var sparkleBurstCount: Int {
+        return variant.sparkleBurstCount
+    }
+
     // MARK: - Init
-    init() {
+    init(variant: NoteVariant = .random()) {
+        self.variant = variant
         // Sprint 10.5 Phase B — 시각/hitbox 분리.
         //   visualSize = noteSize(32) — 사용자 요청 "사람의 반(캐릭터 32×40 대비 80%)".
         //   hitboxSize = 16 — 게임 밸런스 회귀 0 (Phase E 이전 동일).
-        let visualSize = CGSize(width: GameConfig.noteSize, height: GameConfig.noteSize)
-        let hitboxSize = CGSize(width: 16, height: 16)
+        let visualSize = variant.visualSize
+        let hitboxSize = variant.hitboxSize
         // Sprint 10 Phase E — 원본 8분 음표 픽셀 텍스처. 글로우/펄스/링 자식 0개.
         let texture = PixelSpriteRenderer.notePixelTexture()
         super.init(texture: texture, color: .clear, size: visualSize)
         name = "note"
+        applyVariantTint()
         addReadableHalo()
 
         // PhysicsBody 부착 — static, player에게는 통과(collision=0), 알림만(contactTest).
@@ -70,8 +153,22 @@ final class NoteNode: SKSpriteNode {
     }
 
     // MARK: - Readability
+    private func applyVariantTint() {
+        switch variant {
+        case .small:
+            color = .ganhoIngameRewardMint
+            colorBlendFactor = 0.16
+        case .normal:
+            colorBlendFactor = 0
+        case .large:
+            color = .ganhoYellowF
+            colorBlendFactor = 0.24
+        }
+    }
+
     private func addReadableHalo() {
-        let halo = SKShapeNode(circleOfRadius: GameConfig.noteReadableHaloRadius)
+        let haloRadius = GameConfig.noteReadableHaloRadius * variant.readabilityScale
+        let halo = SKShapeNode(circleOfRadius: haloRadius)
         halo.strokeColor = UIColor.ganhoIngameReward
             .withAlphaComponent(GameConfig.noteReadableHaloAlpha)
         halo.lineWidth = GameConfig.ingameObjectHaloLineWidth
@@ -80,12 +177,14 @@ final class NoteNode: SKSpriteNode {
         halo.zPosition = -1
         addChild(halo)
 
-        let sparkle = SKShapeNode(circleOfRadius: GameConfig.noteReadableSparkleRadius)
+        let sparkle = SKShapeNode(
+            circleOfRadius: GameConfig.noteReadableSparkleRadius * variant.readabilityScale
+        )
         sparkle.fillColor = .ganhoPixelHudWhite
         sparkle.strokeColor = .clear
         sparkle.position = CGPoint(
-            x: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio,
-            y: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio
+            x: haloRadius * GameConfig.noteReadableSparkleOffsetRatio,
+            y: haloRadius * GameConfig.noteReadableSparkleOffsetRatio
         )
         sparkle.zPosition = 2
         addChild(sparkle)

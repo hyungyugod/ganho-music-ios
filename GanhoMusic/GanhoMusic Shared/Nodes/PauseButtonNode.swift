@@ -5,14 +5,13 @@
 //  Sprint 3 · v2 Game Visual
 //
 //  우상단 일시정지 버튼 — navy 라운드 32×32 + 흰 || 두 줄.
-//  Sprint 3는 *시각 placeholder*만 — `isUserInteractionEnabled = false`.
-//  실제 일시정지 로직은 후속 Sprint(또는 별도 SPEC)에서 부여.
+//  터치는 GameScene이 직접 hit-test한다. 노드 자체는 이벤트를 흡수하지 않는다.
 //
 
 import SpriteKit
 
 /// 인게임 우상단 일시정지 버튼.
-/// cameraNode 자식으로 부착 → 화면 고정. 시각만, 터치 X.
+/// cameraNode 자식으로 부착 → 화면 고정. GameScene이 contains(_:)로 터치를 판정한다.
 final class PauseButtonNode: SKNode {
 
     // MARK: - Properties
@@ -56,7 +55,7 @@ final class PauseButtonNode: SKNode {
         addChild(bar1)
         addChild(bar2)
 
-        // Sprint 3: 시각 placeholder만. 터치 흡수 0 — 부모(cameraNode)로 자연 패스스루.
+        // GameScene이 직접 hit-test하므로 노드 자체는 터치를 흡수하지 않는다.
         isUserInteractionEnabled = false
     }
 

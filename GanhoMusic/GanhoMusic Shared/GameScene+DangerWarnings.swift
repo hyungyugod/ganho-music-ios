@@ -34,6 +34,7 @@ extension GameScene {
             let distance = self.distance(from: projectile.position, to: self.player.position)
             if !projectile.isEnchanted {
                 closestProjectileDistance = self.closestDistance(current: closestProjectileDistance, candidate: distance)
+                self.awardProjectileGrazeIfNeeded(projectile, distance: distance, profile: profile)
             }
             projectile.updateNearMissWarning(distanceToPlayer: distance, profile: profile)
         }
@@ -53,5 +54,23 @@ extension GameScene {
 
     private func distance(from lhs: CGPoint, to rhs: CGPoint) -> CGFloat {
         hypot(lhs.x - rhs.x, lhs.y - rhs.y)
+    }
+
+    private func awardProjectileGrazeIfNeeded(
+        _ projectile: FProjectileNode,
+        distance: CGFloat,
+        profile: DangerWarningProfile
+    ) {
+        let rewardRadius = min(profile.projectileNearMissRadius, GameConfig.projectileGrazeRewardRadius)
+        guard distance >= GameConfig.projectileGrazeMinimumDistance,
+              distance <= rewardRadius,
+              projectile.markGrazeAwarded() else { return }
+
+        guard lastUpdateTime - lastGrazeFeedbackTime >= GameConfig.projectileGrazeFeedbackCooldown else { return }
+        lastGrazeFeedbackTime = lastUpdateTime
+        haptics.light()
+        ToastLabelNode.spawn(text: GameConfig.projectileGrazeToastText,
+                             at: projectile.position,
+                             parent: worldNode)
     }
 }

@@ -157,6 +157,18 @@ extension GameScene {
             isNewGraduation = graduationRepo.record(characterID: characterID, date: Date())
         }
         let graduatedAt = graduationRepo.graduatedAt(characterID: characterID)
+        let record = GameRecord.make(
+            characterID: characterID,
+            difficulty: difficulty,
+            score: score,
+            bestScore: bestScore,
+            isNewBest: isNewBest,
+            stats: stats,
+            graduated: graduatedAt != nil
+        )
+        Task {
+            await FirebaseRecordRepository().save(record)
+        }
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
             characterName: characterID.displayName,

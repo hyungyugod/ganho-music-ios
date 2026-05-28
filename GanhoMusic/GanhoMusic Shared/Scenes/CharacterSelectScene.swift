@@ -15,6 +15,9 @@
 //
 
 import SpriteKit
+#if canImport(PhotosUI)
+import PhotosUI
+#endif
 
 /// 캐릭터 선택 단일 결정 씬. v2 리스킨 + Sprint 6 흐름 재편.
 /// Sprint 6 — difficulty 필드 제거. 캐릭터 ID만 결정해서 다음 씬으로 넘김.
@@ -40,6 +43,17 @@ final class CharacterSelectScene: BaseMenuScene {
     private let profileTagLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     private let profileSkillLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let profileMetaLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let accountPanel = SKShapeNode()
+    private let accountAvatar = SKShapeNode(circleOfRadius: 27)
+    private let accountTitleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let accountMetaLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let accountBestLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let accountUnlockLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let photoButton = GlassPillNode(text: "사진 변경", size: CGSize(width: 112, height: 34))
+    private let signOutButton = GlassPillNode(text: "로그아웃", size: CGSize(width: 92, height: 34))
+    private let userProfileRepo = UserProfileRepository()
+    private let unlockRepo = CharacterUnlockRepository()
+    private var isAccountPanelVisible = false
     /// 현재 선택된 캐릭터. 기본 .kim. didMove에서 repo.current로 복원.
     private var selectedCharacterID: CharacterID = .kim
     /// 5 카드 인스턴스 보관. setup/layout/hit test에 재사용.
@@ -52,6 +66,9 @@ final class CharacterSelectScene: BaseMenuScene {
     private var cardColorDots: [CharacterID: SKShapeNode] = [:]
     /// Sprint 6 — 5장 카드 위 얼굴 노드. PNG swap 호환 — `CharacterFaceNode`는 SKNode 서브클래스.
     private var characterFaces: [CharacterID: CharacterFaceNode] = [:]
+    private var lockOverlays: [CharacterID: SKShapeNode] = [:]
+    private var lockTitleLabels: [CharacterID: SKLabelNode] = [:]
+    private var lockQuestLabels: [CharacterID: SKLabelNode] = [:]
     /// Sprint 2 — 좌상단 뒤로 GlassPill.
     private var backPill: GlassPillNode?
     /// Sprint 2 — 하단 스킬 정보 DarkContextChip(선택 변경 시 rebuild).
@@ -108,11 +125,13 @@ final class CharacterSelectScene: BaseMenuScene {
         currentIndex = characters.firstIndex(of: selectedCharacterID) ?? 0
         setupStageBackdrop()                // Sprint 10.7 — 중앙 카드 전용 스테이지.
         setupProfilePanel()                 // Sprint 10.8 — 선택 캐릭터 포스터형 상세 패널.
+        setupAccountPanel()
         setupCardContainers()               // Sprint 2 — 카드 외곽 글래스 5개.
         setupCharacterCards()
         setupCharacterFaces()               // Sprint 6 — 얼굴 노드 5개.
         setupCardColorDots()                // Sprint 2 — 카드 우상단 색 점 5개.
         setupTagLabels()
+        setupLockOverlays()
         applyGlassContainerSelection(id: selectedCharacterID)
         setupConfirmButton()
         rebuildSkillInfoPanel(for: selectedCharacterID)
@@ -129,6 +148,7 @@ final class CharacterSelectScene: BaseMenuScene {
         layoutTopBar()
         layoutStageBackdrop()
         layoutProfilePanel()
+        layoutAccountPanel()
         layoutCardContainers()
         layoutCharacterCards()
         layoutCharacterFaces()              // Sprint 6.
@@ -317,8 +337,158 @@ final class CharacterSelectScene: BaseMenuScene {
         profileAccentDot.fillColor = id.dotColor
         profileNameLabel.text = id.displayName
         profileTagLabel.text = id.tag
-        profileSkillLabel.text = (id.skill == .none) ? "스킬 없음" : "스킬 · \(id.skill.displayName)"
-        profileMetaLabel.text = "속도 ×\(formatted(id.playerSpeedMultiplier))  ·  쿨다운 \(id.skill.cooldownText)"
+        if unlockRepo.isUnlocked(id) {
+            profileSkillLabel.text = (id.skill == .none) ? "스킬 없음" : "스킬 · \(id.skill.displayName)"
+            profileMetaLabel.text = "속도 ×\(formatted(id.playerSpeedMultiplier))  ·  쿨다운 \(id.skill.cooldownText)"
+        } else {
+            profileSkillLabel.text = "잠김 · \(unlockRepo.questText(for: id))"
+            profileMetaLabel.text = "퀘스트 완료 후 함께할 수 있어요"
+        }
+    }
+
+    // MARK: - Setup (Account Panel)
+    private func setupAccountPanel() {
+        accountPanel.fillColor = UIColor.ganhoPaper.withAlphaComponent(0.94)
+        accountPanel.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(0.18)
+        accountPanel.lineWidth = 1
+        accountPanel.zPosition = 320
+        addChild(accountPanel)
+
+        accountAvatar.fillColor = selectedCharacterID.dotColor
+        accountAvatar.strokeColor = .white
+        accountAvatar.lineWidth = 2
+        accountAvatar.zPosition = 321
+        addChild(accountAvatar)
+
+        [accountTitleLabel, accountMetaLabel, accountBestLabel, accountUnlockLabel].forEach { label in
+            label.horizontalAlignmentMode = .left
+            label.verticalAlignmentMode = .center
+            label.zPosition = 322
+            addChild(label)
+        }
+        accountTitleLabel.fontSize = 18
+        accountTitleLabel.fontColor = .ganhoNavyDeep
+        accountMetaLabel.fontSize = 12
+        accountMetaLabel.fontColor = .ganhoNavyMuted
+        accountBestLabel.fontSize = 12
+        accountBestLabel.fontColor = .ganhoNavyDeep
+        accountUnlockLabel.fontSize = 11
+        accountUnlockLabel.fontColor = .ganhoNavyMuted
+
+        photoButton.zPosition = 322
+        signOutButton.zPosition = 322
+        addChild(photoButton)
+        addChild(signOutButton)
+
+        updateAccountPanel()
+        layoutAccountPanel()
+        setAccountPanelVisible(false, animated: false)
+    }
+
+    private func layoutAccountPanel() {
+        let safe = SceneSafeArea.insets(for: self)
+        let avatarRadius: CGFloat = 27
+        let avatarMarginX: CGFloat = 24
+        let avatarMarginY: CGFloat = 28
+        let avatarX = frame.maxX - safe.right - avatarMarginX - avatarRadius
+        let avatarY = frame.maxY - safe.top - avatarMarginY - avatarRadius
+        accountAvatar.position = CGPoint(x: avatarX, y: avatarY)
+
+        let panelSize = CGSize(width: 266, height: 174)
+        accountPanel.path = CGPath(
+            roundedRect: CGRect(
+                x: -panelSize.width / 2,
+                y: -panelSize.height / 2,
+                width: panelSize.width,
+                height: panelSize.height
+            ),
+            cornerWidth: 18,
+            cornerHeight: 18,
+            transform: nil
+        )
+        let panelRight = min(frame.maxX - safe.right - 20, avatarX + avatarRadius)
+        let minCenterX = frame.minX + safe.left + panelSize.width / 2 + 16
+        let center = CGPoint(
+            x: max(panelRight - panelSize.width / 2, minCenterX),
+            y: avatarY - panelSize.height / 2 - 14
+        )
+        accountPanel.position = center
+        let left = center.x - panelSize.width / 2 + 18
+        accountTitleLabel.position = CGPoint(x: left, y: center.y + 62)
+        accountMetaLabel.position = CGPoint(x: left, y: center.y + 38)
+        accountBestLabel.position = CGPoint(x: left, y: center.y + 10)
+        accountUnlockLabel.position = CGPoint(x: left, y: center.y - 16)
+        photoButton.position = CGPoint(x: left + 58, y: center.y - 61)
+        signOutButton.position = CGPoint(x: center.x + 76, y: center.y - 61)
+    }
+
+    private func updateAccountPanel() {
+        let profile = userProfileRepo.current
+        accountTitleLabel.text = profile.nickname
+        accountMetaLabel.text = profile.isAnonymous
+            ? "게스트 기록 · 로그인하면 보존"
+            : (profile.email ?? "개인 계정")
+        let stats = StatisticsRepository().current
+        let bestScore = HighScoreRepository().current
+        let unlocked = unlockRepo.unlockedCharacters(in: characters)
+        let unlockedNames = unlocked
+            .map { String($0.displayName.prefix(1)) }
+            .joined(separator: "·")
+        accountBestLabel.text = "최고기록 \(bestScore) · 플레이 \(stats.playCount)"
+        accountUnlockLabel.text = "해금 \(unlocked.count)/\(characters.count) · \(unlockedNames)"
+
+        accountAvatar.fillTexture = nil
+        if let path = profile.localPhotoPath,
+           let image = UIImage(contentsOfFile: path) {
+            accountAvatar.fillColor = .white
+            accountAvatar.fillTexture = SKTexture(image: image)
+        } else {
+            accountAvatar.fillColor = selectedCharacterID.dotColor
+        }
+    }
+
+    private func setAccountPanelVisible(_ visible: Bool, animated: Bool) {
+        isAccountPanelVisible = visible
+        let panelNodes: [SKNode] = [
+            accountPanel,
+            accountTitleLabel,
+            accountMetaLabel,
+            accountBestLabel,
+            accountUnlockLabel,
+            photoButton,
+            signOutButton
+        ]
+
+        for node in panelNodes {
+            node.removeAction(forKey: "accountPanelVisibility")
+            if visible {
+                node.isHidden = false
+                guard animated else {
+                    node.alpha = 1
+                    continue
+                }
+                node.alpha = 0
+                let fadeIn = SKAction.fadeIn(withDuration: 0.14)
+                fadeIn.timingMode = .easeOut
+                node.run(fadeIn, withKey: "accountPanelVisibility")
+            } else {
+                guard animated else {
+                    node.isHidden = true
+                    node.alpha = 1
+                    continue
+                }
+                let fadeOut = SKAction.fadeOut(withDuration: 0.12)
+                fadeOut.timingMode = .easeIn
+                let hide = SKAction.run { [weak node] in
+                    node?.isHidden = true
+                    node?.alpha = 1
+                }
+                node.run(
+                    SKAction.sequence([fadeOut, hide]),
+                    withKey: "accountPanelVisibility"
+                )
+            }
+        }
     }
 
     // MARK: - Setup (Sprint 6 · Top Bar — 백버튼만)
@@ -490,6 +660,51 @@ final class CharacterSelectScene: BaseMenuScene {
                 y: cardBaseY(for: id) + GameConfig.characterSelectTagOffsetY
             )
         }
+    }
+
+    private func setupLockOverlays() {
+        for id in CharacterID.allCases {
+            let size = CGSize(
+                width: GameConfig.characterCardWidthV3,
+                height: GameConfig.characterCardHeightV3
+            )
+            let overlay = SKShapeNode(rectOf: size, cornerRadius: GameConfig.characterCardCornerRadiusV3)
+            overlay.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(0.62)
+            overlay.strokeColor = UIColor.white.withAlphaComponent(0.22)
+            overlay.lineWidth = 1
+            overlay.zPosition = 126
+            overlay.name = "characterLockOverlay_\(id.rawValue)"
+            lockOverlays[id] = overlay
+            addChild(overlay)
+
+            let title = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            title.text = "잠김"
+            title.fontSize = 20
+            title.fontColor = .white
+            title.horizontalAlignmentMode = .center
+            title.verticalAlignmentMode = .center
+            title.zPosition = 127
+            lockTitleLabels[id] = title
+            addChild(title)
+
+            let quest = SKLabelNode(fontNamed: GameConfig.fontBody)
+            quest.text = unlockRepo.questText(for: id)
+            quest.fontSize = 10
+            quest.fontColor = UIColor.white.withAlphaComponent(0.86)
+            quest.horizontalAlignmentMode = .center
+            quest.verticalAlignmentMode = .center
+            quest.preferredMaxLayoutWidth = GameConfig.characterCardWidthV3 - 24
+            quest.numberOfLines = 2
+            quest.zPosition = 127
+            lockQuestLabels[id] = quest
+            addChild(quest)
+        }
+    }
+
+    private func layoutLockOverlay(for id: CharacterID, at position: CGPoint) {
+        lockOverlays[id]?.position = position
+        lockTitleLabels[id]?.position = CGPoint(x: position.x, y: position.y + 14)
+        lockQuestLabels[id]?.position = CGPoint(x: position.x, y: position.y - 18)
     }
 
     // MARK: - Setup (Sprint 2 · Confirm Button)
@@ -822,6 +1037,28 @@ final class CharacterSelectScene: BaseMenuScene {
                 x: targetPos.x,
                 y: targetPos.y + GameConfig.characterSelectTagOffsetY
             )
+            layoutLockOverlay(for: id, at: targetPos)
+
+            let isLocked = !unlockRepo.isUnlocked(id)
+            let targetLockAlpha: CGFloat
+            let targetLockScale: CGFloat
+            switch role {
+            case .center:
+                targetLockAlpha = 1.0
+                targetLockScale = GameConfig.characterSwipeCardScaleCenterV12
+            case .left, .right:
+                targetLockAlpha = GameConfig.characterSwipeCardAlphaSideV12
+                targetLockScale = GameConfig.characterSwipeCardScaleSideV12
+            case .offscreen:
+                targetLockAlpha = 0
+                targetLockScale = GameConfig.characterSwipeCardScaleSideV12
+            }
+            [lockOverlays[id], lockTitleLabels[id], lockQuestLabels[id]].forEach { node in
+                guard let node else { return }
+                node.isHidden = !isLocked || targetLockAlpha <= 0
+                node.alpha = isLocked ? targetLockAlpha : 0
+                node.setScale(targetLockScale)
+            }
         }
         // zPosition 적층: center=110 / side(±1)=105 / offscreen=100.
         for card in characterCards {
@@ -843,10 +1080,14 @@ final class CharacterSelectScene: BaseMenuScene {
         currentIndex = clamped
         let newID = characters[clamped]
         selectedCharacterID = newID
-        preferenceRepo.save(newID)
+        if unlockRepo.isUnlocked(newID) {
+            preferenceRepo.save(newID)
+            userProfileRepo.updateSelectedCharacter(newID)
+        }
         layoutCards(animated: true)
         rebuildSkillInfoPanel(for: newID)
         updateProfilePanel(for: newID)
+        updateAccountPanel()
     }
 
     // MARK: - Selection
@@ -854,12 +1095,14 @@ final class CharacterSelectScene: BaseMenuScene {
     private func select(_ id: CharacterID) {
         selectedCharacterID = id
         preferenceRepo.save(id)
+        userProfileRepo.updateSelectedCharacter(id)
         for card in characterCards {
             card.setSelected(card.id == id)
         }
         applyGlassContainerSelection(id: id)
         rebuildSkillInfoPanel(for: id)
         updateProfilePanel(for: id)
+        updateAccountPanel()
     }
 
     /// Sprint 2 — 외곽 글래스 컨테이너 선택 상태 시각 동기화.
@@ -908,6 +1151,23 @@ final class CharacterSelectScene: BaseMenuScene {
         let location = touch.location(in: self)
         swipeStartX = location.x
         didSwipeInCurrentTouch = false
+
+        if accountAvatar.frame.insetBy(dx: -8, dy: -8).contains(location) {
+            setAccountPanelVisible(!isAccountPanelVisible, animated: true)
+            return
+        }
+        if isAccountPanelVisible, photoButton.contains(location) {
+            presentPhotoPicker()
+            return
+        }
+        if isAccountPanelVisible, signOutButton.contains(location) {
+            signOutAndReturnToStart()
+            return
+        }
+        if isAccountPanelVisible, !accountPanel.frame.insetBy(dx: -10, dy: -10).contains(location) {
+            setAccountPanelVisible(false, animated: true)
+            return
+        }
 
         // 1) Sprint 9 Phase A — 좌/우 화살표 GlassPill 우선 분기. isHidden=true면 hit 제외.
         if let left = leftArrowChip, !left.isHidden, left.contains(location) {
@@ -971,10 +1231,40 @@ final class CharacterSelectScene: BaseMenuScene {
         view.presentScene(scene, transition: fade)
     }
 
+    private func presentPhotoPicker() {
+        #if canImport(PhotosUI)
+        var configuration = PHPickerConfiguration(photoLibrary: .shared())
+        configuration.filter = .images
+        configuration.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = self
+        view?.window?.rootViewController?.present(picker, animated: true)
+        #endif
+    }
+
+    private func signOutAndReturnToStart() {
+        isTransitioning = true
+        Task { @MainActor in
+            await FirebaseAccountRepository().signOutToGuest()
+            guard let view = self.view else { return }
+            let scene = StartScene.newStartScene()
+            let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+            view.presentScene(scene, transition: fade)
+            NotificationCenter.default.post(
+                name: Notification.Name("GanhoMusicShowLoginPage"),
+                object: nil
+            )
+        }
+    }
+
     /// Sprint 6 — 다음 — .kim은 DifficultySelect 직진(스킬 화면 스킵),
     /// 그 외(스킬 보유 4명)는 SkillExplanation으로.
     private func transitionToNext() {
         guard let view = self.view else { return }
+        guard unlockRepo.isUnlocked(selectedCharacterID) else {
+            presentLockedFeedback(for: selectedCharacterID)
+            return
+        }
         isTransitioning = true
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         switch selectedCharacterID {
@@ -992,4 +1282,33 @@ final class CharacterSelectScene: BaseMenuScene {
             view.presentScene(scene, transition: fade)
         }
     }
+
+    private func presentLockedFeedback(for id: CharacterID) {
+        profileSkillLabel.text = "잠김 · \(unlockRepo.questText(for: id))"
+        profileMetaLabel.text = "이 퀘스트를 완료하면 해금돼요"
+        [lockOverlays[id], lockTitleLabels[id], lockQuestLabels[id]].forEach { node in
+            guard let node else { return }
+            node.removeAction(forKey: "lockedPulse")
+            let up = SKAction.scale(to: 1.06, duration: 0.08)
+            let down = SKAction.scale(to: 1.0, duration: 0.12)
+            node.run(SKAction.sequence([up, down]), withKey: "lockedPulse")
+        }
+    }
 }
+
+#if canImport(PhotosUI)
+extension CharacterSelectScene: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let provider = results.first?.itemProvider,
+              provider.canLoadObject(ofClass: UIImage.self) else { return }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            guard let self, let image = object as? UIImage else { return }
+            Task { @MainActor in
+                _ = await ProfilePhotoRepository().save(image: image)
+                self.updateAccountPanel()
+            }
+        }
+    }
+}
+#endif

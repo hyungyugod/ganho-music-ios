@@ -95,6 +95,8 @@ class GameScene: SKScene {
     /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
     /// HUD timeLabel이 보여주는 `Int(ceil(remainingTime))`과 정확히 같은 식으로 계산 → *눈에 보이는 숫자가 바뀐 순간* 햅틱 발화.
     private var lastRemainingTimeSecond: Int = -1
+    /// F를 아슬아슬하게 피했을 때의 토스트/햅틱 과밀 방지용 시각 피드백 쿨다운.
+    var lastGrazeFeedbackTime: TimeInterval = 0
 
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).

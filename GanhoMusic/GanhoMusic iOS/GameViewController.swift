@@ -8,6 +8,8 @@ import SpriteKit
 import GameplayKit
 
 class GameViewController: UIViewController {
+    private let accountRepository = FirebaseAccountRepository()
+    private let showLoginPageNotification = Notification.Name("GanhoMusicShowLoginPage")
 
     // MARK: - Lifecycle
 
@@ -26,16 +28,58 @@ class GameViewController: UIViewController {
         // 무한 재귀가 발생한다(2026-05 사고). 잘림 해소가 필요하면 SKScene 측에서
         // view.safeAreaInsets를 받아 노드 배치 시 회피해야 한다.
 
-        // Phase 10-1a — 첫 진입은 StartScene (구 TitleScene → 4단계 분리 시작점).
-        let scene = StartScene.newStartScene()
-        skView.presentScene(scene)
-
         skView.ignoresSiblingOrder = true
 
         #if DEBUG
         skView.showsFPS = true
         skView.showsNodeCount = true
         #endif
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showLoginPageFromNotification),
+            name: showLoginPageNotification,
+            object: nil
+        )
+
+        if accountRepository.currentAuthMode() == .personal {
+            presentStartScene()
+        } else {
+            showLoginPage(animated: false)
+        }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func presentStartScene() {
+        guard let skView = view as? SKView else { return }
+        let scene = StartScene.newStartScene()
+        skView.presentScene(scene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
+    }
+
+    @objc private func showLoginPageFromNotification() {
+        showLoginPage(animated: true)
+    }
+
+    private func showLoginPage(animated: Bool) {
+        view.subviews
+            .compactMap { $0 as? LoginOverlayView }
+            .forEach { $0.removeFromSuperview() }
+
+        let page = LoginOverlayView(frame: view.bounds)
+        page.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        page.alpha = animated ? 0 : 1
+        page.onFinished = { [weak self] in
+            self?.presentStartScene()
+        }
+        view.addSubview(page)
+        if animated {
+            UIView.animate(withDuration: 0.22) {
+                page.alpha = 1
+            }
+        }
     }
 
     // MARK: - Orientation

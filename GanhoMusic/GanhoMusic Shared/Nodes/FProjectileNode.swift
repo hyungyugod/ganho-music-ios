@@ -25,6 +25,8 @@ final class FProjectileNode: SKSpriteNode {
     /// SkillSystem이 임간호 .charmStudent 발동/만료 시점에 일괄 토글.
     /// 시각은 texture 교체로 표현(빨강 → 분홍). PhysicsBody hitbox는 불변.
     private(set) var isEnchanted: Bool = false
+    /// 투사체 하나당 graze 보상은 1회만 지급한다.
+    private(set) var didAwardGraze: Bool = false
     private let haloNode: SKShapeNode
     private let outlineNode: SKShapeNode
     private var isNearMissPulsing = false
@@ -85,6 +87,12 @@ final class FProjectileNode: SKSpriteNode {
         haloNode.fillColor = UIColor.ganhoIngameDangerDeep
             .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
         outlineNode.strokeColor = .ganhoPixelOutlineBlack
+    }
+
+    func markGrazeAwarded() -> Bool {
+        guard !didAwardGraze else { return false }
+        didAwardGraze = true
+        return true
     }
 
     // MARK: - Readability
