@@ -2,14 +2,15 @@
 //  StartScene.swift
 //  GanhoMusic Shared
 //
-//  앱 첫 진입 화면. 통계 pill, 타이틀, NurseAvatar, 시작 버튼을 배치하고
-//  시작 탭 이후 CharacterSelectScene으로 넘긴다.
+//  앱 첫 진입 화면. 타이틀, NurseAvatar, 시작 버튼을 배치하고
+//  시작 탭 이후 로그인 선택을 거쳐 CharacterSelectScene으로 넘긴다.
 //
 
+import FirebaseAuth
 import SpriteKit
 
 /// 앱 첫 진입 씬. v2 리스킨: 그라데이션 + AccentLine + 2-라인 Jua 타이틀 + 태그라인 +
-/// 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill + 좌측 NurseAvatarNode + 시작 버튼.
+/// 좌측 NurseAvatarNode + 시작 버튼.
 /// Sprint 6 — 난이도 카드/repo/select 로직 모두 삭제. characterRepo만 유지(다음 씬이 자기 repo로 다시 읽음).
 final class StartScene: BaseMenuScene {
 
@@ -23,9 +24,6 @@ final class StartScene: BaseMenuScene {
     private let accentLine = AccentLineNode()
     /// Sprint 2 — Gowun Dodum 태그라인(2줄 자동 줄바꿈).
     private let taglineLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    /// Sprint 2 — BEST/PLAYS는 GlassPillNode 2개. 옵셔널 — didMove 전엔 nil.
-    private var bestPill: GlassPillNode?
-    private var playsPill: GlassPillNode?
     /// 시작 버튼 — 명시 탭만 다음 단계로 진행.
     private let startButton = PrimaryButtonNode(text: "시작")
     /// 캐릭터 선택 영속 계층. didMove에서 .current로 복원 — 10-1a는 GameScene 직진 시점에 사용.
@@ -35,6 +33,8 @@ final class StartScene: BaseMenuScene {
     private var musicNoteEmitter: MusicNoteEmitterNode?
     /// Sprint 6 — 좌측 김간호 큰 그림. SKShapeNode 컨테이너. didChangeSize에서 재배치.
     private var nurseAvatar: NurseAvatarNode?
+    private var loginChoiceOverlay: LoginChoiceOverlayNode?
+    private var isLoginRequestInFlight = false
 
     // MARK: - Factory
     /// TitleScene.newTitleScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
@@ -50,7 +50,6 @@ final class StartScene: BaseMenuScene {
         backgroundColor = .ganhoBgWarmTop
         setupWarmGradientBackground()         // Sprint 2 — 3-stop warm gradient. zPos -20.
         setupMusicNoteEmitter()               // Phase 10-2 — 보존. zPos -15.
-        setupStatPills()                      // Sprint 2 — BEST/PLAYS GlassPill 2개.
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
         setupNurseAvatar()                    // Sprint 6 — 좌측 김간호 큰 그림.
         setupStartButton()
@@ -62,7 +61,7 @@ final class StartScene: BaseMenuScene {
         // Phase 10-2 — 그라데이션/음표 emitter는 sceneSize 의존 → 사이즈 변경 시 재생성.
         rebuildWarmGradientBackground()
         rebuildMusicNoteEmitter()
-        layoutStatPills()
+        loginChoiceOverlay?.update(sceneSize: size)
         layoutTitleBlock()
         layoutNurseAvatar()                   // Sprint 6.
         layoutStartButton()
@@ -84,47 +83,6 @@ final class StartScene: BaseMenuScene {
         musicNoteEmitter?.removeFromParent()
         musicNoteEmitter = nil
         setupMusicNoteEmitter()
-    }
-
-    // MARK: - Setup (Sprint 2 · Stats)
-    /// Sprint 2 — 좌상단 BEST GlassPill / 우상단 PLAYS GlassPill.
-    /// 저장소 호출 위치 *그대로* — setup 시점 1회.
-    private func setupStatPills() {
-        let best = HighScoreRepository().current
-        let plays = StatisticsRepository().current.playCount
-        let pillSize = CGSize(
-            width: GameConfig.startSceneStatPillWidth,
-            height: GameConfig.startSceneStatPillHeight
-        )
-        let bestNode = GlassPillNode(text: "BEST 🏆 \(best)", size: pillSize)
-        let playsNode = GlassPillNode(text: "PLAYS \(plays)", size: pillSize)
-        bestPill = bestNode
-        playsPill = playsNode
-        addChild(bestNode)
-        addChild(playsNode)
-        layoutStatPills()
-    }
-
-    private func layoutStatPills() {
-        guard let best = bestPill, let plays = playsPill else { return }
-        let safe = menuSafeInsets()
-        let scale = menuCompactScale()
-        best.setScale(scale)
-        plays.setScale(scale)
-        let y = topBarY(
-            extraInset: max(
-                0,
-                GameConfig.startSceneStatPillTopMargin - GameConfig.menuTopSafePadding
-            )
-        )
-        best.position = CGPoint(
-            x: frame.minX + safe.left + GameConfig.startSceneStatPillSideMargin * scale,
-            y: y
-        )
-        plays.position = CGPoint(
-            x: frame.maxX - safe.right - GameConfig.startSceneStatPillSideMargin * scale,
-            y: y
-        )
     }
 
     // MARK: - Setup (Sprint 2 · Title Block)
@@ -292,18 +250,114 @@ final class StartScene: BaseMenuScene {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+        if let overlay = loginChoiceOverlay {
+            handleLoginChoiceAction(overlay.action(at: location))
+            return
+        }
         if startButton.contains(location) {
-            transitionToNext()
+            showLoginChoiceOverlay()
         }
     }
 
-    /// 시작 버튼 탭 시 다음 단계(CharacterSelect)로 전환.
+    // MARK: - Login Choice
+    private func showLoginChoiceOverlay() {
+        guard loginChoiceOverlay == nil else { return }
+        let overlay = LoginChoiceOverlayNode(sceneSize: size)
+        loginChoiceOverlay = overlay
+        addChild(overlay)
+    }
+
+    private func hideLoginChoiceOverlay() {
+        loginChoiceOverlay?.removeAllActions()
+        loginChoiceOverlay?.removeFromParent()
+        loginChoiceOverlay = nil
+    }
+
+    private func handleLoginChoiceAction(_ action: LoginChoiceAction?) {
+        guard let action = action else { return }
+
+        switch action {
+        case .guest:
+            handleGuestStartTap()
+        case .apple:
+            handleAppleStartTap()
+        case .cancel:
+            hideLoginChoiceOverlay()
+        }
+    }
+
+    private func handleGuestStartTap() {
+        guard !isLoginRequestInFlight else { return }
+        isLoginRequestInFlight = true
+        loginChoiceOverlay?.setMode(.busy, statusText: GameConfig.loginChoiceGuestBusyText)
+        let needsGuestReset = Auth.auth().currentUser?.isAnonymous == false
+
+        Task { [weak self] in
+            let result: AccountActionResult
+            if needsGuestReset {
+                result = await FirebaseAuthManager.shared.signOutToGuestSession()
+            } else {
+                let user = await FirebaseAuthManager.shared.ensureAnonymousSession()
+                result = user?.isAnonymous == true ? .success : .failure
+            }
+
+            await MainActor.run {
+                guard let self = self else { return }
+                self.isLoginRequestInFlight = false
+                switch result {
+                case .success:
+                    self.transitionToCharacterSelect()
+                case .cancelled, .failure:
+                    self.loginChoiceOverlay?.setMode(
+                        .idle,
+                        statusText: GameConfig.loginChoiceFailureText
+                    )
+                }
+            }
+        }
+    }
+
+    private func handleAppleStartTap() {
+        guard !isLoginRequestInFlight else { return }
+        guard let window = view?.window else {
+            loginChoiceOverlay?.setStatus(GameConfig.loginChoiceFailureText)
+            return
+        }
+
+        isLoginRequestInFlight = true
+        loginChoiceOverlay?.setMode(.busy, statusText: GameConfig.loginChoiceAppleBusyText)
+
+        Task { [weak self] in
+            let result = await FirebaseAuthManager.shared.signInWithApple(presentationAnchor: window)
+            await MainActor.run {
+                guard let self = self else { return }
+                self.isLoginRequestInFlight = false
+                switch result {
+                case .success:
+                    self.transitionToCharacterSelect()
+                case .cancelled:
+                    self.loginChoiceOverlay?.setMode(
+                        .idle,
+                        statusText: GameConfig.loginChoiceCancelledText
+                    )
+                case .failure:
+                    self.loginChoiceOverlay?.setMode(
+                        .idle,
+                        statusText: GameConfig.loginChoiceFailureText
+                    )
+                }
+            }
+        }
+    }
+
+    /// 인증 선택 성공 시 다음 단계(CharacterSelect)로 전환.
     /// Sprint 6 — 난이도 인자 전달 제거. CharacterSelectScene.newCharacterSelectScene()을 *인자 없이* 호출.
     /// Phase 10-2 — *게임플레이 동작 불변* — presentScene 대상, sceneTransitionDuration 모두 그대로.
     /// 타이틀/시작버튼/NurseAvatar 슬라이드업 + fade-out *prelude*만 추가.
-    private func transitionToNext() {
+    private func transitionToCharacterSelect() {
         guard let view = self.view else { return }
         isTransitioning = true
+        hideLoginChoiceOverlay()
 
         // Phase 10-2 — 시작 버튼 pulse 정리.
         startButton.removeAction(forKey: "startButtonPulse")

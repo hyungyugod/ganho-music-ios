@@ -140,6 +140,10 @@ final class ResultScene: SKScene {
     /// bestLabel은 `.alpha = 0`으로 시각 차단(노드 트리 보존) + bestPill이 시각 담당.
     /// 옵셔널 — didMove 전엔 nil.
     private var bestPill: GlassPillNode?
+    /// Sprint 4 — 공유 시트 중복 표시 방지. 시트 닫힘 completion에서만 해제한다.
+    private var isShareSheetPresenting = false
+    /// Sprint 4 — presenter 탐색 실패 시 ResultScene 안에서만 보여주는 실패 토스트.
+    private var shareFailureToast: SKLabelNode?
     /// 헤더 DarkContextChip — "중 난이도 · 건간호" 한 줄 통합.
     private var headerChip: DarkContextChipNode?
     /// AccentLine 카드 상단 액센트.
@@ -1048,6 +1052,8 @@ final class ResultScene: SKScene {
             return
         }
 
+        guard !isShareSheetPresenting else { return }
+
         if restartButton.contains(location) {
             transitionToRetryGame(in: view)
             return
@@ -1100,31 +1106,109 @@ final class ResultScene: SKScene {
 
     private func presentShareSheet() {
         #if os(iOS)
+        guard !isShareSheetPresenting else { return }
+        isShareSheetPresenting = true
+
         guard let view = self.view,
-              let root = view.window?.rootViewController,
-              root.presentedViewController == nil else { return }
+              let presenter = presentationController(from: view) else {
+            isShareSheetPresenting = false
+            showShareFailureToast()
+            return
+        }
+
+        guard !(presenter is UIActivityViewController) else {
+            isShareSheetPresenting = false
+            return
+        }
+
         var items: [Any] = [shareMessage()]
         if let image = resultShareImage(from: view) {
             items.append(image)
         }
+
         let activity = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        if let popover = activity.popoverPresentationController {
-            popover.sourceView = view
-            let point = shareButton.map { convertPoint(toView: $0.position) }
-                ?? CGPoint(x: view.bounds.midX, y: view.bounds.midY)
-            popover.sourceRect = CGRect(x: point.x, y: point.y, width: 1, height: 1)
-            popover.permittedArrowDirections = []
+        configurePopover(for: activity, in: view)
+        activity.completionWithItemsHandler = { [weak self] _, _, _, _ in
+            self?.isShareSheetPresenting = false
         }
-        root.present(activity, animated: true)
+        presenter.present(activity, animated: true)
         #endif
     }
 
     #if os(iOS)
-    private func resultShareImage(from view: SKView) -> UIImage? {
-        let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
-        return renderer.image { _ in
-            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+    private func presentationController(from view: SKView) -> UIViewController? {
+        let root = view.window?.rootViewController ?? owningViewController(from: view)
+        return topMostViewController(from: root)
+    }
+
+    private func owningViewController(from view: UIView) -> UIViewController? {
+        var responder: UIResponder? = view
+        while let current = responder {
+            if let viewController = current as? UIViewController {
+                return viewController
+            }
+            responder = current.next
         }
+        return nil
+    }
+
+    private func topMostViewController(from controller: UIViewController?) -> UIViewController? {
+        guard let controller = controller else { return nil }
+
+        if let presented = controller.presentedViewController {
+            return topMostViewController(from: presented)
+        }
+        if let navigation = controller as? UINavigationController {
+            return topMostViewController(from: navigation.visibleViewController) ?? navigation
+        }
+        if let tab = controller as? UITabBarController {
+            return topMostViewController(from: tab.selectedViewController) ?? tab
+        }
+        return controller
+    }
+
+    private func resultShareImage(from view: SKView) -> UIImage? {
+        let bounds = view.bounds
+        guard bounds.width >= GameConfig.resultShareImageMinimumSide,
+              bounds.height >= GameConfig.resultShareImageMinimumSide else {
+            return nil
+        }
+
+        var didDraw = false
+        let renderer = UIGraphicsImageRenderer(bounds: bounds)
+        let image = renderer.image { _ in
+            didDraw = view.drawHierarchy(in: bounds, afterScreenUpdates: false)
+        }
+        guard didDraw else { return nil }
+        return image
+    }
+
+    private func configurePopover(for activity: UIActivityViewController, in view: SKView) {
+        guard let popover = activity.popoverPresentationController else { return }
+        popover.sourceView = view
+        popover.sourceRect = sharePopoverSourceRect(in: view)
+        popover.permittedArrowDirections = []
+    }
+
+    private func sharePopoverSourceRect(in view: SKView) -> CGRect {
+        let anchorSize = GameConfig.resultSharePopoverAnchorSize
+        let fallback = CGRect(
+            x: view.bounds.midX - anchorSize / 2,
+            y: view.bounds.midY - anchorSize / 2,
+            width: anchorSize,
+            height: anchorSize
+        )
+
+        guard let shareButton = shareButton else { return fallback }
+        let point = convertPoint(toView: shareButton.position)
+        guard view.bounds.contains(point) else { return fallback }
+
+        return CGRect(
+            x: point.x - anchorSize / 2,
+            y: point.y - anchorSize / 2,
+            width: anchorSize,
+            height: anchorSize
+        )
     }
     #endif
 
@@ -1132,6 +1216,53 @@ final class ResultScene: SKScene {
         let bestPrefix = isNewBest ? "신기록! " : ""
         let target = GameConfig.targetScoreByDifficulty[difficulty] ?? 0
         return "\(bestPrefix)김간호는 음악박사에서 \(characterName) · \(difficulty.displayName) 난이도 \(finalScore)점 달성! 최고기록 \(bestScore)점, 목표 \(target)점."
+    }
+
+    // MARK: - Share Feedback
+
+    private func showShareFailureToast() {
+        shareFailureToast?.removeAllActions()
+        shareFailureToast?.removeFromParent()
+
+        let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        label.text = GameConfig.resultShareFailureToastText
+        label.fontSize = GameConfig.resultShareToastFontSize
+        label.fontColor = .ganhoNavyDeep
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.zPosition = GameConfig.resultShareToastZPosition
+        label.position = shareToastPosition()
+        label.alpha = .zero
+        shareFailureToast = label
+        addChild(label)
+
+        let fadeIn = SKAction.fadeIn(withDuration: GameConfig.resultShareToastFadeDuration)
+        let wait = SKAction.wait(forDuration: GameConfig.resultShareToastDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.resultShareToastFadeDuration)
+        let clearReference = SKAction.run { [weak self, weak label] in
+            guard let self = self,
+                  let label = label,
+                  let current = self.shareFailureToast,
+                  current === label else {
+                return
+            }
+            self.shareFailureToast = nil
+        }
+        let remove = SKAction.removeFromParent()
+        label.run(.sequence([fadeIn, wait, fadeOut, clearReference, remove]))
+    }
+
+    private func shareToastPosition() -> CGPoint {
+        if let shareButton = shareButton {
+            return CGPoint(
+                x: shareButton.position.x,
+                y: shareButton.position.y + GameConfig.resultShareToastOffsetY
+            )
+        }
+        return CGPoint(
+            x: frame.midX,
+            y: frame.minY + GameConfig.resultShareToastOffsetY
+        )
     }
 
     // MARK: - Helpers (Sprint 7 Phase D)

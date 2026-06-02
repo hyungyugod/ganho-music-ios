@@ -12,8 +12,8 @@ extension GameScene {
     func updateCameraFollow() {
         let halfW = size.width / 2
         let halfH = size.height / 2
-        let worldW = GameConfig.originalMapWorldWidth
-        let worldH = GameConfig.originalMapWorldHeight
+        let worldW = GameConfig.mapWidth
+        let worldH = GameConfig.mapHeight
 
         let lowerX = halfW
         let upperX = worldW - halfW

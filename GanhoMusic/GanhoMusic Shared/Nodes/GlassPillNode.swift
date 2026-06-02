@@ -75,4 +75,8 @@ final class GlassPillNode: SKNode {
         textLabel.position = .zero
         textLabel.zPosition = 1
     }
+
+    func setText(_ text: String) {
+        textLabel.text = text
+    }
 }

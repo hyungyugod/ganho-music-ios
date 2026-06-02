@@ -2,11 +2,11 @@
 //  WallTileNode.swift
 //  GanhoMusic Shared
 //
-//  Sprint 10 Phase C · 원본 1:1 벽 1셀(40×40pt) 단일 노드.
+//  Sprint 10 Phase C · runtime compact 벽 1셀(28×28pt) 단일 노드.
 //  MapNode.buildWalls(difficulty:)가 색·크기·물리 정책의 단일 진입점으로 사용한다.
 //  존재 이유:
 //   1) 옛 GameScene+Setup의 addRectPillar(navyDeep + tileSize × N)을 픽셀 톤(wallTileColorHex)으로
-//      대체하면서 1셀=40pt 격자 정합 유지.
+//      대체하면서 runtime 28pt 격자 정합 유지.
 //   2) physicsBody 정책(static, friction/restitution 0, category=wall, collision/contactTest 0)을
 //      한 곳에 응집 — 외곽 + 4 모서리 방 + 중앙 기둥이 한 종류의 노드로 통일.
 //   3) PhysicsCategory.wall(8) 비트는 이미 존재 — 본 노드는 *사용자*만 늘어남(주의사항 3).
@@ -14,18 +14,19 @@
 
 import SpriteKit
 
-/// 원본 game.js의 m[r][c]=1 한 셀 = 40×40pt 정적 충돌체.
+/// 원본 game.js의 m[r][c]=1 한 셀을 runtime 28×28pt 정적 충돌체로 표현한다.
 /// 부모 MapNode의 zPosition(-50) 아래 자식으로 부착되며 자체 zPosition은 0(MapNode 자식 적층 기준).
 /// anchorPoint .center 기본값 사용 — tileCoordinate(col:row:)의 셀 중심점과 자연 정합.
 final class WallTileNode: SKSpriteNode {
 
     // MARK: - Lifecycle
-    /// 1셀 40×40pt + 픽셀 톤 단색 + 정적 physicsBody.
+    /// 1셀 runtime tileSize + 픽셀 톤 단색 + 정적 physicsBody.
     /// 텍스처 nil — Phase J 픽셀 톤 외곽 효과 도입 시 텍스처로 승격 가능.
     init() {
+        let tileSize = GameConfig.tileSize
         let size = CGSize(
-            width:  GameConfig.originalMapCellSize,
-            height: GameConfig.originalMapCellSize
+            width:  tileSize,
+            height: tileSize
         )
         let color = UIColor.ganhoIngameWallFill
         super.init(texture: nil, color: color, size: size)

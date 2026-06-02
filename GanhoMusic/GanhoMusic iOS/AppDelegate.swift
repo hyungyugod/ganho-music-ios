@@ -6,12 +6,21 @@
 //
 
 import UIKit
+import FirebaseAuth
+import FirebaseCore
+import FirebaseFirestore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        FirebaseApp.configure()
+        FirebaseAuthManager.shared.startObserving()
+        Firestore.firestore().persistentCacheIndexManager?.enableIndexAutoCreation()
+        Task {
+            _ = await FirebaseAuthManager.shared.ensureAnonymousSession()
+            await CloudSaveCoordinator.shared.flushPendingIfPossible()
+        }
         return true
     }
 
@@ -31,4 +40,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 }
-

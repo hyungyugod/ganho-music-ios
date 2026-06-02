@@ -157,6 +157,27 @@ extension GameScene {
             isNewGraduation = graduationRepo.record(characterID: characterID, date: Date())
         }
         let graduatedAt = graduationRepo.graduatedAt(characterID: characterID)
+        let cloudRecord = CloudScoreRecord(
+            localID: UUID().uuidString,
+            characterID: characterID.rawValue,
+            difficulty: difficulty.rawValue,
+            score: score,
+            maxCombo: maxComboThisRun,
+            airforceTriggered: airforceTriggered,
+            playedAt: Date()
+        )
+        let cloudProgress = CloudProgressSnapshot.make(
+            highScore: bestScore,
+            stats: stats,
+            perDifficultyScores: perDiffRepo.current,
+            graduations: graduationRepo.current
+        )
+        Task {
+            await CloudSaveCoordinator.shared.saveGameResult(
+                record: cloudRecord,
+                progress: cloudProgress
+            )
+        }
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
             characterName: characterID.displayName,

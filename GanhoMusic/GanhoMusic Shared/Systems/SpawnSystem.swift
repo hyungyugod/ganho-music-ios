@@ -22,6 +22,7 @@ final class SpawnSystem {
     private weak var enemy: EnemyNode?
     /// 게임 진행률 (0 ~ 1) 공급자. F 발사 주기 보간에 사용.
     private var progressProvider: () -> Double = { 0 }
+    private var noteSpawnTick: Int = 0
 
     // MARK: - Tunable (Phase 7-1 / Sprint 10 Phase I)
     /// 동시 음표 최대 수. default = GameConfig.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
@@ -113,12 +114,14 @@ final class SpawnSystem {
     /// easy(.infinity)는 applyLifetime 가드로 noop → 기존 동작 정확 보존.
     private func trySpawnNote() {
         guard let world = worldNode else { return }
+        noteSpawnTick += 1
+        if noteSpawnTick % GameConfig.notePatternEverySpawn == 0,
+           trySpawnNotePattern(in: world) {
+            return
+        }
         guard currentNoteCount() < noteMaxConcurrent else { return }
         guard let position = randomNotePosition() else { return }
-        let note = NoteNode()
-        note.position = position
-        world.addChild(note)
-        note.applyLifetime(noteLifetime)
+        spawnNote(at: position, in: world)
     }
 
     /// worldNode 안 음표 ("note" 이름) 개수.
@@ -129,17 +132,109 @@ final class SpawnSystem {
         return count
     }
 
-    /// 외곽 1tile 마진 안쪽 균등 랜덤. 중앙 기둥 manhattan 회피 (3 tile 이내면 nil).
+    /// 외곽 벽과 수집 hitbox가 겹치지 않는 열린 위치. 중앙 기둥/벽 내부 후보는 제한 횟수 안에서 재시도한다.
     private func randomNotePosition() -> CGPoint? {
-        let margin = GameConfig.tileSize
-        let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
-        let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
-        let cx = GameConfig.mapWidth  / 2
-        let cy = GameConfig.mapHeight / 2
-        if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
-            return nil
+        return randomOpenMapPosition(halfExtent: GameConfig.spawnCollectibleHalfExtent)
+    }
+
+    private func randomOpenMapPosition(halfExtent: CGFloat) -> CGPoint? {
+        let margin = GameConfig.tileSize + halfExtent
+        let minX = margin
+        let maxX = GameConfig.mapWidth - margin
+        let minY = margin
+        let maxY = GameConfig.mapHeight - margin
+        guard maxX >= minX, maxY >= minY else { return nil }
+
+        for _ in 0..<GameConfig.spawnPositionMaxAttempts {
+            let point = CGPoint(
+                x: CGFloat.random(in: minX ... maxX),
+                y: CGFloat.random(in: minY ... maxY)
+            )
+            guard isAwayFromCenterPillar(point) else { continue }
+            guard isOpenSpawnPoint(point, halfExtent: halfExtent) else { continue }
+            return point
         }
-        return CGPoint(x: x, y: y)
+
+        return nil
+    }
+
+    private func isAwayFromCenterPillar(_ point: CGPoint) -> Bool {
+        let cx = GameConfig.mapWidth / 2
+        let cy = GameConfig.mapHeight / 2
+        return abs(point.x - cx) + abs(point.y - cy) >= GameConfig.tileSize * 3
+    }
+
+    private func isOpenSpawnPoint(_ point: CGPoint, halfExtent: CGFloat) -> Bool {
+        let margin = GameConfig.tileSize + halfExtent
+        guard point.x >= margin, point.x <= GameConfig.mapWidth - margin else { return false }
+        guard point.y >= margin, point.y <= GameConfig.mapHeight - margin else { return false }
+
+        for sample in spawnCollisionSamples(center: point, halfExtent: halfExtent) {
+            if hasWallBody(at: sample) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func spawnCollisionSamples(center: CGPoint, halfExtent: CGFloat) -> [CGPoint] {
+        return [
+            center,
+            CGPoint(x: center.x - halfExtent, y: center.y - halfExtent),
+            CGPoint(x: center.x + halfExtent, y: center.y - halfExtent),
+            CGPoint(x: center.x - halfExtent, y: center.y + halfExtent),
+            CGPoint(x: center.x + halfExtent, y: center.y + halfExtent)
+        ]
+    }
+
+    private func hasWallBody(at point: CGPoint) -> Bool {
+        guard let scene = scene else { return false }
+        if let body = scene.physicsWorld.body(at: point),
+           (body.categoryBitMask & PhysicsCategory.wall) != 0 {
+            return true
+        }
+        return false
+    }
+
+    private func trySpawnNotePattern(in world: SKNode) -> Bool {
+        guard currentNoteCount() <= noteMaxConcurrent - GameConfig.notePatternSize else { return false }
+        guard let origin = randomNotePosition() else { return false }
+        let spacing = GameConfig.notePatternSpacing
+        let rawOffsets: [CGPoint]
+        switch (noteSpawnTick / GameConfig.notePatternEverySpawn) % 3 {
+        case 0:
+            rawOffsets = [-1.5, -0.5, 0.5, 1.5].map { CGPoint(x: $0 * spacing, y: 0) }
+        case 1:
+            rawOffsets = [-1.5, -0.5, 0.5, 1.5].map { CGPoint(x: $0 * spacing, y: $0 * spacing * 0.55) }
+        default:
+            rawOffsets = [
+                CGPoint(x: -spacing, y: 0),
+                CGPoint(x: 0, y: spacing * 0.72),
+                CGPoint(x: spacing, y: 0),
+                CGPoint(x: 0, y: -spacing * 0.72)
+            ]
+        }
+        for offset in rawOffsets {
+            let position = clampedNotePosition(CGPoint(x: origin.x + offset.x, y: origin.y + offset.y))
+            guard isOpenSpawnPoint(position, halfExtent: GameConfig.spawnCollectibleHalfExtent) else { continue }
+            spawnNote(at: position, in: world)
+        }
+        return true
+    }
+
+    private func spawnNote(at position: CGPoint, in world: SKNode) {
+        let note = NoteNode()
+        note.position = position
+        world.addChild(note)
+        note.applyLifetime(noteLifetime)
+    }
+
+    private func clampedNotePosition(_ point: CGPoint) -> CGPoint {
+        let margin = GameConfig.tileSize + GameConfig.spawnCollectibleHalfExtent
+        return CGPoint(
+            x: min(max(point.x, margin), GameConfig.mapWidth - margin),
+            y: min(max(point.y, margin), GameConfig.mapHeight - margin)
+        )
     }
 
     // MARK: - Projectile Fire (Sprint 10 Phase E)
@@ -219,17 +314,10 @@ final class SpawnSystem {
         return count
     }
 
-    /// 변기 스폰 위치 — randomNotePosition 정책 재사용 (외곽 1타일 마진 + 중앙 기둥 manhattan 3타일 회피).
+    /// 변기 스폰 위치 — 외곽벽 1타일 + 수집 hitbox half extent margin을 두고
+    /// 중심+네 모서리 wall 검사까지 통과한 randomNotePosition 정책을 재사용한다.
     /// nil 반환 시 호출부(`tryRollAndSpawnToilet`)가 noop → 다음 사이클 재시도.
     private func randomToiletPosition() -> CGPoint? {
-        let margin = GameConfig.tileSize
-        let x = CGFloat.random(in: margin ... GameConfig.mapWidth  - margin)
-        let y = CGFloat.random(in: margin ... GameConfig.mapHeight - margin)
-        let cx = GameConfig.mapWidth  / 2
-        let cy = GameConfig.mapHeight / 2
-        if abs(x - cx) + abs(y - cy) < GameConfig.tileSize * 3 {
-            return nil
-        }
-        return CGPoint(x: x, y: y)
+        return randomOpenMapPosition(halfExtent: GameConfig.spawnCollectibleHalfExtent)
     }
 }

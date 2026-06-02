@@ -178,8 +178,8 @@ final class EnemyNode: SKSpriteNode {
     /// isFleeing 다회 진입 가드(이미 도주 중이면 noop) 그대로 유지(OQ-7).
     func startFleeing(duration: TimeInterval, onEnd: @escaping () -> Void = {}) {
         if isFleeing { return }
-        let halfMapX = GameConfig.originalMapWorldWidth / 2
-        let halfMapY = GameConfig.originalMapWorldHeight / 2
+        let halfMapX = GameConfig.mapWidth / 2
+        let halfMapY = GameConfig.mapHeight / 2
         let inv = 1.0 / sqrt(2.0)
         let dirX: CGFloat = (position.x >= halfMapX ? 1 : -1) * inv
         let dirY: CGFloat = (position.y >= halfMapY ? 1 : -1) * inv

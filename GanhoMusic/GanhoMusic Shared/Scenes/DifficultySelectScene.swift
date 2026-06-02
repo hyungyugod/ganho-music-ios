@@ -50,9 +50,6 @@ final class DifficultySelectScene: BaseMenuScene {
     private let startButton = PrimaryButtonNode(
         text: GameConfig.difficultySelectStartButtonText
     )
-    /// Sprint 7 Phase C — 시작 버튼 뒤 코랄 halo. PrimaryButtonNode 내부 변경 0 보장 위해
-    /// Scene이 외부 SKShapeNode를 직접 부착. zPos = startButton - 1 (버튼 뒤). 페이드 인 0.25s.
-    private var startButtonHalo: SKShapeNode?
 
     // MARK: - Factory
     /// CharacterSelectScene(.kim 분기) 또는 SkillExplanationScene(그 외)이 호출.
@@ -256,27 +253,8 @@ final class DifficultySelectScene: BaseMenuScene {
         summaryNameLabel.zPosition = 111
         addChild(summaryNameLabel)
 
-        // V5 — 풀바디 픽셀 아바타(SkillExplanationScene Line 80~99 패턴 byte-identical 복사).
-        // PNG 자산(Characters/{id}_down_idle_1) 우선, 미보유 시 PixelSpriteRenderer fallback.
-        // 텍스처 생성은 setupSummaryCard()에서 1회 — 매 프레임 비용 0.
-        let texture: SKTexture = {
-            let pngName = "\(characterID.rawValue)_down_idle_1"
-            if UIImage(named: pngName) != nil {
-                let tex = SKTexture(imageNamed: pngName)
-                tex.filteringMode = .linear  // 부드러운 스케일링
-                return tex
-            }
-            // Fallback — 픽셀 렌더링 (.nearest 자동 설정 → 80×80 확대 시에도 픽셀 perfect)
-            let frame = PixelSprite.data(for: characterID, direction: .down, frame: .idle)
-            let palette = PixelPalette.palette(for: characterID)
-            return PixelSpriteRenderer.texture(from: frame, palette: palette)
-        }()
-        let face = SKSpriteNode(texture: texture)
-        face.size = CGSize(
-            width: GameConfig.difficultySelectSummaryFullBodyWidthV5,
-            height: GameConfig.difficultySelectSummaryFullBodyHeightV5
-        )
-        face.zPosition = 105
+        let texture = summaryTexture(for: characterID)
+        let face = makeSummaryFace(texture: texture)
         summaryFace = face
         addChild(face)
 
@@ -321,6 +299,52 @@ final class DifficultySelectScene: BaseMenuScene {
         addChild(summarySpeedLabel)
 
         layoutSummaryCard()
+    }
+
+    // MARK: - Texture
+    private func summaryTexture(for characterID: CharacterID) -> SKTexture {
+        let rawName = "\(characterID.rawValue)_down_idle_1"
+        let candidateNames = [
+            "Characters/\(rawName)",
+            rawName
+        ]
+
+        for assetName in candidateNames {
+            if UIImage(named: assetName) != nil {
+                let texture = SKTexture(imageNamed: assetName)
+                texture.filteringMode = .linear
+                return texture
+            }
+        }
+
+        let frame = PixelSprite.data(for: characterID, direction: .down, frame: .idle)
+        let palette = PixelPalette.palette(for: characterID)
+        return PixelSpriteRenderer.texture(from: frame, palette: palette)
+    }
+
+    private func makeSummaryFace(texture: SKTexture) -> SKSpriteNode {
+        let face = SKSpriteNode(texture: texture)
+        face.size = aspectFitSize(
+            textureSize: texture.size(),
+            maxSize: CGSize(
+                width: GameConfig.difficultySelectSummaryFullBodyMaxWidthV6,
+                height: GameConfig.difficultySelectSummaryFullBodyMaxHeightV6
+            )
+        )
+        face.zPosition = 105
+        return face
+    }
+
+    // MARK: - Layout
+    private func aspectFitSize(textureSize: CGSize, maxSize: CGSize) -> CGSize {
+        guard textureSize.width > 0, textureSize.height > 0 else { return maxSize }
+        let widthScale = maxSize.width / textureSize.width
+        let heightScale = maxSize.height / textureSize.height
+        let scale = min(widthScale, heightScale)
+        return CGSize(
+            width: textureSize.width * scale,
+            height: textureSize.height * scale
+        )
     }
 
     private func layoutSummaryCard() {
@@ -434,28 +458,7 @@ final class DifficultySelectScene: BaseMenuScene {
     }
 
     // MARK: - Setup (Start Button)
-    /// Sprint 7 Phase C — 버튼 뒤 코랄 halo SKShapeNode를 *Scene에서 별도 부착*.
-    /// PrimaryButtonNode 내부 0줄 변경 보장 — 다른 화면(StartScene 등) 회귀 위험 0.
-    /// halo zPos = startButton.zPosition - 1 (버튼 뒤). 화면 진입 후 0.25s 페이드 인.
     private func setupStartButton() {
-        let halo = SKShapeNode(ellipseOf: CGSize(
-            width: GameConfig.difficultySelectStartButtonHaloWidth,
-            height: GameConfig.difficultySelectStartButtonHaloHeight
-        ))
-        halo.fillColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.difficultySelectStartButtonHaloAlpha)
-        halo.strokeColor = .clear
-        halo.lineWidth = 0
-        halo.glowWidth = GameConfig.difficultySelectStartButtonHaloSpread
-        halo.alpha = 0
-        halo.zPosition = startButton.zPosition - 1
-        halo.name = "difficultySelectStartButtonHalo"
-        startButtonHalo = halo
-        addChild(halo)
-        halo.run(SKAction.fadeAlpha(
-            to: 1.0,
-            duration: GameConfig.difficultySelectStartButtonHaloFadeInDuration
-        ))
         addChild(startButton)
         layoutStartButton()
     }
@@ -473,7 +476,6 @@ final class DifficultySelectScene: BaseMenuScene {
         // V3/V5 — 기존 V3 산식은 byte-identical 보존, 본 호출은 V5 offset(-200) 사용.
         let scale = difficultyLayoutScale()
         startButton.setScale(scale)
-        startButtonHalo?.setScale(scale)
         let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetYV5 * scale
 
         let buttonHalfHeight = GameConfig.primaryButtonHeight * scale / 2
@@ -499,10 +501,6 @@ final class DifficultySelectScene: BaseMenuScene {
 
         let pos = CGPoint(x: frame.midX, y: buttonY)
         startButton.position = pos
-        startButtonHalo?.position = CGPoint(
-            x: pos.x,
-            y: pos.y + GameConfig.difficultySelectStartButtonHaloOffsetY
-        )
     }
 
     private func difficultyLayoutScale() -> CGFloat {

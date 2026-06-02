@@ -69,6 +69,7 @@ class GameScene: SKScene {
     // lastComboValue: 직전 프레임의 콤보값 추적 — 0으로 떨어진 *순간*을 감지하는 폴링 기준점.
     // 첫 프레임에는 0 시작이라 임계값(10) 가드로 노이즈 차단.
     private var lastComboValue: Int = 0
+    var maxComboThisRun: Int = 0
     var triggeredComboBreaks: Set<Int> = []
 
     /// Phase 6-14 — 5초 긴박감 1회 가드. 같은 판 1회만 setup 발화 (HUD 깜빡임 시작 등).
@@ -170,8 +171,6 @@ class GameScene: SKScene {
         }
 
         // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
-        // 가드: hard 난이도 + 미발화. 트리거 만족 시 즉시 sergeantParkDebuted=true → 재진입 차단.
-        // spawnSergeantPark는 컷씬+노드 부착을 GameScene+Setup으로 위임 — update는 조건 분기만.
         if difficulty == .hard && !sergeantParkDebuted {
             let elapsed = GameConfig.gameDuration - remainingTime
             if elapsed >= GameConfig.sergeantParkDebutTimeV4
@@ -245,9 +244,8 @@ class GameScene: SKScene {
         player.updatePixelDirection(velocity)
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
 
-        // 3) 카메라 follow — Sprint 10 Phase B: 맵 가장자리 클램프 적용.
-        //    원본 32×20 맵(1280×800pt)으로 좁아져 무클램프 시 화면 밖 검은 빈 공간 노출 위험.
-        //    updateCameraFollow가 worldW/H 단일 진실 원천(GameConfig)을 참조 → 맵 크기 변경 시 자동 적응.
+        // 3) 카메라 follow — runtime compact 맵(32×20, 896×560pt) 가장자리 클램프 적용.
+        //    무클램프 시 화면 밖 빈 영역 노출 위험이 있어 GameConfig.mapWidth/mapHeight 기준으로 자동 적응.
         updateCameraFollow()
 
         // 4) Sprint 10 Phase D — 수간호사 패트롤 + 텔레그래프 상태 머신.
@@ -277,6 +275,7 @@ class GameScene: SKScene {
         // playing 상태에서만 실행 — gameOver 전환 후엔 위 guard에서 이미 차단됨.
         // ScoreSystem 시그니처 미변경(옵션 B 폴링) — 6-10 환호 폴링과 같은 패턴.
         let currentCombo = scoreSystem.combo
+        maxComboThisRun = max(maxComboThisRun, currentCombo)
         if lastComboValue >= GameConfig.comboBreakThreshold, currentCombo == 0 {
             triggerComboBreak(brokenAt: lastComboValue)
         }

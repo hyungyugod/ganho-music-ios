@@ -3,16 +3,16 @@
 //  GanhoMusic Shared
 //
 //  Sprint 10 Phase B · 맵 좌표 그릇 단일 진실 원천.
-//  worldNode 자식으로 부착되어 1280×800 pt 좌표계를 표현한다(원본 32×20 타일 × 40pt 셀).
-//  Phase B는 *빈 컨테이너* 단계 — buildWalls 후크는 Phase C가 채운다.
+//  worldNode 자식으로 부착되어 896×560 pt runtime compact 좌표계를 표현한다(32×20 타일 × 28pt 셀).
+//  Phase C 이후 buildWalls가 runtime tile helper를 통해 벽을 채운다.
 //  존재 이유:
-//   1) Phase A 픽셀 시각(32×40pt) ↔ Phase B 셀(40pt) 정합 검증의 단일 좌표계 진입점.
+//   1) 픽셀 시각 ↔ runtime compact 셀 정합 검증의 단일 좌표계 진입점.
 //   2) Phase C 빌런/벽 좌표가 GameScene이 아닌 *맵 자체*에 종속됨을 표명(Spring 비유: 도메인 객체).
 //
 
 import SpriteKit
 
-/// 원본 1:1 맵 컨테이너. worldNode 자식 SKNode — physicsBody 0(좌표 그릇 전용).
+/// Runtime compact 맵 컨테이너. worldNode 자식 SKNode — physicsBody 0(좌표 그릇 전용).
 /// Phase B 책임: 1) zPosition 적층 안정화, 2) 타일↔월드 좌표 변환 헬퍼, 3) Phase C 후크.
 /// 게임 로직 미접근(Spring 비유: domain model — read-only 좌표 헬퍼만 노출).
 final class MapNode: SKNode {
@@ -32,23 +32,17 @@ final class MapNode: SKNode {
 
     // MARK: - Coordinate Helpers
     /// (col, row) 타일 인덱스를 셀 *중심점* 월드 좌표로 변환.
-    /// Phase C 빌런/벽 스폰의 단일 좌표 진입점이 될 예정 — 본 Phase B는 정의만, 호출은 0건.
-    /// 산식: (col + 0.5) × CELL_PT, (row + 0.5) × CELL_PT — anchorPoint .center 기준 정합.
+    /// Phase C 빌런/벽 스폰의 단일 좌표 진입점.
+    /// 산식: (col + 0.5) × runtime tileSize, (row + 0.5) × runtime tileSize.
     func tileCoordinate(col: Int, row: Int) -> CGPoint {
-        let cell = GameConfig.originalMapCellSize
-        return CGPoint(
-            x: (CGFloat(col) + 0.5) * cell,
-            y: (CGFloat(row) + 0.5) * cell
-        )
+        return GameConfig.tileCenter(col: col, row: row)
     }
 
     /// 월드 전체 크기 (pt). Phase C/카메라 클램프에서 단일 진실 원천으로 참조 가능.
-    /// 본 Phase B 시점에서는 GameScene.updateCameraFollow가 GameConfig 상수를 직접 참조하지만,
-    /// 추후 MapNode가 동적 크기를 갖게 되면 이 메서드로 일원화한다.
     func worldSize() -> CGSize {
         return CGSize(
-            width:  GameConfig.originalMapWorldWidth,
-            height: GameConfig.originalMapWorldHeight
+            width:  GameConfig.mapWidth,
+            height: GameConfig.mapHeight
         )
     }
 
@@ -65,13 +59,14 @@ final class MapNode: SKNode {
         case .normal, .hard:
             buildHardInterior()
         }
+        buildExtraObstacles(difficulty: difficulty)
     }
 
     /// 32×20 맵의 가장자리 1셀 둘레 — 원본 game.js L264~L265.
     /// 가로(top/bottom)는 전 col(0..lastCol), 세로(left/right)는 1..lastRow-1로 중복 0(OQ-3).
     private func buildOuterWall() {
-        let lastCol = GameConfig.originalMapTileWidth  - 1
-        let lastRow = GameConfig.originalMapTileHeight - 1
+        let lastCol = GameConfig.mapColumns - 1
+        let lastRow = GameConfig.mapRows - 1
         for col in 0...lastCol {
             attachWallTile(col: col, row: 0)
             attachWallTile(col: col, row: lastRow)
@@ -89,6 +84,23 @@ final class MapNode: SKNode {
             for col in GameConfig.easyMapCenterPillarColStart...GameConfig.easyMapCenterPillarColEnd {
                 attachWallTile(col: col, row: convertOrigRowToIOS(origR))
             }
+        }
+    }
+
+    /// Sprint 11 tuning — 화면을 넓게만 쓰는 느낌을 줄이고, 회피 경로 선택을 더 자주 만들기 위한 추가 장애물.
+    /// 외곽/시작 위치/수간호사 waypoint와 겹치지 않는 작은 1~3셀 블록만 배치한다.
+    private func buildExtraObstacles(difficulty: Difficulty) {
+        switch difficulty {
+        case .easy:
+            attachHorizontalRun(colStart: 6, colEnd: 8, row: 6)
+            attachHorizontalRun(colStart: 23, colEnd: 25, row: 13)
+            attachVerticalRun(col: 11, rowStart: 13, rowEnd: 14)
+            attachVerticalRun(col: 21, rowStart: 5, rowEnd: 6)
+        case .normal, .hard:
+            attachHorizontalRun(colStart: 13, colEnd: 15, row: 5)
+            attachHorizontalRun(colStart: 17, colEnd: 19, row: 14)
+            attachVerticalRun(col: 7, rowStart: 8, rowEnd: 10)
+            attachVerticalRun(col: 24, rowStart: 9, rowEnd: 11)
         }
     }
 
@@ -176,13 +188,25 @@ final class MapNode: SKNode {
     }
 
     /// 직사각형 영역 [colStart..colEnd] × [origRStart..origREnd]를 1셀씩 부착.
-    /// 옛 addRectPillar는 SKSpriteNode 1개 + 통합 PhysicsBody였지만, Phase C는 1셀=40pt 격자 정합 우선 — 셀 단위 분리.
+    /// 옛 addRectPillar는 SKSpriteNode 1개 + 통합 PhysicsBody였지만, Phase C는 runtime 셀 격자 정합 우선 — 셀 단위 분리.
     private func attachPillarRect(colStart: Int, colEnd: Int,
                                   origRStart: Int, origREnd: Int) {
         for origR in origRStart...origREnd {
             for col in colStart...colEnd {
                 attachWallTile(col: col, row: convertOrigRowToIOS(origR))
             }
+        }
+    }
+
+    private func attachHorizontalRun(colStart: Int, colEnd: Int, row: Int) {
+        for col in colStart...colEnd {
+            attachWallTile(col: col, row: row)
+        }
+    }
+
+    private func attachVerticalRun(col: Int, rowStart: Int, rowEnd: Int) {
+        for row in rowStart...rowEnd {
+            attachWallTile(col: col, row: row)
         }
     }
 
@@ -197,6 +221,6 @@ final class MapNode: SKNode {
     /// 원본 좌표계(Y↓, r=0이 맵 상단) → iOS SpriteKit(Y↑) 변환.
     /// iosRow = MAP_H - 1 - origR (주의사항 1).
     private func convertOrigRowToIOS(_ origR: Int) -> Int {
-        return GameConfig.originalMapTileHeight - 1 - origR
+        return GameConfig.mapRows - 1 - origR
     }
 }

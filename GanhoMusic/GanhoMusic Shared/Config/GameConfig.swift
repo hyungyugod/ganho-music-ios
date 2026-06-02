@@ -99,17 +99,38 @@ enum GameConfig {
     static let mapNodeZPosition: CGFloat = -50
 
     // MARK: - World
-    /// 타일 1칸 크기 (pt). Sprint 10 Phase B — 20pt → 40pt 승격(원본 1:1 산식 경유).
-    /// 호출자(외곽벽·체크보드·중앙기둥·hard/normal 맵·player position)는 이 단일 진입점만 참조 → 자동 정합.
-    static let tileSize: CGFloat = originalMapCellSize
-    /// 맵 가로 타일 수. Sprint 10 Phase B — 48 → 32 (원본 동일).
+    /// Runtime compact 셀 크기. 원본 좌표 해석 상수와 분리해 실제 월드만 압축한다.
+    static let compactMapCellSize: CGFloat = 28.0
+    /// 타일 1칸 크기 (pt). 호출자는 원본 좌표 상수가 아니라 runtime compact 셀만 참조한다.
+    static let tileSize: CGFloat = compactMapCellSize
+    /// Runtime 맵 가로 타일 수. Compact map은 32열을 유지한다.
     static let mapColumns: Int = originalMapTileWidth
-    /// 맵 세로 타일 수. Sprint 10 Phase B — 24 → 20 (원본 동일).
+    /// Runtime 맵 세로 타일 수. Compact map은 20행을 유지한다.
     static let mapRows: Int = originalMapTileHeight
-    /// 맵 전체 가로 폭 (pt). tileSize × mapColumns = 1280 (Sprint 10 Phase B 산식 자동 갱신).
+    /// 맵 전체 가로 폭 (pt). tileSize × mapColumns = 896.
     static let mapWidth: CGFloat = tileSize * CGFloat(mapColumns)
-    /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 800 (Sprint 10 Phase B 산식 자동 갱신).
+    /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 560.
     static let mapHeight: CGFloat = tileSize * CGFloat(mapRows)
+
+    /// 원본 좌표를 runtime compact 좌표로 변환하는 비율.
+    static var mapRuntimeScale: CGFloat {
+        return tileSize / originalMapCellSize
+    }
+
+    /// 원본 pt 좌표를 runtime compact 맵 좌표로 축소한다.
+    static func scaledMapPoint(x: CGFloat, y: CGFloat) -> CGPoint {
+        return CGPoint(x: x * mapRuntimeScale, y: y * mapRuntimeScale)
+    }
+
+    /// Runtime compact 셀 단위 좌표를 pt 좌표로 변환한다.
+    static func cellPoint(x: CGFloat, y: CGFloat) -> CGPoint {
+        return CGPoint(x: x * tileSize, y: y * tileSize)
+    }
+
+    /// Runtime compact 셀 중심 좌표.
+    static func tileCenter(col: Int, row: Int) -> CGPoint {
+        return cellPoint(x: CGFloat(col) + 0.5, y: CGFloat(row) + 0.5)
+    }
     // MARK: - Player (Phase 1-3 정식)
     /// 플레이어 기본 속도 (pt/s). easy 난이도 기준점.
     static let playerBaseSpeed: CGFloat = 140
@@ -138,6 +159,10 @@ enum GameConfig {
     static let noteSpawnInterval: TimeInterval = 1.5
     /// 동시에 떠 있을 수 있는 음표 최대 개수. GDD §5 easy.
     static let noteMaxConcurrent: Int = 5
+    /// 음표/변기 스폰 후보 위치 재시도 횟수. 실패 시 해당 스폰 tick은 noop.
+    static let spawnPositionMaxAttempts: Int = 12
+    /// 음표/변기 수집 hitbox 반경. NoteNode physicsBody 16×16, ToiletNode physicsBody 16×16 기준.
+    static let spawnCollectibleHalfExtent: CGFloat = 8
 
     // MARK: - HUD (Phase 2-4)
     /// HUD 알파 (반투명, 가독성 우선). D-Pad 0.3보다 큼.
@@ -221,16 +246,15 @@ enum GameConfig {
     /// Sprint 10 Phase F — 패트롤 SKAction 키. selectInitialWaypoint 재시작 시 removeAction(forKey:) 멱등 처리.
     static let stoneGuardPatrolActionKey: String = "stoneGuardPatrol"
     /// 석조무사 4 waypoint(시계방향: 좌하 → 우하 → 우상 → 좌상).
-    /// 맵 960×480, 중앙 기둥 (480, 240±40) 회피.
-    /// 한 바퀴 둘레 = 1680pt → 1680/55 ≈ 30.5초.
     /// Sprint 10 Phase F — 원본 game.js L3221~L3274 byte-equal 재정합.
     /// 옛 200/760·100/380 4점 폐기 → 원본 80/540·80/300 4점 직접 사용.
+    /// Sprint 5 — 원본 pt 좌표 경로를 runtime compact 맵으로 축소.
     /// 시계방향: 좌하(80,80) → 우하(540,80) → 우상(540,300) → 좌상(80,300).
     static let stoneGuardWaypoints: [CGPoint] = [
-        CGPoint(x: 80,  y: 80),    // 좌하 — 원본 leftX=80, topY=80
-        CGPoint(x: 540, y: 80),    // 우하 — 원본 rightX=540
-        CGPoint(x: 540, y: 300),   // 우상 — 원본 bottomY=300
-        CGPoint(x: 80,  y: 300)    // 좌상
+        scaledMapPoint(x: 80,  y: 80),    // 좌하 — 원본 leftX=80, topY=80
+        scaledMapPoint(x: 540, y: 80),    // 우하 — 원본 rightX=540
+        scaledMapPoint(x: 540, y: 300),   // 우상 — 원본 bottomY=300
+        scaledMapPoint(x: 80,  y: 300)    // 좌상
     ]
 
     // MARK: - Airforce Easter Egg (Phase 4-3)
@@ -240,6 +264,8 @@ enum GameConfig {
     static let airplaneTopOffset: CGFloat = 60
     /// "나와라 박병장!" 오버레이 폰트 크기 (pt). HUD(18)보다 크고 화면 중앙 가독성 우선.
     static let airforceOverlayFontSize: CGFloat = 28
+    static let airforceStoryTitle: String = "박병장 호출"
+    static let airforceStoryBody: String = "사실 박병장은 석조무사의 오랜 친구입니다.\n석조무사가 조용히 신호를 보내자, 박병장이 나타나 잠시 수간호사를 물리쳐 줍니다."
     /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
     /// Phase 9-8 — 사용자 요청 시퀀스 "오버레이 2.4초 유지" 정합화: 1.5 → 2.1.
     /// 총 수명 = displayDuration(2.1) + fadeOutDuration(0.3) = 2.4초.
@@ -593,7 +619,7 @@ enum GameConfig {
     ]
     /// 난이도별 동시 음표 최대 수. Sprint tuning — 화면에 목표가 더 자주 보이도록 전체 밀도 상향.
     static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
-        .easy: 8, .normal: 7, .hard: 7
+        .easy: 10, .normal: 9, .hard: 9
     ]
     /// 난이도별 음표 TTL (초). easy = `.infinity` → applyLifetime 가드로 자가 소멸 미부착 → 기존 동작 정확 보존.
     /// normal/hard만 자가 소멸 SKAction 부착(주의사항 2).
@@ -602,19 +628,19 @@ enum GameConfig {
     ]
     /// 난이도별 F 동시 최대 수. easy(2)는 기존 projectileMaxConcurrent와 동일.
     static let projectileMaxConcurrentByDifficulty: [Difficulty: Int] = [
-        .easy: 2, .normal: 10, .hard: 14
+        .easy: 4, .normal: 13, .hard: 18
     ]
     /// 난이도별 F 동시 burst 발사 수. Sprint tuning — 회피 압박을 키우기 위해 각 발사 묶음을 상향.
     static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
-        .easy: 2, .normal: 4, .hard: 6
+        .easy: 3, .normal: 5, .hard: 7
     ]
     /// 난이도별 F 발사 주기 시작값 (초). Sprint tuning — 첫 압박 도달 시간을 앞당긴다.
     static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 2.2, .normal: 1.7, .hard: 1.35
+        .easy: 1.9, .normal: 1.45, .hard: 1.15
     ]
     /// 난이도별 F 발사 주기 끝값 (초). Sprint tuning — 후반부 탄막 템포를 더 빠르게 만든다.
     static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 1.45, .normal: 0.95, .hard: 0.7
+        .easy: 1.2, .normal: 0.78, .hard: 0.56
     ]
 
     // MARK: - Sprint 10 Phase I — 원본 수치 봉인 (game.js L101~L105 1:1)
@@ -628,8 +654,11 @@ enum GameConfig {
     /// SpawnSystem.apply(difficulty)가 인스턴스 프로퍼티 noteSpawnInterval에 set.
     /// 원본은 frame-fill(매 프레임 즉시 보충), iOS는 timer 차등 — OQ-C 후속 정밀화 보류.
     static let noteSpawnIntervalByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 0.65, .normal: 0.45, .hard: 0.38
+        .easy: 0.5, .normal: 0.34, .hard: 0.28
     ]
+    static let notePatternEverySpawn: Int = 5
+    static let notePatternSize: Int = 4
+    static let notePatternSpacing: CGFloat = 48
 
     /// 난이도 카드 1장 가로 (pt). 3장 일렬 — 더 큼직(80 vs 캐릭터카드 48) — 화면 상위 인터랙션.
     static let difficultyCardWidth: CGFloat = 80
@@ -645,8 +674,8 @@ enum GameConfig {
     /// ResultScene 난이도 라벨 폰트 크기 (pt). resultStats(16)와 동급 — 보조 정보 톤.
     static let resultDifficultyFontSize: CGFloat = 18
 
-    // MARK: - Wall Tile (Sprint 10 Phase C — 원본 1:1)
-    // WallTileNode 1셀(40×40pt) 색·zPos·이름 단일 진실 원천.
+    // MARK: - Wall Tile (Runtime Compact)
+    // WallTileNode 1셀(28×28pt) 색·zPos·이름 단일 진실 원천.
     // 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md §1.3 + L84 (#2a2233 hex).
     // physicsBody 정책은 WallTileNode 본체에서 단일 응집(주의사항 11).
 
@@ -672,7 +701,7 @@ enum GameConfig {
 
     // MARK: - Hard Map (Sprint 10 Phase C — 원본 game.js L288~L309)
     // 4 모서리 방 + 중앙 기둥 4개. 모든 좌표는 *원본* 기준(origR) — iOS 변환은 MapNode가 담당.
-    // 옛 48×24 좌표 상수(Phase 7-2)는 본 Phase에서 제거 — 호출자(GameScene+Setup)도 함께 정리.
+    // 옛 wide-map 좌표 상수는 제거 — 호출자(GameScene+Setup)도 함께 정리.
 
     // 좌상 방 — m[5][4..9]=1 + m[2..5][9]=1 (문 m[3][9]=0)
     /// 가로벽 행(r=5).
@@ -804,6 +833,20 @@ enum GameConfig {
     /// GraduationRepository가 사용하는 UserDefaults 키. 캐릭터별 최초 졸업 일시 저장.
     /// 신규 키 — 기존 키와 충돌 0.
     static let graduationUserDefaultsKey: String = "graduations"
+
+    // MARK: - Firebase Auth / Cloud Save
+    static let authProfileUserDefaultsKey: String = "firebaseAuthProfile"
+    static let cloudPendingScoreUserDefaultsKey: String = "pendingCloudScores"
+    static let cloudPendingScoreLimit: Int = 20
+    static let cloudUsersCollectionName: String = "users"
+    static let cloudScoresCollectionName: String = "scores"
+    static let cloudProgressCollectionName: String = "progress"
+    static let cloudProgressSummaryDocumentName: String = "summary"
+    static let cloudDeleteBatchLimit: Int = 200
+    static let authNonceLength: Int = 32
+    static let authNonceCharacterSet: String = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
+    static let authAppleProviderID: String = "apple.com"
+
     /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.
     /// cutsceneBackgroundAlpha(어두운 톤)와 의도적으로 다른 값 — 증서의 *밝고 견고한* 인상.
     static let diplomaBackgroundAlpha: CGFloat = 0.92
@@ -899,7 +942,7 @@ enum GameConfig {
     static let hudLabelLetterSpacing: CGFloat = 2   // 원본 letter-spacing 2px (SKLabelNode 미지원, 기록만)
 
     // MARK: - Checkerboard Floor (Phase 9-4)
-    /// 체크보드 바닥 — 1152개(48×24) SKSpriteNode를 컨테이너 한 개에 묶어 worldNode에 부착.
+    /// 체크보드 바닥 — 640개(32×20) SKSpriteNode를 컨테이너 한 개에 묶어 worldNode에 부착.
     /// physicsBody 0 부착(시각 전용). setupWorld()에서 1회만 빌드 → update() 안 호출 금지.
 
     /// 체크보드 floorA hex(피치 밝은 칸) — Sprint 3 v2: 웜 피치 톤. 메뉴 그라데이션과 자연 연속.
@@ -917,7 +960,7 @@ enum GameConfig {
     // MARK: - Normal Map (Sprint 10 Phase C — DIFFICULTY 매핑상 hard 공유)
     // 원본 game.js L102~L104: DIFFICULTY = { easy, normal: 'hard', hard }.
     // normal 난이도는 hard 빌더를 그대로 호출 — 별도 좌표 상수 0(MapNode.buildWalls가 switch에서 .hard와 같은 케이스로 위임).
-    // 옛 48×24 좌표 상수(Phase 9-4 normalMapDividerC 등)는 본 Phase에서 제거 — 호출자(GameScene+Setup) 함께 정리.
+    // 옛 wide-map 좌표 상수는 제거 — 호출자(GameScene+Setup) 함께 정리.
 
     // MARK: - Skill (Phase 9-5)
     /// 캐릭터별 스킬 시스템. SkillSystem이 호출, HUDSkillSlotNode가 시각화.
@@ -1047,13 +1090,13 @@ enum GameConfig {
     static let professorSpeed: CGFloat = 60
     /// Sprint 10 Phase F — 원본 game.js L109~L115/L2983~L3019 byte-equal 8자(figure-8) 4점 순환.
     /// 옛 시계방향 직사각형(320/640 × 200/280) 폐기 → 원본 8자 좌표 직접 사용.
+    /// Sprint 5 — 원본 pt 좌표 경로를 runtime compact 맵으로 축소.
     /// 8자 순서: 좌하(120,100) → 우상(520,280) → 우하(520,100) → 좌상(120,280) → (loop).
-    /// 한 변 대각선 길이가 외곽 변보다 길어 패트롤 1바퀴 약 1620pt → 1620/70 ≈ 23.2s.
     static let professorWaypoints: [CGPoint] = [
-        CGPoint(x: 120, y: 100),   // 시작점 — 좌하
-        CGPoint(x: 520, y: 280),   // 대각선 우상 (8자 첫 교차 후)
-        CGPoint(x: 520, y: 100),   // 우하
-        CGPoint(x: 120, y: 280)    // 좌상 (8자 두 번째 교차)
+        scaledMapPoint(x: 120, y: 100),   // 시작점 — 좌하
+        scaledMapPoint(x: 520, y: 280),   // 대각선 우상 (8자 첫 교차 후)
+        scaledMapPoint(x: 520, y: 100),   // 우하
+        scaledMapPoint(x: 120, y: 280)    // 좌상 (8자 두 번째 교차)
     ]
     /// 청진기 발사 SKAction 키. stopThrowing/scheduleNextThrow가 공유 → endGame에서 removeAction(forKey:) 일괄 정지.
     /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
@@ -1352,6 +1395,100 @@ enum GameConfig {
     static let startSceneStatPillSideMargin: CGFloat = 60
     /// StartScene 알약 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
     static let startSceneStatPillTopMargin: CGFloat = 30
+    static let startSceneAuthStatusPillWidth: CGFloat = 138
+    static let startSceneAuthButtonPillWidth: CGFloat = 118
+    static let startSceneAuthPillHeight: CGFloat = 28
+    static let startSceneAuthPillGap: CGFloat = 10
+    static let startSceneAuthAboveStartButton: CGFloat = 60
+    static let startSceneAuthManagePillWidth: CGFloat = 70
+    static let authGuestStatusText: String = "게스트 기록"
+    static let authLinkedStatusText: String = "Apple 연동됨"
+    static let authLocalFallbackStatusText: String = "로컬 플레이 가능"
+    static let authAppleButtonText: String = "Apple로 연동"
+    static let authAppleButtonBusyText: String = "연동 중"
+    static let authManageButtonText: String = "계정"
+    static let authManageButtonBusyText: String = "처리 중"
+    static let authSignOutSuccessText: String = "게스트로 돌아왔어요"
+    static let authAccountDeleteSuccessText: String = "계정 삭제 완료"
+    static let authActionCancelledText: String = "취소했어요"
+    static let authActionFailedText: String = "잠시 후 다시 시도"
+    static let authStatusMessageDuration: TimeInterval = 1.6
+    static let authStatusMessageActionKey: String = "authStatusMessage"
+
+    // MARK: - Login Choice Overlay
+    static let loginChoiceOverlayZPosition: CGFloat = 520
+    static let loginChoiceDimZPosition: CGFloat = -1
+    static let loginChoicePanelZPosition: CGFloat = 0
+    static let loginChoiceLabelZPosition: CGFloat = 1
+    static let loginChoiceButtonZPosition: CGFloat = 2
+    static let loginChoiceDimAlpha: CGFloat = 0.48
+    static let loginChoicePanelFillAlpha: CGFloat = 0.9
+    static let loginChoicePanelStrokeAlpha: CGFloat = 0.35
+    static let loginChoicePanelWidth: CGFloat = 430
+    static let loginChoicePanelCompactWidth: CGFloat = 360
+    static let loginChoicePanelHeight: CGFloat = 260
+    static let loginChoicePanelCornerRadius: CGFloat = 20
+    static let loginChoicePanelLineWidth: CGFloat = 1
+    static let loginChoiceTitleFontSize: CGFloat = 22
+    static let loginChoiceBodyFontSize: CGFloat = 15
+    static let loginChoiceStatusFontSize: CGFloat = 13
+    static let loginChoiceBodyWidth: CGFloat = 340
+    static let loginChoiceButtonWidth: CGFloat = 140
+    static let loginChoiceCancelButtonWidth: CGFloat = 82
+    static let loginChoiceButtonHeight: CGFloat = 32
+    static let loginChoiceButtonGap: CGFloat = 12
+    static let loginChoiceTitleOffsetY: CGFloat = 88
+    static let loginChoiceBodyOffsetY: CGFloat = 42
+    static let loginChoiceButtonOffsetY: CGFloat = -34
+    static let loginChoiceCancelButtonOffsetY: CGFloat = -88
+    static let loginChoiceStatusOffsetY: CGFloat = -128
+    static let loginChoiceTitleText: String = "시작 방법 선택"
+    static let loginChoiceBodyText: String = "게스트 기록으로 바로 시작하거나 Apple 계정에 이어 붙일 수 있어요."
+    static let loginChoiceGuestButtonText: String = "게스트로 시작"
+    static let loginChoiceAppleButtonText: String = "Apple로 연동"
+    static let loginChoiceCancelButtonText: String = "취소"
+    static let loginChoiceGuestBusyText: String = "게스트 준비 중"
+    static let loginChoiceAppleBusyText: String = "Apple 확인 중"
+    static let loginChoiceCancelledText: String = "취소했어요"
+    static let loginChoiceFailureText: String = "잠시 후 다시 시도"
+    static let loginChoiceStatusMessageDuration: TimeInterval = 1.6
+    static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
+
+    // MARK: - Account Menu Overlay
+    static let accountMenuOverlayZPosition: CGFloat = 500
+    static let accountMenuDimZPosition: CGFloat = -1
+    static let accountMenuPanelZPosition: CGFloat = 0
+    static let accountMenuLabelZPosition: CGFloat = 1
+    static let accountMenuButtonZPosition: CGFloat = 2
+    static let accountMenuDimAlpha: CGFloat = 0.48
+    static let accountMenuPanelFillAlpha: CGFloat = 0.88
+    static let accountMenuPanelStrokeAlpha: CGFloat = 0.35
+    static let accountMenuPanelWidth: CGFloat = 420
+    static let accountMenuPanelHeight: CGFloat = 226
+    static let accountMenuPanelCompactWidth: CGFloat = 360
+    static let accountMenuPanelCornerRadius: CGFloat = 20
+    static let accountMenuPanelLineWidth: CGFloat = 1
+    static let accountMenuTitleFontSize: CGFloat = 22
+    static let accountMenuBodyFontSize: CGFloat = 15
+    static let accountMenuBodyWidth: CGFloat = 340
+    static let accountMenuTitleOffsetY: CGFloat = 76
+    static let accountMenuBodyOffsetY: CGFloat = 22
+    static let accountMenuButtonOffsetY: CGFloat = -72
+    static let accountMenuButtonHeight: CGFloat = 30
+    static let accountMenuButtonWidth: CGFloat = 98
+    static let accountMenuCancelButtonWidth: CGFloat = 82
+    static let accountMenuButtonGap: CGFloat = 10
+    static let accountMenuMenuTitleText: String = "계정 관리"
+    static let accountMenuLinkedBodyText: String = "Apple 계정으로 기록을 동기화 중입니다.\n로그아웃해도 기기 기록은 남습니다."
+    static let accountMenuGuestBodyText: String = "현재 게스트 기록으로 플레이 중입니다.\n삭제해도 기기 최고점과 통계는 남습니다."
+    static let accountMenuConfirmTitleText: String = "계정 삭제"
+    static let accountMenuConfirmBodyText: String = "Firebase 계정과 클라우드 기록을 삭제합니다.\n기기 최고점, 통계, 캐릭터 선택은 유지됩니다."
+    static let accountMenuBusyTitleText: String = "처리 중"
+    static let accountMenuBusyBodyText: String = "계정 상태를 정리하고 있습니다.\n잠시만 기다려 주세요."
+    static let accountMenuSignOutText: String = "로그아웃"
+    static let accountMenuDeleteText: String = "계정 삭제"
+    static let accountMenuConfirmDeleteText: String = "삭제"
+    static let accountMenuCancelText: String = "취소"
 
     // MARK: - Sprint 2 · CharacterSelectScene v2 Layout
     // DESIGN_RENEWAL_REQUEST.md §4.2 + mockups/character-select-v2.html.
@@ -1668,6 +1805,22 @@ enum GameConfig {
     static let resultShareButtonXOffsetV2: CGFloat = -70
     /// 다시시작 PrimaryButton 중앙 기준 x 오프셋.
     static let resultRestartButtonXOffsetV2: CGFloat = 80
+    /// 공유 presenter 탐색 실패 시 ResultScene에 표시할 scene-local 토스트 문구.
+    static let resultShareFailureToastText: String = "공유 시트를 열 수 없어요"
+    /// 공유 실패 토스트 폰트 크기(pt).
+    static let resultShareToastFontSize: CGFloat = 16
+    /// 공유 실패 토스트의 공유 버튼 기준 y 오프셋(pt).
+    static let resultShareToastOffsetY: CGFloat = 46
+    /// 공유 실패 토스트 유지 시간(초).
+    static let resultShareToastDuration: TimeInterval = 1.1
+    /// 공유 실패 토스트 fade in/out 길이(초).
+    static let resultShareToastFadeDuration: TimeInterval = 0.18
+    /// 공유 실패 토스트 zPosition. 결과 버튼보다 위에 표시한다.
+    static let resultShareToastZPosition: CGFloat = 120
+    /// iPad popover anchor non-zero rect 한 변 길이(pt).
+    static let resultSharePopoverAnchorSize: CGFloat = 2
+    /// 공유 이미지 캡처를 시도할 최소 view 한 변 길이(pt).
+    static let resultShareImageMinimumSide: CGFloat = 1
 
     // ResultScene v2 sparkle 5발 좌표
     /// 신기록 시 카드 주변에 emit되는 SparkleEffectNode 5개의 (frame.midX, frame.midY) 기준 오프셋.
@@ -2117,19 +2270,6 @@ enum GameConfig {
     /// Phase C — 선택 카드 뒤 radial glow spread(12pt). SKShapeNode.glowWidth로 근사 —
     /// 진정한 Gaussian blur는 SpriteKit 미지원, mockup `filter: blur(20px)` 근사 보정.
     static let difficultyCardSelectedGlowSpreadPhaseC: CGFloat = 12
-
-    /// Phase C — 시작 버튼 뒤 halo 폭(240pt). PrimaryButton 폭 대비 +여백.
-    static let difficultySelectStartButtonHaloWidth: CGFloat = 240
-    /// Phase C — 시작 버튼 뒤 halo 높이(90pt).
-    static let difficultySelectStartButtonHaloHeight: CGFloat = 90
-    /// Phase C — 시작 버튼 halo 알파(0.35). mockup `box-shadow … rgba(255,107,91,0.35)` 톤.
-    static let difficultySelectStartButtonHaloAlpha: CGFloat = 0.35
-    /// Phase C — 시작 버튼 halo spread(24pt). glowWidth 근사 — mockup `filter: blur(24px)`.
-    static let difficultySelectStartButtonHaloSpread: CGFloat = 24
-    /// Phase C — 시작 버튼 halo 페이드 인 지속 시간(0.25s). 화면 진입 후 자연스러운 등장.
-    static let difficultySelectStartButtonHaloFadeInDuration: TimeInterval = 0.25
-    /// Phase C — 시작 버튼 halo y offset (0pt — 버튼 정중앙 뒤). 별도 보정 필요 시 사용.
-    static let difficultySelectStartButtonHaloOffsetY: CGFloat = 0
 
     // MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene
     //
@@ -2618,8 +2758,7 @@ enum GameConfig {
     // MARK: - Nurse Chief Patrol (Sprint 10 Phase D)
     // 원본 game.js L2584~L2638 (4지점 사각 순환 패트롤) + L2722~L2743 (텔레그래프) byte-equal.
     // 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L443~L500 + SPEC.md §2/§3.
-    // iOS 좌표 = 원본 × 2 (mapWidth 1280pt vs 원본 640px).
-    /// 난이도별 패트롤 4지점 (혹은 easy 2지점). 원본 game.js L2584~L2616 byte-equal × 2.
+    /// 난이도별 패트롤 4지점 (혹은 easy 2지점). Runtime compact 셀 중심에 정렬한다.
     /// fallback 정책: dict 미스 시 [] → updatePatrol이 velocity=.zero로 정지 (apply 누락 graceful fallback).
     ///
     /// Sprint 10.5 Phase C — 셀 중심 정렬 (120/640 → 140/660).
@@ -2627,12 +2766,24 @@ enum GameConfig {
     ///   기존 (120,120)은 SCALE 변환 누락 잔재 — 셀 *모서리* 좌표라 적 body 16×20이
     ///   row 3 셀(y 120-160) 하단 모서리(y=110)에 10pt 클립되어 벽에 끼는 원인이었음.
     ///   새 좌표 (140,140)은 셀 정중앙 → row 3 셀 완전 수용, col 9/22 vWall 도어(BL/BR row 16, TL/TR row 3) 통과 보장.
+    /// Sprint 5 — 같은 셀 중심 의미를 runtime tileSize 기준 helper로 유지.
     static let nurseChiefWaypointsByDifficulty: [Difficulty: [CGPoint]] = [
-        .easy:   [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 140)],
-        .normal: [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 660),
-                  CGPoint(x: 1140, y: 140), CGPoint(x: 140, y: 660)],
-        .hard:   [CGPoint(x: 140, y: 140), CGPoint(x: 1140, y: 140),
-                  CGPoint(x: 1140, y: 660), CGPoint(x: 140, y: 660)]
+        .easy: [
+            cellPoint(x: 3.5, y: 3.5),
+            cellPoint(x: 28.5, y: 3.5)
+        ],
+        .normal: [
+            cellPoint(x: 3.5, y: 3.5),
+            cellPoint(x: 28.5, y: 16.5),
+            cellPoint(x: 28.5, y: 3.5),
+            cellPoint(x: 3.5, y: 16.5)
+        ],
+        .hard: [
+            cellPoint(x: 3.5, y: 3.5),
+            cellPoint(x: 28.5, y: 3.5),
+            cellPoint(x: 28.5, y: 16.5),
+            cellPoint(x: 3.5, y: 16.5)
+        ]
     ]
     /// 난이도별 패트롤 속도 (pt/s). 모바일 조작 기준으로 Easy 학습 여유와 Hard 압박을 균형 조정.
     static let nurseChiefPatrolSpeedByDifficulty: [Difficulty: CGFloat] = [
@@ -2949,6 +3100,145 @@ enum GameConfig {
     static let characterSelectSwipeHintChevronFontSizeV13: CGFloat = 36
     static let characterSelectSwipeHintChevronOffsetXV13: CGFloat = 108
 
+    // MARK: - Sprint 2 Character Account Home
+    static let characterHomeHeaderText: String = "캐릭터 홈"
+    static let characterHomeHeaderSubText: String = "계정 기록을 보고 바로 시작해요"
+    static let characterHomeStartButtonText: String = "시작"
+    static let characterHomeBackButtonText: String = "← 메인"
+    static let characterHomeMenuCharacterText: String = "캐릭터 선택"
+    static let characterHomeMenuProfileText: String = "개인프로필"
+    static let characterHomeMenuAchievementsText: String = "업적"
+    static let characterHomeMenuRecordsText: String = "기록"
+    static let characterHomeAppleFallbackNameText: String = "Apple 플레이어"
+    static let characterHomeGuestNameText: String = "게스트 플레이어"
+    static let characterHomeLocalNameText: String = "로컬 플레이어"
+    static let characterHomeAppleProfileSubText: String = "Apple 계정으로 기록을 이어가요"
+    static let characterHomeGuestProfileSubText: String = "이 기기 안에 기록이 저장돼요"
+    static let characterHomeLocalProfileSubText: String = "로컬 기록으로 바로 플레이 가능"
+    static let characterHomeNoRecordText: String = "기록 없음"
+    static let characterHomeAchievedText: String = "달성"
+    static let characterHomeLockedText: String = "잠김"
+    static let characterHomeProfileTitleText: String = "개인프로필"
+    static let characterHomeAchievementTitleText: String = "업적"
+    static let characterHomeRecordTitleText: String = "난이도별 기록"
+    static let characterHomeGraduationLabelText: String = "졸업장"
+    static let characterHomeSelectedGraduateText: String = "선택 캐릭터 수료"
+    static let characterHomeSelectedLockedText: String = "선택 캐릭터 미수료"
+    static let characterHomePlayCountLabelText: String = "플레이"
+    static let characterHomeBestScoreLabelText: String = "최고점"
+    static let characterHomeTotalScoreLabelText: String = "누적점수"
+    static let characterHomePointSuffixText: String = "점"
+    static let characterHomePlaySuffixText: String = "회"
+    static let characterHomeTargetPrefixText: String = "목표"
+    static let characterHomeSkillPrefixText: String = "스킬"
+    static let characterHomeSkillNoneText: String = "스킬 없음"
+    static let characterHomeSpeedPrefixText: String = "속도"
+    static let characterHomeMultiplierSeparatorText: String = "×"
+    static let characterHomeSkillSeparatorText: String = "·"
+    static let characterHomeTextJoinSeparator: String = " "
+    static let characterHomeSingleDecimalFormat: String = "%.1f"
+    static let characterHomeDoubleDecimalFormat: String = "%.2f"
+    static let characterHomeLeftArrowText: String = "‹"
+    static let characterHomeRightArrowText: String = "›"
+
+    static let characterHomeHeaderFontSize: CGFloat = 24
+    static let characterHomeHeaderSubFontSize: CGFloat = 12
+    static let characterHomeTopBarInsetX: CGFloat = 34
+    static let characterHomeTopBarInsetY: CGFloat = 28
+    static let characterHomeHeaderLeftGap: CGFloat = 22
+    static let characterHomeHeaderSubOffsetY: CGFloat = -21
+    static let characterHomeAccentLineOffsetY: CGFloat = 19
+    static let characterHomeBackButtonWidth: CGFloat = 106
+    static let characterHomeBackButtonHeight: CGFloat = 30
+
+    static let characterHomeProfilePanelWidth: CGFloat = 210
+    static let characterHomeProfilePanelHeight: CGFloat = 268
+    static let characterHomeProfilePanelLeftInset: CGFloat = 30
+    static let characterHomeProfilePanelTopInset: CGFloat = 84
+    static let characterHomeStageWidth: CGFloat = 326
+    static let characterHomeStageHeight: CGFloat = 352
+    static let characterHomeStageCenterOffsetX: CGFloat = -106
+    static let characterHomeStageCenterYRatio: CGFloat = 0.52
+    static let characterHomeCompactStageCenterOffsetX: CGFloat = -6
+    static let characterHomeCompactStageCenterYRatio: CGFloat = 0.56
+    static let characterHomePortraitMaxWidth: CGFloat = 174
+    static let characterHomePortraitMaxHeight: CGFloat = 232
+    static let characterHomePortraitBottomInset: CGFloat = 66
+    static let characterHomeDetailPanelWidth: CGFloat = 230
+    static let characterHomeDetailPanelHeight: CGFloat = 204
+    static let characterHomeAchievementPanelHeight: CGFloat = 134
+    static let characterHomeDetailPanelGap: CGFloat = 14
+    static let characterHomeMenuButtonWidth: CGFloat = 150
+    static let characterHomeMenuButtonHeight: CGFloat = 34
+    static let characterHomeMenuGap: CGFloat = 10
+    static let characterHomeMenuRightInset: CGFloat = 28
+    static let characterHomeMenuBottomInset: CGFloat = 20
+    static let characterHomeMenuCenterYOffset: CGFloat = 10
+    static let characterHomeRailButtonSize: CGFloat = 44
+    static let characterHomeRailGap: CGFloat = 10
+    static let characterHomeRailBottomInset: CGFloat = 18
+    static let characterHomeArrowButtonSize: CGFloat = 36
+    static let characterHomeArrowInsetX: CGFloat = 28
+    static let characterHomeStartButtonBottomInset: CGFloat = 22
+    static let characterHomeBottomStartButtonAboveMenu: CGFloat = 12
+    static let characterHomeBottomReservedAreaGap: CGFloat = 12
+    static let characterHomePanelHorizontalInset: CGFloat = 16
+    static let characterHomePanelVerticalInset: CGFloat = 16
+    static let characterHomePanelTitleFontSize: CGFloat = 16
+    static let characterHomePanelBodyFontSize: CGFloat = 12
+    static let characterHomePanelSmallFontSize: CGFloat = 10
+    static let characterHomePanelMetricFontSize: CGFloat = 11
+    static let characterHomePanelValueFontSize: CGFloat = 19
+    static let characterHomeProfileStatusChipWidth: CGFloat = 122
+    static let characterHomeProfileStatusChipHeight: CGFloat = 24
+    static let characterHomeProfileMetricGap: CGFloat = 46
+    static let characterHomeStageNameFontSize: CGFloat = 30
+    static let characterHomeStageSkillFontSize: CGFloat = 14
+    static let characterHomeStageSpeedFontSize: CGFloat = 11
+    static let characterHomeStageNameTopInset: CGFloat = 40
+    static let characterHomeStageSkillGap: CGFloat = 30
+    static let characterHomeStageSpeedChipWidth: CGFloat = 112
+    static let characterHomeStageSpeedChipHeight: CGFloat = 24
+    static let characterHomeMenuFontSize: CGFloat = 13
+    static let characterHomeRailFontSize: CGFloat = 11
+    static let characterHomeRecordRowHeight: CGFloat = 42
+    static let characterHomeAchievementBadgeHeight: CGFloat = 24
+    static let characterHomeAchievementBadgeGap: CGFloat = 8
+
+    static let characterHomePanelCornerRadius: CGFloat = 18
+    static let characterHomePanelLineWidth: CGFloat = 1.2
+    static let characterHomePanelFillAlpha: CGFloat = 0.74
+    static let characterHomePanelStrokeAlpha: CGFloat = 0.34
+    static let characterHomePanelFocusedStrokeAlpha: CGFloat = 0.78
+    static let characterHomeFocusedScale: CGFloat = 1.03
+    static let characterHomeUnfocusedAlpha: CGFloat = 0.72
+    static let characterHomeStageShadowWidth: CGFloat = 260
+    static let characterHomeStageShadowHeight: CGFloat = 38
+    static let characterHomeStageShadowAlpha: CGFloat = 0.22
+    static let characterHomePortraitBreathScale: CGFloat = 1.025
+    static let characterHomePortraitBreathDuration: TimeInterval = 1.2
+    static let characterHomeFocusAnimationDuration: TimeInterval = 0.16
+    static let characterHomeRailSelectedScale: CGFloat = 1.1
+    static let characterHomeRailDeselectedAlpha: CGFloat = 0.58
+
+    static let characterHomeBackgroundZPosition: CGFloat = -20
+    static let characterHomePanelZPosition: CGFloat = 90
+    static let characterHomeCharacterZPosition: CGFloat = 130
+    static let characterHomeMenuZPosition: CGFloat = 160
+    static let characterHomeButtonZPosition: CGFloat = 170
+    static let characterHomePortraitBreathActionKey: String = "characterHomePortraitBreath"
+    static let characterHomeSectionFocusActionKey: String = "characterHomeSectionFocus"
+    static let characterHomeRailFocusActionKey: String = "characterHomeRailFocus"
+
+    static let characterHomeSwipeThreshold: CGFloat = 44
+    static let characterHomeBottomMenuWidthThreshold: CGFloat = 900
+    static let characterHomeCompactHeightThreshold: CGFloat = 460
+    static let characterHomeDefaultIndex: Int = 0
+    static let characterHomeCompactScale: CGFloat = 0.74
+    static let characterHomeBottomMenuScale: CGFloat = 0.86
+    static let characterHomeSingleDecimalScale: CGFloat = 10
+    static let characterHomeSpeedFormatEpsilon: CGFloat = 0.001
+
     // MARK: - DifficultySelect V5 (좌측 카드 풀바디 픽셀화 + 헤더↔카드 호흡 확보)
     //
     // SkillExplanationScene와 동일한 풀바디 픽셀 스프라이트(PixelSpriteRenderer + PNG fallback)로
@@ -2980,15 +3270,12 @@ enum GameConfig {
     /// 시작 버튼이 화면 밖으로 잘리지 않도록 동적 클램프.
     static let difficultySelectStartButtonSafeBottomMarginV5: CGFloat = 24
 
-    /// V5 좌측 요약 카드 안 풀바디 픽셀 스프라이트 가로(80pt). 카드 폭(200pt) 안에 들어가고
-    /// 인지성(80×80 = 충분히 큰 캐릭터) + 컴팩트성 균형. SkillExplanationScene는 더 큰
-    /// avatarWidth/Height를 사용하지만 좌측 미니 카드는 더 작게 — 카드 내 위계 정합.
-    /// 기존 difficultySelectSummaryFaceScale(0.65)는 사용처 사라지지만 byte-identical 보존.
-    static let difficultySelectSummaryFullBodyWidthV5: CGFloat = 80
+    // MARK: - DifficultySelect V6 (캐릭터 프리뷰 aspect-fit)
+    /// V6 좌측 요약 카드 안 풀바디 픽셀/PNG 프리뷰 최대 가로. 원본 texture 비율 유지용 max bounds.
+    static let difficultySelectSummaryFullBodyMaxWidthV6: CGFloat = 92
 
-    /// V5 좌측 요약 카드 안 풀바디 픽셀 스프라이트 세로(80pt). 가로(80)와 동일 정사각 —
-    /// 원본 픽셀 시트(16×20)를 정사각 80×80에 맞춰 .nearest 필터로 픽셀 perfect 확대.
-    static let difficultySelectSummaryFullBodyHeightV5: CGFloat = 80
+    /// V6 좌측 요약 카드 안 풀바디 픽셀/PNG 프리뷰 최대 세로. 정사각 강제 size 대신 aspect-fit에 사용.
+    static let difficultySelectSummaryFullBodyMaxHeightV6: CGFloat = 118
 
     // MARK: - Sprint V6 — ResultScene + ScoreboardScene 호흡 정리
     //

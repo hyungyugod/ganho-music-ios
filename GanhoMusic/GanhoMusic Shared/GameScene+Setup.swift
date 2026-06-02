@@ -23,8 +23,8 @@ extension GameScene {
         // Phase 9-4 — 체크보드 바닥. setupMap()보다 *먼저* 호출해서
         // 외곽 벽/기둥(z=0)이 자연스럽게 바닥(z=-100) 위에 얹히도록 한다.
         addCheckerboardFloor()
-        // Sprint 10 Phase B — 원본 1:1 좌표 그릇 MapNode 부착. zPos -50(체크보드 위, 외곽벽 아래).
-        // Phase B는 빈 컨테이너 — Phase C가 buildWalls(difficulty:)로 채울 예정.
+        // Sprint 10 Phase B — runtime compact 좌표 그릇 MapNode 부착. zPos -50(체크보드 위, 외곽벽 아래).
+        // buildWalls(difficulty:)가 runtime tile helper로 벽을 채운다.
         worldNode.addChild(mapNode)
         setupMap()
     }
@@ -38,7 +38,7 @@ extension GameScene {
         mapNode.buildWalls(difficulty: difficulty)
     }
 
-    /// Phase 9-4 — 체크보드 바닥. 1152개(mapColumns × mapRows = 48×24) SKSpriteNode를
+    /// Phase 9-4 — 체크보드 바닥. 640개(mapColumns × mapRows = 32×20) SKSpriteNode를
     /// *컨테이너 한 개*에 자식으로 묶어 worldNode에 부착한다.
     /// physicsBody 0 부착(시각 전용), zPosition = checkerboardZPosition(-100).
     /// 호출은 setupWorld()에서 1회만 — update() 안 호출 금지(성능 핵심).
@@ -62,7 +62,7 @@ extension GameScene {
                     x: CGFloat(c) * t + half,
                     y: CGFloat(r) * t + half
                 )
-                // 시각 전용 — physicsBody 미부착. 1152개 노드가 물리 시뮬에 들어가면 60fps 위협.
+                // 시각 전용 — physicsBody 미부착. 640개 노드가 물리 시뮬에 들어가면 60fps 위협.
                 container.addChild(tile)
             }
         }
