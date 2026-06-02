@@ -40,6 +40,17 @@ final class CharacterPortraitNode: SKNode {
         sprite.size = aspectFit(textureSize: texture.size(), maxSize: maxSize)
     }
 
+    func update(characterID: CharacterID, isLocked: Bool) {
+        update(characterID: characterID)
+        setLocked(isLocked)
+    }
+
+    func setLocked(_ locked: Bool) {
+        sprite.color = locked ? .black : .clear
+        sprite.colorBlendFactor = locked ? 1.0 : 0.0
+        sprite.alpha = locked ? GameConfig.characterHomeLockedPortraitAlpha : 1.0
+    }
+
     func setMaxSize(_ size: CGSize) {
         maxSize = size
         guard let texture = sprite.texture else { return }

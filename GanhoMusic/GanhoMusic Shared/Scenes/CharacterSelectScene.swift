@@ -21,10 +21,16 @@ final class CharacterSelectScene: BaseMenuScene {
     private let authProfileRepo = AuthProfileRepository()
     private let statisticsRepo = StatisticsRepository()
     private let highScoreRepo = HighScoreRepository()
-    private let perDifficultyScoreRepo = PerDifficultyScoreRepository()
-    private let graduationRepo = GraduationRepository()
-    private let preferenceRepo = CharacterPreferenceRepository()
+    private var accountScope = AccountProgressScopeProvider.current(authProfile: nil)
+    private var perDifficultyScoreRepo = PerDifficultyScoreRepository()
+    private var graduationRepo = GraduationRepository()
+    private var preferenceRepo = CharacterPreferenceRepository()
+    private var unlockStates: [CharacterID: CharacterUnlockState] = [:]
     private var homeSnapshot = CharacterHomeSnapshot.empty
+
+    private var isSelectedCharacterUnlocked: Bool {
+        return unlockStates[selectedCharacterID]?.isUnlocked ?? false
+    }
 
     private let headerLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
@@ -76,7 +82,8 @@ final class CharacterSelectScene: BaseMenuScene {
         backgroundColor = .ganhoBgWarmTop
         setupWarmGradientBackground()
 
-        selectedCharacterID = preferenceRepo.current
+        configureScopedRepositories()
+        selectedCharacterID = correctedSavedCharacter(preferenceRepo.current)
         currentIndex = characters.firstIndex(of: selectedCharacterID)
             ?? GameConfig.characterHomeDefaultIndex
         homeSnapshot = makeHomeSnapshot(for: selectedCharacterID)
@@ -94,6 +101,7 @@ final class CharacterSelectScene: BaseMenuScene {
         layoutHome(animated: false)
         refreshHomeContent(animated: false)
         setActiveSection(.characterSelect, animated: false, force: true)
+        syncCloudProgressIfNeeded()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -578,10 +586,83 @@ final class CharacterSelectScene: BaseMenuScene {
         updateCharacterRail(animated: animated)
     }
 
+    // MARK: - Account Scope
+    private func configureScopedRepositories() {
+        let authProfile = authProfileRepo.current
+        let scope = AccountProgressScopeProvider.current(authProfile: authProfile)
+        accountScope = scope
+        perDifficultyScoreRepo = .scoped(scope: scope)
+        graduationRepo = .scoped(scope: scope)
+        preferenceRepo = .scoped(scope: scope)
+        mergeGlobalProgressIntoLocalFallbackIfNeeded(scope: scope, authProfile: authProfile)
+        rebuildUnlockStates()
+    }
+
+    private func mergeGlobalProgressIntoLocalFallbackIfNeeded(scope: AccountProgressScope,
+                                                              authProfile: AuthProfileSnapshot?) {
+        guard authProfile == nil && scope.isLocalFallback else { return }
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: scope.migrationStorageKey) else { return }
+
+        let globalScoreRepo = PerDifficultyScoreRepository()
+        let globalGraduationRepo = GraduationRepository()
+        let globalPreferenceRepo = CharacterPreferenceRepository()
+
+        _ = perDifficultyScoreRepo.mergeMax(globalScoreRepo.current)
+        _ = graduationRepo.mergeEarliest(globalGraduationRepo.current)
+        if !preferenceRepo.hasSavedPreference && globalPreferenceRepo.hasSavedPreference {
+            preferenceRepo.save(globalPreferenceRepo.current)
+        }
+
+        defaults.set(true, forKey: scope.migrationStorageKey)
+    }
+
+    private func rebuildUnlockStates() {
+        unlockStates = CharacterUnlockRules.states(graduations: graduationRepo.current)
+    }
+
+    private func correctedSavedCharacter(_ characterID: CharacterID) -> CharacterID {
+        if unlockStates[characterID]?.isUnlocked == true {
+            return characterID
+        }
+        let fallback = CharacterUnlockRules.firstUnlockedCharacter(
+            graduations: graduationRepo.current
+        )
+        preferenceRepo.save(fallback)
+        return fallback
+    }
+
+    private func syncCloudProgressIfNeeded() {
+        let scope = accountScope
+        Task { [weak self] in
+            let result = await CloudSaveCoordinator.shared.syncProgressForCurrentUser(scope: scope)
+            await MainActor.run {
+                guard let self = self else { return }
+                guard case .merged = result else { return }
+                self.configureScopedRepositories()
+                if !self.isSelectedCharacterUnlocked {
+                    self.selectedCharacterID = self.correctedSavedCharacter(self.selectedCharacterID)
+                    self.currentIndex = self.characters.firstIndex(of: self.selectedCharacterID)
+                        ?? GameConfig.characterHomeDefaultIndex
+                } else {
+                    self.preferenceRepo.save(self.selectedCharacterID)
+                }
+                self.homeSnapshot = self.makeHomeSnapshot(for: self.selectedCharacterID)
+                self.layoutHome(animated: false)
+                self.refreshHomeContent(animated: true)
+            }
+        }
+    }
+
     // MARK: - Snapshot
     private func makeHomeSnapshot(for characterID: CharacterID) -> CharacterHomeSnapshot {
         let auth = authProfileRepo.current
         let stats = statisticsRepo.current
+        let unlockState = unlockStates[characterID]
+            ?? CharacterUnlockRules.state(
+                for: characterID,
+                graduations: graduationRepo.current
+            )
         let records = Difficulty.allCases.map { difficulty in
             CharacterHomeSnapshot.Record(
                 difficulty: difficulty,
@@ -598,6 +679,7 @@ final class CharacterSelectScene: BaseMenuScene {
             totalScore: stats.totalScore,
             highScore: highScoreRepo.current,
             selectedCharacterID: characterID,
+            unlockState: unlockState,
             records: records,
             graduatedAt: graduationRepo.graduatedAt(characterID: characterID),
             totalGraduationCount: graduationRepo.current.count
@@ -606,13 +688,28 @@ final class CharacterSelectScene: BaseMenuScene {
 
     // MARK: - State
     private func refreshHomeContent(animated: Bool) {
-        portraitNode?.update(characterID: selectedCharacterID)
-        characterNameLabel.text = selectedCharacterID.displayName
-        characterSkillLabel.text = skillText(for: selectedCharacterID)
+        let unlockState = unlockStates[selectedCharacterID]
+            ?? CharacterUnlockRules.state(
+                for: selectedCharacterID,
+                graduations: graduationRepo.current
+            )
+        portraitNode?.update(
+            characterID: selectedCharacterID,
+            isLocked: !unlockState.isUnlocked
+        )
+        characterNameLabel.text = unlockState.isUnlocked
+            ? selectedCharacterID.displayName
+            : "\(selectedCharacterID.displayName) · \(GameConfig.characterHomeLockedText)"
+        characterSkillLabel.text = unlockState.isUnlocked
+            ? skillText(for: selectedCharacterID)
+            : unlockState.requirementText
         speedChipLabel.text = [
             GameConfig.characterHomeSpeedPrefixText,
             "\(GameConfig.characterHomeMultiplierSeparatorText)\(formatted(selectedCharacterID.playerSpeedMultiplier))"
         ].joined(separator: GameConfig.characterHomeTextJoinSeparator)
+        startButton.alpha = unlockState.isUnlocked
+            ? 1.0
+            : GameConfig.characterHomeLockedStartButtonAlpha
         profileSummary.update(snapshot: homeSnapshot)
         achievementStrip.update(snapshot: homeSnapshot)
         recordPanel.update(snapshot: homeSnapshot)
@@ -651,7 +748,9 @@ final class CharacterSelectScene: BaseMenuScene {
         currentIndex = clamped
         let characterID = characters[clamped]
         selectedCharacterID = characterID
-        preferenceRepo.save(characterID)
+        if unlockStates[characterID]?.isUnlocked == true {
+            preferenceRepo.save(characterID)
+        }
         homeSnapshot = makeHomeSnapshot(for: characterID)
         refreshHomeContent(animated: animated)
     }
@@ -662,16 +761,19 @@ final class CharacterSelectScene: BaseMenuScene {
             : GameConfig.characterHomeUnfocusedAlpha
         for id in characters {
             let selected = id == selectedCharacterID
+            let locked = unlockStates[id]?.isUnlocked == false
             railButtons[id]?.fillColor = selected
                 ? .ganhoCoralPrimary
-                : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+                : railFillColor(isLocked: locked)
             railButtons[id]?.strokeColor = selected
                 ? .ganhoCoralShadow
                 : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-            railLabels[id]?.fontColor = selected ? .ganhoPaper : .ganhoNavyDeep
+            railLabels[id]?.fontColor = selected
+                ? .ganhoPaper
+                : (locked ? .ganhoNavyMuted : .ganhoNavyDeep)
             railButtons[id]?.alpha = selected
                 ? sectionAlpha
-                : GameConfig.characterHomeRailDeselectedAlpha * sectionAlpha
+                : railAlpha(isLocked: locked, sectionAlpha: sectionAlpha)
             railLabels[id]?.alpha = railButtons[id]?.alpha ?? sectionAlpha
             guard let button = railButtons[id] else { continue }
             button.removeAction(forKey: GameConfig.characterHomeRailFocusActionKey)
@@ -690,6 +792,20 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         leftArrowChip?.isHidden = currentIndex <= GameConfig.characterHomeDefaultIndex
         rightArrowChip?.isHidden = currentIndex >= characters.count - 1
+    }
+
+    private func railFillColor(isLocked: Bool) -> UIColor {
+        if isLocked {
+            return UIColor.ganhoNavyMuted.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+        }
+        return UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+    }
+
+    private func railAlpha(isLocked: Bool, sectionAlpha: CGFloat) -> CGFloat {
+        let baseAlpha = isLocked
+            ? GameConfig.characterHomeLockedPortraitAlpha
+            : GameConfig.characterHomeRailDeselectedAlpha
+        return baseAlpha * sectionAlpha
     }
 
     private func skillText(for characterID: CharacterID) -> String {
@@ -743,6 +859,11 @@ final class CharacterSelectScene: BaseMenuScene {
 
         if startButton.contains(location) {
             transitionToNext()
+            return
+        }
+
+        if handleRoughCharacterSideTap(at: location) {
+            return
         }
     }
 
@@ -790,6 +911,34 @@ final class CharacterSelectScene: BaseMenuScene {
         return false
     }
 
+    private func handleRoughCharacterSideTap(at location: CGPoint) -> Bool {
+        guard characterStageFrame.contains(location) else { return false }
+        let zoneWidth = characterStageFrame.width * GameConfig.characterHomeRoughTapZoneRatio
+        let leftZone = CGRect(
+            x: characterStageFrame.minX,
+            y: characterStageFrame.minY,
+            width: zoneWidth,
+            height: characterStageFrame.height
+        )
+        if leftZone.contains(location) {
+            selectCharacter(at: currentIndex - 1, animated: true)
+            return true
+        }
+
+        let rightZone = CGRect(
+            x: characterStageFrame.maxX - zoneWidth,
+            y: characterStageFrame.minY,
+            width: zoneWidth,
+            height: characterStageFrame.height
+        )
+        if rightZone.contains(location) {
+            selectCharacter(at: currentIndex + 1, animated: true)
+            return true
+        }
+
+        return false
+    }
+
     // MARK: - Transition
     private func transitionToStart() {
         guard let view = self.view else { return }
@@ -801,6 +950,10 @@ final class CharacterSelectScene: BaseMenuScene {
 
     private func transitionToNext() {
         guard let view = self.view else { return }
+        guard isSelectedCharacterUnlocked else {
+            showLockedStartFeedback()
+            return
+        }
         isTransitioning = true
         preferenceRepo.save(selectedCharacterID)
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
@@ -816,5 +969,22 @@ final class CharacterSelectScene: BaseMenuScene {
             )
             view.presentScene(scene, transition: fade)
         }
+    }
+
+    private func showLockedStartFeedback() {
+        let originalText = characterSkillLabel.text
+        let requirement = unlockStates[selectedCharacterID]?.requirementText
+            ?? GameConfig.characterHomeLockedStartFeedbackText
+        characterSkillLabel.text = "\(GameConfig.characterHomeLockedStartFeedbackText) · \(requirement)"
+
+        stagePanel.removeAction(forKey: "lockedStartFeedback")
+        let wait = SKAction.wait(forDuration: GameConfig.characterHomeLockedFeedbackDuration)
+        let restore = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            if self.characterSkillLabel.text?.contains(GameConfig.characterHomeLockedStartFeedbackText) == true {
+                self.characterSkillLabel.text = originalText
+            }
+        }
+        stagePanel.run(SKAction.sequence([wait, restore]), withKey: "lockedStartFeedback")
     }
 }

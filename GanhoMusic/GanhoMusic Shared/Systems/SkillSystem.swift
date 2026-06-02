@@ -260,7 +260,9 @@ final class SkillSystem {
     private func performCharmStudent() {
         guard let scene = scene else { return }
         let world = scene.worldNode
-        ToastLabelNode.spawn(text: "매혹!", at: scene.enemy.position, parent: world)
+        ToastLabelNode.spawn(text: GameConfig.charmStudentToastText,
+                             at: scene.enemy.position,
+                             parent: world)
         world.enumerateChildNodes(withName: "projectile") { node, _ in
             if let projectile = node as? FProjectileNode {
                 projectile.applyEnchanted()

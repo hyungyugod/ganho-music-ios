@@ -136,6 +136,8 @@ final class ResultScene: SKScene {
     /// Sprint 7 Phase D — "📊 기록 보기" GlassPill. 탭 → ScoreboardScene 전이.
     /// shareButton 좌측에 배치. 옵셔널 — didMove 전엔 nil.
     private var scoreboardButton: GlassPillNode?
+    /// Sprint 1 — 명시적인 메인 복귀 버튼. 빈 공간 탭은 noop이다.
+    private var mainButton: GlassPillNode?
     /// Sprint 7 Phase D — bestLabel 시각 대체 GlassPill. scoreLabel 우측 +120pt 위치.
     /// bestLabel은 `.alpha = 0`으로 시각 차단(노드 트리 보존) + bestPill이 시각 담당.
     /// 옵셔널 — didMove 전엔 nil.
@@ -303,6 +305,7 @@ final class ResultScene: SKScene {
         setupScoreNoteIcon()
         setupBestPill()
         setupScoreboardButton()
+        setupMainButton()
         layoutLabels()
         triggerEntryEffectsIfNeeded()
     }
@@ -697,6 +700,20 @@ final class ResultScene: SKScene {
         addChild(pill)
     }
 
+    private func setupMainButton() {
+        let pill = GlassPillNode(
+            text: GameConfig.resultMainButtonText,
+            size: CGSize(
+                width: GameConfig.resultMainButtonWidth,
+                height: GameConfig.resultShareButtonHeightV2
+            )
+        )
+        pill.zPosition = 10
+        pill.name = "mainButton"
+        mainButton = pill
+        addChild(pill)
+    }
+
     /// scene.size 기준 위치 재계산. didMove와 didChangeSize에서 공용.
     /// Sprint 5 — 신규 v2 자식 위치 추가. 기존 라벨은 alpha=0이지만 layout은 유지(보호 가드).
     private func layoutLabels() {
@@ -900,6 +917,7 @@ final class ResultScene: SKScene {
         shareButton?.setScale(scale)
         scoreboardButton?.setScale(scale)
         restartButton.setScale(scale)
+        mainButton?.setScale(scale)
         let buttonY = frame.minY
             + safe.bottom
             + GameConfig.resultWideButtonBottomInsetV7
@@ -911,10 +929,12 @@ final class ResultScene: SKScene {
         let scoreboardWidth = GameConfig.resultScoreboardButtonWidthV3 * scale
         let shareWidth = GameConfig.resultShareButtonWidthV2 * scale
         let restartWidth = GameConfig.primaryButtonWidth * scale
+        let mainWidth = GameConfig.resultMainButtonWidth * scale
         let gap = resultButtonGap(scale: scale)
         let scoreboardX = leftEdge + scoreboardWidth / 2
         let shareX = scoreboardX + scoreboardWidth / 2 + gap + shareWidth / 2
         let restartX = shareX + shareWidth / 2 + gap + restartWidth / 2
+        let mainX = restartX + restartWidth / 2 + gap + mainWidth / 2
         shareButton?.position = CGPoint(
             x: shareX,
             y: buttonY
@@ -926,6 +946,10 @@ final class ResultScene: SKScene {
         // Sprint 7 Phase D → V6 — "📊 기록 보기" GlassPill을 shareButton 좌측 -130pt(V3 -110에서 -20pt 확대).
         scoreboardButton?.position = CGPoint(
             x: scoreboardX,
+            y: buttonY
+        )
+        mainButton?.position = CGPoint(
+            x: mainX,
             y: buttonY
         )
     }
@@ -1028,7 +1052,8 @@ final class ResultScene: SKScene {
         return GameConfig.resultScoreboardButtonWidthV3 * scale
             + GameConfig.resultShareButtonWidthV2 * scale
             + GameConfig.primaryButtonWidth * scale
-            + resultButtonGap(scale: scale) * 2
+            + GameConfig.resultMainButtonWidth * scale
+            + resultButtonGap(scale: scale) * 3
     }
 
     private func resultButtonGap(scale: CGFloat) -> CGFloat {
@@ -1036,7 +1061,7 @@ final class ResultScene: SKScene {
     }
 
     // MARK: - Touch
-    /// 화면 탭 1회 → 다시 시작이면 같은 캐릭터/난이도 즉시 재도전, 기록 보기 칩이면 ScoreboardScene, 그 외는 StartScene 전환.
+    /// 화면 탭 1회 → 버튼만 동작한다. 빈 공간 탭은 아무 일도 하지 않는다.
     /// 중복 탭은 isTransitioning으로 차단. view 옵셔널은 guard let으로 안전 추출.
     /// Sprint 7 Phase D — scoreboardButton 탭 분기 추가(1탭 정책 유지 — 한 화면 안에서 한 번만 탭).
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -1064,41 +1089,56 @@ final class ResultScene: SKScene {
         // ResultReturnContext에 9-인자 전달 — 졸업장 재진입 차단을 위해 isNewGraduation은 SPEC §주의사항 3에 따라
         // ScoreboardScene.returnToResult* 단계에서 `false`로 강제 — 이 단계에서는 원본값 그대로 전달.
         if let pill = scoreboardButton, pill.contains(location) {
-            isTransitioning = true
-            let lastUpdatedKey: (CharacterID, Difficulty)? = {
-                guard isNewBest, let charID = inferredCharacterID else { return nil }
-                return (charID, difficulty)
-            }()
-            let ctx = ResultReturnContext(
-                finalScore: finalScore,
-                bestScore: bestScore,
-                isNewBest: isNewBest,
-                stats: stats,
-                characterName: characterName,
-                difficulty: difficulty,
-                isNewGraduation: isNewGraduation,
-                graduatedAt: graduatedAt
-            )
-            let scoreboard = ScoreboardScene.newScoreboardScene(
-                lastUpdatedKey: lastUpdatedKey,
-                returnContext: ctx
-            )
-            let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-            view.presentScene(scoreboard, transition: fade)
+            transitionToScoreboard(in: view)
             return
         }
 
+        if let pill = mainButton, pill.contains(location) {
+            transitionToStart(in: view)
+            return
+        }
+
+        return
+    }
+
+    private func transitionToStart(in view: SKView) {
         isTransitioning = true
-        // Phase 10-1c — TitleScene 삭제 + StartScene 신설 따른 *필수 연동 변경* (1줄).
-        // SPEC.md "ResultScene 0줄 변경" 정책은 *내부 로직* 보존 의도 — 외부 신호(타이틀 씬 진입점) 갱신은 회귀 0.
         let startScene = StartScene.newStartScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(startScene, transition: fade)
     }
 
+    private func transitionToScoreboard(in view: SKView) {
+        isTransitioning = true
+        let lastUpdatedKey: (CharacterID, Difficulty)? = {
+            guard isNewBest, let charID = inferredCharacterID else { return nil }
+            return (charID, difficulty)
+        }()
+        let ctx = ResultReturnContext(
+            finalScore: finalScore,
+            bestScore: bestScore,
+            isNewBest: isNewBest,
+            stats: stats,
+            characterName: characterName,
+            difficulty: difficulty,
+            isNewGraduation: isNewGraduation,
+            graduatedAt: graduatedAt
+        )
+        let scoreboard = ScoreboardScene.newScoreboardScene(
+            lastUpdatedKey: lastUpdatedKey,
+            returnContext: ctx
+        )
+        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        view.presentScene(scoreboard, transition: fade)
+    }
+
     private func transitionToRetryGame(in view: SKView) {
         isTransitioning = true
-        let characterID = inferredCharacterID ?? CharacterPreferenceRepository().current
+        let scope = AccountProgressScopeProvider.current(
+            authProfile: AuthProfileRepository().current
+        )
+        let characterID = inferredCharacterID
+            ?? CharacterPreferenceRepository.scoped(scope: scope).current
         let gameScene = GameScene.newGameScene(characterID: characterID, difficulty: difficulty)
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(gameScene, transition: fade)

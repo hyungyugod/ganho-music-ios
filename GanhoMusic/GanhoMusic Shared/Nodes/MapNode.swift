@@ -3,7 +3,7 @@
 //  GanhoMusic Shared
 //
 //  Sprint 10 Phase B · 맵 좌표 그릇 단일 진실 원천.
-//  worldNode 자식으로 부착되어 896×560 pt runtime compact 좌표계를 표현한다(32×20 타일 × 28pt 셀).
+//  worldNode 자식으로 부착되어 800×500 pt runtime compact 좌표계를 표현한다(32×20 타일 × 25pt 셀).
 //  Phase C 이후 buildWalls가 runtime tile helper를 통해 벽을 채운다.
 //  존재 이유:
 //   1) 픽셀 시각 ↔ runtime compact 셀 정합 검증의 단일 좌표계 진입점.
@@ -60,6 +60,7 @@ final class MapNode: SKNode {
             buildHardInterior()
         }
         buildExtraObstacles(difficulty: difficulty)
+        attachHospitalProps()
     }
 
     /// 32×20 맵의 가장자리 1셀 둘레 — 원본 game.js L264~L265.
@@ -207,6 +208,17 @@ final class MapNode: SKNode {
     private func attachVerticalRun(col: Int, rowStart: Int, rowEnd: Int) {
         for row in rowStart...rowEnd {
             attachWallTile(col: col, row: row)
+        }
+    }
+
+    private func attachHospitalProps() {
+        for placement in GameConfig.hospitalPropPlacements {
+            let prop = HospitalPropNode(
+                kind: placement.kind,
+                size: GameConfig.hospitalPropSize(for: placement.kind)
+            )
+            prop.position = tileCoordinate(col: placement.col, row: placement.row)
+            addChild(prop)
         }
     }
 

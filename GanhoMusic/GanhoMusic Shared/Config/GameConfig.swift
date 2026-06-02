@@ -100,16 +100,16 @@ enum GameConfig {
 
     // MARK: - World
     /// Runtime compact 셀 크기. 원본 좌표 해석 상수와 분리해 실제 월드만 압축한다.
-    static let compactMapCellSize: CGFloat = 28.0
+    static let compactMapCellSize: CGFloat = 25.0
     /// 타일 1칸 크기 (pt). 호출자는 원본 좌표 상수가 아니라 runtime compact 셀만 참조한다.
     static let tileSize: CGFloat = compactMapCellSize
     /// Runtime 맵 가로 타일 수. Compact map은 32열을 유지한다.
     static let mapColumns: Int = originalMapTileWidth
     /// Runtime 맵 세로 타일 수. Compact map은 20행을 유지한다.
     static let mapRows: Int = originalMapTileHeight
-    /// 맵 전체 가로 폭 (pt). tileSize × mapColumns = 896.
+    /// 맵 전체 가로 폭 (pt). 25 × 32 = 800.
     static let mapWidth: CGFloat = tileSize * CGFloat(mapColumns)
-    /// 맵 전체 세로 높이 (pt). tileSize × mapRows = 560.
+    /// 맵 전체 세로 높이 (pt). 25 × 20 = 500.
     static let mapHeight: CGFloat = tileSize * CGFloat(mapRows)
 
     /// 원본 좌표를 runtime compact 좌표로 변환하는 비율.
@@ -134,6 +134,8 @@ enum GameConfig {
     // MARK: - Player (Phase 1-3 정식)
     /// 플레이어 기본 속도 (pt/s). easy 난이도 기준점.
     static let playerBaseSpeed: CGFloat = 140
+    /// 실기기 compact map에서 체감 속도를 살짝 낮추는 runtime 배율.
+    static let playerSpeedRuntimeMultiplier: CGFloat = 0.9
     /// 플레이어 박스 가로 (pt). GDD §7-1 김간호 16×20.
     static let playerWidth: CGFloat = 16
     /// 플레이어 박스 세로 (pt). GDD §7-1 김간호 16×20.
@@ -310,6 +312,8 @@ enum GameConfig {
     /// Phase 5-6 — UserDefaults에 마지막 캐릭터 선택을 raw String으로 저장할 키.
     /// 호출부에 리터럴 노출 금지 — CharacterPreferenceRepository만 사용.
     static let characterPreferenceUserDefaultsKey: String = "selectedCharacterID"
+    static let accountProgressLocalFallbackUID: String = "local"
+    static let accountProgressLocalFallbackMigrationKey: String = "accountProgress.localFallbackMigrated"
 
     // MARK: - Result Character (Phase 5-7)
     /// Phase 5-7 — ResultScene 캐릭터 이름 라벨 폰트 크기 (pt). best(22)와 동급.
@@ -846,6 +850,8 @@ enum GameConfig {
     static let authNonceLength: Int = 32
     static let authNonceCharacterSet: String = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
     static let authAppleProviderID: String = "apple.com"
+    static let authAppleRequestTimeout: TimeInterval = 12.0
+    static let nanosecondsPerSecond: UInt64 = 1_000_000_000
 
     /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.
     /// cutsceneBackgroundAlpha(어두운 톤)와 의도적으로 다른 값 — 증서의 *밝고 견고한* 인상.
@@ -1003,6 +1009,7 @@ enum GameConfig {
     static let charmStudentDuration: TimeInterval = 4.0
     /// 매혹된 노트 수집 시 보너스 점수. scorePerNoteCombo(2)의 2배 = 4점.
     static let charmStudentBonusScore: Int = 4
+    static let charmStudentToastText: String = "매혹!"
 
     // 이간호 — 대만여행 / 텔레포트 (.taiwanTrip)
     /// 레거시 값. V2 대만여행은 고정 거리 대신 현재 위치의 반대 대각선 안전 지점으로 이동한다.
@@ -1451,6 +1458,7 @@ enum GameConfig {
     static let loginChoiceAppleBusyText: String = "Apple 확인 중"
     static let loginChoiceCancelledText: String = "취소했어요"
     static let loginChoiceFailureText: String = "잠시 후 다시 시도"
+    static let loginChoiceAppleTimeoutText: String = "Apple 로그인이 지연돼요"
     static let loginChoiceStatusMessageDuration: TimeInterval = 1.6
     static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
 
@@ -2331,6 +2339,8 @@ enum GameConfig {
     static let resultScoreboardButtonOffsetXFromShareV3: CGFloat = -110
     /// 기록 보기 GlassPill 텍스트. 이모지 + 한글 4자.
     static let resultScoreboardButtonText: String = "📊 기록 보기"
+    static let resultMainButtonWidth: CGFloat = 96
+    static let resultMainButtonText: String = "메인으로"
 
     // ResultScene V3 — BEST GlassPill 텍스트 분기
     /// 일반 분기 BEST 칩 텍스트 prefix("🏆 BEST"). 뒤에 ` \(bestScore)` 합성.
@@ -2843,7 +2853,7 @@ enum GameConfig {
     static let ingameFloorAHex: String = "#494E78"
     static let ingameFloorBHex: String = "#2C2E4A"
     static let ingameWallFillHex: String = "#1A1B2E"
-    static let ingameWallHighlightHex: String = "#494E78"
+    static let ingameWallHighlightHex: String = "#7DCFB6"
     static let ingameWallShadowHex: String = "#0F0F1A"
     static let ingameDangerHex: String = "#D8315B"
     static let ingameDangerDeepHex: String = "#A4243B"
@@ -2872,6 +2882,60 @@ enum GameConfig {
     static let wallTileHighlightHeight: CGFloat = 5
     static let wallTileShadowHeight: CGFloat = 4
     static let ingameWallStrokeWidth: CGFloat = 2
+    static let hospitalPropZPosition: CGFloat = -1
+    static let hospitalPropLineWidth: CGFloat = 1.2
+    static let hospitalPropCornerRadius: CGFloat = 4
+    static let hospitalPropSoftAlpha: CGFloat = 0.82
+    static let hospitalBedWidth: CGFloat = 72
+    static let hospitalBedHeight: CGFloat = 42
+    static let hospitalCurtainWidth: CGFloat = 58
+    static let hospitalCurtainHeight: CGFloat = 48
+    static let hospitalCabinetWidth: CGFloat = 38
+    static let hospitalCabinetHeight: CGFloat = 46
+    static let hospitalCartWidth: CGFloat = 44
+    static let hospitalCartHeight: CGFloat = 36
+    static let hospitalPropPlacements: [(kind: HospitalPropKind, col: Int, row: Int)] = [
+        (.bed, 4, 16),
+        (.curtain, 7, 16),
+        (.cabinet, 27, 16),
+        (.cart, 24, 16),
+        (.bed, 4, 3),
+        (.curtain, 7, 3),
+        (.cabinet, 27, 3),
+        (.cart, 24, 3)
+    ]
+    static func hospitalPropSize(for kind: HospitalPropKind) -> CGSize {
+        switch kind {
+        case .bed:
+            return CGSize(width: hospitalBedWidth, height: hospitalBedHeight)
+        case .curtain:
+            return CGSize(width: hospitalCurtainWidth, height: hospitalCurtainHeight)
+        case .cabinet:
+            return CGSize(width: hospitalCabinetWidth, height: hospitalCabinetHeight)
+        case .cart:
+            return CGSize(width: hospitalCartWidth, height: hospitalCartHeight)
+        }
+    }
+    static let hospitalBedPillowWidthRatio: CGFloat = 0.34
+    static let hospitalBedPillowHeightRatio: CGFloat = 0.38
+    static let hospitalBedPillowOffsetXRatio: CGFloat = 0.24
+    static let hospitalBedPillowOffsetYRatio: CGFloat = 0.16
+    static let hospitalBedBlanketWidthRatio: CGFloat = 0.52
+    static let hospitalBedBlanketHeightRatio: CGFloat = 0.72
+    static let hospitalBedBlanketOffsetXRatio: CGFloat = 0.16
+    static let hospitalBedBlanketOffsetYRatio: CGFloat = 0.04
+    static let hospitalCurtainRailHeight: CGFloat = 4
+    static let hospitalCurtainStripeCount: Int = 4
+    static let hospitalCabinetDrawerCount: Int = 2
+    static let hospitalCabinetDrawerWidthRatio: CGFloat = 0.74
+    static let hospitalCabinetDrawerHeightRatio: CGFloat = 0.62
+    static let hospitalCartTrayHeightRatio: CGFloat = 0.42
+    static let hospitalCartTrayOffsetYRatio: CGFloat = 0.18
+    static let hospitalCartLegHeightRatio: CGFloat = 0.44
+    static let hospitalCartLegWidth: CGFloat = 3
+    static let hospitalCartLegOffsetXRatio: CGFloat = 0.28
+    static let hospitalCartLegOffsetYRatio: CGFloat = 0.16
+    static let hospitalCartWheelRadius: CGFloat = 3
     static let noteReadableHaloRadius: CGFloat = 18
     static let noteReadableHaloAlpha: CGFloat = 0.32
     static let noteReadableSparkleRadius: CGFloat = 2
@@ -2975,6 +3039,7 @@ enum GameConfig {
     static let pixelOverlayFontName: String = "Menlo-Bold"
 
     // MARK: - Cutscene (Sprint 10 Phase H — 원본 1:1 5종 컷씬 시스템)
+    static let enableMidGameCutscenes: Bool = false
     /// 인트로 컷씬 진입 지연 (초). 원본 game.js L2268 — startGame 직후 250ms 후 표시.
     /// 카운트다운/액션 직전 *짧은 호흡*으로 캐릭터 정체성 환기.
     static let cutsceneIntroDelay: TimeInterval = 0.25
@@ -3118,6 +3183,9 @@ enum GameConfig {
     static let characterHomeNoRecordText: String = "기록 없음"
     static let characterHomeAchievedText: String = "달성"
     static let characterHomeLockedText: String = "잠김"
+    static let characterHomeUnlockedText: String = "해금됨"
+    static let characterHomeUnlockRequirementSuffix: String = "졸업 후 해금"
+    static let characterHomeLockedStartFeedbackText: String = "아직 시작할 수 없어요"
     static let characterHomeProfileTitleText: String = "개인프로필"
     static let characterHomeAchievementTitleText: String = "업적"
     static let characterHomeRecordTitleText: String = "난이도별 기록"
@@ -3220,6 +3288,10 @@ enum GameConfig {
     static let characterHomeFocusAnimationDuration: TimeInterval = 0.16
     static let characterHomeRailSelectedScale: CGFloat = 1.1
     static let characterHomeRailDeselectedAlpha: CGFloat = 0.58
+    static let characterHomeLockedPortraitAlpha: CGFloat = 0.48
+    static let characterHomeLockedStartButtonAlpha: CGFloat = 0.52
+    static let characterHomeRoughTapZoneRatio: CGFloat = 0.35
+    static let characterHomeLockedFeedbackDuration: TimeInterval = 1.2
 
     static let characterHomeBackgroundZPosition: CGFloat = -20
     static let characterHomePanelZPosition: CGFloat = 90

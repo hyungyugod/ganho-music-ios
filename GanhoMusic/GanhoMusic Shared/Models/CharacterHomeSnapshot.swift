@@ -28,6 +28,7 @@ struct CharacterHomeSnapshot {
     let totalScore: Int
     let highScore: Int
     let selectedCharacterID: CharacterID
+    let unlockState: CharacterUnlockState
     let records: [Record]
     let graduatedAt: Date?
     let totalGraduationCount: Int
@@ -39,6 +40,7 @@ struct CharacterHomeSnapshot {
         totalScore: 0,
         highScore: 0,
         selectedCharacterID: .kim,
+        unlockState: .unlocked(.kim),
         records: Difficulty.allCases.map { difficulty in
             Record(
                 difficulty: difficulty,
@@ -96,6 +98,14 @@ struct CharacterHomeSnapshot {
     // MARK: - Progress
     var isSelectedCharacterGraduated: Bool {
         return graduatedAt != nil
+    }
+
+    var isSelectedCharacterUnlocked: Bool {
+        return unlockState.isUnlocked
+    }
+
+    var selectedRequirementText: String {
+        return unlockState.requirementText
     }
 
     var achievedRecordCount: Int {

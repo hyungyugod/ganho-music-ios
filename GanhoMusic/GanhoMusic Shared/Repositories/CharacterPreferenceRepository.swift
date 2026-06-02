@@ -25,11 +25,23 @@ final class CharacterPreferenceRepository {
         self.key = key
     }
 
+    static func scoped(scope: AccountProgressScope,
+                       defaults: UserDefaults = .standard) -> CharacterPreferenceRepository {
+        return CharacterPreferenceRepository(
+            defaults: defaults,
+            key: "\(GameConfig.characterPreferenceUserDefaultsKey).\(scope.storageSuffix)"
+        )
+    }
+
     // MARK: - Read
     /// 저장된 캐릭터 선택. 키가 없거나(첫 실행) 잘못된 raw value면 .kim 폴백.
     var current: CharacterID {
         guard let raw = defaults.string(forKey: key) else { return .kim }
         return CharacterID(rawValue: raw) ?? .kim
+    }
+
+    var hasSavedPreference: Bool {
+        return defaults.string(forKey: key) != nil
     }
 
     // MARK: - Write

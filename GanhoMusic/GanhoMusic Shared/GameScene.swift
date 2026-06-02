@@ -49,8 +49,9 @@ class GameScene: SKScene {
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
     // Phase 7-4 — 캐릭터 × 난이도 매트릭스 / 최초 졸업 일시 저장소. HighScoreRepository와 *병행*.
     // 단일 점수 사용처(ResultScene bestLabel)는 무영향 — 본 두 저장소는 졸업 판정 전용.
-    let perDiffRepo = PerDifficultyScoreRepository()
-    let graduationRepo = GraduationRepository()
+    let accountScope: AccountProgressScope
+    let perDiffRepo: PerDifficultyScoreRepository
+    let graduationRepo: GraduationRepository
     let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
     let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
@@ -111,6 +112,12 @@ class GameScene: SKScene {
     init(size: CGSize, characterID: CharacterID, difficulty: Difficulty) {
         self.characterID = characterID
         self.difficulty = difficulty
+        let scope = AccountProgressScopeProvider.current(
+            authProfile: AuthProfileRepository().current
+        )
+        self.accountScope = scope
+        self.perDiffRepo = PerDifficultyScoreRepository.scoped(scope: scope)
+        self.graduationRepo = GraduationRepository.scoped(scope: scope)
         super.init(size: size)
     }
 
@@ -244,7 +251,7 @@ class GameScene: SKScene {
         player.updatePixelDirection(velocity)
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
 
-        // 3) 카메라 follow — runtime compact 맵(32×20, 896×560pt) 가장자리 클램프 적용.
+        // 3) 카메라 follow — runtime compact 맵(32×20, 800×500pt) 가장자리 클램프 적용.
         //    무클램프 시 화면 밖 빈 영역 노출 위험이 있어 GameConfig.mapWidth/mapHeight 기준으로 자동 적응.
         updateCameraFollow()
 

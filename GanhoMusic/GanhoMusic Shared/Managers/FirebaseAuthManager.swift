@@ -18,7 +18,7 @@ extension Notification.Name {
 enum AccountActionResult {
     case success
     case cancelled
-    case failure
+    case failure(AuthError?)
 }
 
 extension User: FirebaseAuthUserProviding {
@@ -38,6 +38,9 @@ final class FirebaseAuthManager: NSObject {
     private var currentNonce: String?
     private var appleContinuation: CheckedContinuation<AppleAuthorizationPayload, Error>?
     private var applePresentationProvider: ApplePresentationContextProvider?
+    private var appleAuthorizationController: ASAuthorizationController?
+    private var appleTimeoutTask: Task<Void, Never>?
+    private var appleAuthorizationFlowID: UUID?
 
     // MARK: - Auth State
     func startObserving() {
@@ -71,10 +74,16 @@ final class FirebaseAuthManager: NSObject {
     // MARK: - Apple Sign In
     @discardableResult
     func signInWithApple(presentationAnchor: ASPresentationAnchor) async -> AccountActionResult {
+        guard appleAuthorizationFlowID == nil else {
+            return .failure(.appleAuthorizationAlreadyInProgress)
+        }
+        let flowID = UUID()
+        appleAuthorizationFlowID = flowID
+        defer { clearAppleFlowStateIfOwned(by: flowID) }
+
         do {
             let rawNonce = try NonceGenerator.randomNonceString()
             currentNonce = rawNonce
-            defer { clearAppleFlowState() }
 
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = [.fullName, .email]
@@ -92,12 +101,11 @@ final class FirebaseAuthManager: NSObject {
             NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
             return .success
         } catch {
-            clearAppleFlowState()
             NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
             if isUserCancellation(error) {
                 return .cancelled
             }
-            return .failure
+            return .failure(authError(from: error))
         }
     }
 
@@ -108,7 +116,7 @@ final class FirebaseAuthManager: NSObject {
             clearLocalAccountState()
             return await finishAccountActionWithGuestSession()
         } catch {
-            return .failure
+            return .failure(nil)
         }
     }
 
@@ -151,7 +159,7 @@ final class FirebaseAuthManager: NSObject {
             if isUserCancellation(error) {
                 return .cancelled
             }
-            return .failure
+            return .failure(authError(from: error))
         }
     }
 
@@ -166,8 +174,10 @@ final class FirebaseAuthManager: NSObject {
             let presentationProvider = ApplePresentationContextProvider(anchor: anchor)
             applePresentationProvider = presentationProvider
             let controller = ASAuthorizationController(authorizationRequests: [request])
+            appleAuthorizationController = controller
             controller.delegate = self
             controller.presentationContextProvider = presentationProvider
+            startAppleAuthorizationTimeout()
             controller.performRequests()
         }
     }
@@ -196,9 +206,15 @@ final class FirebaseAuthManager: NSObject {
     }
 
     private func requestAppleAuthorizationForSensitiveAction(anchor: ASPresentationAnchor) async throws -> AppleAuthorizationPayload {
+        guard appleAuthorizationFlowID == nil else {
+            throw AuthError.appleAuthorizationAlreadyInProgress
+        }
+        let flowID = UUID()
+        appleAuthorizationFlowID = flowID
+        defer { clearAppleFlowStateIfOwned(by: flowID) }
+
         let rawNonce = try NonceGenerator.randomNonceString()
         currentNonce = rawNonce
-        defer { clearAppleFlowState() }
 
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.nonce = SHA256Hasher.sha256(rawNonce)
@@ -213,7 +229,7 @@ final class FirebaseAuthManager: NSObject {
     private func finishAccountActionWithGuestSession() async -> AccountActionResult {
         guard await ensureAnonymousSession() != nil else {
             NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
-            return .failure
+            return .failure(nil)
         }
 
         NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
@@ -226,15 +242,49 @@ final class FirebaseAuthManager: NSObject {
         return ASAuthorizationError.Code(rawValue: nsError.code) == .canceled
     }
 
+    private func authError(from error: Error) -> AuthError? {
+        return error as? AuthError
+    }
+
+    private func clearAppleFlowStateIfOwned(by flowID: UUID) {
+        guard appleAuthorizationFlowID == flowID else { return }
+        clearAppleFlowState()
+    }
+
     private func clearAppleFlowState() {
+        appleTimeoutTask?.cancel()
+        appleTimeoutTask = nil
         currentNonce = nil
         appleContinuation = nil
         applePresentationProvider = nil
+        appleAuthorizationController = nil
+        appleAuthorizationFlowID = nil
+    }
+
+    private func startAppleAuthorizationTimeout() {
+        appleTimeoutTask?.cancel()
+        let timeoutNanoseconds = UInt64(
+            GameConfig.authAppleRequestTimeout * Double(GameConfig.nanosecondsPerSecond)
+        )
+        appleTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.finishAppleAuthorization(
+                    with: .failure(AuthError.appleAuthorizationTimedOut)
+                )
+            }
+        }
     }
 
     private func finishAppleAuthorization(with result: Result<AppleAuthorizationPayload, Error>) {
         guard let continuation = appleContinuation else { return }
         appleContinuation = nil
+        appleTimeoutTask?.cancel()
+        appleTimeoutTask = nil
+        appleAuthorizationController = nil
+        applePresentationProvider = nil
+        currentNonce = nil
         continuation.resume(with: result)
     }
 }

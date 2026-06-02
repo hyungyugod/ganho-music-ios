@@ -298,7 +298,7 @@ final class StartScene: BaseMenuScene {
                 result = await FirebaseAuthManager.shared.signOutToGuestSession()
             } else {
                 let user = await FirebaseAuthManager.shared.ensureAnonymousSession()
-                result = user?.isAnonymous == true ? .success : .failure
+                result = user?.isAnonymous == true ? .success : .failure(nil)
             }
 
             await MainActor.run {
@@ -307,7 +307,7 @@ final class StartScene: BaseMenuScene {
                 switch result {
                 case .success:
                     self.transitionToCharacterSelect()
-                case .cancelled, .failure:
+                case .cancelled, .failure(_):
                     self.loginChoiceOverlay?.setMode(
                         .idle,
                         statusText: GameConfig.loginChoiceFailureText
@@ -320,7 +320,7 @@ final class StartScene: BaseMenuScene {
     private func handleAppleStartTap() {
         guard !isLoginRequestInFlight else { return }
         guard let window = view?.window else {
-            loginChoiceOverlay?.setStatus(GameConfig.loginChoiceFailureText)
+            loginChoiceOverlay?.setMode(.idle, statusText: GameConfig.loginChoiceFailureText)
             return
         }
 
@@ -340,13 +340,22 @@ final class StartScene: BaseMenuScene {
                         .idle,
                         statusText: GameConfig.loginChoiceCancelledText
                     )
-                case .failure:
+                case .failure(let error):
                     self.loginChoiceOverlay?.setMode(
                         .idle,
-                        statusText: GameConfig.loginChoiceFailureText
+                        statusText: self.appleFailureStatusText(for: error)
                     )
                 }
             }
+        }
+    }
+
+    private func appleFailureStatusText(for error: AuthError?) -> String {
+        switch error {
+        case .some(.appleAuthorizationTimedOut):
+            return GameConfig.loginChoiceAppleTimeoutText
+        default:
+            return GameConfig.loginChoiceFailureText
         }
     }
 

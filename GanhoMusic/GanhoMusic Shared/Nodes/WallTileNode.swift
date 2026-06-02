@@ -2,7 +2,7 @@
 //  WallTileNode.swift
 //  GanhoMusic Shared
 //
-//  Sprint 10 Phase C · runtime compact 벽 1셀(28×28pt) 단일 노드.
+//  Sprint 10 Phase C · runtime compact 벽 1셀(25×25pt) 단일 노드.
 //  MapNode.buildWalls(difficulty:)가 색·크기·물리 정책의 단일 진입점으로 사용한다.
 //  존재 이유:
 //   1) 옛 GameScene+Setup의 addRectPillar(navyDeep + tileSize × N)을 픽셀 톤(wallTileColorHex)으로
@@ -14,7 +14,7 @@
 
 import SpriteKit
 
-/// 원본 game.js의 m[r][c]=1 한 셀을 runtime 28×28pt 정적 충돌체로 표현한다.
+/// 원본 game.js의 m[r][c]=1 한 셀을 runtime 25×25pt 정적 충돌체로 표현한다.
 /// 부모 MapNode의 zPosition(-50) 아래 자식으로 부착되며 자체 zPosition은 0(MapNode 자식 적층 기준).
 /// anchorPoint .center 기본값 사용 — tileCoordinate(col:row:)의 셀 중심점과 자연 정합.
 final class WallTileNode: SKSpriteNode {

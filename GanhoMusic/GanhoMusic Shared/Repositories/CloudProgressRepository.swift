@@ -47,6 +47,19 @@ final class CloudProgressRepository {
         try await commit(batch: batch)
     }
 
+    // MARK: - Read
+    func fetchProgress(uid: String) async throws -> CloudProgressSnapshot? {
+        let progressDocument = userDocument(uid: uid)
+            .collection(GameConfig.cloudProgressCollectionName)
+            .document(GameConfig.cloudProgressSummaryDocumentName)
+        let snapshot = try await getDocument(progressDocument)
+        guard snapshot.exists,
+              let data = snapshot.data() else {
+            return nil
+        }
+        return progressSnapshot(from: data)
+    }
+
     // MARK: - Delete
     func deleteUserData(uid: String) async throws {
         let userDocument = userDocument(uid: uid)
@@ -108,6 +121,65 @@ final class CloudProgressRepository {
         ]
     }
 
+    private func progressSnapshot(from data: [String: Any]) -> CloudProgressSnapshot {
+        let statsData = data["stats"] as? [String: Any]
+        let stats = GameStats(
+            playCount: intValue(statsData?["playCount"]),
+            totalScore: intValue(statsData?["totalScore"])
+        )
+        return CloudProgressSnapshot(
+            highScore: intValue(data["highScore"]),
+            stats: stats,
+            perDifficultyScores: scoreMatrix(from: data["perDifficultyScores"]),
+            graduations: graduationDates(from: data["graduations"]),
+            updatedAt: dateValue(data["updatedAt"]) ?? Date()
+        )
+    }
+
+    private func intValue(_ value: Any?) -> Int {
+        if let int = value as? Int {
+            return int
+        }
+        if let number = value as? NSNumber {
+            return number.intValue
+        }
+        return 0
+    }
+
+    private func scoreMatrix(from value: Any?) -> [String: [String: Int]] {
+        guard let raw = value as? [String: Any] else { return [:] }
+        var result: [String: [String: Int]] = [:]
+        for (characterID, innerValue) in raw {
+            guard let innerRaw = innerValue as? [String: Any] else { continue }
+            var bucket: [String: Int] = [:]
+            for (difficulty, scoreValue) in innerRaw {
+                bucket[difficulty] = intValue(scoreValue)
+            }
+            result[characterID] = bucket
+        }
+        return result
+    }
+
+    private func graduationDates(from value: Any?) -> [String: Date] {
+        guard let raw = value as? [String: Any] else { return [:] }
+        var result: [String: Date] = [:]
+        for (characterID, rawDate) in raw {
+            guard let date = dateValue(rawDate) else { continue }
+            result[characterID] = date
+        }
+        return result
+    }
+
+    private func dateValue(_ value: Any?) -> Date? {
+        if let date = value as? Date {
+            return date
+        }
+        if let timestamp = value as? Timestamp {
+            return timestamp.dateValue()
+        }
+        return nil
+    }
+
     private func commit(batch: WriteBatch) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             batch.commit { error in
@@ -148,6 +220,22 @@ final class CloudProgressRepository {
                     return
                 }
                 continuation.resume()
+            }
+        }
+    }
+
+    private func getDocument(_ document: DocumentReference) async throws -> DocumentSnapshot {
+        try await withCheckedThrowingContinuation { continuation in
+            document.getDocument { snapshot, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let snapshot = snapshot else {
+                    continuation.resume(throwing: AuthError.accountReauthenticationFailed)
+                    return
+                }
+                continuation.resume(returning: snapshot)
             }
         }
     }

@@ -15,9 +15,13 @@ extension GameScene {
         airforceTriggered = true
 
         let overlay = AirforceOverlayNode()
+        overlay.position = .zero
         cameraNode.addChild(overlay)
         overlay.showAndDismiss()
+        startAirforceRescueSequence()
+    }
 
+    private func startAirforceRescueSequence() {
         let sergeant = SergeantParkNode.makeIntroCloseup()
         sergeant.zPosition = GameConfig.sergeantCloseupZPosition
         sergeant.alpha = 0

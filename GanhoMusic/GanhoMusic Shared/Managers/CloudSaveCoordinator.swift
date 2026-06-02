@@ -13,6 +13,12 @@ enum CloudSaveResult {
     case skipped
 }
 
+enum CloudProgressSyncResult {
+    case merged
+    case skipped
+    case failed
+}
+
 final class CloudSaveCoordinator {
 
     // MARK: - Properties
@@ -74,6 +80,27 @@ final class CloudSaveCoordinator {
         }
     }
 
+    @discardableResult
+    func syncProgressForCurrentUser(scope: AccountProgressScope) async -> CloudProgressSyncResult {
+        guard let profile = authProfileRepository.current,
+              !profile.uid.isEmpty else {
+            return .skipped
+        }
+
+        do {
+            guard let progress = try await cloudRepository.fetchProgress(uid: profile.uid) else {
+                return .skipped
+            }
+            let scoreRepository = PerDifficultyScoreRepository.scoped(scope: scope)
+            let graduationRepository = GraduationRepository.scoped(scope: scope)
+            let didMergeScores = scoreRepository.mergeMax(progress.typedPerDifficultyScores)
+            let didMergeGraduations = graduationRepository.mergeEarliest(progress.typedGraduations)
+            return didMergeScores || didMergeGraduations ? .merged : .skipped
+        } catch {
+            return .failed
+        }
+    }
+
     // MARK: - Snapshot
     private func profileSnapshot(user: FirebaseAuthUserProviding) -> AuthProfileSnapshot {
         return AuthProfileSnapshot(
@@ -86,11 +113,12 @@ final class CloudSaveCoordinator {
     }
 
     private func currentProgressSnapshot() -> CloudProgressSnapshot {
+        let scope = AccountProgressScopeProvider.current(authProfile: authProfileRepository.current)
         return CloudProgressSnapshot.make(
             highScore: HighScoreRepository().current,
             stats: StatisticsRepository().current,
-            perDifficultyScores: PerDifficultyScoreRepository().current,
-            graduations: GraduationRepository().current
+            perDifficultyScores: PerDifficultyScoreRepository.scoped(scope: scope).current,
+            graduations: GraduationRepository.scoped(scope: scope).current
         )
     }
 }

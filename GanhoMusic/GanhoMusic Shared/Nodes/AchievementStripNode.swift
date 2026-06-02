@@ -90,12 +90,17 @@ final class AchievementStripNode: SKNode {
     // MARK: - Update
     func update(snapshot: CharacterHomeSnapshot) {
         countLabel.text = "\(GameConfig.characterHomeGraduationLabelText) \(snapshot.totalGraduationCount)/\(CharacterID.allCases.count)"
-        selectedBadge.fillColor = snapshot.isSelectedCharacterGraduated
-            ? .ganhoCoralPrimary
-            : .ganhoNavyMuted
-        selectedBadgeLabel.text = snapshot.isSelectedCharacterGraduated
-            ? GameConfig.characterHomeSelectedGraduateText
-            : GameConfig.characterHomeSelectedLockedText
+        if snapshot.isSelectedCharacterUnlocked {
+            selectedBadge.fillColor = snapshot.isSelectedCharacterGraduated
+                ? .ganhoCoralPrimary
+                : .ganhoNavyMuted
+            selectedBadgeLabel.text = snapshot.isSelectedCharacterGraduated
+                ? GameConfig.characterHomeSelectedGraduateText
+                : GameConfig.characterHomeSelectedLockedText
+        } else {
+            selectedBadge.fillColor = .ganhoNavyMuted
+            selectedBadgeLabel.text = snapshot.selectedRequirementText
+        }
 
         for difficulty in Difficulty.allCases {
             let record = snapshot.record(for: difficulty)

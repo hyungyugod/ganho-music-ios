@@ -43,6 +43,14 @@ final class GraduationRepository {
         self.key = key
     }
 
+    static func scoped(scope: AccountProgressScope,
+                       defaults: UserDefaults = .standard) -> GraduationRepository {
+        return GraduationRepository(
+            defaults: defaults,
+            key: "\(GameConfig.graduationUserDefaultsKey).\(scope.storageSuffix)"
+        )
+    }
+
     // MARK: - Read
     /// 디스크에 저장된 졸업 일시 전체. 키가 없거나 디코딩 실패 시 빈 dict로 graceful 폴백.
     /// rawValue → CharacterID 역변환 실패 / ISO8601 파싱 실패는 *해당 셀만* 무시(graceful).
@@ -73,6 +81,26 @@ final class GraduationRepository {
         var dict = current
         if dict[characterID] != nil { return false }
         dict[characterID] = date
+        return save(dict)
+    }
+
+    @discardableResult
+    func mergeEarliest(_ graduations: [CharacterID: Date]) -> Bool {
+        var dict = current
+        var didChange = false
+        for (characterID, incomingDate) in graduations {
+            if let existingDate = dict[characterID],
+               existingDate <= incomingDate {
+                continue
+            }
+            dict[characterID] = incomingDate
+            didChange = true
+        }
+        guard didChange else { return false }
+        return save(dict)
+    }
+
+    private func save(_ dict: [CharacterID: Date]) -> Bool {
         // enum → rawValue + Date → ISO8601 직렬화.
         var raw: [String: String] = [:]
         for (charID, d) in dict {

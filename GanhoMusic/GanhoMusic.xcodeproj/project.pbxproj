@@ -107,6 +107,10 @@
 		B2C0F1B00000000000000107 /* RecordSummaryPanelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */; };
 		B8316D45F22D4F7DA0B204B7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 961C7E8E394A42E688745446 /* FirebaseCore */; };
 		DD1000000000000000000001 /* LoginChoiceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */; };
+		EE2000000000000000000001 /* AccountProgressScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000001 /* AccountProgressScope.swift */; };
+		EE2000000000000000000002 /* CharacterUnlockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000002 /* CharacterUnlockState.swift */; };
+		EE2000000000000000000003 /* CharacterUnlockRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000003 /* CharacterUnlockRules.swift */; };
+		EE2000000000000000000004 /* HospitalPropNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000004 /* HospitalPropNode.swift */; };
 		FB2000000000000000000001 /* AuthProfileSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* AuthProfileSnapshot.swift */; };
 		FB2000000000000000000002 /* CloudScoreRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* CloudScoreRecord.swift */; };
 		FB2000000000000000000003 /* CloudProgressSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000003 /* CloudProgressSnapshot.swift */; };
@@ -219,6 +223,10 @@
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginChoiceOverlayNode.swift; sourceTree = "<group>"; };
+		EE1000000000000000000001 /* AccountProgressScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountProgressScope.swift; sourceTree = "<group>"; };
+		EE1000000000000000000002 /* CharacterUnlockState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockState.swift; sourceTree = "<group>"; };
+		EE1000000000000000000003 /* CharacterUnlockRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockRules.swift; sourceTree = "<group>"; };
+		EE1000000000000000000004 /* HospitalPropNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalPropNode.swift; sourceTree = "<group>"; };
 		FB1000000000000000000001 /* AuthProfileSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthProfileSnapshot.swift; sourceTree = "<group>"; };
 		FB1000000000000000000002 /* CloudScoreRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudScoreRecord.swift; sourceTree = "<group>"; };
 		FB1000000000000000000003 /* CloudProgressSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProgressSnapshot.swift; sourceTree = "<group>"; };
@@ -421,6 +429,7 @@
 				A1C0F1A00000000000000077 /* CharacterFullBodyNode.swift */,
 				A1C0F1A00000000000000078 /* MapNode.swift */,
 				A1C0F1A00000000000000079 /* WallTileNode.swift */,
+				EE1000000000000000000004 /* HospitalPropNode.swift */,
 				A1C0F1A0000000000000007A /* EnemyTelegraphNode.swift */,
 				A1C0F1A0000000000000007B /* FProjectileNode.swift */,
 				A1C0F1A0000000000000007C /* AItemNode.swift */,
@@ -492,6 +501,9 @@
 				A1C0F1A00000000000000022 /* CharacterID.swift */,
 				B2C0F1A00000000000000101 /* CharacterHomeSection.swift */,
 				B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */,
+				EE1000000000000000000001 /* AccountProgressScope.swift */,
+				EE1000000000000000000002 /* CharacterUnlockState.swift */,
+				EE1000000000000000000003 /* CharacterUnlockRules.swift */,
 				A1C0F1A00000000000000035 /* Difficulty.swift */,
 				A1C0F1A00000000000000042 /* PixelSprite.swift */,
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
@@ -818,6 +830,10 @@
 				A1C0F1B00000000000000085 /* EnemyProximityWarningNode.swift in Sources */,
 				A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */,
 				A1C0F1B00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift in Sources */,
+				EE2000000000000000000001 /* AccountProgressScope.swift in Sources */,
+				EE2000000000000000000002 /* CharacterUnlockState.swift in Sources */,
+				EE2000000000000000000003 /* CharacterUnlockRules.swift in Sources */,
+				EE2000000000000000000004 /* HospitalPropNode.swift in Sources */,
 				FB2000000000000000000001 /* AuthProfileSnapshot.swift in Sources */,
 				FB2000000000000000000002 /* CloudScoreRecord.swift in Sources */,
 				FB2000000000000000000003 /* CloudProgressSnapshot.swift in Sources */,

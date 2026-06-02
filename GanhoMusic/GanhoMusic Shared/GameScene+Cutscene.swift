@@ -17,6 +17,9 @@ extension GameScene {
     }
 
     func triggerMidCutsceneIfNeeded() -> Bool {
+        // Sprint 4 — 플레이 중단형 mid 컷씬은 feature flag로 비활성화한다.
+        guard GameConfig.enableMidGameCutscenes else { return false }
+
         // 원본 game.js L2417/L2469와 같은 임계값 및 1회 가드.
         if !cutscenesShown.contains("mid1"),
            remainingTime <= GameConfig.cutsceneMid1Threshold {

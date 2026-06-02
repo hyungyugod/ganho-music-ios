@@ -148,8 +148,10 @@ final class PlayerNode: SKSpriteNode {
     /// 일관성을 위해 GameScene+Setup에서 character 먼저 → difficulty 나중 순서로 호출.
     /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
     func apply(_ difficulty: Difficulty) {
-        baseSpeedStart = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
-        baseSpeedEnd   = GameConfig.playerSpeedEndByDifficulty[difficulty]   ?? GameConfig.playerBaseSpeed
+        let start = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
+        let end = GameConfig.playerSpeedEndByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
+        baseSpeedStart = start * GameConfig.playerSpeedRuntimeMultiplier
+        baseSpeedEnd = end * GameConfig.playerSpeedRuntimeMultiplier
     }
 
     func updateNearMissWarning(closestProjectileDistance distance: CGFloat?,

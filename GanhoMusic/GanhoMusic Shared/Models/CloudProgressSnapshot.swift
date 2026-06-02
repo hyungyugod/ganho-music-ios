@@ -14,6 +14,29 @@ struct CloudProgressSnapshot: Codable {
     let graduations: [String: Date]
     let updatedAt: Date
 
+    var typedPerDifficultyScores: [CharacterID: [Difficulty: Int]] {
+        var result: [CharacterID: [Difficulty: Int]] = [:]
+        for (characterRaw, scoresByDifficulty) in perDifficultyScores {
+            guard let characterID = CharacterID(rawValue: characterRaw) else { continue }
+            var bucket: [Difficulty: Int] = [:]
+            for (difficultyRaw, score) in scoresByDifficulty {
+                guard let difficulty = Difficulty(rawValue: difficultyRaw) else { continue }
+                bucket[difficulty] = score
+            }
+            result[characterID] = bucket
+        }
+        return result
+    }
+
+    var typedGraduations: [CharacterID: Date] {
+        var result: [CharacterID: Date] = [:]
+        for (characterRaw, date) in graduations {
+            guard let characterID = CharacterID(rawValue: characterRaw) else { continue }
+            result[characterID] = date
+        }
+        return result
+    }
+
     static func make(highScore: Int,
                      stats: GameStats,
                      perDifficultyScores: [CharacterID: [Difficulty: Int]],

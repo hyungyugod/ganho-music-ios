@@ -32,6 +32,14 @@ final class PerDifficultyScoreRepository {
         self.key = key
     }
 
+    static func scoped(scope: AccountProgressScope,
+                       defaults: UserDefaults = .standard) -> PerDifficultyScoreRepository {
+        return PerDifficultyScoreRepository(
+            defaults: defaults,
+            key: "\(GameConfig.perDifficultyScoreUserDefaultsKey).\(scope.storageSuffix)"
+        )
+    }
+
     // MARK: - Read
     /// 디스크에 저장된 매트릭스 전체. 키가 없거나 디코딩 실패 시 빈 dict로 graceful 폴백.
     /// rawValue → enum 역변환 실패는 *해당 셀만* 무시(graceful) — 전체 dict 폐기 0.
@@ -70,6 +78,28 @@ final class PerDifficultyScoreRepository {
         var bucket = matrix[characterID] ?? [:]
         bucket[difficulty] = score
         matrix[characterID] = bucket
+        return save(matrix)
+    }
+
+    @discardableResult
+    func mergeMax(_ incoming: [CharacterID: [Difficulty: Int]]) -> Bool {
+        var matrix = current
+        var didChange = false
+        for (characterID, scoresByDifficulty) in incoming {
+            var bucket = matrix[characterID] ?? [:]
+            for (difficulty, score) in scoresByDifficulty {
+                let prior = bucket[difficulty] ?? 0
+                guard score > prior else { continue }
+                bucket[difficulty] = score
+                didChange = true
+            }
+            matrix[characterID] = bucket
+        }
+        guard didChange else { return false }
+        return save(matrix)
+    }
+
+    private func save(_ matrix: [CharacterID: [Difficulty: Int]]) -> Bool {
         // enum → rawValue 직렬화 — 2층 dict 모두 변환.
         var raw: [String: [String: Int]] = [:]
         for (charID, inner) in matrix {
