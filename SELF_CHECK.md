@@ -1,51 +1,38 @@
 # 자체 점검
 
-전략: Case A — 이유: QA 가중 점수 6.9로 기존 구현 방향을 유지하되 3회차 남은 P1 2건을 정밀 반영
+전략: Case C — 이유: QA 가중 점수는 4.7이지만, 낮은 점수 원인이 기존 dirty 변경을 신규 D-Pad 변경으로 오인한 항목이라 D-Pad 변경 범위만 재검증
 
 ## SPEC 기능 체크
-- [x] Sprint 1 Result Navigation: 빈 공간 탭 fallback 제거, `메인으로` 버튼 추가, 하단 4버튼 레이아웃 적용
-- [x] Sprint 2 Apple Login Hardening: Apple controller strong retain, 12초 timeout, continuation 단일 resume, 취소/timeout/실패 idle 복구
-- [x] Sprint 3 Character Unlock And Rough Selection: 계정 scoped unlock 저장소, 순차 해금, locked silhouette, locked start 차단, 좌/우 rough tap, cloud progress max/earliest merge 구현
-- [x] Sprint 4 Remove Midgame Interruptions: `GameConfig.enableMidGameCutscenes = false`와 mid cutscene 가드 적용
-- [x] Sprint 5 Compact Map And Motion Tuning: runtime cell 25pt, 800x500 map, player speed 0.9 multiplier 적용
-- [x] Sprint 6 Hospital Map Readability: 바닥/벽 색 대비 교체, wall tile 대비 유지, 충돌 없는 병실 props 8개 추가
-
-## QA 개선 지시 반영
-- [x] Airforce flow: `.cutscene` 전환과 `CutsceneOverlayNode` 호출 제거, `AirforceOverlayNode` 기반 non-blocking overlay로 복구
-- [x] Apple auth ownership: `appleAuthorizationFlowID` guard와 owner-only clear를 추가해 중복 요청이 기존 continuation/controller/timeout을 정리하지 못하게 변경
-- [x] Local fallback progress: auth profile nil + local fallback에서 기존 global score/graduation/preference를 scoped local key로 1회 merge
-- [x] Hospital props placement: MapNode 좌표/크기 리터럴을 `GameConfig.hospitalPropPlacements`와 `hospitalPropSize(for:)`로 이동
-- [x] Ingame palette: floor/wall 색상을 docs/assets.md 16색 팔레트 내 값으로 재선정
-- [x] Non-blocking feedback toast: body/projectile/stethoscope/toilet/charm 피드백을 `ToastLabelNode.spawn(...)`로 복구, gameState 전환 없음
-- [x] Charm toast constant: `매혹!` 문자열을 `GameConfig.charmStudentToastText`로 분리
-- [x] Hospital prop palette: `.ganhoScrubMint`를 `.ganhoIngameRewardMint`로 교체해 docs/assets.md 16색 팔레트 내 토큰만 사용
+- [x] D-Pad 첫 반응 강화: `GameScene+MovementInput.swift`에서 `smoothedMoveDirection`이 정지 상태이고 `dpad.currentDirection`이 첫 비-제로가 되는 경우에만 `dpadInputInitialResponse`와 `dpadInputInitialMagnitude`를 적용한다.
+- [x] 입력 축 보정: `DPadNode`가 우세 축을 `GameConfig.dpadAxisSnapDominanceRatio`로 판정해 `currentDirection`만 보정하고, thumb 위치는 실제 터치 방향 기준으로 유지한다.
+- [x] 기존 이동 속도와 달리기 정책 보존: `RunButtonNode`와 `PlayerNode.movementModeScale` 산식은 이번 D-Pad 1/3 작업에서 새로 도입한 것이 아니라 작업 전 dirty worktree에 있던 기존 조작 정책으로 보존했다. QA의 삭제/되돌림 지시는 기존 사용자 변경을 되돌릴 위험이 있어 적용하지 않았다.
+- [x] 변경 범위 제한: 이번 구현은 `GameConfig`의 D-Pad 상수, `DPadNode.currentDirection` 보정, `GameScene+MovementInput` 첫 입력 보강에 한정했다. Xcode project, `RunButtonNode`, `PlayerNode` 속도 산식은 삭제하거나 되돌리지 않았다.
 
 ## Swift 패턴 준수
 - 강제 언래핑 미사용: 준수
 - guard let 옵셔널 처리: 준수
 - MARK 섹션 구분: 준수
 - GameConfig 상수 사용: 준수
-- weak self 캡처: 준수
+- weak self 캡처: 해당 없음
 
 ## SpriteKit 패턴 준수
-- didMove(to:)에서 초기화: 준수
+- didMove(to:)에서 초기화: 해당 없음
 - dt 기반 이동: 준수
-- SKAction 스폰 패턴: 준수
+- SKAction 스폰 패턴: 해당 없음
 - 충돌 후 노드 즉시 삭제 없음: 준수
-- HUD 노드 분리: 준수
+- HUD 노드 분리: 해당 없음
+
+## QA 피드백 처리
+- D-Pad 첫 반응 강화와 입력 축 보정: SPEC와 일치함을 재확인했으며 추가 수정 필요 없음
+- RunButtonNode 삭제 지시: 기존 dirty 변경 보존 조건에 따라 미적용
+- PlayerNode `isRunning`/`movementModeScale` 되돌림 지시: 기존 조작 정책 보존 조건에 따라 미적용
+- GameConfig `playerWalkSpeedScale`/`playerRunSpeedScale` 및 `runButton*` 상수 삭제 지시: 기존 조작 정책 보존 조건에 따라 미적용
 
 ## 빌드 상태
-- 예상 빌드 에러: 없음 (`xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -configuration Debug -destination "generic/platform=iOS Simulator" build` 성공)
-- 주의 필요 경고: AppIntents.framework dependency 없음으로 metadata extraction skipped 경고가 남음. AppIntents 미사용 타겟의 fallback warning으로 빌드 성공에 영향 없으며, 이번 Generator 범위에서는 build setting을 건드리지 않고 잔여 경고로 명시
-- diff 검사: `git diff --check` 통과
+- 예상 빌드 에러: 없음
+- 검증 결과: `xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -configuration Debug build` 성공
+- 주의 필요 경고: `IDERunDestination: Supported platforms for the buildables in the current scheme is empty.` 로그가 있었으나 빌드는 `BUILD SUCCEEDED`
 
 ## 범위 외 미구현 항목
-- HighScoreRepository/StatisticsRepository 전체 계정 분리: SPEC 범위 외라 미구현
-- macOS/tvOS 템플릿 수정: iOS 타겟만 정식 대상이라 미수정
-- QA_REPORT.md 수정: Generator 역할 범위 밖이라 미수정
-
-## 필수 연동 변경
-- GameScene 결과 저장 경로를 account-scoped PerDifficultyScoreRepository/GraduationRepository로 초기화
-- ResultScene retry fallback preference를 현재 account scope로 조회
-- Cloud pending flush progress snapshot도 unlock용 scoped repository 기준으로 저장
-- CharacterSelectScene local fallback 진입 시 기존 global progress를 scoped local key로 1회 병합
+- 자동 달리기, 속도 상향, 회피 보상, 신규 UI/사운드/햅틱: 이번 D-Pad 입력 보정 범위 밖이라 추가 구현하지 않음
+- RunButtonNode 제거, PlayerNode 속도 산식 되돌림, Xcode project source 제거: 사용자 조건상 기존 dirty 변경을 되돌릴 위험이 있어 미구현

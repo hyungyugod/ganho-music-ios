@@ -19,10 +19,20 @@ enum GameConfig {
     static let menuHorizontalSafePadding: CGFloat = 32
     static let menuTopSafePadding: CGFloat = 24
     static let menuBottomSafePadding: CGFloat = 24
+    static let regularLayoutScale: CGFloat = 1.0
     static let compactLandscapeMinHeight: CGFloat = 390
     static let compactLayoutScale: CGFloat = 0.88
     static let compactNarrowWidth: CGFloat = 760
     static let compactNarrowLayoutScale: CGFloat = 0.92
+    static let ipadMenuLayoutScale: CGFloat = 1.08
+    static let ipadMenuMaxContentWidth: CGFloat = 1060
+    static let ipadResultMaxContentWidth: CGFloat = 980
+    static let ipadScoreboardMaxContentWidth: CGFloat = 1060
+    static let ipadIngameHUDScale: CGFloat = 1.08
+    static let ipadIngameControlScale: CGFloat = 1.15
+    static let ipadIngameTopButtonScale: CGFloat = 1.12
+    static let ipadCameraScaleFloor: CGFloat = 0.62
+    static let ipadCameraScaleCeiling: CGFloat = 1.0
     static let labelMinimumScale: CGFloat = 0.78
     static let ingameHUDReadableAlpha: CGFloat = 0.92
     static let ingameControlReadableAlpha: CGFloat = 0.78
@@ -136,6 +146,10 @@ enum GameConfig {
     static let playerBaseSpeed: CGFloat = 140
     /// 실기기 compact map에서 체감 속도를 살짝 낮추는 runtime 배율.
     static let playerSpeedRuntimeMultiplier: CGFloat = 0.9
+    /// 기본 걷기 속도 배율. 달리기를 누르지 않을 때 적용된다.
+    static let playerWalkSpeedScale: CGFloat = 0.72
+    /// 달리기 속도 배율. 기존 체감 속도를 보존한다.
+    static let playerRunSpeedScale: CGFloat = 1.0
     /// 플레이어 박스 가로 (pt). GDD §7-1 김간호 16×20.
     static let playerWidth: CGFloat = 16
     /// 플레이어 박스 세로 (pt). GDD §7-1 김간호 16×20.
@@ -151,6 +165,28 @@ enum GameConfig {
     static let dpadMarginX: CGFloat = 90
     /// D-Pad 하단 가장자리에서의 안쪽 마진 (pt).
     static let dpadMarginY: CGFloat = 90
+    /// 아날로그 D-Pad가 입력으로 인정하는 최대 thumb 반경.
+    static let dpadAnalogMaxRadius: CGFloat = 58
+    /// 아날로그 D-Pad 중심 데드존 반경.
+    static let dpadAnalogDeadzoneRadius: CGFloat = 8
+    /// D-Pad가 터치를 받는 전체 원형 반경.
+    static let dpadTouchRadius: CGFloat = 76
+    /// 아날로그 D-Pad thumb 반경.
+    static let dpadThumbRadius: CGFloat = 18
+    /// 아날로그 D-Pad thumb 알파.
+    static let dpadThumbAlpha: CGFloat = 0.82
+    /// 방향 전환 입력 보간 응답값.
+    static let dpadInputTurnResponse: CGFloat = 18
+    /// 입력 해제 보간 응답값.
+    static let dpadInputReleaseResponse: CGFloat = 24
+    /// 정지 상태에서 첫 D-Pad 입력이 들어왔을 때 쓰는 보간 응답값.
+    static let dpadInputInitialResponse: CGFloat = 36
+    /// 첫 입력 프레임에 보장할 최소 입력 크기. 최고 속도는 올리지 않고 출발 지연만 줄인다.
+    static let dpadInputInitialMagnitude: CGFloat = 0.55
+    /// 보간 결과를 0으로 스냅하는 임계값.
+    static let dpadInputSnapEpsilon: CGFloat = 0.02
+    /// 한 축이 다른 축보다 이 배수 이상 우세하면 작은 축을 제거한다.
+    static let dpadAxisSnapDominanceRatio: CGFloat = 1.35
 
     // (placeholderBoxSize, placeholderBoxAutoSpeed는 1-2 임시값 → 1-3에서 제거)
 
@@ -802,8 +838,12 @@ enum GameConfig {
     /// 실제 체감 난이도는 F 밀도/발사 주기/음표 TTL이 담당하고, 이 값은 결과 화면의 "졸업 기준"을 담당한다.
     /// `[Difficulty: Int]` dict — Difficulty enum이 단일 진실 원천. 추가 난이도 시 dict 한 줄만 늘리면 됨.
     static let targetScoreByDifficulty: [Difficulty: Int] = [
-        .easy: 60, .normal: 75, .hard: 90
+        .easy: 40, .normal: 55, .hard: 70
     ]
+    /// 다음 캐릭터 해금에 필요한 이전 캐릭터의 단일 난이도 최고점.
+    static let characterUnlockRequiredScore: Int = 25
+    /// 캐릭터 홈 잠김 설명 문구.
+    static let characterUnlockRequirementText: String = "이전 캐릭터로 25점 달성"
     /// Sprint 2 — 결과 화면 목표 근접 판정 비율. target의 80% 이상이면 "거의 왔다".
     static let goalNearRatio: Double = 0.8
     /// Sprint 2 — 결과 목표 판정 라벨 폰트 크기.
@@ -852,6 +892,8 @@ enum GameConfig {
     static let authAppleProviderID: String = "apple.com"
     static let authAppleRequestTimeout: TimeInterval = 12.0
     static let nanosecondsPerSecond: UInt64 = 1_000_000_000
+    /// 사용자 요청에 따라 BGM은 번들에 있어도 재생하지 않는다.
+    static let isBGMEnabled: Bool = false
 
     /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.
     /// cutsceneBackgroundAlpha(어두운 톤)와 의도적으로 다른 값 — 증서의 *밝고 견고한* 인상.
@@ -1455,10 +1497,12 @@ enum GameConfig {
     static let loginChoiceAppleButtonText: String = "Apple로 연동"
     static let loginChoiceCancelButtonText: String = "취소"
     static let loginChoiceGuestBusyText: String = "게스트 준비 중"
-    static let loginChoiceAppleBusyText: String = "Apple 확인 중"
+    static let loginChoiceAppleBusyText: String = "Apple 로그인 중"
     static let loginChoiceCancelledText: String = "취소했어요"
     static let loginChoiceFailureText: String = "잠시 후 다시 시도"
     static let loginChoiceAppleTimeoutText: String = "Apple 로그인이 지연돼요"
+    static let loginChoiceAppleConfigurationText: String = "Apple 로그인 설정을 확인해 주세요"
+    static let loginChoiceAppleCredentialText: String = "Apple 인증 정보를 다시 확인해 주세요"
     static let loginChoiceStatusMessageDuration: TimeInterval = 1.6
     static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
 
@@ -1693,6 +1737,22 @@ enum GameConfig {
     static let skillButtonNameChipOffsetY: CGFloat = -52
     /// 스킬 버튼 키 라벨 텍스트.
     static let skillButtonKeyText: String = "B"
+    /// 달리기 버튼 반지름. 스킬 버튼보다 살짝 작게 둬 보조 조작임을 드러낸다.
+    static let runButtonRadius: CGFloat = 30
+    /// 스킬 버튼 중심에서 달리기 버튼 중심까지의 가로 거리.
+    static let runButtonGapFromSkill: CGFloat = 84
+    /// 달리기 버튼 터치 반경. 원형 시각보다 조금 넓게 잡아 hold 입력을 안정화한다.
+    static let runButtonTouchRadius: CGFloat = 42
+    /// 달리기 버튼 중앙 텍스트.
+    static let runButtonText: String = "RUN"
+    /// 달리기 버튼 키 칩 텍스트.
+    static let runButtonKeyText: String = "R"
+    /// 달리기 버튼 외곽선 두께.
+    static let runButtonStrokeWidth: CGFloat = 3
+    /// 달리기 버튼 눌림 알파.
+    static let runButtonPressedAlpha: CGFloat = 0.95
+    /// 달리기 버튼 기본 알파.
+    static let runButtonReleasedAlpha: CGFloat = 0.82
 
     // Pause Button v2 (Sprint 3 — 시각 placeholder)
     /// 일시정지 버튼 본체 한 변(pt).
@@ -2340,7 +2400,7 @@ enum GameConfig {
     /// 기록 보기 GlassPill 텍스트. 이모지 + 한글 4자.
     static let resultScoreboardButtonText: String = "📊 기록 보기"
     static let resultMainButtonWidth: CGFloat = 96
-    static let resultMainButtonText: String = "메인으로"
+    static let resultMainButtonText: String = "캐릭터 홈"
 
     // ResultScene V3 — BEST GlassPill 텍스트 분기
     /// 일반 분기 BEST 칩 텍스트 prefix("🏆 BEST"). 뒤에 ` \(bestScore)` 합성.
@@ -3169,7 +3229,7 @@ enum GameConfig {
     static let characterHomeHeaderText: String = "캐릭터 홈"
     static let characterHomeHeaderSubText: String = "계정 기록을 보고 바로 시작해요"
     static let characterHomeStartButtonText: String = "시작"
-    static let characterHomeBackButtonText: String = "← 메인"
+    static let characterHomeBackButtonText: String = "← 첫 화면"
     static let characterHomeMenuCharacterText: String = "캐릭터 선택"
     static let characterHomeMenuProfileText: String = "개인프로필"
     static let characterHomeMenuAchievementsText: String = "업적"
@@ -3184,7 +3244,7 @@ enum GameConfig {
     static let characterHomeAchievedText: String = "달성"
     static let characterHomeLockedText: String = "잠김"
     static let characterHomeUnlockedText: String = "해금됨"
-    static let characterHomeUnlockRequirementSuffix: String = "졸업 후 해금"
+    static let characterHomeUnlockRequirementSuffix: String = "25점 달성 후 해금"
     static let characterHomeLockedStartFeedbackText: String = "아직 시작할 수 없어요"
     static let characterHomeProfileTitleText: String = "개인프로필"
     static let characterHomeAchievementTitleText: String = "업적"
@@ -3223,7 +3283,8 @@ enum GameConfig {
     static let characterHomeProfilePanelHeight: CGFloat = 268
     static let characterHomeProfilePanelLeftInset: CGFloat = 30
     static let characterHomeProfilePanelTopInset: CGFloat = 84
-    static let characterHomeStageWidth: CGFloat = 326
+    static let characterHomeStageWidth: CGFloat = 420
+    static let characterHomeStageMinimumWidth: CGFloat = 326
     static let characterHomeStageHeight: CGFloat = 352
     static let characterHomeStageCenterOffsetX: CGFloat = -106
     static let characterHomeStageCenterYRatio: CGFloat = 0.52
@@ -3232,6 +3293,13 @@ enum GameConfig {
     static let characterHomePortraitMaxWidth: CGFloat = 174
     static let characterHomePortraitMaxHeight: CGFloat = 232
     static let characterHomePortraitBottomInset: CGFloat = 66
+    static let characterHomePortraitColumnOffsetX: CGFloat = 88
+    static let characterHomeInfoColumnOffsetX: CGFloat = 28
+    static let characterHomeStageInfoMaxWidth: CGFloat = 162
+    static let characterHomeInfoNameOffsetY: CGFloat = 104
+    static let characterHomeInfoSkillOffsetY: CGFloat = 58
+    static let characterHomeInfoSpeedOffsetY: CGFloat = -42
+    static let characterHomeArrowOutsideGap: CGFloat = 12
     static let characterHomeDetailPanelWidth: CGFloat = 230
     static let characterHomeDetailPanelHeight: CGFloat = 204
     static let characterHomeAchievementPanelHeight: CGFloat = 134
@@ -3245,7 +3313,7 @@ enum GameConfig {
     static let characterHomeRailButtonSize: CGFloat = 44
     static let characterHomeRailGap: CGFloat = 10
     static let characterHomeRailBottomInset: CGFloat = 18
-    static let characterHomeArrowButtonSize: CGFloat = 36
+    static let characterHomeArrowButtonSize: CGFloat = 60
     static let characterHomeArrowInsetX: CGFloat = 28
     static let characterHomeStartButtonBottomInset: CGFloat = 22
     static let characterHomeBottomStartButtonAboveMenu: CGFloat = 12
