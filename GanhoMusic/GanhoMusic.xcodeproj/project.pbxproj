@@ -97,6 +97,7 @@
 		A1C0F1B00000000000000086 /* PlayerNearMissWarningNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */; };
 		A1C0F1B00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift */; };
 		A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A000000000000000F0 /* BaseMenuScene.swift */; };
+		AA1200000000000000000001 /* RunButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100000000000000000001 /* RunButtonNode.swift */; };
 		AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000001 /* AccountMenuOverlayNode.swift */; };
 		B2C0F1B00000000000000101 /* CharacterHomeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000101 /* CharacterHomeSection.swift */; };
 		B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */; };
@@ -111,6 +112,7 @@
 		EE2000000000000000000002 /* CharacterUnlockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000002 /* CharacterUnlockState.swift */; };
 		EE2000000000000000000003 /* CharacterUnlockRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000003 /* CharacterUnlockRules.swift */; };
 		EE2000000000000000000004 /* HospitalPropNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000004 /* HospitalPropNode.swift */; };
+		FA1000000000000000000001 /* DeviceLayoutProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1000000000000000000002 /* DeviceLayoutProfile.swift */; };
 		FB2000000000000000000001 /* AuthProfileSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000001 /* AuthProfileSnapshot.swift */; };
 		FB2000000000000000000002 /* CloudScoreRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000002 /* CloudScoreRecord.swift */; };
 		FB2000000000000000000003 /* CloudProgressSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000003 /* CloudProgressSnapshot.swift */; };
@@ -120,6 +122,12 @@
 		FB2000000000000000000007 /* CloudProgressRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000007 /* CloudProgressRepository.swift */; };
 		FB2000000000000000000008 /* CloudSaveCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000008 /* CloudSaveCoordinator.swift */; };
 		FB2000000000000000000009 /* FirebaseAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000009 /* FirebaseAuthManager.swift */; };
+		PA2000000000000000000001 /* ProfileAvatarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000001 /* ProfileAvatarSelection.swift */; };
+		PA2000000000000000000002 /* ProfileAvatarRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000002 /* ProfileAvatarRepository.swift */; };
+		PA2000000000000000000003 /* ProfileAvatarViewNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000003 /* ProfileAvatarViewNode.swift */; };
+		PA2000000000000000000004 /* ProfileDetailOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000004 /* ProfileDetailOverlayNode.swift */; };
+		OA2000000000000000000001 /* OverlayActionButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA1000000000000000000001 /* OverlayActionButtonNode.swift */; };
+		PN2000000000000000000001 /* ProfileNameEditRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = PN1000000000000000000001 /* ProfileNameEditRequest.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -211,6 +219,7 @@
 		A1C0F1A00000000000000086 /* PlayerNearMissWarningNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerNearMissWarningNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+DangerWarnings.swift"; sourceTree = "<group>"; };
 		A1C0F1A000000000000000F0 /* BaseMenuScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseMenuScene.swift; sourceTree = "<group>"; };
+		AA1100000000000000000001 /* RunButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunButtonNode.swift; sourceTree = "<group>"; };
 		AC0000000000000000000001 /* AccountMenuOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuOverlayNode.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000101 /* CharacterHomeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSection.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSnapshot.swift; sourceTree = "<group>"; };
@@ -227,6 +236,7 @@
 		EE1000000000000000000002 /* CharacterUnlockState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockState.swift; sourceTree = "<group>"; };
 		EE1000000000000000000003 /* CharacterUnlockRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockRules.swift; sourceTree = "<group>"; };
 		EE1000000000000000000004 /* HospitalPropNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HospitalPropNode.swift; sourceTree = "<group>"; };
+		FA1000000000000000000002 /* DeviceLayoutProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceLayoutProfile.swift; sourceTree = "<group>"; };
 		FB1000000000000000000001 /* AuthProfileSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthProfileSnapshot.swift; sourceTree = "<group>"; };
 		FB1000000000000000000002 /* CloudScoreRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudScoreRecord.swift; sourceTree = "<group>"; };
 		FB1000000000000000000003 /* CloudProgressSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProgressSnapshot.swift; sourceTree = "<group>"; };
@@ -236,6 +246,12 @@
 		FB1000000000000000000007 /* CloudProgressRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProgressRepository.swift; sourceTree = "<group>"; };
 		FB1000000000000000000008 /* CloudSaveCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSaveCoordinator.swift; sourceTree = "<group>"; };
 		FB1000000000000000000009 /* FirebaseAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAuthManager.swift; sourceTree = "<group>"; };
+		PA1000000000000000000001 /* ProfileAvatarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarSelection.swift; sourceTree = "<group>"; };
+		PA1000000000000000000002 /* ProfileAvatarRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarRepository.swift; sourceTree = "<group>"; };
+		PA1000000000000000000003 /* ProfileAvatarViewNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarViewNode.swift; sourceTree = "<group>"; };
+		PA1000000000000000000004 /* ProfileDetailOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailOverlayNode.swift; sourceTree = "<group>"; };
+		OA1000000000000000000001 /* OverlayActionButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayActionButtonNode.swift; sourceTree = "<group>"; };
+		PN1000000000000000000001 /* ProfileNameEditRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileNameEditRequest.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -254,6 +270,7 @@
 				"GameScene+Feedback.swift",
 				"GameScene+GameState.swift",
 				"GameScene+Layout.swift",
+				"GameScene+MovementInput.swift",
 				"GameScene+Setup.swift",
 				"Resources/Fonts/GowunDodum-Regular.ttf",
 				"Resources/Fonts/Jua-Regular.ttf",
@@ -375,6 +392,7 @@
 				A1C0F1530000000000000003 /* PhysicsCategory.swift */,
 				A1C0F1540000000000000004 /* ColorTokens.swift */,
 				A1C0F1A00000000000000073 /* SceneSafeArea.swift */,
+				FA1000000000000000000002 /* DeviceLayoutProfile.swift */,
 			);
 			name = Config;
 			path = "GanhoMusic Shared/Config";
@@ -403,6 +421,7 @@
 				A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */,
 				A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */,
 				A1C0F1A00000000000000047 /* SkillButtonNode.swift */,
+				AA1100000000000000000001 /* RunButtonNode.swift */,
 				A1C0F1A00000000000000048 /* HUDSkillSlotNode.swift */,
 				A1C0F1A00000000000000049 /* ToiletNode.swift */,
 				A1C0F1A0000000000000004A /* ToastLabelNode.swift */,
@@ -412,6 +431,7 @@
 				A1C0F1A0000000000000004F /* BackButtonNode.swift */,
 				AC0000000000000000000001 /* AccountMenuOverlayNode.swift */,
 				DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */,
+				OA1000000000000000000001 /* OverlayActionButtonNode.swift */,
 				A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */,
 				A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */,
 				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
@@ -422,6 +442,8 @@
 				B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */,
 				B2C0F1A00000000000000104 /* CharacterHomeMenuNode.swift */,
 				B2C0F1A00000000000000105 /* ProfileSummaryPanelNode.swift */,
+				PA1000000000000000000003 /* ProfileAvatarViewNode.swift */,
+				PA1000000000000000000004 /* ProfileDetailOverlayNode.swift */,
 				B2C0F1A00000000000000106 /* AchievementStripNode.swift */,
 				B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */,
 				A1C0F1A00000000000000071 /* NurseAvatarNode.swift */,
@@ -484,6 +506,7 @@
 				A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */,
 				A1C0F1A00000000000000040 /* GraduationRepository.swift */,
 				FB1000000000000000000005 /* AuthProfileRepository.swift */,
+				PA1000000000000000000002 /* ProfileAvatarRepository.swift */,
 				FB1000000000000000000006 /* PendingCloudScoreRepository.swift */,
 				FB1000000000000000000007 /* CloudProgressRepository.swift */,
 			);
@@ -496,6 +519,8 @@
 			children = (
 				A1C0F1A00000000000000014 /* GameStats.swift */,
 				FB1000000000000000000001 /* AuthProfileSnapshot.swift */,
+				PA1000000000000000000001 /* ProfileAvatarSelection.swift */,
+				PN1000000000000000000001 /* ProfileNameEditRequest.swift */,
 				FB1000000000000000000002 /* CloudScoreRecord.swift */,
 				FB1000000000000000000003 /* CloudProgressSnapshot.swift */,
 				A1C0F1A00000000000000022 /* CharacterID.swift */,
@@ -780,6 +805,7 @@
 				A1C0F1B00000000000000045 /* PlayerSkill.swift in Sources */,
 				A1C0F1B00000000000000046 /* SkillSystem.swift in Sources */,
 				A1C0F1B00000000000000047 /* SkillButtonNode.swift in Sources */,
+				AA1200000000000000000001 /* RunButtonNode.swift in Sources */,
 				A1C0F1B00000000000000048 /* HUDSkillSlotNode.swift in Sources */,
 				A1C0F1B00000000000000049 /* ToiletNode.swift in Sources */,
 				A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */,
@@ -810,6 +836,7 @@
 				A1C0F1B00000000000000071 /* NurseAvatarNode.swift in Sources */,
 				A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */,
 				A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */,
+				FA1000000000000000000001 /* DeviceLayoutProfile.swift in Sources */,
 				A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */,
 				A1C0F1B00000000000000075 /* SergeantParkNode.swift in Sources */,
 				A1C0F1B00000000000000076 /* Direction.swift in Sources */,
@@ -839,6 +866,12 @@
 				FB2000000000000000000003 /* CloudProgressSnapshot.swift in Sources */,
 				FB2000000000000000000004 /* AuthError.swift in Sources */,
 				FB2000000000000000000005 /* AuthProfileRepository.swift in Sources */,
+				PA2000000000000000000001 /* ProfileAvatarSelection.swift in Sources */,
+				PA2000000000000000000002 /* ProfileAvatarRepository.swift in Sources */,
+				PA2000000000000000000003 /* ProfileAvatarViewNode.swift in Sources */,
+				PA2000000000000000000004 /* ProfileDetailOverlayNode.swift in Sources */,
+				OA2000000000000000000001 /* OverlayActionButtonNode.swift in Sources */,
+				PN2000000000000000000001 /* ProfileNameEditRequest.swift in Sources */,
 				FB2000000000000000000006 /* PendingCloudScoreRepository.swift in Sources */,
 				FB2000000000000000000007 /* CloudProgressRepository.swift in Sources */,
 				FB2000000000000000000008 /* CloudSaveCoordinator.swift in Sources */,
@@ -878,7 +911,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -894,7 +927,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -913,7 +946,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -929,7 +962,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

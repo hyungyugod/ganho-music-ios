@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         FirebaseAuthManager.shared.startObserving()
         Firestore.firestore().persistentCacheIndexManager?.enableIndexAutoCreation()
         Task {
-            _ = await FirebaseAuthManager.shared.ensureAnonymousSession()
+            _ = await FirebaseAuthManager.shared.ensureLaunchSession()
             await CloudSaveCoordinator.shared.flushPendingIfPossible()
         }
         return true

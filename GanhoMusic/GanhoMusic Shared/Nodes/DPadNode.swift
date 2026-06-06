@@ -10,7 +10,7 @@
 import SpriteKit
 
 /// 원형 터치 영역과 thumb 위치로 이동 벡터를 만드는 D-Pad.
-/// 외부에는 magnitude를 가진 `currentDirection`만 노출하고 PlayerNode를 직접 알지 않는다.
+/// 외부에는 데드존 밖에서 즉시 최대 크기로 정규화된 `currentDirection`만 노출하고 PlayerNode를 직접 알지 않는다.
 final class DPadNode: SKNode {
 
     // MARK: - Properties
@@ -27,7 +27,7 @@ final class DPadNode: SKNode {
     private let rightIcon: SKLabelNode
     private var activePressedDirection: Direction?
 
-    /// 지금 누르고 있는 방향 벡터. 안 누르면 .zero, 누르면 0...1 magnitude를 가진다.
+    /// 지금 누르고 있는 방향 벡터. 안 누르면 .zero, 누르면 즉시 최대 속도용 단위 벡터를 가진다.
     private(set) var currentDirection: CGVector = .zero
 
     // MARK: - Callbacks
@@ -140,17 +140,9 @@ final class DPadNode: SKNode {
         }
 
         let clampedDistance = min(distance, GameConfig.dpadAnalogMaxRadius)
-        let range = GameConfig.dpadAnalogMaxRadius - GameConfig.dpadAnalogDeadzoneRadius
         let unit = CGVector(dx: location.x / distance, dy: location.y / distance)
-        let strength = min(
-            1,
-            (clampedDistance - GameConfig.dpadAnalogDeadzoneRadius) / range
-        )
         let correctedUnit = axisCorrectedUnitVector(from: unit)
-        currentDirection = CGVector(
-            dx: correctedUnit.dx * strength,
-            dy: correctedUnit.dy * strength
-        )
+        currentDirection = normalizedGameplayVector(from: correctedUnit)
         updateThumb(
             position: CGPoint(
                 x: unit.dx * clampedDistance,
@@ -164,6 +156,12 @@ final class DPadNode: SKNode {
         } else {
             applyPressedState(for: nil)
         }
+    }
+
+    private func normalizedGameplayVector(from vector: CGVector) -> CGVector {
+        let length = hypot(vector.dx, vector.dy)
+        guard length >= GameConfig.dpadInputSnapEpsilon else { return .zero }
+        return CGVector(dx: vector.dx / length, dy: vector.dy / length)
     }
 
     private func axisCorrectedUnitVector(from unit: CGVector) -> CGVector {

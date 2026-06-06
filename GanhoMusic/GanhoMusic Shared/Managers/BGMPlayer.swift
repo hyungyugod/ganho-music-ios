@@ -25,7 +25,7 @@ final class BGMPlayer {
     private var isFadingOut: Bool = false
     /// Phase 6-5 — 페이드 아웃 완료 후 player.stop()을 호출할 예약 작업.
     /// 새 stop/play 진입 시 cancel 후 재예약/해제. [weak self] 캡처로 인스턴스 해제 안전.
-    private var stopWorkItem: DispatchWorkItem?
+    private var stopTask: Task<Void, Never>?
     /// Phase 6-7 — 백그라운드 진입 시점에 player.isPlaying이 true였는지 기록.
     /// 포그라운드 복귀 시 이 비트가 켜져 있을 때만 resume() 호출.
     /// 게임 미진입/gameOver 후/음원 부재 등 *원래 안 울리던* 상황은 false 유지.
@@ -36,6 +36,8 @@ final class BGMPlayer {
     /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
     /// 실패는 전부 graceful (try?) — 어떤 단계가 실패해도 6-3 .ambient 정책이 살아 회귀 0.
     init() {
+        guard GameConfig.isBGMEnabled else { return }
+
         // 1) Bundle 음원 탐색. 없으면 player = nil로 끝 — 카테고리 변경 안 함.
         guard let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") else { return }
 
@@ -97,6 +99,7 @@ final class BGMPlayer {
     /// removeObserver(self)는 self가 등록한 모든 옵저버를 한 번에 해제하므로
     /// 본 sprint의 단일 옵저버에 대해 안전하다.
     deinit {
+        stopTask?.cancel()
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -109,8 +112,8 @@ final class BGMPlayer {
 
         // 페이드 아웃 도중이었다면 예약된 stop 취소 (재진입 안전).
         // 본 sprint에서 직접 발생하는 시나리오는 없지만 방어적으로 처리.
-        stopWorkItem?.cancel()
-        stopWorkItem = nil
+        stopTask?.cancel()
+        stopTask = nil
         isFadingOut = false
 
         // 페이드 인: volume 0에서 시작 → 1.0까지 fadeInDuration 보간.
@@ -131,19 +134,21 @@ final class BGMPlayer {
         player.setVolume(0, fadeDuration: GameConfig.bgmFadeOutDuration)
 
         // 2) 페이드 완료 *후* 실제 stop. weak self 캡처로 인스턴스 해제 시 안전.
-        //    SKAction 사용 불가(BGMPlayer는 SKNode 아님), Timer 금지 → 취소 가능한 DispatchWorkItem.
-        let work = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            self.player?.stop()
-            self.player?.rate = 1.0                 // Phase 6-14 — 다음 라이프사이클 대비 rate 복원 (같은 인스턴스 재진입 안전망)
-            self.isFadingOut = false                // 다음 인스턴스 사이클을 위한 리셋
-            self.stopWorkItem = nil
-        }
-        stopWorkItem = work
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + GameConfig.bgmFadeOutDuration,
-            execute: work
+        //    SKAction 사용 불가(BGMPlayer는 SKNode 아님), Timer 금지 → 취소 가능한 Task.
+        let fadeOutNanoseconds = UInt64(
+            GameConfig.bgmFadeOutDuration * Double(GameConfig.nanosecondsPerSecond)
         )
+        stopTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: fadeOutNanoseconds)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard let self = self else { return }
+                self.player?.stop()
+                self.player?.rate = 1.0
+                self.isFadingOut = false
+                self.stopTask = nil
+            }
+        }
     }
 
     // MARK: - Interruption
@@ -182,7 +187,7 @@ final class BGMPlayer {
     ///
     /// isFadingOut 가드 이유: 게임이 막 끝나 stop()이 호출된 직후(=페이드 아웃 진행 중)
     /// 인터럽션이 들어오는 경우, 어차피 곧 player.stop()이 실행될 예정.
-    /// 여기서 pause()를 추가로 부르면 stopWorkItem의 player.stop()과 충돌 가능.
+    /// 여기서 pause()를 추가로 부르면 예약된 player.stop()과 충돌 가능.
     /// "이미 끝나는 중인 음악은 그냥 끝나게 둔다"는 정책.
     private func pause() {
         guard let player = player else { return }
@@ -191,7 +196,7 @@ final class BGMPlayer {
     }
 
     /// 인터럽션 종료(.ended + shouldResume) 시 6-5의 play() 그대로 재호출.
-    /// play() 내부의 isPlaying 가드 + stopWorkItem.cancel() + isFadingOut=false 초기화가
+    /// play() 내부의 isPlaying 가드 + 예약 작업 취소 + isFadingOut=false 초기화가
     /// 인터럽션 후 재진입 시나리오를 그대로 흡수.
     /// 별도 페이드 인 코드 작성 안 함 — 6-5의 페이드 인을 *재사용*하는 게 6-6의 우아함(DRY).
     private func resume() {

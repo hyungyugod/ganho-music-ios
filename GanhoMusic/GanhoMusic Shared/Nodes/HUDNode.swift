@@ -24,6 +24,15 @@ final class HUDNode: SKNode {
     private let comboSlot: HUDSlotNode
     private let nameSlot: HUDSlotNode
 
+    // MARK: - Display Cache (출시 전 최적화 — 라벨 지오메트리 재빌드 절감)
+    /// 직전 표시한 점수. nil = 첫 호출(무조건 적용). 같으면 setValue 생략 → 지오메트리 재빌드 0.
+    /// ⚠️ 옵셔널 sentinel — 0 초기화 시 첫 프레임 score=0이 "변화 없음"으로 skip되어 라벨 누락 위험.
+    private var lastDisplayedScore: Int?
+    /// 직전 표시한 정수 초(ceil 결과). seconds가 바뀔 때만 String(format:) + setValue (포맷 비용도 절감).
+    private var lastDisplayedSeconds: Int?
+    /// 직전 표시한 콤보. 값/색 둘 다 이 캐시로 가드. pulseCombo도 이 값을 갱신해 정합(잔상 0).
+    private var lastDisplayedCombo: Int?
+
     // MARK: - Init
     override init() {
         timeSlot  = HUDSlotNode(label: "TIME",   initialValue: "00:45", showTimeBar: true)
@@ -56,13 +65,29 @@ final class HUDNode: SKNode {
     /// 콤보 hot: 3 이상 골드(v2), 그 외 흰색.
     /// Sprint 3 — TIME 슬롯 끝에 경고 색 swap + 진행바 갱신 블록 추가.
     func update(score: Int, remainingTime: TimeInterval, combo: Int) {
-        scoreSlot.setValue("\(score)")
+        // 출시 전 최적화 — 직전 표시값과 다른 슬롯만 갱신(SKLabelNode 지오메트리 재빌드 절감).
+        // 표시 결과는 100% 동일 — 같은 값일 때 setValue 호출만 생략한다.
+        // 점수 — 바뀐 경우만 setValue.
+        if score != lastDisplayedScore {
+            lastDisplayedScore = score
+            scoreSlot.setValue("\(score)")
+        }
+        // 시간 — 정수 초가 바뀐 경우만 String(format:) + setValue (포맷 비용도 절감).
         let seconds = max(0, Int(ceil(remainingTime)))
-        timeSlot.setValue(String(format: "00:%02d", seconds))
-        comboSlot.setValue("\(combo)")
-        comboSlot.setValueColor(colorForCombo(combo))
+        if seconds != lastDisplayedSeconds {
+            lastDisplayedSeconds = seconds
+            timeSlot.setValue(String(format: "00:%02d", seconds))
+        }
+        // 콤보 — 값/색 둘 다 콤보 캐시로 가드. pulse 색과 동일 함수(colorForCombo) → 잔상 0.
+        if combo != lastDisplayedCombo {
+            lastDisplayedCombo = combo
+            comboSlot.setValue("\(combo)")
+            comboSlot.setValueColor(colorForCombo(combo))
+        }
 
         // Sprint 3 — TIME 경고 색 swap + 진행바 갱신.
+        // setWarn(fillColor 1줄 멱등)·setTimeBar(xScale 1줄)는 연속값이라 매 프레임 현행 유지 —
+        // 버킷팅 시 시각 회귀 위험이 있어 SPEC 안전 기본값(현행 유지) 채택. 비용은 지오메트리 재빌드가 아님.
         // tensionWindow 이하 진입 시 코랄 경고 배경. 그 외엔 navy 기본.
         let warn = remainingTime <= GameConfig.tensionWindow
         timeSlot.setWarn(warn)
@@ -78,6 +103,9 @@ final class HUDNode: SKNode {
 
     // MARK: - Collect Feedback
     func pulseCombo(combo: Int) {
+        // 출시 전 최적화 — 캐시 동기화. 이후 update가 같은 combo로 들어와도 색을 덮어쓰지 않게 정합.
+        // pulse가 건 색(colorForCombo(combo)) == update가 걸 색 → 시각 결과 동일, 재set만 절감.
+        lastDisplayedCombo = combo
         comboSlot.setValueColor(colorForCombo(combo))
         comboSlot.pulseValue(
             scale: GameConfig.hudComboPulseScale,

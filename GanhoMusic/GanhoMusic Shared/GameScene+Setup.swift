@@ -85,6 +85,12 @@ extension GameScene {
         )
         player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
         player.apply(difficulty)    // Phase 7-1 — 난이도별 baseSpeedStart/End set. character 먼저 → difficulty 나중(주의사항 1).
+        player.wallCollisionProvider = { [weak self] rect in
+            return self?.containsWall(in: rect) ?? false
+        }
+        player.wallRectProvider = { [weak self] rect in
+            return self?.wallRects(intersecting: rect) ?? []
+        }
         worldNode.addChild(player)
     }
 
@@ -95,6 +101,7 @@ extension GameScene {
         )
         addChild(cameraNode)
         camera = cameraNode   // 씬에 메인 카메라 통보 (필수)
+        layoutCameraZoom()
     }
 
     func setupDPad() {
@@ -194,6 +201,17 @@ extension GameScene {
         skillButton.zPosition = GameConfig.skillButtonZPositionV4
     }
 
+    // MARK: - Run Button (Sprint 11)
+    /// 좌하단 SkillButtonNode 옆에 쿨타임 없는 hold-to-run 버튼을 부착한다.
+    func setupRunButton() {
+        cameraNode.addChild(runButton)
+        runButton.onPressedChanged = { [weak self] pressed in
+            self?.player.isRunning = pressed
+        }
+        layoutRunButton()
+        runButton.zPosition = GameConfig.skillButtonZPositionV4
+    }
+
     // MARK: - HUD Skill Slot (Phase 9-5)
     /// 좌하단 SkillButtonNode 위에 HUDSkillSlotNode 부착(cameraNode 자식).
     /// configure(skill:)로 라벨 + 김간호 빈 슬롯 자동 set.
@@ -209,9 +227,32 @@ extension GameScene {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         let safe = SceneSafeArea.insets(for: self)
+        let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
+        skillButton.setScale(scale)
+        let radius = max(GameConfig.skillButtonV2Radius, GameConfig.skillButtonRadius)
+        let marginX = controlMargin(
+            base: GameConfig.skillButtonMarginX,
+            radius: radius,
+            scale: scale
+        )
+        let marginY = controlMargin(
+            base: GameConfig.skillButtonMarginY,
+            radius: radius,
+            scale: scale
+        )
         skillButton.position = CGPoint(
-            x: -(halfW - safe.left - GameConfig.skillButtonMarginX),
-            y: -(halfH - safe.bottom - GameConfig.skillButtonMarginY)
+            x: -(halfW - safe.left - marginX),
+            y: -(halfH - safe.bottom - marginY)
+        )
+    }
+
+    /// scene.size 변경 시 RunButtonNode 위치 재계산. SkillButton 오른쪽에 고정한다.
+    func layoutRunButton() {
+        let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
+        runButton.setScale(scale)
+        runButton.position = CGPoint(
+            x: skillButton.position.x + GameConfig.runButtonGapFromSkill * scale,
+            y: skillButton.position.y
         )
     }
 
@@ -221,9 +262,22 @@ extension GameScene {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         let safe = SceneSafeArea.insets(for: self)
+        let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
+        hudSkillSlot.setScale(scale)
+        let radius = max(GameConfig.skillButtonV2Radius, GameConfig.skillButtonRadius)
+        let marginX = controlMargin(
+            base: GameConfig.skillButtonMarginX,
+            radius: radius,
+            scale: scale
+        )
+        let marginY = controlMargin(
+            base: GameConfig.skillButtonMarginY,
+            radius: radius,
+            scale: scale
+        )
         hudSkillSlot.position = CGPoint(
-            x: -(halfW - safe.left - GameConfig.skillButtonMarginX),
-            y: -(halfH - safe.bottom - GameConfig.skillButtonMarginY) + GameConfig.hudSkillSlotOffsetY
+            x: -(halfW - safe.left - marginX),
+            y: -(halfH - safe.bottom - marginY) + GameConfig.hudSkillSlotOffsetY * scale
         )
     }
 
@@ -242,9 +296,22 @@ extension GameScene {
         let halfW = size.width  / 2
         let halfH = size.height / 2
         let safe = SceneSafeArea.insets(for: self)
+        let scale = DeviceLayoutProfile.resolve(for: self).ingameTopButtonScale
+        pauseButton.setScale(scale)
+        let radius = GameConfig.pauseButtonSize / 2
+        let marginX = controlMargin(
+            base: GameConfig.pauseButtonMarginX,
+            radius: radius,
+            scale: scale
+        )
+        let marginY = controlMargin(
+            base: GameConfig.pauseButtonMarginY,
+            radius: radius,
+            scale: scale
+        )
         pauseButton.position = CGPoint(
-            x: +(halfW - safe.right - GameConfig.pauseButtonMarginX),
-            y: +(halfH - safe.top - GameConfig.pauseButtonMarginY)
+            x: +(halfW - safe.right - marginX),
+            y: +(halfH - safe.top - marginY)
         )
     }
 

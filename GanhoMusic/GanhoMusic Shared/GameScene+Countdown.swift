@@ -60,6 +60,8 @@ extension GameScene {
             }
         )
         gameState = .playing
-        bgm.play()
+        if GameConfig.isBGMEnabled {
+            bgm.play()
+        }
     }
 }

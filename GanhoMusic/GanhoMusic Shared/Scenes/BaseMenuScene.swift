@@ -8,6 +8,7 @@
 //
 
 import SpriteKit
+import UIKit
 
 /// 4개 메뉴 씬의 공용 베이스. 따뜻한 3-stop 그라데이션 배경만 제공.
 /// 자식 씬은 `didMove`에서 `setupWarmGradientBackground()`, `didChangeSize`에서
@@ -41,17 +42,25 @@ class BaseMenuScene: SKScene {
     // MARK: - Layout
 
     func menuSafeInsets() -> UIEdgeInsets {
-        return SceneSafeArea.insets(for: self)
+        let profile = DeviceLayoutProfile.resolve(for: self)
+        return SceneSafeArea.contentInsets(
+            for: self,
+            maxContentWidth: profile.menuMaxContentWidth
+        )
     }
 
     func menuCompactScale() -> CGFloat {
+        let profile = DeviceLayoutProfile.resolve(for: self)
+        if profile == .padLandscape {
+            return profile.menuScale
+        }
         if size.height < GameConfig.compactLandscapeMinHeight {
             return GameConfig.compactLayoutScale
         }
         if size.width < GameConfig.compactNarrowWidth {
             return GameConfig.compactNarrowLayoutScale
         }
-        return 1.0
+        return profile.menuScale
     }
 
     func topBarY(extraInset: CGFloat = 0) -> CGFloat {

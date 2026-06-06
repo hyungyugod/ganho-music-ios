@@ -29,10 +29,20 @@ final class AuthProfileRepository {
 
     // MARK: - Write
     func save(user: User) {
+        let existing = current
+        let isSameUser = existing?.uid == user.uid
+        let firebaseDisplayName = sanitizedOptionalText(user.displayName)
+        let preservedDisplayName = isSameUser
+            ? sanitizedOptionalText(existing?.displayName)
+            : firebaseDisplayName
+        let preservedNickname = isSameUser
+            ? sanitizedOptionalText(existing?.nickname)
+            : nil
         let snapshot = AuthProfileSnapshot(
             uid: user.uid,
             isAnonymous: user.isAnonymous,
-            displayName: user.displayName,
+            displayName: preservedDisplayName,
+            nickname: preservedNickname,
             providerIDs: user.providerData.map { $0.providerID },
             updatedAt: Date()
         )
@@ -44,7 +54,31 @@ final class AuthProfileRepository {
         defaults.set(data, forKey: key)
     }
 
+    @discardableResult
+    func saveProfile(uid: String,
+                     isAnonymous: Bool,
+                     displayName: String?,
+                     nickname: String?,
+                     providerIDs: [String]) -> AuthProfileSnapshot {
+        let snapshot = AuthProfileSnapshot(
+            uid: uid,
+            isAnonymous: isAnonymous,
+            displayName: sanitizedOptionalText(displayName),
+            nickname: sanitizedOptionalText(nickname),
+            providerIDs: providerIDs,
+            updatedAt: Date()
+        )
+        save(snapshot: snapshot)
+        return snapshot
+    }
+
     func clear() {
         defaults.removeObject(forKey: key)
+    }
+
+    private func sanitizedOptionalText(_ text: String?) -> String? {
+        let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed = trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 }

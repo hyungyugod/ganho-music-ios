@@ -10,8 +10,8 @@ import SpriteKit
 // MARK: - Camera Follow
 extension GameScene {
     func updateCameraFollow() {
-        let halfW = size.width / 2
-        let halfH = size.height / 2
+        let halfW = size.width * cameraNode.xScale / 2
+        let halfH = size.height * cameraNode.yScale / 2
         let worldW = GameConfig.mapWidth
         let worldH = GameConfig.mapHeight
 

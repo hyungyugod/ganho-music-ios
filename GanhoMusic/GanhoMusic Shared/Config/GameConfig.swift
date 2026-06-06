@@ -154,6 +154,18 @@ enum GameConfig {
     static let playerWidth: CGFloat = 16
     /// 플레이어 박스 세로 (pt). GDD §7-1 김간호 16×20.
     static let playerHeight: CGFloat = 20
+    /// 벽 슬라이드 충돌 조회 rect를 안쪽으로 줄이는 값. 모서리 접촉 과검출을 줄인다.
+    static let playerWallQueryInset: CGFloat = 1
+    /// 이미 벽과 겹친 상태에서 tangent 이동을 허용할 때 overlap score 악화 허용치.
+    static let playerWallSlideOverlapTolerance: CGFloat = 0.5
+    /// 벽 겹침 복구 시 rect 바깥으로 살짝 밀어내는 여백.
+    static let playerWallRecoveryPadding: CGFloat = 0.5
+    /// 벽 겹침 복구 1회당 최대 보정 거리. 깊은 겹침에서도 순간 스냅을 작게 나눈다.
+    static let playerWallRecoveryMaxCorrection: CGFloat = 8
+    /// 벽 겹침 복구 반복 상한. 코너에서 여러 벽이 겹칠 수 있어 소량 반복한다.
+    static let playerWallRecoveryMaxIterations: Int = 4
+    /// 복구 후보 점수 비교용 epsilon. 부동소수점 동률 흔들림을 막는다.
+    static let playerWallRecoveryScoreEpsilon: CGFloat = 0.01
 
     // MARK: - D-Pad (Phase 1-3)
     /// D-Pad 단일 버튼 한 변 (pt). Apple HIG 권장 최소 터치 타깃 44pt.
@@ -668,20 +680,30 @@ enum GameConfig {
     ]
     /// 난이도별 F 동시 최대 수. easy(2)는 기존 projectileMaxConcurrent와 동일.
     static let projectileMaxConcurrentByDifficulty: [Difficulty: Int] = [
-        .easy: 4, .normal: 13, .hard: 18
+        .easy: 4, .normal: 15, .hard: 22
     ]
     /// 난이도별 F 동시 burst 발사 수. Sprint tuning — 회피 압박을 키우기 위해 각 발사 묶음을 상향.
     static let projectileBurstCountByDifficulty: [Difficulty: Int] = [
-        .easy: 3, .normal: 5, .hard: 7
+        .easy: 3, .normal: 6, .hard: 8
     ]
     /// 난이도별 F 발사 주기 시작값 (초). Sprint tuning — 첫 압박 도달 시간을 앞당긴다.
     static let projectileFireIntervalStartByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 1.9, .normal: 1.45, .hard: 1.15
+        .easy: 1.9, .normal: 1.30, .hard: 1.05
     ]
     /// 난이도별 F 발사 주기 끝값 (초). Sprint tuning — 후반부 탄막 템포를 더 빠르게 만든다.
     static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
-        .easy: 1.2, .normal: 0.78, .hard: 0.56
+        .easy: 1.2, .normal: 0.68, .hard: 0.48
     ]
+    /// 난이도별 F 벽 통과 정책. hard만 벽 contact 없이 수명으로 정리한다.
+    static let projectilePassesWallsByDifficulty: [Difficulty: Bool] = [
+        .easy: false, .normal: false, .hard: true
+    ]
+    /// 난이도별 F 자동 수명. hard 벽 통과 시 누적 방지를 위해 필수다.
+    static let projectileLifetimeByDifficulty: [Difficulty: TimeInterval] = [
+        .easy: 3.0, .normal: 3.2, .hard: 3.4
+    ]
+    static let projectileLifetimeFallback: TimeInterval = 3.0
+    static let projectileLifetimeActionKey: String = "projectileLifetime"
 
     // MARK: - Sprint 10 Phase I — 원본 수치 봉인 (game.js L101~L105 1:1)
     /// 난이도별 스턴 지속 시간 (초). 원본 DIFFICULTY.stun(ms) ÷ 1000. easy=0.4 / normal=0.7 / hard=0.7.
@@ -892,6 +914,27 @@ enum GameConfig {
     static let authAppleProviderID: String = "apple.com"
     static let authAppleRequestTimeout: TimeInterval = 12.0
     static let nanosecondsPerSecond: UInt64 = 1_000_000_000
+    static let profileNicknameMinLength: Int = 1
+    static let profileNicknameMaxLength: Int = 12
+    static let profileNameEditDisplayNameUserInfoKey: String = "profileNameEditDisplayName"
+    static let profileNameEditNicknameUserInfoKey: String = "profileNameEditNickname"
+    static let profileNameEditRequiredUserInfoKey: String = "profileNameEditRequired"
+    static let profileNameEditSucceededUserInfoKey: String = "profileNameEditSucceeded"
+    static let profileNameEditDisplayFieldIndex: Int = 0
+    static let profileNameEditNicknameFieldIndex: Int = 1
+    static let profileNameEditTitleText: String = "프로필 이름"
+    static let profileNameEditRequiredTitleText: String = "닉네임 설정"
+    static let profileNameEditMessageText: String = "게임 안에서 불릴 이름을 정해 주세요."
+    static let profileNameEditRequiredMessageText: String = "Apple 계정 기록에 붙일 닉네임이 필요해요."
+    static let profileNameEditDisplayPlaceholderText: String = "이름"
+    static let profileNameEditNicknamePlaceholderText: String = "닉네임"
+    static let profileNameEditSaveText: String = "저장"
+    static let profileNameEditCancelText: String = "취소"
+    static let profileNameEditNicknameEmptyText: String = "닉네임을 입력해 주세요."
+    static let profileNameEditNicknameTooShortText: String = "닉네임을 조금 더 적어 주세요."
+    static let profileNameEditNicknameTooLongText: String = "닉네임이 너무 길어요."
+    static let profileNameEditSavedText: String = "프로필 이름 저장"
+    static let profileNameEditFailedText: String = "이름 저장 실패"
     /// 사용자 요청에 따라 BGM은 번들에 있어도 재생하지 않는다.
     static let isBGMEnabled: Bool = false
 
@@ -1019,7 +1062,7 @@ enum GameConfig {
     static let skillButtonRadius: CGFloat = 32
     /// 버튼 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
     /// D-Pad(dpadMarginX=90)와 대칭 — 두 손가락 자연 위치.
-    static let skillButtonMarginX: CGFloat = 90
+    static let skillButtonMarginX: CGFloat = 72
     /// 버튼 하단 가장자리에서의 안쪽 마진 (pt). D-Pad와 동일 높이로 정렬.
     static let skillButtonMarginY: CGFloat = 90
     /// 김간호 비활성 알파. dpadAlpha(0.7)보다 낮아 "비활성" 시그널 강조.
@@ -1031,20 +1074,26 @@ enum GameConfig {
     static let hudSkillSlotOffsetY: CGFloat = 50
 
     // 정간호 — 암벽등반 돌진 (.dashClimb)
-    /// 돌진 이동 거리 (pt). 3 tile = 60pt.
-    static let dashClimbDistance: CGFloat = 60
+    /// 돌진 이동 거리 (pt). 4 tile.
+    static let dashClimbDistance: CGFloat = tileSize * 4
     /// 돌진 지속 시간 (초). 돌진 중 isInvulnerable.
-    static let dashClimbDuration: TimeInterval = 0.26
+    static let dashClimbDuration: TimeInterval = 0.22
     /// 돌진 쿨다운 (초). 22초.
     static let dashClimbCooldown: TimeInterval = 22
+    static let dashClimbActionKey: String = "dashClimbMove"
+    static let dashClimbProjectileClearHalfWidth: CGFloat = tileSize
+    static let dashClimbImpactRadius: CGFloat = tileSize * 1.8
+    static let dashClimbLandingSearchSteps: Int = 10
 
     // 건간호 — 북클럽 소집 (.bookClubRally)
-    /// 끌어오기 반경 (pt). 6 tile = 120pt 안의 노트만 대상.
-    static let bookClubRallyRadius: CGFloat = 120
+    /// 끌어오기 반경 (pt). 8 tile.
+    static let bookClubRallyRadius: CGFloat = tileSize * 8
     /// 끌어오기 SKAction.move duration (초). easeIn 곡선과 함께 *자연스러운 가속*.
-    static let bookClubRallyMoveDuration: TimeInterval = 0.4
+    static let bookClubRallyMoveDuration: TimeInterval = 0.28
     /// 북클럽 쿨다운 (초). 20초.
     static let bookClubRallyCooldown: TimeInterval = 20
+    static let bookClubRallyPullActionKey: String = "bookClubRallyPull"
+    static let bookClubRallySparkleActionKey: String = "bookClubRallySparkle"
 
     // 임간호 — 나는야 모범생 (.charmStudent, 게임당 1회)
     /// 매혹 지속 시간 (초). 수간호사 발사 주기보다 길게 잡아 최소 1회 이상 A 투척을 체감하게 한다.
@@ -1059,13 +1108,31 @@ enum GameConfig {
     /// 반대 대각선 코너가 벽일 때 주변 몇 타일까지 빈 위치를 찾을지.
     static let taiwanTripFallbackSearchRings: Int = 8
     /// 텔레포트 직후 무적 지속 시간 (초). 깜빡임 액션도 같은 시간.
-    static let taiwanTripInvulnerableDuration: TimeInterval = 0.5
+    static let taiwanTripInvulnerableDuration: TimeInterval = 1.0
     /// 텔레포트 쿨다운 (초). 22초.
     static let taiwanTripCooldown: TimeInterval = 22
     /// 무적 깜빡임 시 최소 알파.
     static let taiwanTripFlashAlpha: CGFloat = 0.4
     /// 깜빡임 한 단계 길이 (초). 0.1 = 0.5초 동안 5회 깜빡임 (1.0 ↔ 0.4).
     static let taiwanTripFlashHalfPeriod: TimeInterval = 0.1
+    static let taiwanTripDepartureRingRadius: CGFloat = tileSize * 2
+    static let taiwanTripLandingPurgeRadius: CGFloat = tileSize * 4
+    static let taiwanTripBlinkActionKey: String = "taiwanTripBlink"
+    static let taiwanTripInvulnerableActionKey: String = "taiwanTripInvulnerable"
+
+    // 스킬 공통 이펙트
+    static let skillEffectZPosition: CGFloat = 35
+    static let skillEffectLineWidth: CGFloat = 3
+    static let skillEffectRingLineWidth: CGFloat = 3
+    static let skillEffectStrokeAlpha: CGFloat = 0.85
+    static let skillEffectFillAlpha: CGFloat = 0.12
+    static let skillEffectFadeDuration: TimeInterval = 0.32
+    static let skillEffectRingStartScale: CGFloat = 0.25
+    static let skillEffectRingEndScale: CGFloat = 1.25
+    static let skillSparkleRadius: CGFloat = 4
+    static let skillSparkleTravelDistance: CGFloat = 18
+    static let skillSparkleDuration: TimeInterval = 0.35
+    static let skillSparkleLineWidth: CGFloat = 2
 
     // HUDSkillSlotNode
     /// 쿨다운 진행 링의 반지름 (pt). 작은 인디케이터.
@@ -1369,14 +1436,25 @@ enum GameConfig {
 
     // MARK: - v2 Components (Sprint 1)
 
-    /// GlassPillNode 배경 화이트 α. DESIGN_RENEWAL_REQUEST.md §3.3.B = 0.55.
-    static let glassPillFillAlpha: CGFloat = 0.55
-    /// GlassPillNode stroke α — 살짝의 외곽선.
+    /// GlassPillNode 배경 크림(ganhoPaper) α. 묶음 A 어포던스 강화 — 0.55 → 0.82로 불투명 상향.
+    /// "버튼인지 글자인지" 헷갈리던 흰 알약을 또렷한 크림 표면으로.
+    static let glassPillFillAlpha: CGFloat = 0.82
+    /// GlassPillNode stroke α — 살짝의 외곽선. (코랄 테두리 전환 후에도 다른 참조 보호 위해 유지.)
     static let glassPillStrokeAlpha: CGFloat = 0.25
     /// GlassPillNode 가우시안 블러 반경. §3.3.B = radius 12.
     static let glassPillBlurRadius: CGFloat = 12
     /// GlassPillNode 라벨 폰트 크기.
     static let glassPillFontSize: CGFloat = 14
+
+    // GlassPill 어포던스 강화 (묶음 A) — Secondary 버튼 3계층 입체화.
+    /// 코랄 테두리 두께(pt). 흰·크림 알약에도 "버튼임"을 전달하는 또렷한 경계.
+    static let glassPillBorderWidth: CGFloat = 2
+    /// 입체 그림자 노드 y 오프셋(pt). 음수 = 아래로 떨궈 떠 있는 느낌.
+    static let glassPillShadowOffsetY: CGFloat = -4
+    /// 입체 그림자 노드 알파. ganhoCoralShadow 위에 곱해 은은한 그림자.
+    static let glassPillShadowAlpha: CGFloat = 0.30
+    /// destructive 톤(계정 삭제) fill 불투명. 딥코랄을 거의 꽉 차게.
+    static let glassPillDestructiveFillAlpha: CGFloat = 0.92
 
     /// AccentLineNode 가로 길이(pt). §3.3.C = 32.
     static let accentLineWidth: CGFloat = 32
@@ -1450,6 +1528,10 @@ enum GameConfig {
     static let startSceneAuthPillGap: CGFloat = 10
     static let startSceneAuthAboveStartButton: CGFloat = 60
     static let startSceneAuthManagePillWidth: CGFloat = 70
+    static let startSceneAccountChipWidth: CGFloat = 144
+    static let startSceneAccountChipHeight: CGFloat = 30
+    static let startSceneAccountChipRightInset: CGFloat = 36
+    static let startSceneAccountChipTopInset: CGFloat = 34
     static let authGuestStatusText: String = "게스트 기록"
     static let authLinkedStatusText: String = "Apple 연동됨"
     static let authLocalFallbackStatusText: String = "로컬 플레이 가능"
@@ -1471,31 +1553,54 @@ enum GameConfig {
     static let loginChoiceLabelZPosition: CGFloat = 1
     static let loginChoiceButtonZPosition: CGFloat = 2
     static let loginChoiceDimAlpha: CGFloat = 0.48
-    static let loginChoicePanelFillAlpha: CGFloat = 0.9
-    static let loginChoicePanelStrokeAlpha: CGFloat = 0.35
-    static let loginChoicePanelWidth: CGFloat = 430
-    static let loginChoicePanelCompactWidth: CGFloat = 360
-    static let loginChoicePanelHeight: CGFloat = 260
+    static let loginChoicePanelFillAlpha: CGFloat = 0.92
+    static let loginChoicePanelStrokeAlpha: CGFloat = 0.55
+    static let loginChoicePanelWidth: CGFloat = 580
+    static let loginChoicePanelCompactWidth: CGFloat = 492
+    static let loginChoicePanelHeight: CGFloat = 338
     static let loginChoicePanelCornerRadius: CGFloat = 20
     static let loginChoicePanelLineWidth: CGFloat = 1
-    static let loginChoiceTitleFontSize: CGFloat = 22
+    static let loginChoiceTitleFontSize: CGFloat = 28
     static let loginChoiceBodyFontSize: CGFloat = 15
     static let loginChoiceStatusFontSize: CGFloat = 13
-    static let loginChoiceBodyWidth: CGFloat = 340
+    static let loginChoiceBodyWidth: CGFloat = 292
     static let loginChoiceButtonWidth: CGFloat = 140
     static let loginChoiceCancelButtonWidth: CGFloat = 82
     static let loginChoiceButtonHeight: CGFloat = 32
     static let loginChoiceButtonGap: CGFloat = 12
-    static let loginChoiceTitleOffsetY: CGFloat = 88
-    static let loginChoiceBodyOffsetY: CGFloat = 42
-    static let loginChoiceButtonOffsetY: CGFloat = -34
-    static let loginChoiceCancelButtonOffsetY: CGFloat = -88
-    static let loginChoiceStatusOffsetY: CGFloat = -128
-    static let loginChoiceTitleText: String = "시작 방법 선택"
-    static let loginChoiceBodyText: String = "게스트 기록으로 바로 시작하거나 Apple 계정에 이어 붙일 수 있어요."
+    static let loginChoiceHeroFrameWidth: CGFloat = 164
+    static let loginChoiceHeroFrameHeight: CGFloat = 204
+    static let loginChoiceHeroFrameCornerRadius: CGFloat = 18
+    static let loginChoiceHeroFrameOffsetX: CGFloat = -172
+    static let loginChoiceHeroPortraitMaxSize = CGSize(width: 118, height: 172)
+    static let loginChoiceHeroCaptionOffsetY: CGFloat = -124
+    static let loginChoiceHeroCaptionFontSize: CGFloat = 13
+    static let loginChoiceContentOffsetX: CGFloat = 94
+    static let loginChoiceTitleOffsetY: CGFloat = 112
+    static let loginChoiceBodyOffsetY: CGFloat = 72
+    static let loginChoiceCardWidth: CGFloat = 286
+    static let loginChoiceCardHeight: CGFloat = 58
+    static let loginChoiceCardGap: CGFloat = 14
+    static let loginChoiceCardCornerRadius: CGFloat = 14
+    static let loginChoiceCardLineWidth: CGFloat = 1
+    static let loginChoiceCardTitleFontSize: CGFloat = 17
+    static let loginChoiceCardSubtitleFontSize: CGFloat = 12
+    static let loginChoiceCardFirstOffsetY: CGFloat = 16
+    static let loginChoiceCardTitleOffsetY: CGFloat = 10
+    static let loginChoiceCardSubtitleOffsetY: CGFloat = -12
+    static let loginChoiceCancelButtonOffsetY: CGFloat = -124
+    static let loginChoiceStatusOffsetY: CGFloat = -150
+    static let loginChoiceTitleText: String = "계정 접속"
+    static let loginChoiceBodyText: String = "Apple 계정으로 기록을 붙잡거나, 게스트 기록으로 바로 병동에 들어갑니다."
+    static let loginChoiceHeroCaptionText: String = "김간호 기본 프로필"
+    static let loginChoiceGuestCardTitleText: String = "게스트 기록"
+    static let loginChoiceGuestCardSubtitleText: String = "이 기기 안에서 바로 시작"
+    static let loginChoiceAppleCardTitleText: String = "Apple 계정"
+    static let loginChoiceAppleCardSubtitleText: String = "재실행해도 내 기록 유지"
     static let loginChoiceGuestButtonText: String = "게스트로 시작"
     static let loginChoiceAppleButtonText: String = "Apple로 연동"
     static let loginChoiceCancelButtonText: String = "취소"
+    static let loginChoiceCheckingAccountText: String = "계정 상태 확인 중"
     static let loginChoiceGuestBusyText: String = "게스트 준비 중"
     static let loginChoiceAppleBusyText: String = "Apple 로그인 중"
     static let loginChoiceCancelledText: String = "취소했어요"
@@ -1505,6 +1610,32 @@ enum GameConfig {
     static let loginChoiceAppleCredentialText: String = "Apple 인증 정보를 다시 확인해 주세요"
     static let loginChoiceStatusMessageDuration: TimeInterval = 1.6
     static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
+
+    // MARK: - Overlay Action Button
+    static let overlayButtonShadowOffsetY: CGFloat = -5
+    static let overlayButtonPressedOffsetY: CGFloat = -3
+    static let overlayButtonPressDuration: TimeInterval = 0.08
+    static let overlayButtonPressActionKey: String = "overlayButtonPress"
+    /// 오버레이 버튼 테두리 두께(pt). 묶음 A — secondary 코랄 2px 테두리 가시성 위해 1 → 2.
+    /// primary는 stroke가 clear라 영향 없음, destructive는 코랄딥 테두리라 OK.
+    static let overlayButtonLineWidth: CGFloat = 2
+    static let overlayButtonDisabledAlpha: CGFloat = 0.48
+    static let overlayButtonTitleFontSize: CGFloat = 16
+    static let overlayButtonSubtitleFontSize: CGFloat = 11
+    static let overlayButtonSingleTitleFontSize: CGFloat = 15
+    static let overlayButtonTextLeftInset: CGFloat = 46
+    static let overlayButtonTextRightInset: CGFloat = 14
+    static let overlayButtonIconRadius: CGFloat = 13
+    static let overlayButtonIconOffsetX: CGFloat = 20
+    static let overlayButtonTitleOffsetY: CGFloat = 8
+    static let overlayButtonSubtitleOffsetY: CGFloat = -11
+    static let overlayButtonSingleTitleOffsetY: CGFloat = 0
+    static let overlayButtonHighlightHeight: CGFloat = 3
+    static let overlayButtonHighlightAlpha: CGFloat = 0.20
+    static let overlayButtonCornerRadius: CGFloat = 12
+    static let overlayButtonDefaultIconText: String = "♪"
+    static let overlayButtonSecondaryIconText: String = "·"
+    static let overlayButtonDestructiveIconText: String = "!"
 
     // MARK: - Account Menu Overlay
     static let accountMenuOverlayZPosition: CGFloat = 500
@@ -1541,6 +1672,111 @@ enum GameConfig {
     static let accountMenuDeleteText: String = "계정 삭제"
     static let accountMenuConfirmDeleteText: String = "삭제"
     static let accountMenuCancelText: String = "취소"
+
+    // MARK: - Profile Avatar
+    static let profileAvatarUserDefaultsKeyPrefix: String = "profileAvatar"
+    static let profileAvatarPhotoDirectoryName: String = "ProfileAvatars"
+    static let profileAvatarScopeUserInfoKey: String = "profileAvatarScope"
+    static let profileAvatarPhotoSelectionLimit: Int = 1
+    static let profileAvatarPhotoMaxPixelDimension: CGFloat = 512
+    static let profileAvatarPhotoJPEGCompression: CGFloat = 0.86
+    static let profileAvatarPhotoFilePrefix: String = "avatar_"
+    static let profileAvatarPhotoFileExtension: String = ".jpg"
+    static let profileAvatarFileNameSeparator: Character = "_"
+    static let profileAvatarFrameZPosition: CGFloat = 0
+    static let profileAvatarContentZPosition: CGFloat = 1
+    static let profileAvatarFrameCornerRadius: CGFloat = 14
+    static let profileAvatarFrameLineWidth: CGFloat = 2
+    static let profileAvatarFrameFillAlpha: CGFloat = 0.82
+    static let profileAvatarFrameStrokeAlpha: CGFloat = 0.9
+    static let profileAvatarContentInset: CGFloat = 8
+    static let profileAvatarSummarySize = CGSize(width: 58, height: 58)
+
+    // MARK: - Profile Detail Overlay
+    static let profileDetailOverlayZPosition: CGFloat = 540
+    static let profileDetailDimZPosition: CGFloat = -1
+    static let profileDetailPanelZPosition: CGFloat = 0
+    static let profileDetailLabelZPosition: CGFloat = 2
+    static let profileDetailButtonZPosition: CGFloat = 4
+    static let profileDetailDimAlpha: CGFloat = 0.50
+    static let profileDetailPanelFillAlpha: CGFloat = 0.94
+    static let profileDetailPanelStrokeAlpha: CGFloat = 0.35
+    static let profileDetailPanelWidth: CGFloat = 620
+    static let profileDetailPanelCompactWidth: CGFloat = 520
+    static let profileDetailPanelHeight: CGFloat = 382
+    static let profileDetailPanelCornerRadius: CGFloat = 22
+    static let profileDetailPanelLineWidth: CGFloat = 1
+    static let profileDetailPanelHorizontalInset: CGFloat = 34
+    static let profileDetailPanelTopInset: CGFloat = 34
+    static let profileDetailAvatarSize = CGSize(width: 92, height: 92)
+    static let profileDetailHeaderTextGap: CGFloat = 22
+    static let profileDetailTitleOffsetY: CGFloat = 18
+    static let profileDetailBodyBelowTitleGap: CGFloat = 28
+    static let profileDetailTitleFontSize: CGFloat = 26
+    static let profileDetailBodyFontSize: CGFloat = 14
+    static let profileDetailBodyWidth: CGFloat = 360
+    static let profileDetailMetricWidth: CGFloat = 120
+    static let profileDetailMetricGap: CGFloat = 22
+    static let profileDetailMetricTitleOffsetY: CGFloat = 48
+    static let profileDetailMetricValueOffsetY: CGFloat = 20
+    static let profileDetailMetricTitleFontSize: CGFloat = 13
+    static let profileDetailMetricValueFontSize: CGFloat = 22
+    static let profileDetailButtonWidth: CGFloat = 98
+    static let profileDetailWideButtonWidth: CGFloat = 126
+    static let profileDetailButtonHeight: CGFloat = 32
+    static let profileDetailButtonGap: CGFloat = 12
+    static let profileDetailFirstButtonRowOffsetY: CGFloat = -78
+    static let profileDetailSecondButtonRowOffsetY: CGFloat = -126
+    static let profileDetailBottomButtonOffsetY: CGFloat = -130
+    static let profileDetailAvatarOptionSize = CGSize(width: 84, height: 112)
+    static let profileDetailAvatarOptionPortraitSize = CGSize(width: 58, height: 72)
+    static let profileDetailAvatarOptionGap: CGFloat = 12
+    static let profileDetailAvatarOptionCornerRadius: CGFloat = 14
+    static let profileDetailAvatarOptionFillAlpha: CGFloat = 0.82
+    static let profileDetailAvatarOptionSelectedFillAlpha: CGFloat = 0.88
+    static let profileDetailAvatarOptionSelectedLineWidth: CGFloat = 2
+    static let profileDetailAvatarOptionPortraitOffsetY: CGFloat = 2
+    static let profileDetailAvatarOptionLabelOffsetY: CGFloat = 42
+    static let profileDetailAvatarOptionLabelFontSize: CGFloat = 13
+    static let profileDetailAvatarOptionsOffsetY: CGFloat = -14
+    static let profileDetailTitleText: String = "개인프로필"
+    static let profileDetailChooseAvatarText: String = "초상화 변경"
+    static let profileDetailChoosePhotoText: String = "사진 선택"
+    static let profileDetailCloseText: String = "닫기"
+    static let profileDetailAvatarPickerTitleText: String = "대표 초상화 선택"
+    static let profileDetailAvatarPickerBodyText: String = "해금된 캐릭터만 대표 초상화로 쓸 수 있어요. 김간호는 항상 기본값입니다."
+    static let profileDetailBusyTitleText: String = "처리 중"
+    static let profileDetailBusyBodyText: String = "계정과 프로필 상태를 정리하고 있습니다."
+    static let profileDetailPhotoPickerRequestText: String = "사진 선택을 열게요"
+    static let profileDetailEditNameText: String = "이름/닉네임"
+    static let profileDetailNicknamePrefixText: String = "닉네임:"
+    static let profileDetailDisplayNamePrefixText: String = "이름:"
+    static let profileNicknamePromptTitleText: String = "닉네임을 정해요"
+    static let profileNicknamePromptBodyText: String = "Apple 계정으로 기록을 이어가려면 게임 안에서 부를 닉네임이 필요해요."
+    static let profileNicknamePromptButtonText: String = "닉네임 설정"
+
+    // MARK: - Bundle B · Profile v2 Hierarchy
+    // 프로필 3종(Summary/Detail/Avatar)을 묶음 A v2 톤으로 통일하기 위한 위계 표현 상수.
+    // 순수 시각·위계용 — 좌표/크기 상수의 값은 건드리지 않고 *추가* 노드(그룹 박스·구분선)만 그린다.
+
+    /// ProfileSummary 메트릭 그룹 박스(라벤더 패드) 채움 투명도.
+    static let summaryMetricGroupFillAlpha: CGFloat = 0.18
+    /// 메트릭 그룹 박스 모서리 반경.
+    static let summaryMetricGroupCornerRadius: CGFloat = 12
+    /// 메트릭 그룹 박스 좌우 안쪽 여백(leftX 기준 바깥쪽 패딩).
+    static let summaryMetricGroupPadding: CGFloat = 8
+    /// 메트릭 그룹 박스 상/하 세로 패딩(첫 제목 위·마지막 값 아래).
+    static let summaryMetricGroupVerticalPadding: CGFloat = 8
+    /// 메트릭 행 구분선 색 투명도(navyMuted 기반).
+    static let summaryMetricDividerAlpha: CGFloat = 0.22
+    /// 메트릭 행 구분선 두께.
+    static let summaryMetricDividerLineWidth: CGFloat = 0.8
+    /// statusChip 코랄 채움 투명도(v2 톤).
+    static let summaryStatusChipFillAlpha: CGFloat = 0.92
+    /// ProfileDetail 아바타 옵션 선택 코랄 패드 투명도(v2 톤 — 부드러운 코랄 배경).
+    /// 기존 `profileDetailAvatarOptionSelectedFillAlpha`(0.88)는 레거시 크림슨용 값이라 보존하고,
+    /// 코랄 v2 선택 패드는 더 가벼운 별도 투명도로 분리한다.
+    static let profileDetailAvatarOptionSelectedCoralFillAlpha: CGFloat = 0.22
 
     // MARK: - Sprint 2 · CharacterSelectScene v2 Layout
     // DESIGN_RENEWAL_REQUEST.md §4.2 + mockups/character-select-v2.html.
@@ -1740,7 +1976,7 @@ enum GameConfig {
     /// 달리기 버튼 반지름. 스킬 버튼보다 살짝 작게 둬 보조 조작임을 드러낸다.
     static let runButtonRadius: CGFloat = 30
     /// 스킬 버튼 중심에서 달리기 버튼 중심까지의 가로 거리.
-    static let runButtonGapFromSkill: CGFloat = 84
+    static let runButtonGapFromSkill: CGFloat = 78
     /// 달리기 버튼 터치 반경. 원형 시각보다 조금 넓게 잡아 hold 입력을 안정화한다.
     static let runButtonTouchRadius: CGFloat = 42
     /// 달리기 버튼 중앙 텍스트.

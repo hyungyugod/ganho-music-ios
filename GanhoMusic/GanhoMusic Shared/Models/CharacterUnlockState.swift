@@ -13,11 +13,15 @@ struct CharacterUnlockState {
     let characterID: CharacterID
     let isUnlocked: Bool
     let requiredCharacterID: CharacterID?
+    let requiredScore: Int?
 
     var requirementText: String {
         guard !isUnlocked else { return GameConfig.characterHomeUnlockedText }
         guard let requiredCharacterID = requiredCharacterID else {
             return GameConfig.characterHomeLockedText
+        }
+        if let requiredScore = requiredScore {
+            return "\(requiredCharacterID.displayName) \(requiredScore)\(GameConfig.characterHomePointSuffixText) \(GameConfig.characterHomeAchievedText)"
         }
         return "\(requiredCharacterID.displayName) \(GameConfig.characterHomeUnlockRequirementSuffix)"
     }
@@ -27,7 +31,8 @@ struct CharacterUnlockState {
         return CharacterUnlockState(
             characterID: characterID,
             isUnlocked: true,
-            requiredCharacterID: nil
+            requiredCharacterID: nil,
+            requiredScore: nil
         )
     }
 
@@ -36,7 +41,8 @@ struct CharacterUnlockState {
         return CharacterUnlockState(
             characterID: characterID,
             isUnlocked: false,
-            requiredCharacterID: requiredCharacterID
+            requiredCharacterID: requiredCharacterID,
+            requiredScore: GameConfig.characterUnlockRequiredScore
         )
     }
 }

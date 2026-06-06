@@ -103,13 +103,28 @@ final class CloudSaveCoordinator {
 
     // MARK: - Snapshot
     private func profileSnapshot(user: FirebaseAuthUserProviding) -> AuthProfileSnapshot {
+        let existing = authProfileRepository.current
+        let isSameUser = existing?.uid == user.uid
+        let displayName = isSameUser
+            ? sanitizedOptionalText(existing?.displayName)
+            : sanitizedOptionalText(user.displayName)
+        let nickname = isSameUser
+            ? sanitizedOptionalText(existing?.nickname)
+            : nil
         return AuthProfileSnapshot(
             uid: user.uid,
             isAnonymous: user.isAnonymous,
-            displayName: user.displayName,
+            displayName: displayName,
+            nickname: nickname,
             providerIDs: user.providerIDs,
             updatedAt: Date()
         )
+    }
+
+    private func sanitizedOptionalText(_ text: String?) -> String? {
+        let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed = trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     private func currentProgressSnapshot() -> CloudProgressSnapshot {

@@ -15,6 +15,8 @@ enum AuthError: Error {
     case appleIdentityTokenInvalid
     case appleAuthorizationCodeMissing
     case appleAuthorizationTimedOut
+    case appleConfigurationFailed
+    case appleCredentialRejected
     case presentationAnchorMissing
     case accountDeleteFailed
     case accountReauthenticationFailed

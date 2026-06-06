@@ -72,8 +72,8 @@ final class SkillSystem {
         // 현재 D-Pad 방향이 .zero가 아니면 마지막 방향으로 저장 — 돌진 발동 시 사용.
         // GameScene.update에서 매 프레임 호출하므로 self-contained.
         if let dpadDir = scene?.dpad.currentDirection,
-           dpadDir != .zero {
-            lastDirection = dpadDir
+           let normalized = normalizedDirection(dpadDir) {
+            lastDirection = normalized
         }
     }
 
@@ -153,7 +153,7 @@ final class SkillSystem {
     }
 
     // MARK: - 1. Dash Climb (정간호)
-    /// 3 tile 거리 돌진 + 무적 + 경로상 breakableWall 1칸 파괴.
+    /// 4 tile 거리 돌진 + 무적 + 경로상 F 제거 + 착지 충격파.
     /// 방향: DPad.currentDirection → lastDirection → 기본 우측 fallback.
     private func performDashClimb() {
         guard let scene = scene else { return }
@@ -166,23 +166,35 @@ final class SkillSystem {
             x: start.x + direction.dx * GameConfig.dashClimbDistance,
             y: start.y + direction.dy * GameConfig.dashClimbDistance
         )
-        let end = clampedToMap(rawEnd)
+        let end = dashLandingTarget(from: start, rawEnd: rawEnd)
 
-        // 경로 위 breakableWall 1칸 식별 및 파괴.
-        // enumerate는 발동 시 1회만 — 매 프레임 호출 아님(성능 핵심).
-        breakFirstBreakableWall(from: start, to: end)
+        clearProjectilesInCorridor(
+            from: start,
+            to: end,
+            halfWidth: GameConfig.dashClimbProjectileClearHalfWidth
+        )
+        spawnSkillTrail(from: start, to: end, color: .ganhoBloodAccent, parent: scene.worldNode)
 
         // 무적 + 이동.
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         player.isInvulnerable = true
-        player.removeAction(forKey: "dashClimbMove")
+        player.removeAction(forKey: GameConfig.dashClimbActionKey)
         let move = SKAction.move(to: end, duration: GameConfig.dashClimbDuration)
+        let impact = SKAction.run { [weak self] in
+            guard let self = self, let scene = self.scene else { return }
+            self.spawnSkillRing(
+                at: end,
+                radius: GameConfig.dashClimbImpactRadius,
+                color: .ganhoBloodAccent,
+                parent: scene.worldNode
+            )
+        }
         let endAction = SKAction.run { [weak player] in
             player?.isInvulnerable = false
             player?.physicsBody?.velocity = .zero
         }
-        player.run(.sequence([move, endAction]), withKey: "dashClimbMove")
+        player.run(.sequence([move, impact, endAction]), withKey: GameConfig.dashClimbActionKey)
     }
 
     /// DPad → lastDirection → 기본 우측 순서로 방향 벡터 결정.
@@ -191,13 +203,19 @@ final class SkillSystem {
             return CGVector(dx: 1, dy: 0)
         }
         let dpadDir = scene.dpad.currentDirection
-        if dpadDir != .zero {
-            return dpadDir
+        if let normalized = normalizedDirection(dpadDir) {
+            return normalized
         }
-        if lastDirection != .zero {
-            return lastDirection
+        if let normalized = normalizedDirection(lastDirection) {
+            return normalized
         }
         return CGVector(dx: 1, dy: 0)
+    }
+
+    private func normalizedDirection(_ vector: CGVector) -> CGVector? {
+        let length = hypot(vector.dx, vector.dy)
+        guard length >= GameConfig.dpadInputSnapEpsilon else { return nil }
+        return CGVector(dx: vector.dx / length, dy: vector.dy / length)
     }
 
     /// start→end 선분에 가장 가까운 *첫* breakableWall 1개를 fadeOut + 제거.
@@ -232,7 +250,7 @@ final class SkillSystem {
     }
 
     // MARK: - 2. Book Club Rally (건간호)
-    /// 반경 120pt 안 노트를 player 위치로 끌어오기.
+    /// 반경 8타일 안 노트를 player 위치로 끌어오기.
     /// 도착 시점 자연 contact → onNoteCollected 정상 발화 → 점수/콤보 자동.
     /// F는 끌어오지 않음(이름 분기 "note"만).
     private func performBookClubRally() {
@@ -242,16 +260,56 @@ final class SkillSystem {
         let radius = GameConfig.bookClubRallyRadius
         let radiusSquared = radius * radius
 
+        spawnSkillRing(at: center, radius: radius, color: .ganhoMint, parent: world)
+
         // enumerate는 발동 시 1회만 — 매 프레임 호출 아님.
-        world.enumerateChildNodes(withName: "note") { node, _ in
+        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
+            guard let self = self else { return }
             let dx = node.position.x - center.x
             let dy = node.position.y - center.y
             // 거리^2 비교 — sqrt 회피(성능).
             guard dx * dx + dy * dy < radiusSquared else { return }
-            let move = SKAction.move(to: center, duration: GameConfig.bookClubRallyMoveDuration)
-            move.timingMode = .easeIn
-            node.run(move)
+            node.removeAction(forKey: GameConfig.noteBobActionKey)
+            let startPosition = node.position
+            self.spawnSkillSparkle(at: startPosition, color: .ganhoMint, parent: world)
+            let pull = self.bookClubRallyPullAction(
+                for: node,
+                from: startPosition,
+                scene: scene
+            )
+            node.run(pull, withKey: GameConfig.bookClubRallyPullActionKey)
         }
+    }
+
+    /// 고정 좌표가 아니라 현재 player 위치를 계속 참조해 끌어오기 누락을 줄인다.
+    /// 점수는 직접 건드리지 않고 player-note contact 경로만 사용한다.
+    private func bookClubRallyPullAction(for targetNode: SKNode,
+                                         from startPosition: CGPoint,
+                                         scene: GameScene) -> SKAction {
+        let duration = GameConfig.bookClubRallyMoveDuration
+        guard duration > 0 else {
+            return SKAction.run { [weak scene, weak targetNode] in
+                guard let scene = scene, let targetNode = targetNode else { return }
+                targetNode.position = scene.player.position
+            }
+        }
+
+        let durationCGFloat = CGFloat(duration)
+        let pull = SKAction.customAction(withDuration: duration) { [weak scene] actionNode, elapsed in
+            guard let scene = scene else { return }
+            let target = scene.player.position
+            let rawProgress = min(1, max(0, elapsed / durationCGFloat))
+            let easedProgress = rawProgress * rawProgress
+            actionNode.position = CGPoint(
+                x: startPosition.x + (target.x - startPosition.x) * easedProgress,
+                y: startPosition.y + (target.y - startPosition.y) * easedProgress
+            )
+        }
+        let settleOnPlayer = SKAction.run { [weak scene, weak targetNode] in
+            guard let scene = scene, let targetNode = targetNode else { return }
+            targetNode.position = scene.player.position
+        }
+        return SKAction.sequence([pull, settleOnPlayer])
     }
 
     // MARK: - 3. Charm Student (임간호)
@@ -272,37 +330,37 @@ final class SkillSystem {
 
     // MARK: - 4. Taiwan Trip (이간호)
     /// 현재 위치의 반대 대각선 코너 쪽 안전 지점으로 멀리 텔레포트.
-    /// 0.5초 무적 + 깜빡임 액션.
+    /// 1초 무적 + 깜빡임 액션.
     private func performTaiwanTrip() {
         guard let scene = scene else { return }
         let player = scene.player
         let start = player.position
         let targetPosition = taiwanTripTarget(from: start)
 
+        spawnSkillRing(
+            at: start,
+            radius: GameConfig.taiwanTripDepartureRingRadius,
+            color: .ganhoCyanBeat,
+            parent: scene.worldNode
+        )
+
         // 즉시 위치 이동.
         player.position = targetPosition
 
+        spawnSkillRing(
+            at: targetPosition,
+            radius: GameConfig.taiwanTripLandingPurgeRadius,
+            color: .ganhoCyanBeat,
+            parent: scene.worldNode
+        )
+        clearProjectiles(near: targetPosition, radius: GameConfig.taiwanTripLandingPurgeRadius)
+        scene.cameraNode.run(CameraShakeAction.make())
+
         // 무적 + 깜빡임. 동시에 set/clear.
         player.isInvulnerable = true
-        player.removeAction(forKey: "taiwanTripBlink")
-        player.removeAction(forKey: "taiwanTripInvulnerable")
-
-        // 깜빡임 액션: alpha 1.0 ↔ taiwanTripFlashAlpha 반복.
-        let half = GameConfig.taiwanTripFlashHalfPeriod
-        let fadeOut = SKAction.fadeAlpha(to: GameConfig.taiwanTripFlashAlpha, duration: half)
-        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
-        let cycle = SKAction.sequence([fadeOut, fadeIn])
-        let totalDuration = GameConfig.taiwanTripInvulnerableDuration
-        player.run(SKAction.repeatForever(cycle), withKey: "taiwanTripBlink")
-        let restore = SKAction.run { [weak player] in
-            player?.removeAction(forKey: "taiwanTripBlink")
-            player?.isInvulnerable = false
-            player?.alpha = 1.0
-        }
-        player.run(.sequence([
-            .wait(forDuration: totalDuration),
-            restore
-        ]), withKey: "taiwanTripInvulnerable")
+        player.removeAction(forKey: GameConfig.taiwanTripBlinkActionKey)
+        player.removeAction(forKey: GameConfig.taiwanTripInvulnerableActionKey)
+        applyTaiwanTripBlink(to: player)
     }
 
     /// 텔레포트 후보가 맵 안 + 벽 미겹침인지 검사.
@@ -311,13 +369,7 @@ final class SkillSystem {
         let margin = GameConfig.tileSize
         guard point.x >= margin, point.x <= GameConfig.mapWidth - margin else { return false }
         guard point.y >= margin, point.y <= GameConfig.mapHeight - margin else { return false }
-        // 벽 노드와 겹치는지 — physicsWorld 조회.
-        guard let scene = scene else { return true }
-        if let body = scene.physicsWorld.body(at: point),
-           body.categoryBitMask == PhysicsCategory.wall {
-            return false
-        }
-        return true
+        return isValidPlayerTarget(point)
     }
 
     private func clampedToMap(_ point: CGPoint) -> CGPoint {
@@ -369,5 +421,189 @@ final class SkillSystem {
         }
 
         return start
+    }
+
+    // MARK: - Skill Collision / Cleanup Helpers
+    private func dashLandingTarget(from start: CGPoint, rawEnd: CGPoint) -> CGPoint {
+        let end = clampedToMap(rawEnd)
+        if isValidPlayerTarget(end) {
+            return end
+        }
+
+        let steps = max(1, GameConfig.dashClimbLandingSearchSteps)
+        for step in 1...steps {
+            let t = 1 - CGFloat(step) / CGFloat(steps)
+            let candidate = CGPoint(
+                x: start.x + (end.x - start.x) * t,
+                y: start.y + (end.y - start.y) * t
+            )
+            if isValidPlayerTarget(candidate) {
+                return candidate
+            }
+        }
+        return start
+    }
+
+    private func isValidPlayerTarget(_ point: CGPoint) -> Bool {
+        guard let scene = scene else { return true }
+        let halfWidth = GameConfig.playerWidth / 2
+        let halfHeight = GameConfig.playerHeight / 2
+        guard point.x >= halfWidth, point.x <= GameConfig.mapWidth - halfWidth else { return false }
+        guard point.y >= halfHeight, point.y <= GameConfig.mapHeight - halfHeight else { return false }
+        return scene.containsWall(in: playerWallQueryRect(centeredAt: point)) == false
+    }
+
+    private func playerWallQueryRect(centeredAt point: CGPoint) -> CGRect {
+        let rect = CGRect(
+            x: point.x - GameConfig.playerWidth / 2,
+            y: point.y - GameConfig.playerHeight / 2,
+            width: GameConfig.playerWidth,
+            height: GameConfig.playerHeight
+        )
+        return rect.insetBy(
+            dx: GameConfig.playerWallQueryInset,
+            dy: GameConfig.playerWallQueryInset
+        )
+    }
+
+    private func clearProjectilesInCorridor(from start: CGPoint, to end: CGPoint, halfWidth: CGFloat) {
+        guard let world = scene?.worldNode else { return }
+        let limitSquared = halfWidth * halfWidth
+        world.enumerateChildNodes(withName: "projectile") { [weak self] node, _ in
+            guard let self = self else { return }
+            let distanceSquared = self.squaredDistanceFromPointToSegment(
+                point: node.position,
+                start: start,
+                end: end
+            )
+            guard distanceSquared <= limitSquared else { return }
+            self.removeProjectileNode(node)
+        }
+    }
+
+    private func clearProjectiles(near center: CGPoint, radius: CGFloat) {
+        guard let world = scene?.worldNode else { return }
+        let radiusSquared = radius * radius
+        world.enumerateChildNodes(withName: "projectile") { [weak self] node, _ in
+            guard let self = self else { return }
+            let dx = node.position.x - center.x
+            let dy = node.position.y - center.y
+            guard dx * dx + dy * dy <= radiusSquared else { return }
+            self.removeProjectileNode(node)
+        }
+    }
+
+    private func removeProjectileNode(_ node: SKNode) {
+        node.physicsBody?.velocity = .zero
+        node.removeAllActions()
+        node.run(.sequence([
+            .fadeOut(withDuration: GameConfig.skillEffectFadeDuration),
+            .removeFromParent()
+        ]))
+    }
+
+    private func squaredDistanceFromPointToSegment(point: CGPoint,
+                                                   start: CGPoint,
+                                                   end: CGPoint) -> CGFloat {
+        let vx = end.x - start.x
+        let vy = end.y - start.y
+        let wx = point.x - start.x
+        let wy = point.y - start.y
+        let lengthSquared = vx * vx + vy * vy
+        guard lengthSquared >= GameConfig.dpadInputSnapEpsilon else {
+            return wx * wx + wy * wy
+        }
+        let rawT = (wx * vx + wy * vy) / lengthSquared
+        let t = max(0, min(1, rawT))
+        let projection = CGPoint(x: start.x + vx * t, y: start.y + vy * t)
+        let dx = point.x - projection.x
+        let dy = point.y - projection.y
+        return dx * dx + dy * dy
+    }
+
+    // MARK: - Skill Visual Helpers
+    private func spawnSkillTrail(from start: CGPoint, to end: CGPoint, color: UIColor, parent: SKNode) {
+        let path = CGMutablePath()
+        path.move(to: start)
+        path.addLine(to: end)
+        let trail = SKShapeNode(path: path)
+        trail.name = "skillTrail"
+        trail.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
+        trail.lineWidth = GameConfig.skillEffectLineWidth
+        trail.fillColor = .clear
+        trail.zPosition = GameConfig.skillEffectZPosition
+        parent.addChild(trail)
+        trail.run(.sequence([
+            .fadeOut(withDuration: GameConfig.skillEffectFadeDuration),
+            .removeFromParent()
+        ]))
+    }
+
+    private func spawnSkillRing(at position: CGPoint,
+                                radius: CGFloat,
+                                color: UIColor,
+                                parent: SKNode) {
+        let ring = SKShapeNode(circleOfRadius: radius)
+        ring.name = "skillRing"
+        ring.position = position
+        ring.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
+        ring.fillColor = color.withAlphaComponent(GameConfig.skillEffectFillAlpha)
+        ring.lineWidth = GameConfig.skillEffectRingLineWidth
+        ring.zPosition = GameConfig.skillEffectZPosition
+        ring.setScale(GameConfig.skillEffectRingStartScale)
+        parent.addChild(ring)
+        ring.run(.sequence([
+            .group([
+                .scale(to: GameConfig.skillEffectRingEndScale,
+                       duration: GameConfig.skillEffectFadeDuration),
+                .fadeOut(withDuration: GameConfig.skillEffectFadeDuration)
+            ]),
+            .removeFromParent()
+        ]))
+    }
+
+    private func spawnSkillSparkle(at position: CGPoint, color: UIColor, parent: SKNode) {
+        let sparkle = SKShapeNode(circleOfRadius: GameConfig.skillSparkleRadius)
+        sparkle.name = "skillSparkle"
+        sparkle.position = position
+        sparkle.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
+        sparkle.fillColor = .clear
+        sparkle.lineWidth = GameConfig.skillSparkleLineWidth
+        sparkle.zPosition = GameConfig.skillEffectZPosition
+        parent.addChild(sparkle)
+
+        let angle = CGFloat.random(in: 0...(CGFloat.pi * 2))
+        let distance = GameConfig.skillSparkleTravelDistance
+        let move = SKAction.moveBy(
+            x: cos(angle) * distance,
+            y: sin(angle) * distance,
+            duration: GameConfig.skillSparkleDuration
+        )
+        sparkle.run(.sequence([
+            .group([
+                move,
+                .fadeOut(withDuration: GameConfig.skillSparkleDuration)
+            ]),
+            .removeFromParent()
+        ]), withKey: GameConfig.bookClubRallySparkleActionKey)
+    }
+
+    private func applyTaiwanTripBlink(to player: PlayerNode) {
+        // 깜빡임 액션: alpha 1.0 ↔ taiwanTripFlashAlpha 반복.
+        let half = GameConfig.taiwanTripFlashHalfPeriod
+        let fadeOut = SKAction.fadeAlpha(to: GameConfig.taiwanTripFlashAlpha, duration: half)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
+        let cycle = SKAction.sequence([fadeOut, fadeIn])
+        let totalDuration = GameConfig.taiwanTripInvulnerableDuration
+        player.run(SKAction.repeatForever(cycle), withKey: GameConfig.taiwanTripBlinkActionKey)
+        let restore = SKAction.run { [weak player] in
+            player?.removeAction(forKey: GameConfig.taiwanTripBlinkActionKey)
+            player?.isInvulnerable = false
+            player?.alpha = 1.0
+        }
+        player.run(.sequence([
+            .wait(forDuration: totalDuration),
+            restore
+        ]), withKey: GameConfig.taiwanTripInvulnerableActionKey)
     }
 }

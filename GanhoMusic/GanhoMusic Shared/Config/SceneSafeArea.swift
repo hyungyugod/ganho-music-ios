@@ -24,4 +24,20 @@ enum SceneSafeArea {
     static func insets(for scene: SKScene) -> UIEdgeInsets {
         return scene.view?.safeAreaInsets ?? .zero
     }
+
+    /// 실제 safe area에 가상 콘텐츠 폭 제한을 더한다.
+    /// iPad 넓은 화면에서 메뉴/결과/기록 화면 요소가 좌우 끝으로 흩어지지 않도록 한다.
+    static func contentInsets(for scene: SKScene, maxContentWidth: CGFloat) -> UIEdgeInsets {
+        let base = insets(for: scene)
+        guard maxContentWidth > 0 else { return base }
+
+        let safeContentWidth = max(0, scene.size.width - base.left - base.right)
+        let extraHorizontal = max(0, (safeContentWidth - maxContentWidth) / 2)
+        return UIEdgeInsets(
+            top: base.top,
+            left: base.left + extraHorizontal,
+            bottom: base.bottom,
+            right: base.right + extraHorizontal
+        )
+    }
 }

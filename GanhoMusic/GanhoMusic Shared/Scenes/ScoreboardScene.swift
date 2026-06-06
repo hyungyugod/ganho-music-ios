@@ -16,6 +16,7 @@
 //
 
 import SpriteKit
+import UIKit
 
 /// 캐릭터·난이도별 최고점수 매트릭스 씬. ResultScene의 "기록 보기" 탭으로만 진입.
 /// 노드 트리는 didMove에서 한 번에 구성하고, 좌표는 layoutAll()에서 재계산(didChangeSize 흡수).
@@ -294,27 +295,28 @@ final class ScoreboardScene: SKScene {
     /// 매트릭스 컨테이너의 position은 .zero(또는 무관)로 두고 자식 노드들의 position만 갱신한다.
     private func layoutAll() {
         gradientBg?.position = CGPoint(x: frame.midX, y: frame.midY)
+        let centerX = scoreboardSafeCenterX()
 
         // V4 — 타이틀 zone(타이틀·부제)을 +40pt 상향해 매트릭스 zone과 분리.
         // AccentLine은 V3 위치(+130)에서 -40 = +90으로 내려 *타이틀 아래 + 헤더 위* 시각 구분선 역할.
         accentLine.position = CGPoint(
-            x: frame.midX,
+            x: centerX,
             y: frame.midY + GameConfig.scoreboardAccentLineOffsetY
                           - GameConfig.scoreboardTitleYOffsetV4
         )
         titleLabel.position = CGPoint(
-            x: frame.midX,
+            x: centerX,
             y: frame.midY + GameConfig.scoreboardTitleOffsetY
                           + GameConfig.scoreboardTitleYOffsetV4
         )
         subtitleLabel.position = CGPoint(
-            x: frame.midX,
+            x: centerX,
             y: frame.midY + GameConfig.scoreboardSubtitleOffsetY
                           + GameConfig.scoreboardTitleYOffsetV4
         )
 
         // 백 버튼 / 브레드크럼 — safe area를 흡수해 노치/Dynamic Island 회피.
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = scoreboardSafeInsets()
         let topY = frame.maxY - safe.top - GameConfig.scoreboardBackButtonInsetY
         let leftX = frame.minX + safe.left + GameConfig.scoreboardBackButtonInsetX
         backButton?.position = CGPoint(
@@ -333,7 +335,7 @@ final class ScoreboardScene: SKScene {
         let lastRowCenterY = dataRowCenterY(row: GameConfig.scoreboardMatrixRowCount - 1)
         let lastRowBottomY = lastRowCenterY - GameConfig.scoreboardCellHeight / 2
         statLabel.position = CGPoint(
-            x: frame.midX,
+            x: centerX,
             y: lastRowBottomY - GameConfig.scoreboardStatBottomGapV6
         )
 
@@ -402,7 +404,7 @@ final class ScoreboardScene: SKScene {
 
     /// 매트릭스 좌상단 (시각 기준 origin) 의 씬 좌표.
     private var matrixOriginX: CGFloat {
-        return frame.midX - matrixTotalWidth / 2
+        return scoreboardSafeCenterX() - matrixTotalWidth / 2
     }
     private var matrixOriginTopY: CGFloat {
         // V6 — 매트릭스 zone -30pt 시프트. 부제(midY+112)와 열 헤더(midY+110) 겹침 해소.
@@ -456,6 +458,20 @@ final class ScoreboardScene: SKScene {
             - GameConfig.scoreboardHeaderRowGapV4
         return firstDataRowTop - GameConfig.scoreboardCellHeight / 2
             - CGFloat(row) * GameConfig.scoreboardCellPitchYV4
+    }
+
+    private func scoreboardSafeInsets() -> UIEdgeInsets {
+        let profile = DeviceLayoutProfile.resolve(for: self)
+        return SceneSafeArea.contentInsets(
+            for: self,
+            maxContentWidth: profile.scoreboardMaxContentWidth
+        )
+    }
+
+    private func scoreboardSafeCenterX() -> CGFloat {
+        let safe = scoreboardSafeInsets()
+        let availableWidth = size.width - safe.left - safe.right
+        return frame.minX + safe.left + availableWidth / 2
     }
 
     // MARK: - Touch

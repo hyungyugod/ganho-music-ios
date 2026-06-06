@@ -58,7 +58,7 @@ struct CharacterHomeSnapshot {
     }
 
     var isAppleLinked: Bool {
-        return authProfile?.providerIDs.contains(GameConfig.authAppleProviderID) ?? false
+        return authProfile?.isAppleLinked ?? false
     }
 
     var accountStatusText: String {
@@ -72,12 +72,11 @@ struct CharacterHomeSnapshot {
     }
 
     var profileNameText: String {
-        if isAppleLinked {
-            let trimmed = authProfile?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let name = trimmed, !name.isEmpty else {
-                return GameConfig.characterHomeAppleFallbackNameText
-            }
+        if let name = authProfile?.preferredDisplayName {
             return name
+        }
+        if isAppleLinked {
+            return GameConfig.characterHomeAppleFallbackNameText
         }
         if isAnonymous {
             return GameConfig.characterHomeGuestNameText
@@ -93,6 +92,27 @@ struct CharacterHomeSnapshot {
             return GameConfig.characterHomeGuestProfileSubText
         }
         return GameConfig.characterHomeLocalProfileSubText
+    }
+
+    var profileDetailIdentityText: String {
+        var lines: [String] = []
+        if let nickname = trimmedNonEmpty(authProfile?.nickname) {
+            lines.append("\(GameConfig.profileDetailNicknamePrefixText) \(nickname)")
+        }
+        if let displayName = trimmedNonEmpty(authProfile?.displayName) {
+            lines.append("\(GameConfig.profileDetailDisplayNamePrefixText) \(displayName)")
+        }
+        if lines.isEmpty {
+            lines.append(profileNameText)
+        }
+        lines.append(profileSubText)
+        return lines.joined(separator: "\n")
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed = trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     // MARK: - Progress

@@ -34,12 +34,17 @@ extension GameScene {
         guard pauseOverlay == nil, gameState == .playing else { return }
         gameState = .paused
         player.currentDirection = .zero
+        player.isRunning = false
         player.physicsBody?.velocity = .zero
         pauseStoredDPadInteractionEnabled = dpad.isUserInteractionEnabled
         pauseStoredSkillInteractionEnabled = skillButton.isUserInteractionEnabled
+        pauseStoredRunInteractionEnabled = runButton.isUserInteractionEnabled
         dpad.resetDirection()
+        resetMovementInput()
+        runButton.resetPressedState()
         dpad.isUserInteractionEnabled = false
         skillButton.isUserInteractionEnabled = false
+        runButton.isUserInteractionEnabled = false
         worldNode.isPaused = true
         physicsWorld.speed = 0
 
@@ -96,8 +101,11 @@ extension GameScene {
         worldNode.isPaused = false
         physicsWorld.speed = 1
         dpad.resetDirection()
+        resetMovementInput()
+        runButton.resetPressedState()
         dpad.isUserInteractionEnabled = pauseStoredDPadInteractionEnabled
         skillButton.isUserInteractionEnabled = pauseStoredSkillInteractionEnabled
+        runButton.isUserInteractionEnabled = pauseStoredRunInteractionEnabled
         lastUpdateTime = 0
         gameState = .playing
     }
@@ -117,14 +125,18 @@ extension GameScene {
         spawnSystem.stop()
         professor?.stopThrowing(worldNode: worldNode)
         dpad.resetDirection()
+        resetMovementInput()
+        runButton.resetPressedState()
         dpad.isUserInteractionEnabled = pauseStoredDPadInteractionEnabled
         skillButton.isUserInteractionEnabled = pauseStoredSkillInteractionEnabled
+        runButton.isUserInteractionEnabled = pauseStoredRunInteractionEnabled
         player.currentDirection = .zero
+        player.isRunning = false
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero
 
         guard let view = self.view else { return }
-        let scene = StartScene.newStartScene()
+        let scene = CharacterSelectScene.newCharacterSelectScene()
         view.presentScene(scene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
     }
 
@@ -140,6 +152,9 @@ extension GameScene {
         spawnSystem.stop()
         professor?.stopThrowing(worldNode: worldNode)
         player.currentDirection = .zero
+        player.isRunning = false
+        resetMovementInput()
+        runButton.resetPressedState()
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero
         hud.update(score: scoreSystem.score, remainingTime: 0, combo: 0)

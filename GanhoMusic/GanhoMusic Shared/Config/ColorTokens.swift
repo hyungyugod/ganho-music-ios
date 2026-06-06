@@ -16,7 +16,19 @@ extension UIColor {
     static let ganhoBgDeep = UIColor(named: "bgDeep")
         ?? UIColor(red: 0x1A / 255, green: 0x1B / 255, blue: 0x2E / 255, alpha: 1)
 
+    /// 배경 패턴, 그림자. HEX #2C2E4A. assets.md §1 16색 팔레트.
+    static let ganhoBgMid = UIColor(named: "bgMid")
+        ?? UIColor(red: 0x2C / 255, green: 0x2E / 255, blue: 0x4A / 255, alpha: 1)
+
+    /// 바닥 타일. HEX #494E78. assets.md §1 16색 팔레트.
+    static let ganhoBgLight = UIColor(named: "bgLight")
+        ?? UIColor(red: 0x49 / 255, green: 0x4E / 255, blue: 0x78 / 255, alpha: 1)
+
     // MARK: - Text / Player
+    /// 외곽선. HEX #0F0F1A. assets.md §1 16색 팔레트.
+    static let ganhoInkBlack = UIColor(named: "inkBlack")
+        ?? UIColor(red: 0x0F / 255, green: 0x0F / 255, blue: 0x1A / 255, alpha: 1)
+
     /// 김간호 가운 / HUD 텍스트. HEX #F4F1DE
     static let ganhoPaper = UIColor(named: "paperWhite")
         ?? UIColor(red: 0xF4 / 255, green: 0xF1 / 255, blue: 0xDE / 255, alpha: 1)
@@ -44,6 +56,22 @@ extension UIColor {
     /// F 투사체. HEX #FFD23F. assets.md §1 yellowF.
     static let ganhoYellowF = UIColor(named: "yellowF")
         ?? UIColor(red: 0xFF / 255, green: 0xD2 / 255, blue: 0x3F / 255, alpha: 1)
+
+    /// S 등급 강조 / 콤보 4× 이상. HEX #E0B872. assets.md §1 goldRank.
+    static let ganhoGoldRank = UIColor(named: "goldRank")
+        ?? UIColor(red: 0xE0 / 255, green: 0xB8 / 255, blue: 0x72 / 255, alpha: 1)
+
+    /// 박자 강박 표시 / Shield 보유. HEX #3DA9FC. assets.md §1 cyanBeat.
+    static let ganhoCyanBeat = UIColor(named: "cyanBeat")
+        ?? UIColor(red: 0x3D / 255, green: 0xA9 / 255, blue: 0xFC / 255, alpha: 1)
+
+    /// 비활성 텍스트. HEX #6C6C7A. assets.md §1 dimGray.
+    static let ganhoDimGray = UIColor(named: "dimGray")
+        ?? UIColor(red: 0x6C / 255, green: 0x6C / 255, blue: 0x7A / 255, alpha: 1)
+
+    /// 그림자. HEX #000000 40% alpha. assets.md §1 softShadow 예외 토큰.
+    static let ganhoSoftShadow = UIColor(named: "softShadow")
+        ?? UIColor.black.withAlphaComponent(0.4)
 
     // MARK: - Pixel Palette (Phase 8-1)
     // 원본 web game (game.js L645-655 common 9키 + L657-692 charMap 4종)의 hex 값을

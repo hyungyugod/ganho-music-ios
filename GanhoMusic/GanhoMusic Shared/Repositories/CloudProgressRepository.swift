@@ -47,6 +47,14 @@ final class CloudProgressRepository {
         try await commit(batch: batch)
     }
 
+    func saveProfile(profile: AuthProfileSnapshot) async throws {
+        try await setData(
+            userData(profile: profile),
+            for: userDocument(uid: profile.uid),
+            merge: true
+        )
+    }
+
     // MARK: - Read
     func fetchProgress(uid: String) async throws -> CloudProgressSnapshot? {
         let progressDocument = userDocument(uid: uid)
@@ -91,6 +99,13 @@ final class CloudProgressRepository {
         ]
         if let displayName = profile.displayName {
             data["displayName"] = displayName
+        } else {
+            data["displayName"] = FieldValue.delete()
+        }
+        if let nickname = profile.nickname {
+            data["nickname"] = nickname
+        } else {
+            data["nickname"] = FieldValue.delete()
         }
         return data
     }
@@ -183,6 +198,20 @@ final class CloudProgressRepository {
     private func commit(batch: WriteBatch) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             batch.commit { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume()
+            }
+        }
+    }
+
+    private func setData(_ data: [String: Any],
+                         for document: DocumentReference,
+                         merge: Bool) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            document.setData(data, merge: merge) { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                     return

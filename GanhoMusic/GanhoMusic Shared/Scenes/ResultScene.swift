@@ -64,7 +64,7 @@ private struct ResultLayoutMetrics {
 /// 게임 종료 후 결과를 보여주는 독립 씬.
 /// `finalScore`/`bestScore`/`isNewBest`는 init 주입으로 박혀(`let`) 변조 불가.
 /// 신기록이면 "✨ NEW BEST! ✨", 아니면 "실습 종료"으로 분기 표시 (Sprint 5 v2).
-/// 표시 후 탭 1회 → StartScene fade.
+/// 표시 후 명시 버튼 탭으로 다음 씬 전환.
 /// TitleScene과 동일한 라벨/팩토리/터치 패턴을 답습.
 final class ResultScene: SKScene {
 
@@ -912,7 +912,7 @@ final class ResultScene: SKScene {
         // Sprint 7+ — safeArea.bottom 회피로 교체.
         // 기존 resultButtonOffsetYV2(-180)는 값 보존 — 다른 곳 참조 가능성.
         // frame.midY + offset 식은 디바이스에 따라 두 버튼이 잘렸다.
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         let scale = resultButtonScale()
         shareButton?.setScale(scale)
         scoreboardButton?.setScale(scale)
@@ -955,7 +955,7 @@ final class ResultScene: SKScene {
     }
 
     private func resultPanelSize() -> CGSize {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         let scale = resultCompactScale()
         let availableWidth = size.width
             - safe.left
@@ -993,7 +993,7 @@ final class ResultScene: SKScene {
     }
 
     private func resultPanelBottomBound() -> CGFloat {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         let buttonScale = resultButtonScale()
         let buttonTopY = frame.minY
             + safe.bottom
@@ -1003,12 +1003,12 @@ final class ResultScene: SKScene {
     }
 
     private func resultPanelTopBound() -> CGFloat {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         return frame.maxY - safe.top - GameConfig.resultWidePanelVerticalPaddingV7
     }
 
     private func resultSafeCenterX() -> CGFloat {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         let availableWidth = size.width - safe.left - safe.right
         return frame.minX + safe.left + availableWidth / 2
     }
@@ -1031,7 +1031,7 @@ final class ResultScene: SKScene {
     }
 
     private func resultButtonScale() -> CGFloat {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = resultSafeInsets()
         let availableWidth = size.width
             - safe.left
             - safe.right
@@ -1058,6 +1058,14 @@ final class ResultScene: SKScene {
 
     private func resultButtonGap(scale: CGFloat) -> CGFloat {
         return GameConfig.resultWideButtonGapV7 * scale
+    }
+
+    private func resultSafeInsets() -> UIEdgeInsets {
+        let profile = DeviceLayoutProfile.resolve(for: self)
+        return SceneSafeArea.contentInsets(
+            for: self,
+            maxContentWidth: profile.resultMaxContentWidth
+        )
     }
 
     // MARK: - Touch
@@ -1094,18 +1102,18 @@ final class ResultScene: SKScene {
         }
 
         if let pill = mainButton, pill.contains(location) {
-            transitionToStart(in: view)
+            transitionToCharacterHome(in: view)
             return
         }
 
         return
     }
 
-    private func transitionToStart(in view: SKView) {
+    private func transitionToCharacterHome(in view: SKView) {
         isTransitioning = true
-        let startScene = StartScene.newStartScene()
+        let characterHome = CharacterSelectScene.newCharacterSelectScene()
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
-        view.presentScene(startScene, transition: fade)
+        view.presentScene(characterHome, transition: fade)
     }
 
     private func transitionToScoreboard(in view: SKView) {

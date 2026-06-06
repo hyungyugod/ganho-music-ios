@@ -20,34 +20,47 @@ enum CharacterUnlockRules {
     }
 
     static func isUnlocked(_ id: CharacterID,
-                           graduations: [CharacterID: Date]) -> Bool {
+                           graduations: [CharacterID: Date],
+                           scores: [CharacterID: [Difficulty: Int]]) -> Bool {
         guard let previous = previousCharacter(for: id) else { return true }
-        return graduations[previous] != nil
+        if graduations[previous] != nil { return true }
+        return bestUnlockScore(for: previous, scores: scores) >= GameConfig.characterUnlockRequiredScore
     }
 
     static func state(for id: CharacterID,
-                      graduations: [CharacterID: Date]) -> CharacterUnlockState {
+                      graduations: [CharacterID: Date],
+                      scores: [CharacterID: [Difficulty: Int]]) -> CharacterUnlockState {
         guard let previous = previousCharacter(for: id) else {
             return .unlocked(id)
         }
         if graduations[previous] != nil {
             return .unlocked(id)
         }
+        if bestUnlockScore(for: previous, scores: scores) >= GameConfig.characterUnlockRequiredScore {
+            return .unlocked(id)
+        }
         return .locked(id, requiredCharacterID: previous)
     }
 
-    static func states(graduations: [CharacterID: Date]) -> [CharacterID: CharacterUnlockState] {
+    static func states(graduations: [CharacterID: Date],
+                       scores: [CharacterID: [Difficulty: Int]]) -> [CharacterID: CharacterUnlockState] {
         var result: [CharacterID: CharacterUnlockState] = [:]
         for id in CharacterID.allCases {
-            result[id] = state(for: id, graduations: graduations)
+            result[id] = state(for: id, graduations: graduations, scores: scores)
         }
         return result
     }
 
-    static func firstUnlockedCharacter(graduations: [CharacterID: Date]) -> CharacterID {
-        for id in CharacterID.allCases where isUnlocked(id, graduations: graduations) {
+    static func firstUnlockedCharacter(graduations: [CharacterID: Date],
+                                       scores: [CharacterID: [Difficulty: Int]]) -> CharacterID {
+        for id in CharacterID.allCases where isUnlocked(id, graduations: graduations, scores: scores) {
             return id
         }
         return .kim
+    }
+
+    private static func bestUnlockScore(for characterID: CharacterID,
+                                        scores: [CharacterID: [Difficulty: Int]]) -> Int {
+        return scores[characterID]?.values.max() ?? 0
     }
 }

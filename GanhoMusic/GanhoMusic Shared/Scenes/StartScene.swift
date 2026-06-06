@@ -33,14 +33,19 @@ final class StartScene: BaseMenuScene {
     private var musicNoteEmitter: MusicNoteEmitterNode?
     /// Sprint 6 — 좌측 김간호 큰 그림. SKShapeNode 컨테이너. didChangeSize에서 재배치.
     private var nurseAvatar: NurseAvatarNode?
+    private var accountChip: GlassPillNode?
+    private var currentAuthProfile: AuthProfileSnapshot?
+    private var authStateReady = false
+    private var shouldOpenLoginChoiceOnEntry = false
     private var loginChoiceOverlay: LoginChoiceOverlayNode?
     private var isLoginRequestInFlight = false
 
     // MARK: - Factory
     /// TitleScene.newTitleScene과 동일 패턴. .resizeFill로 view 크기에 자동 맞춤.
-    class func newStartScene() -> StartScene {
+    class func newStartScene(openLoginChoiceOnEntry: Bool = false) -> StartScene {
         let scene = StartScene(size: CGSize(width: 1024, height: 768))
         scene.scaleMode = .resizeFill
+        scene.shouldOpenLoginChoiceOnEntry = openLoginChoiceOnEntry
         return scene
     }
 
@@ -53,7 +58,9 @@ final class StartScene: BaseMenuScene {
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
         setupNurseAvatar()                    // Sprint 6 — 좌측 김간호 큰 그림.
         setupStartButton()
+        setupAccountChip()
         attachStartButtonPulse()              // Phase 10-2 — 시작 버튼 호흡 pulse
+        loadInitialAuthState()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -65,6 +72,7 @@ final class StartScene: BaseMenuScene {
         layoutTitleBlock()
         layoutNurseAvatar()                   // Sprint 6.
         layoutStartButton()
+        layoutAccountChip()
     }
 
     /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
@@ -254,15 +262,138 @@ final class StartScene: BaseMenuScene {
             handleLoginChoiceAction(overlay.action(at: location))
             return
         }
+        if canUseAppleLinkedSession, accountChip?.contains(location) == true {
+            transitionToCharacterSelect(openProfileOnEntry: true)
+            return
+        }
         if startButton.contains(location) {
-            showLoginChoiceOverlay()
+            resolveStartButtonTap()
+        }
+    }
+
+    // MARK: - Auth Session
+    private var canUseAppleLinkedSession: Bool {
+        return authStateReady && currentAuthProfile?.isAppleLinked == true
+    }
+
+    private func loadInitialAuthState() {
+        currentAuthProfile = nil
+        authStateReady = false
+        refreshAccountChip()
+        if shouldOpenLoginChoiceOnEntry {
+            showLoginChoiceOverlay(
+                mode: .busy,
+                statusText: GameConfig.loginChoiceCheckingAccountText
+            )
+        }
+
+        Task { [weak self] in
+            let profile = await FirebaseAuthManager.shared.waitForInitialAuthState()
+            await MainActor.run {
+                guard let self = self, !self.isTransitioning else { return }
+                self.authStateReady = true
+                self.currentAuthProfile = profile
+                self.refreshAccountChip()
+                self.resolveLoginChoiceOnEntryIfNeeded()
+            }
+        }
+    }
+
+    private func resolveStartButtonTap() {
+        guard authStateReady else {
+            showLoginChoiceOverlay(
+                mode: .busy,
+                statusText: GameConfig.loginChoiceCheckingAccountText
+            )
+            waitForAuthStateThenResolveStart()
+            return
+        }
+
+        if currentAuthProfile?.isAppleLinked == true {
+            transitionToCharacterSelect(
+                openProfileOnEntry: currentAuthProfile?.needsNicknameSetup == true
+            )
+            return
+        }
+
+        showLoginChoiceOverlay()
+    }
+
+    private func waitForAuthStateThenResolveStart() {
+        Task { [weak self] in
+            let profile = await FirebaseAuthManager.shared.waitForInitialAuthState()
+            await MainActor.run {
+                guard let self = self, !self.isTransitioning else { return }
+                self.authStateReady = true
+                self.currentAuthProfile = profile
+                self.refreshAccountChip()
+                if self.canUseAppleLinkedSession {
+                    self.transitionToCharacterSelect(
+                        openProfileOnEntry: profile?.needsNicknameSetup == true
+                    )
+                } else {
+                    self.loginChoiceOverlay?.setMode(.idle, statusText: "")
+                }
+            }
+        }
+    }
+
+    private func resolveLoginChoiceOnEntryIfNeeded() {
+        guard shouldOpenLoginChoiceOnEntry else { return }
+        shouldOpenLoginChoiceOnEntry = false
+        showLoginChoiceOverlay()
+    }
+
+    // MARK: - Account Chip
+    private func setupAccountChip() {
+        let chip = GlassPillNode(
+            text: GameConfig.authLinkedStatusText,
+            size: CGSize(
+                width: GameConfig.startSceneAccountChipWidth,
+                height: GameConfig.startSceneAccountChipHeight
+            )
+        )
+        chip.zPosition = GameConfig.characterHomeButtonZPosition
+        chip.isHidden = true
+        accountChip = chip
+        addChild(chip)
+        layoutAccountChip()
+    }
+
+    private func layoutAccountChip() {
+        let safe = menuSafeInsets()
+        accountChip?.position = CGPoint(
+            x: frame.maxX
+                - safe.right
+                - GameConfig.startSceneAccountChipRightInset
+                - GameConfig.startSceneAccountChipWidth / 2,
+            y: frame.maxY
+                - safe.top
+                - GameConfig.startSceneAccountChipTopInset
+                - GameConfig.startSceneAccountChipHeight / 2
+        )
+    }
+
+    private func refreshAccountChip() {
+        if canUseAppleLinkedSession {
+            accountChip?.setText(GameConfig.authLinkedStatusText)
+            accountChip?.isHidden = false
+        } else {
+            accountChip?.isHidden = true
         }
     }
 
     // MARK: - Login Choice
-    private func showLoginChoiceOverlay() {
-        guard loginChoiceOverlay == nil else { return }
-        let overlay = LoginChoiceOverlayNode(sceneSize: size)
+    private func showLoginChoiceOverlay(mode: LoginChoiceOverlayMode = .idle,
+                                        statusText: String = "") {
+        if let overlay = loginChoiceOverlay {
+            overlay.setMode(mode, statusText: statusText)
+            return
+        }
+        let overlay = LoginChoiceOverlayNode(sceneSize: size, mode: mode)
+        if !statusText.isEmpty {
+            overlay.setMode(mode, statusText: statusText)
+        }
         loginChoiceOverlay = overlay
         addChild(overlay)
     }
@@ -306,7 +437,7 @@ final class StartScene: BaseMenuScene {
                 self.isLoginRequestInFlight = false
                 switch result {
                 case .success:
-                    self.transitionToCharacterSelect()
+                    self.transitionToCharacterSelect(openProfileOnEntry: false)
                 case .cancelled, .failure(_):
                     self.loginChoiceOverlay?.setMode(
                         .idle,
@@ -334,7 +465,10 @@ final class StartScene: BaseMenuScene {
                 self.isLoginRequestInFlight = false
                 switch result {
                 case .success:
-                    self.transitionToCharacterSelect()
+                    self.currentAuthProfile = AuthProfileRepository().current
+                    self.transitionToCharacterSelect(
+                        openProfileOnEntry: self.currentAuthProfile?.needsNicknameSetup == true
+                    )
                 case .cancelled:
                     self.loginChoiceOverlay?.setMode(
                         .idle,
@@ -354,6 +488,10 @@ final class StartScene: BaseMenuScene {
         switch error {
         case .some(.appleAuthorizationTimedOut):
             return GameConfig.loginChoiceAppleTimeoutText
+        case .some(.appleConfigurationFailed):
+            return GameConfig.loginChoiceAppleConfigurationText
+        case .some(.appleCredentialRejected):
+            return GameConfig.loginChoiceAppleCredentialText
         default:
             return GameConfig.loginChoiceFailureText
         }
@@ -363,7 +501,7 @@ final class StartScene: BaseMenuScene {
     /// Sprint 6 — 난이도 인자 전달 제거. CharacterSelectScene.newCharacterSelectScene()을 *인자 없이* 호출.
     /// Phase 10-2 — *게임플레이 동작 불변* — presentScene 대상, sceneTransitionDuration 모두 그대로.
     /// 타이틀/시작버튼/NurseAvatar 슬라이드업 + fade-out *prelude*만 추가.
-    private func transitionToCharacterSelect() {
+    private func transitionToCharacterSelect(openProfileOnEntry: Bool) {
         guard let view = self.view else { return }
         isTransitioning = true
         hideLoginChoiceOverlay()
@@ -396,7 +534,9 @@ final class StartScene: BaseMenuScene {
         let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
         let present = SKAction.run { [weak view] in
             guard let view = view else { return }
-            let nextScene = CharacterSelectScene.newCharacterSelectScene()
+            let nextScene = CharacterSelectScene.newCharacterSelectScene(
+                openProfileOnEntry: openProfileOnEntry
+            )
             let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
             view.presentScene(nextScene, transition: fade)
         }

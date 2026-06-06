@@ -14,6 +14,7 @@ enum AccountMenuOverlayMode {
 }
 
 enum AccountMenuAction {
+    case linkApple
     case signOut
     case requestDeleteConfirmation
     case confirmDelete
@@ -27,6 +28,13 @@ final class AccountMenuOverlayNode: SKNode {
     private let panelNode = SKShapeNode()
     private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let bodyLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let appleButton = GlassPillNode(
+        text: GameConfig.authAppleButtonText,
+        size: CGSize(
+            width: GameConfig.accountMenuButtonWidth,
+            height: GameConfig.accountMenuButtonHeight
+        )
+    )
     private let signOutButton = GlassPillNode(
         text: GameConfig.accountMenuSignOutText,
         size: CGSize(
@@ -74,8 +82,8 @@ final class AccountMenuOverlayNode: SKNode {
         dimNode.zPosition = GameConfig.accountMenuDimZPosition
         addChild(dimNode)
 
-        panelNode.fillColor = UIColor.white.withAlphaComponent(GameConfig.accountMenuPanelFillAlpha)
-        panelNode.strokeColor = UIColor.white.withAlphaComponent(GameConfig.accountMenuPanelStrokeAlpha)
+        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.accountMenuPanelFillAlpha)
+        panelNode.strokeColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.accountMenuPanelStrokeAlpha)
         panelNode.lineWidth = GameConfig.accountMenuPanelLineWidth
         panelNode.zPosition = GameConfig.accountMenuPanelZPosition
         addChild(panelNode)
@@ -96,10 +104,14 @@ final class AccountMenuOverlayNode: SKNode {
         bodyLabel.zPosition = GameConfig.accountMenuLabelZPosition
         addChild(bodyLabel)
 
-        [signOutButton, deleteButton, cancelButton].forEach { button in
+        [appleButton, signOutButton, deleteButton, cancelButton].forEach { button in
             button.zPosition = GameConfig.accountMenuButtonZPosition
             addChild(button)
         }
+
+        // 계정 삭제만 destructive 톤(딥코랄 + 흰 글자)으로 위험 액션을 시각 분리.
+        // setText(_:)가 fontColor 미변경이라 confirmDelete 모드("삭제")에서도 톤 유지.
+        deleteButton.applyDestructiveStyle()
     }
 
     // MARK: - Update
@@ -158,6 +170,7 @@ final class AccountMenuOverlayNode: SKNode {
             bodyLabel.text = isAppleLinked
                 ? GameConfig.accountMenuLinkedBodyText
                 : GameConfig.accountMenuGuestBodyText
+            appleButton.setText(GameConfig.authAppleButtonText)
             deleteButton.setText(GameConfig.accountMenuDeleteText)
         case .confirmDelete:
             titleLabel.text = GameConfig.accountMenuConfirmTitleText
@@ -203,13 +216,14 @@ final class AccountMenuOverlayNode: SKNode {
         }
 
         return [
+            (node: appleButton, width: GameConfig.accountMenuButtonWidth),
             (node: deleteButton, width: GameConfig.accountMenuButtonWidth),
             (node: cancelButton, width: GameConfig.accountMenuCancelButtonWidth)
         ]
     }
 
     private func setButtonsHidden(buttonsToShow: [GlassPillNode]) {
-        let allButtons = [signOutButton, deleteButton, cancelButton]
+        let allButtons = [appleButton, signOutButton, deleteButton, cancelButton]
         allButtons.forEach { button in
             button.isHidden = !buttonsToShow.contains(where: { $0 === button })
         }
@@ -243,6 +257,9 @@ final class AccountMenuOverlayNode: SKNode {
         }
         if deleteButton.contains(localLocation) {
             return mode == .confirmDelete ? .confirmDelete : .requestDeleteConfirmation
+        }
+        if !appleButton.isHidden, appleButton.contains(localLocation) {
+            return .linkApple
         }
         if !signOutButton.isHidden, signOutButton.contains(localLocation) {
             return .signOut

@@ -9,6 +9,7 @@ import AuthenticationServices
 import CryptoKit
 import Foundation
 import FirebaseAuth
+import OSLog
 import Security
 
 extension Notification.Name {
@@ -41,6 +42,9 @@ final class FirebaseAuthManager: NSObject {
     private var appleAuthorizationController: ASAuthorizationController?
     private var appleTimeoutTask: Task<Void, Never>?
     private var appleAuthorizationFlowID: UUID?
+    private var hasReceivedInitialAuthState = false
+    private var initialAuthContinuations: [CheckedContinuation<AuthProfileSnapshot?, Never>] = []
+    private let logger = Logger(subsystem: "GanhoMusic", category: "AuthProfile")
 
     // MARK: - Auth State
     func startObserving() {
@@ -52,8 +56,29 @@ final class FirebaseAuthManager: NSObject {
             } else {
                 self.profileRepository.clear()
             }
+            self.resolveInitialAuthStateIfNeeded()
             NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
         }
+    }
+
+    func waitForInitialAuthState() async -> AuthProfileSnapshot? {
+        startObserving()
+        if hasReceivedInitialAuthState {
+            return profileRepository.current
+        }
+
+        return await withCheckedContinuation { continuation in
+            if hasReceivedInitialAuthState {
+                continuation.resume(returning: profileRepository.current)
+            } else {
+                initialAuthContinuations.append(continuation)
+            }
+        }
+    }
+
+    func ensureLaunchSession() async -> User? {
+        _ = await waitForInitialAuthState()
+        return await ensureAnonymousSession()
     }
 
     func ensureAnonymousSession() async -> User? {
@@ -68,6 +93,17 @@ final class FirebaseAuthManager: NSObject {
             return result.user
         } catch {
             return nil
+        }
+    }
+
+    private func resolveInitialAuthStateIfNeeded() {
+        guard !hasReceivedInitialAuthState else { return }
+        hasReceivedInitialAuthState = true
+        let snapshot = profileRepository.current
+        let continuations = initialAuthContinuations
+        initialAuthContinuations.removeAll()
+        continuations.forEach { continuation in
+            continuation.resume(returning: snapshot)
         }
     }
 
@@ -110,6 +146,49 @@ final class FirebaseAuthManager: NSObject {
     }
 
     // MARK: - Account Actions
+    func updateProfileName(displayName: String?,
+                           nickname: String?,
+                           isNicknameRequired: Bool = false) async -> AccountActionResult {
+        guard let user = await ensureAnonymousSession() else {
+            NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
+            return .failure(nil)
+        }
+
+        let sanitizedNickname = sanitizedOptionalText(nickname)
+        guard isValidNickname(sanitizedNickname, isRequired: isNicknameRequired) else {
+            NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
+            return .failure(nil)
+        }
+
+        let sanitizedDisplayName = sanitizedOptionalText(displayName)
+        let currentDisplayName = sanitizedOptionalText(user.displayName)
+        if sanitizedDisplayName != currentDisplayName {
+            let changeRequest = user.createProfileChangeRequest()
+            changeRequest.displayName = sanitizedDisplayName
+            do {
+                try await changeRequest.commitChanges()
+            } catch {
+                logger.warning("Firebase displayName update deferred: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
+        let snapshot = profileRepository.saveProfile(
+            uid: user.uid,
+            isAnonymous: user.isAnonymous,
+            displayName: sanitizedDisplayName,
+            nickname: sanitizedNickname,
+            providerIDs: user.providerData.map { $0.providerID }
+        )
+        NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
+
+        do {
+            try await CloudProgressRepository().saveProfile(profile: snapshot)
+        } catch {
+            logger.warning("Profile cloud sync deferred after local save: \(error.localizedDescription, privacy: .public)")
+        }
+        return .success
+    }
+
     func signOutToGuestSession() async -> AccountActionResult {
         do {
             try Auth.auth().signOut()
@@ -243,7 +322,12 @@ final class FirebaseAuthManager: NSObject {
     }
 
     private func authError(from error: Error) -> AuthError? {
-        return error as? AuthError
+        if let authError = error as? AuthError {
+            return authError
+        }
+        let nsError = error as NSError
+        guard let firebaseCode = AuthErrorCode(rawValue: nsError.code) else { return nil }
+        return AuthErrorMapper.appleAuthError(from: firebaseCode)
     }
 
     private func clearAppleFlowStateIfOwned(by flowID: UUID) {
@@ -286,6 +370,19 @@ final class FirebaseAuthManager: NSObject {
         applePresentationProvider = nil
         currentNonce = nil
         continuation.resume(with: result)
+    }
+
+    private func sanitizedOptionalText(_ text: String?) -> String? {
+        let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed = trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    private func isValidNickname(_ text: String?,
+                                 isRequired: Bool) -> Bool {
+        guard let text = text else { return !isRequired }
+        return text.count >= GameConfig.profileNicknameMinLength
+            && text.count <= GameConfig.profileNicknameMaxLength
     }
 }
 
@@ -350,6 +447,23 @@ private struct AppleAuthorizationPayload {
     let authorizationCodeString: String?
     let rawNonce: String
     let fullName: PersonNameComponents?
+}
+
+// MARK: - Firebase Auth Error Mapping
+private enum AuthErrorMapper {
+    static func appleAuthError(from code: AuthErrorCode) -> AuthError? {
+        switch code {
+        case .operationNotAllowed:
+            return .appleConfigurationFailed
+        case .invalidCredential,
+             .credentialAlreadyInUse,
+             .accountExistsWithDifferentCredential,
+             .providerAlreadyLinked:
+            return .appleCredentialRejected
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Nonce

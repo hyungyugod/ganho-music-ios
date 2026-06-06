@@ -17,7 +17,7 @@
 import SpriteKit
 
 /// 김간호 캐릭터. 외부(GameScene)가 매 프레임 currentDirection을 갱신해주면,
-/// update(deltaTime:)에서 PhysicsBody의 velocity로 이동 의도를 전달한다.
+/// update(deltaTime:)에서 수동 위치 이동과 벽 슬라이드를 적용한다.
 /// Phase 2-2 — SKPhysicsBody 부착 (1-1에서 정의된 PhysicsCategory가 드디어 활성화).
 /// Phase 8-1 — texture 모드 전환. physicsBody 크기는 *그대로* 16×20 — 게임 hitbox 회귀 0.
 ///             시각만 32×40pt로 확대(pixelSpriteScale=2) — 카메라 follow / 충돌 / 맵 경계 영향 0.
@@ -33,6 +33,17 @@ final class PlayerNode: SKSpriteNode {
     /// Phase 5-3 — 외부(GameScene)가 setupPlayer에서 주입하는 속도 배율.
     /// 기본 1.0이라 *주입 전*에도 안전(.kim과 동일 속도). update(deltaTime:)에서 곱셈으로 적용.
     var speedMultiplier: CGFloat = 1.0
+
+    /// RunButtonNode를 누르는 동안만 true. 기본은 걷기 속도다.
+    var isRunning: Bool = false
+
+    /// GameScene이 주입하는 벽 충돌 조회 클로저. true면 해당 rect는 점유 불가.
+    var wallCollisionProvider: ((CGRect) -> Bool)?
+    /// GameScene이 주입하는 벽 rect 조회 클로저. wall-slide overlap score 계산에 사용한다.
+    var wallRectProvider: ((CGRect) -> [CGRect])?
+
+    /// 이번 프레임에 실제 적용된 이동 속도. 픽셀 방향/걷기 애니메이션이 읽는다.
+    private(set) var movementVelocity: CGVector = .zero
 
     /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameConfig.playerBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
     /// update(deltaTime:)에서 speedMultiplier와 곱해져 최종 속도 산출.
@@ -109,7 +120,7 @@ final class PlayerNode: SKSpriteNode {
         body.restitution         = 0
         body.linearDamping       = 0
         body.categoryBitMask     = PhysicsCategory.player
-        body.collisionBitMask    = PhysicsCategory.wall
+        body.collisionBitMask    = PhysicsCategory.none
         body.contactTestBitMask  = PhysicsCategory.note
                                  | PhysicsCategory.enemy
                                  | PhysicsCategory.projectile
@@ -248,26 +259,319 @@ final class PlayerNode: SKSpriteNode {
     }
 
     // MARK: - Update (Movement)
-    /// 외부에서 매 프레임 호출. PhysicsBody의 velocity로 이동 의도 전달.
-    /// (Phase 2-2 — 1-3/1-4의 position 직접 변경 + 자체 클램프 패턴은 폐기.
-    ///  물리 엔진이 매 프레임 자동으로 위치 갱신 + 충돌 처리.)
-    /// - Parameter deltaTime: dt — 본 메서드는 미사용 (velocity 기반이라 엔진이 dt 처리).
-    ///   시그니처는 외부 호출부 호환 위해 보존.
-    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
+    /// 외부에서 매 프레임 호출. dt 기반 수동 이동 후 벽과 겹치면 축을 분리해 wall-slide를 적용한다.
     func update(deltaTime: TimeInterval) {
         // Phase 9-7 — 동결 가드. 청진기 피격 시 2초간 isFrozen=true → velocity 0으로 강제 정지 후 early return.
         // 함수 *최상단* 가드 — 기존 로직 전혀 도달하지 않도록 보장(주의사항 10).
         // 무적(isInvulnerable)과 독립 — 무적은 ContactRouter 콜백에서 freeze 호출 자체를 차단.
         if isFrozen {
             physicsBody?.velocity = .zero
+            movementVelocity = .zero
             return
         }
-        // Phase 7-1 — baseSpeedStart × speedMultiplier. easy default가 playerBaseSpeed(140)와 같아 회귀 0.
-        // 본 sprint는 *시작값만* — baseSpeedEnd는 다음 보강 sprint(주의사항 7).
-        let speed = baseSpeedStart * speedMultiplier
-        physicsBody?.velocity = CGVector(
+        guard deltaTime > 0 else {
+            physicsBody?.velocity = .zero
+            movementVelocity = .zero
+            return
+        }
+        let movementModeScale = isRunning
+            ? GameConfig.playerRunSpeedScale
+            : GameConfig.playerWalkSpeedScale
+        let speed = baseSpeedStart * speedMultiplier * movementModeScale
+        let velocity = CGVector(
             dx: currentDirection.dx * speed,
             dy: currentDirection.dy * speed
+        )
+        moveWithWallSlide(velocity: velocity, deltaTime: deltaTime)
+        physicsBody?.velocity = .zero
+    }
+
+    private func moveWithWallSlide(velocity: CGVector, deltaTime: TimeInterval) {
+        let delta = CGVector(
+            dx: velocity.dx * CGFloat(deltaTime),
+            dy: velocity.dy * CGFloat(deltaTime)
+        )
+        let start = resolvedPositionAfterWallRecovery(from: position, preferredDelta: delta)
+        guard abs(delta.dx) >= GameConfig.dpadInputSnapEpsilon
+            || abs(delta.dy) >= GameConfig.dpadInputSnapEpsilon else {
+            position = start
+            movementVelocity = .zero
+            return
+        }
+
+        let fullTarget = CGPoint(x: start.x + delta.dx, y: start.y + delta.dy)
+        if canOccupy(fullTarget) || canMoveWithoutWorseningOverlap(from: start, to: fullTarget) {
+            let resolved = resolvedPositionAfterWallRecovery(from: fullTarget, preferredDelta: delta)
+            position = resolved
+            movementVelocity = resolvedVelocity(from: start, to: resolved, deltaTime: deltaTime)
+            return
+        }
+
+        var nextPosition = start
+        var appliedDelta = CGVector.zero
+
+        let xTarget = CGPoint(x: start.x + delta.dx, y: start.y)
+        if canOccupy(xTarget) || canMoveWithoutWorseningOverlap(from: start, to: xTarget) {
+            nextPosition.x = xTarget.x
+            appliedDelta.dx = delta.dx
+        }
+
+        let yTarget = CGPoint(x: nextPosition.x, y: start.y + delta.dy)
+        if canOccupy(yTarget) || canMoveWithoutWorseningOverlap(from: nextPosition, to: yTarget) {
+            nextPosition.y = yTarget.y
+            appliedDelta.dy = delta.dy
+        }
+
+        let preferredRecoveryDelta = abs(appliedDelta.dx) >= GameConfig.dpadInputSnapEpsilon
+            || abs(appliedDelta.dy) >= GameConfig.dpadInputSnapEpsilon
+            ? appliedDelta
+            : delta
+        let resolved = resolvedPositionAfterWallRecovery(
+            from: nextPosition,
+            preferredDelta: preferredRecoveryDelta
+        )
+        position = resolved
+        if abs(appliedDelta.dx) < GameConfig.dpadInputSnapEpsilon
+            && abs(appliedDelta.dy) < GameConfig.dpadInputSnapEpsilon {
+            movementVelocity = resolvedVelocity(from: start, to: resolved, deltaTime: deltaTime)
+        } else {
+            movementVelocity = CGVector(
+                dx: appliedDelta.dx / CGFloat(deltaTime),
+                dy: appliedDelta.dy / CGFloat(deltaTime)
+            )
+        }
+    }
+
+    private func canOccupy(_ point: CGPoint) -> Bool {
+        let rect = wallQueryRect(centeredAt: point)
+        if wallRects(intersecting: rect).isEmpty == false {
+            return false
+        }
+        guard wallRectProvider == nil,
+              let wallCollisionProvider = wallCollisionProvider else {
+            return true
+        }
+        if wallCollisionProvider(rect) { return false }
+        return true
+    }
+
+    private func canMoveWithoutWorseningOverlap(from start: CGPoint,
+                                                to target: CGPoint) -> Bool {
+        let startScore = overlapScore(at: start)
+        guard startScore > GameConfig.playerWallRecoveryScoreEpsilon else { return false }
+        let targetScore = overlapScore(at: target)
+        guard targetScore <= startScore + GameConfig.playerWallSlideOverlapTolerance else {
+            return false
+        }
+        return doesMoveDeeperIntoWall(from: start, to: target) == false
+    }
+
+    private func resolvedPositionAfterWallRecovery(from point: CGPoint,
+                                                   preferredDelta: CGVector) -> CGPoint {
+        guard wallRectProvider != nil else { return point }
+        var resolved = point
+
+        for _ in 0..<GameConfig.playerWallRecoveryMaxIterations {
+            let currentScore = overlapScore(at: resolved)
+            guard currentScore > GameConfig.playerWallRecoveryScoreEpsilon else {
+                return resolved
+            }
+
+            guard let candidate = bestRecoveryCandidate(from: resolved,
+                                                        currentScore: currentScore,
+                                                        preferredDelta: preferredDelta) else {
+                return resolved
+            }
+            resolved = candidate
+        }
+
+        return resolved
+    }
+
+    private func bestRecoveryCandidate(from point: CGPoint,
+                                       currentScore: CGFloat,
+                                       preferredDelta: CGVector) -> CGPoint? {
+        let queryRect = wallQueryRect(centeredAt: point)
+        let wallRects = wallRects(intersecting: queryRect)
+        var bestPoint: CGPoint?
+        var bestScore = CGFloat.greatestFiniteMagnitude
+        var bestTangentPenalty = CGFloat.greatestFiniteMagnitude
+        var bestCorrectionDistance = CGFloat.greatestFiniteMagnitude
+
+        for wallRect in wallRects {
+            let intersection = queryRect.intersection(wallRect)
+            guard intersection.isNull == false,
+                  intersection.width > 0,
+                  intersection.height > 0 else {
+                continue
+            }
+
+            for offset in recoveryOffsets(
+                queryRect: queryRect,
+                wallRect: wallRect,
+                preferredDelta: preferredDelta
+            ) {
+                let candidate = CGPoint(x: point.x + offset.dx, y: point.y + offset.dy)
+                let score = overlapScore(at: candidate)
+                guard score < currentScore - GameConfig.playerWallRecoveryScoreEpsilon else {
+                    continue
+                }
+                let tangentPenalty = recoveryTangentPenalty(
+                    offset: offset,
+                    preferredDelta: preferredDelta
+                )
+                let correctionDistance = recoveryDistance(offset)
+                if shouldPreferRecoveryCandidate(
+                    score: score,
+                    tangentPenalty: tangentPenalty,
+                    correctionDistance: correctionDistance,
+                    bestScore: bestScore,
+                    bestTangentPenalty: bestTangentPenalty,
+                    bestCorrectionDistance: bestCorrectionDistance
+                ) {
+                    bestScore = score
+                    bestTangentPenalty = tangentPenalty
+                    bestCorrectionDistance = correctionDistance
+                    bestPoint = candidate
+                }
+            }
+        }
+
+        return bestPoint
+    }
+
+    private func recoveryOffsets(queryRect: CGRect,
+                                 wallRect: CGRect,
+                                 preferredDelta: CGVector) -> [CGVector] {
+        let padding = GameConfig.playerWallRecoveryPadding
+        let moveLeft = wallRect.minX - queryRect.maxX - padding
+        let moveRight = wallRect.maxX - queryRect.minX + padding
+        let moveDown = wallRect.minY - queryRect.maxY - padding
+        let moveUp = wallRect.maxY - queryRect.minY + padding
+
+        let horizontal = abs(moveLeft) <= abs(moveRight)
+            ? CGVector(dx: moveLeft, dy: 0)
+            : CGVector(dx: moveRight, dy: 0)
+        let vertical = abs(moveDown) <= abs(moveUp)
+            ? CGVector(dx: 0, dy: moveDown)
+            : CGVector(dx: 0, dy: moveUp)
+
+        return [
+            clampedRecoveryOffset(horizontal),
+            clampedRecoveryOffset(vertical)
+        ].sorted { lhs, rhs in
+            let lhsDistance = recoveryDistance(lhs)
+            let rhsDistance = recoveryDistance(rhs)
+            if abs(lhsDistance - rhsDistance) > GameConfig.playerWallRecoveryScoreEpsilon {
+                return lhsDistance < rhsDistance
+            }
+            let lhsPenalty = recoveryTangentPenalty(offset: lhs, preferredDelta: preferredDelta)
+            let rhsPenalty = recoveryTangentPenalty(offset: rhs, preferredDelta: preferredDelta)
+            if abs(lhsPenalty - rhsPenalty) > GameConfig.playerWallRecoveryScoreEpsilon {
+                return lhsPenalty < rhsPenalty
+            }
+            return abs(lhs.dx) > abs(lhs.dy)
+        }
+    }
+
+    private func overlapScore(at point: CGPoint) -> CGFloat {
+        let rect = wallQueryRect(centeredAt: point)
+        return wallRects(intersecting: rect).reduce(CGFloat.zero) { score, wallRect in
+            return score + intersectionArea(rect, wallRect)
+        }
+    }
+
+    private func doesMoveDeeperIntoWall(from start: CGPoint,
+                                        to target: CGPoint) -> Bool {
+        let startRect = wallQueryRect(centeredAt: start)
+        let targetRect = wallQueryRect(centeredAt: target)
+        let queryRect = startRect.union(targetRect)
+        return wallRects(intersecting: queryRect).contains { wallRect in
+            let startArea = intersectionArea(startRect, wallRect)
+            let targetArea = intersectionArea(targetRect, wallRect)
+            return targetArea > startArea + GameConfig.playerWallRecoveryScoreEpsilon
+        }
+    }
+
+    private func shouldPreferRecoveryCandidate(score: CGFloat,
+                                               tangentPenalty: CGFloat,
+                                               correctionDistance: CGFloat,
+                                               bestScore: CGFloat,
+                                               bestTangentPenalty: CGFloat,
+                                               bestCorrectionDistance: CGFloat) -> Bool {
+        if score < bestScore - GameConfig.playerWallRecoveryScoreEpsilon {
+            return true
+        }
+        guard abs(score - bestScore) <= GameConfig.playerWallRecoveryScoreEpsilon else {
+            return false
+        }
+        if tangentPenalty < bestTangentPenalty - GameConfig.playerWallRecoveryScoreEpsilon {
+            return true
+        }
+        guard abs(tangentPenalty - bestTangentPenalty) <= GameConfig.playerWallRecoveryScoreEpsilon else {
+            return false
+        }
+        return correctionDistance < bestCorrectionDistance
+    }
+
+    private func recoveryTangentPenalty(offset: CGVector,
+                                        preferredDelta: CGVector) -> CGFloat {
+        let preferredLength = recoveryDistance(preferredDelta)
+        let offsetLength = recoveryDistance(offset)
+        guard preferredLength > GameConfig.dpadInputSnapEpsilon,
+              offsetLength > GameConfig.playerWallRecoveryScoreEpsilon else {
+            return 0
+        }
+        let dot = offset.dx * preferredDelta.dx + offset.dy * preferredDelta.dy
+        return abs(dot / (offsetLength * preferredLength))
+    }
+
+    private func clampedRecoveryOffset(_ offset: CGVector) -> CGVector {
+        let maxCorrection = GameConfig.playerWallRecoveryMaxCorrection
+        if abs(offset.dx) > maxCorrection {
+            return CGVector(dx: offset.dx < 0 ? -maxCorrection : maxCorrection, dy: 0)
+        }
+        if abs(offset.dy) > maxCorrection {
+            return CGVector(dx: 0, dy: offset.dy < 0 ? -maxCorrection : maxCorrection)
+        }
+        return offset
+    }
+
+    private func recoveryDistance(_ vector: CGVector) -> CGFloat {
+        return sqrt(vector.dx * vector.dx + vector.dy * vector.dy)
+    }
+
+    private func intersectionArea(_ lhs: CGRect, _ rhs: CGRect) -> CGFloat {
+        let intersection = lhs.intersection(rhs)
+        guard intersection.isNull == false else { return 0 }
+        return max(0, intersection.width) * max(0, intersection.height)
+    }
+
+    private func wallRects(intersecting rect: CGRect) -> [CGRect] {
+        guard let wallRectProvider = wallRectProvider else { return [] }
+        return wallRectProvider(rect)
+    }
+
+    private func resolvedVelocity(from start: CGPoint,
+                                  to end: CGPoint,
+                                  deltaTime: TimeInterval) -> CGVector {
+        guard deltaTime > 0 else { return .zero }
+        return CGVector(
+            dx: (end.x - start.x) / CGFloat(deltaTime),
+            dy: (end.y - start.y) / CGFloat(deltaTime)
+        )
+    }
+
+    private func wallQueryRect(centeredAt point: CGPoint) -> CGRect {
+        let rect = CGRect(
+            x: point.x - GameConfig.playerWidth / 2,
+            y: point.y - GameConfig.playerHeight / 2,
+            width: GameConfig.playerWidth,
+            height: GameConfig.playerHeight
+        )
+        return rect.insetBy(
+            dx: GameConfig.playerWallQueryInset,
+            dy: GameConfig.playerWallQueryInset
         )
     }
 

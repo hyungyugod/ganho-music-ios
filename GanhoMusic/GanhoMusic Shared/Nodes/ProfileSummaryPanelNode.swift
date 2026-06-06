@@ -15,6 +15,11 @@ final class ProfileSummaryPanelNode: SKNode {
     private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let statusChip = SKShapeNode()
     private let statusLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    // 묶음 B 위계 강화용 추가 노드 — 메트릭 3종을 "한 덩어리"로 시각화.
+    private let metricGroupBox = SKShapeNode()      // 라벤더 패드 (배경)
+    private let metricDividerTop = SKShapeNode()    // 플레이↔최고
+    private let metricDividerBottom = SKShapeNode() // 최고↔총점
+    private let avatarView = ProfileAvatarViewNode()
     private let nameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
     private let subLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     private let playTitleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
@@ -45,16 +50,38 @@ final class ProfileSummaryPanelNode: SKNode {
         background.lineWidth = GameConfig.characterHomePanelLineWidth
         addChild(background)
 
-        statusChip.fillColor = .ganhoNavyDeep
+        // 메트릭 그룹 박스(라벤더 패드) — 배경 위(zPosition 1), 라벨(zPosition 2) 아래.
+        metricGroupBox.fillColor = UIColor.ganhoLavenderSoft
+            .withAlphaComponent(GameConfig.summaryMetricGroupFillAlpha)
+        metricGroupBox.strokeColor = .clear
+        metricGroupBox.zPosition = 1
+        addChild(metricGroupBox)
+
+        // 메트릭 행 구분선 2개 — 라벤더 패드 위에 얇은 navyMuted 라인.
+        [metricDividerTop, metricDividerBottom].forEach { divider in
+            divider.fillColor = .clear
+            divider.strokeColor = UIColor.ganhoNavyMuted
+                .withAlphaComponent(GameConfig.summaryMetricDividerAlpha)
+            divider.lineWidth = GameConfig.summaryMetricDividerLineWidth
+            divider.zPosition = 1
+            addChild(divider)
+        }
+
+        // v2 톤: statusChip 네이비 → 코랄(묶음 A statusChip 어포던스와 정렬).
+        statusChip.fillColor = UIColor.ganhoCoralPrimary
+            .withAlphaComponent(GameConfig.summaryStatusChipFillAlpha)
         statusChip.strokeColor = .clear
         statusChip.zPosition = 1
         addChild(statusChip)
+
+        avatarView.zPosition = 2
+        addChild(avatarView)
     }
 
     private func setupLabels() {
         titleLabel.text = GameConfig.characterHomeProfileTitleText
         configure(label: titleLabel, fontSize: GameConfig.characterHomePanelTitleFontSize, color: .ganhoNavyDeep)
-        configure(label: statusLabel, fontSize: GameConfig.characterHomePanelSmallFontSize, color: .ganhoMusicGold)
+        configure(label: statusLabel, fontSize: GameConfig.characterHomePanelSmallFontSize, color: .ganhoPaper)
         configure(label: nameLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
         configure(label: subLabel, fontSize: GameConfig.characterHomePanelBodyFontSize, color: .ganhoNavyMuted)
         configure(label: playTitleLabel, fontSize: GameConfig.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
@@ -94,6 +121,17 @@ final class ProfileSummaryPanelNode: SKNode {
         totalValueLabel.text = scoreText(snapshot.totalScore)
     }
 
+    func update(snapshot: CharacterHomeSnapshot,
+                avatar: ProfileAvatarSnapshot,
+                repository: ProfileAvatarRepository) {
+        update(snapshot: snapshot)
+        avatarView.update(
+            snapshot: avatar,
+            repository: repository,
+            size: GameConfig.profileAvatarSummarySize
+        )
+    }
+
     private func scoreText(_ score: Int) -> String {
         return "\(score)\(GameConfig.characterHomePointSuffixText)"
     }
@@ -124,6 +162,14 @@ final class ProfileSummaryPanelNode: SKNode {
         )
 
         let leftX = -size.width / 2 + GameConfig.characterHomePanelHorizontalInset
+        let avatarX = size.width / 2
+            - GameConfig.characterHomePanelHorizontalInset
+            - GameConfig.profileAvatarSummarySize.width / 2
+        let avatarY = size.height / 2
+            - GameConfig.characterHomePanelVerticalInset
+            - GameConfig.profileAvatarSummarySize.height / 2
+        avatarView.position = CGPoint(x: avatarX, y: avatarY)
+
         var cursorY = size.height / 2 - GameConfig.characterHomePanelVerticalInset
         titleLabel.position = CGPoint(x: leftX, y: cursorY)
         cursorY -= GameConfig.characterHomePanelTitleFontSize + GameConfig.characterHomeDetailPanelGap
@@ -145,7 +191,14 @@ final class ProfileSummaryPanelNode: SKNode {
         cursorY -= GameConfig.characterHomePanelValueFontSize
             + GameConfig.characterHomeAchievementBadgeGap
 
-        subLabel.preferredMaxLayoutWidth = size.width - GameConfig.characterHomePanelHorizontalInset * 2
+        let textMaxWidth = avatarX
+            - GameConfig.profileAvatarSummarySize.width / 2
+            - GameConfig.characterHomeDetailPanelGap
+            - leftX
+        subLabel.preferredMaxLayoutWidth = max(
+            GameConfig.characterHomeProfileStatusChipWidth,
+            textMaxWidth
+        )
         subLabel.position = CGPoint(x: leftX, y: cursorY)
         cursorY -= GameConfig.characterHomePanelBodyFontSize
             + GameConfig.characterHomeDetailPanelGap
@@ -171,8 +224,67 @@ final class ProfileSummaryPanelNode: SKNode {
             y: cursorY
         )
 
-        fit(label: nameLabel, maxWidth: size.width - GameConfig.characterHomePanelHorizontalInset * 2)
-        fit(label: subLabel, maxWidth: size.width - GameConfig.characterHomePanelHorizontalInset * 2)
+        // 메트릭 3행이 모두 배치된 뒤, 그 Y 범위로 그룹 박스·구분선을 1회 구성.
+        layoutMetricGroup(leftX: leftX, contentWidth: textMaxWidth)
+
+        fit(label: nameLabel, maxWidth: subLabel.preferredMaxLayoutWidth)
+        fit(label: subLabel, maxWidth: subLabel.preferredMaxLayoutWidth)
+    }
+
+    /// 메트릭 그룹 박스(라벤더 패드)와 행 구분선 2개의 path를 현재 메트릭 라벨 위치로 구성한다.
+    /// 매 프레임이 아니라 `layout(size:)`에서 cursorY가 확정된 뒤 1회만 호출된다.
+    /// - Parameters:
+    ///   - leftX: 메트릭 텍스트 좌측 기준 X.
+    ///   - contentWidth: 좌측 텍스트 열 폭(name/sub 라벨과 동일 기준).
+    private func layoutMetricGroup(leftX: CGFloat, contentWidth: CGFloat) {
+        let padding = GameConfig.summaryMetricGroupPadding
+        let verticalPadding = GameConfig.summaryMetricGroupVerticalPadding
+        let titleHalf = GameConfig.characterHomePanelMetricFontSize / 2
+        let valueHalf = GameConfig.characterHomePanelValueFontSize / 2
+
+        // 박스 세로 범위: 첫 제목 위 ~ 마지막 값 아래 (세로 패딩 포함).
+        let groupTopY = playTitleLabel.position.y + titleHalf + verticalPadding
+        let groupBottomY = totalValueLabel.position.y - valueHalf - verticalPadding
+        let groupHeight = max(0, groupTopY - groupBottomY)
+        let groupWidth = max(0, contentWidth + padding * 2)
+
+        metricGroupBox.path = CGPath(
+            roundedRect: CGRect(
+                x: leftX - padding,
+                y: groupBottomY,
+                width: groupWidth,
+                height: groupHeight
+            ),
+            cornerWidth: GameConfig.summaryMetricGroupCornerRadius,
+            cornerHeight: GameConfig.summaryMetricGroupCornerRadius,
+            transform: nil
+        )
+
+        // 구분선 X 범위: 박스 안쪽 좌우 패딩만큼 들여쓴 가로선.
+        let dividerStartX = leftX
+        let dividerEndX = leftX + contentWidth
+        // 플레이↔최고: 플레이 값과 최고 제목 사이 중간.
+        let topDividerY = (playValueLabel.position.y + bestTitleLabel.position.y) / 2
+        // 최고↔총점: 최고 값과 총점 제목 사이 중간.
+        let bottomDividerY = (bestValueLabel.position.y + totalTitleLabel.position.y) / 2
+
+        metricDividerTop.path = horizontalLinePath(
+            startX: dividerStartX,
+            endX: dividerEndX,
+            y: topDividerY
+        )
+        metricDividerBottom.path = horizontalLinePath(
+            startX: dividerStartX,
+            endX: dividerEndX,
+            y: bottomDividerY
+        )
+    }
+
+    private func horizontalLinePath(startX: CGFloat, endX: CGFloat, y: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: startX, y: y))
+        path.addLine(to: CGPoint(x: endX, y: y))
+        return path
     }
 
     private func layoutMetric(title: SKLabelNode, value: SKLabelNode, leftX: CGFloat, y: CGFloat) {

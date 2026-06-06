@@ -11,6 +11,28 @@ struct AuthProfileSnapshot: Codable {
     let uid: String
     let isAnonymous: Bool
     let displayName: String?
+    let nickname: String?
     let providerIDs: [String]
     let updatedAt: Date
+
+    var isAppleLinked: Bool {
+        return providerIDs.contains(GameConfig.authAppleProviderID)
+    }
+
+    var preferredDisplayName: String? {
+        if let nickname = trimmedNonEmpty(nickname) {
+            return nickname
+        }
+        return trimmedNonEmpty(displayName)
+    }
+
+    var needsNicknameSetup: Bool {
+        return isAppleLinked && trimmedNonEmpty(nickname) == nil
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed = trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
 }

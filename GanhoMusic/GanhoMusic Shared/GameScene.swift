@@ -38,6 +38,7 @@ class GameScene: SKScene {
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
     let skillSystem = SkillSystem()       // Phase 9-5 — 캐릭터별 스킬 시스템
     let skillButton = SkillButtonNode()   // Phase 9-5 — 좌하단 1탭 발동 버튼
+    let runButton = RunButtonNode()       // Sprint 11 — 쿨타임 없는 hold-to-run 버튼
     let hudSkillSlot = HUDSkillSlotNode() // Phase 9-5 — 스킬 쿨다운 진행 시각화
     let pauseButton = PauseButtonNode()   // Sprint 3 — 우상단 일시정지 시각 placeholder
     var pauseOverlay: SKNode?
@@ -45,6 +46,8 @@ class GameScene: SKScene {
     var pauseMenuButton: PrimaryButtonNode?
     var pauseStoredDPadInteractionEnabled: Bool = true
     var pauseStoredSkillInteractionEnabled: Bool = true
+    var pauseStoredRunInteractionEnabled: Bool = true
+    var smoothedMoveDirection: CGVector = .zero
     let highScoreRepo = HighScoreRepository()   // Phase 3-4 — 최고 점수 영구 저장소
     let statsRepo = StatisticsRepository()      // Phase 3-5 — 누적 통계 영구 저장소
     // Phase 7-4 — 캐릭터 × 난이도 매트릭스 / 최초 졸업 일시 저장소. HighScoreRepository와 *병행*.
@@ -145,6 +148,7 @@ class GameScene: SKScene {
         setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
         setupProfessor()     // Phase 9-7 신설 — ProfessorNode를 worldNode 자식으로 (hard만, 가드 내부)
         setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 좌하단에
+        setupRunButton()     // Sprint 11 — SkillButton 옆 hold-to-run 버튼
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
         setupPauseButton()   // Sprint 3 — PauseButtonNode를 cameraNode 우상단에 (시각 placeholder)
         skillSystem.configure(scene: self, skill: characterID.skill)  // Phase 9-5 — 활성 스킬 set
@@ -232,11 +236,11 @@ class GameScene: SKScene {
         // 동결 시 currentDirection = .zero로 즉시 set → PlayerNode.update 가드 도달 전에도
         // *마지막 방향 잔존*으로 인한 미세 이동 방지.
         if !skillSystem.isDashing && !player.isFrozen {
-            player.currentDirection = dpad.currentDirection
+            updateMovementInput()
         } else if skillSystem.isDashing {
-            player.currentDirection = .zero
+            resetMovementInput()
         } else if player.isFrozen {
-            player.currentDirection = .zero
+            resetMovementInput()
         }
 
         // 2) PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
@@ -244,9 +248,8 @@ class GameScene: SKScene {
         player.update(deltaTime: dt)
 
         // Phase 8-1 — PlayerNode 픽셀 방향/걷기 프레임 갱신 (시각만 — 게임 로직 무관).
-        // velocity가 set된 *직후* 읽어야 이번 프레임의 의도가 즉시 반영됨.
-        // physicsBody?.velocity는 옵셔널 — guard let 패턴(주의사항 5).
-        let velocity = player.physicsBody?.velocity ?? .zero
+        // wall-slide 수동 이동이 적용된 직후의 실제 이동 벡터를 읽어 이번 프레임 시각에 반영한다.
+        let velocity = player.movementVelocity
         let isMoving = abs(velocity.dx) > 0.1 || abs(velocity.dy) > 0.1
         player.updatePixelDirection(velocity)
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)

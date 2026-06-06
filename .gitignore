@@ -1,0 +1,51 @@
+# ──────────────────────────────────────────────
+# macOS
+# ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# ──────────────────────────────────────────────
+# Xcode — 사용자별 상태 (공유 불필요)
+# ──────────────────────────────────────────────
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+*.xccheckout
+*.moved-aside
+
+# ──────────────────────────────────────────────
+# Xcode / SwiftPM — 빌드 산출물
+# ──────────────────────────────────────────────
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.build/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/
+
+# ──────────────────────────────────────────────
+# 의존성 관리 (사용 시)
+# ──────────────────────────────────────────────
+Pods/
+Carthage/Build/
+
+# ──────────────────────────────────────────────
+# Claude Code — 로컬 작업 공간 / 임시 산출물
+# ──────────────────────────────────────────────
+.claude/worktrees/
+.claude/.DS_Store
+.claude/settings.local.json
+
+# ──────────────────────────────────────────────
+# 하네스 임시 산출물 (Planner/Generator/Evaluator)
+# 필요 시 주석 처리해 추적 가능
+# ──────────────────────────────────────────────
+SPEC.md
+SELF_CHECK.md
+QA_REPORT.md

@@ -66,6 +66,12 @@ final class EnemyNode: SKSpriteNode {
     var obsBaseSpeed: CGFloat = 120
     /// F/A obs 끝 속도 (pt/s). apply에서 set.
     var obsMaxSpeed: CGFloat = 220
+    /// 난이도별 F 동시 최대 수. apply에서 set.
+    private var projectileMaxConcurrent: Int = GameConfig.projectileMaxConcurrent
+    /// hard 난이도에서 F가 벽 contact 없이 통과하는 정책.
+    private var projectilePassesWalls: Bool = false
+    /// F 자동 수명. hard 벽 통과 시 누적 방지에 사용한다.
+    private var projectileLifetime: TimeInterval = GameConfig.projectileLifetimeFallback
     /// 다음 발사 간격 시작값 (초). apply에서 set. enterIdle이 lerp(start, end, t)로 계산.
     var fireIntervalStart: TimeInterval = 3.5
     /// 다음 발사 간격 끝값 (초). apply에서 set.
@@ -95,10 +101,9 @@ final class EnemyNode: SKSpriteNode {
             width:  GameConfig.enemyWidth  * GameConfig.pixelSpriteScale,
             height: GameConfig.enemyHeight * GameConfig.pixelSpriteScale
         )
-        let initialTexture = PixelSpriteRenderer.texture(
-            from: PixelSprite.nurseChiefData(direction: .down, frame: .idle),
-            palette: PixelPalette.chiefPalette
-        )
+        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. refreshTexture()와 같은 캐시를 워밍 →
+        // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
+        let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "enemy"
 
@@ -143,6 +148,11 @@ final class EnemyNode: SKSpriteNode {
         burstCount        = GameConfig.projectileBurstCountByDifficulty[difficulty] ?? 1
         obsBaseSpeed      = GameConfig.obsBaseSpeedByDifficulty[difficulty] ?? 120
         obsMaxSpeed       = GameConfig.obsMaxSpeedByDifficulty[difficulty] ?? 220
+        projectileMaxConcurrent = GameConfig.projectileMaxConcurrentByDifficulty[difficulty]
+            ?? GameConfig.projectileMaxConcurrent
+        projectilePassesWalls = GameConfig.projectilePassesWallsByDifficulty[difficulty] ?? false
+        projectileLifetime = GameConfig.projectileLifetimeByDifficulty[difficulty]
+            ?? GameConfig.projectileLifetimeFallback
         fireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? 3.5
         fireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty] ?? 2.0
         warningProfile    = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
@@ -395,8 +405,19 @@ final class EnemyNode: SKSpriteNode {
             x: position.x + cos(shotPlan.baseAngle) * startOffset,
             y: position.y + sin(shotPlan.baseAngle) * startOffset
         )
+        let anglesToFire: ArraySlice<CGFloat>
+        if isCharmed {
+            anglesToFire = shotPlan.angles.prefix(shotPlan.angles.count)
+        } else {
+            let remainingSlots = max(0, projectileMaxConcurrent - currentProjectileCount(in: world))
+            guard remainingSlots > 0 else {
+                clearPendingShotPlan()
+                return
+            }
+            anglesToFire = shotPlan.angles.prefix(remainingSlots)
+        }
 
-        for finalAngle in shotPlan.angles {
+        for finalAngle in anglesToFire {
             let unitX = cos(finalAngle)
             let unitY = sin(finalAngle)
             let velocity = CGVector(dx: unitX * speed, dy: unitY * speed)
@@ -407,11 +428,25 @@ final class EnemyNode: SKSpriteNode {
                 world.addChild(a)
             } else {
                 let f = FProjectileNode()
+                f.applyWallPolicy(passesWalls: projectilePassesWalls)
+                f.applyLifetime(projectileLifetime)
                 f.position = spawnPoint
                 f.physicsBody?.velocity = velocity
                 world.addChild(f)
             }
         }
+        clearPendingShotPlan()
+    }
+
+    private func currentProjectileCount(in world: SKNode) -> Int {
+        var count = 0
+        world.enumerateChildNodes(withName: "projectile") { _, _ in
+            count += 1
+        }
+        return count
+    }
+
+    private func clearPendingShotPlan() {
         pendingShotAngles.removeAll()
         pendingShotBaseAngle = nil
     }
@@ -488,12 +523,31 @@ final class EnemyNode: SKSpriteNode {
     }
 
     /// 현재 방향/프레임 조합으로 텍스처 재생성.
+    /// 출시 전 최적화 — CGImage→SKTexture 매번 재렌더 폐기. (direction, frame) 정적 캐시 경유.
+    /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
     private func refreshTexture() {
-        texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.nurseChiefData(direction: pixelDirection,
-                                              frame: pixelFrame),
+        texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
+    }
+
+    // MARK: - Texture Cache (출시 전 최적화 — PlayerNode L80-83 패턴 동형)
+    /// (방향 × 프레임) SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
+    /// static — 인스턴스 재생성(재시작)에도 1회 워밍 유지. 4방향 × 3프레임 = 최대 12종.
+    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전(PlayerNode L82 근거).
+    /// ⚠️ 클래스별 별도 캐시 — chiefPalette/nurseChiefData가 다른 노드와 달라 공유 절대 금지.
+    private static var textureCache: [PixelDirection: [PixelFrame: SKTexture]] = [:]
+
+    /// 캐시 헬퍼. 미스 시 PixelSpriteRenderer로 1회 렌더 후 저장.
+    /// 결과 픽셀은 직접 렌더와 byte-equal(같은 입력 → 같은 image → `.nearest` 동일).
+    private static func cachedTexture(direction: PixelDirection,
+                                      frame: PixelFrame) -> SKTexture {
+        if let cached = textureCache[direction]?[frame] { return cached }
+        let texture = PixelSpriteRenderer.texture(
+            from: PixelSprite.nurseChiefData(direction: direction, frame: frame),
             palette: PixelPalette.chiefPalette
         )
+        if textureCache[direction] == nil { textureCache[direction] = [:] }
+        textureCache[direction]?[frame] = texture
+        return texture
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F — 본문 삭제)

@@ -87,6 +87,22 @@ final class FProjectileNode: SKSpriteNode {
         outlineNode.strokeColor = .ganhoPixelOutlineBlack
     }
 
+    // MARK: - Wall Policy / Lifetime
+    func applyWallPolicy(passesWalls: Bool) {
+        physicsBody?.contactTestBitMask = passesWalls
+            ? PhysicsCategory.player
+            : PhysicsCategory.player | PhysicsCategory.wall
+    }
+
+    func applyLifetime(_ lifetime: TimeInterval) {
+        guard lifetime.isFinite, lifetime > 0 else { return }
+        removeAction(forKey: GameConfig.projectileLifetimeActionKey)
+        run(.sequence([
+            .wait(forDuration: lifetime),
+            .removeFromParent()
+        ]), withKey: GameConfig.projectileLifetimeActionKey)
+    }
+
     // MARK: - Readability
     private func configureReadabilityNodes() {
         haloNode.strokeColor = UIColor.ganhoIngameDanger

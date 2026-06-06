@@ -25,8 +25,21 @@ final class CharacterSelectScene: BaseMenuScene {
     private var perDifficultyScoreRepo = PerDifficultyScoreRepository()
     private var graduationRepo = GraduationRepository()
     private var preferenceRepo = CharacterPreferenceRepository()
+    private var profileAvatarRepo = ProfileAvatarRepository.scoped(
+        scope: AccountProgressScopeProvider.current(authProfile: nil)
+    )
+    private var profileAvatarSnapshot = ProfileAvatarSnapshot.defaultKim
     private var unlockStates: [CharacterID: CharacterUnlockState] = [:]
     private var homeSnapshot = CharacterHomeSnapshot.empty
+    private var accountMenuOverlay: AccountMenuOverlayNode?
+    private var profileDetailOverlay: ProfileDetailOverlayNode?
+    private var profileDetailMode: ProfileDetailMode = .detail
+    private var profileAvatarDidChangeObserver: NSObjectProtocol?
+    private var profileNameEditDidFinishObserver: NSObjectProtocol?
+    private var authProfileDidChangeObserver: NSObjectProtocol?
+    private var shouldOpenProfileOnEntry = false
+    private var didShowInitialNicknamePrompt = false
+    private var isAccountRequestInFlight = false
 
     private var isSelectedCharacterUnlocked: Bool {
         return unlockStates[selectedCharacterID]?.isUnlocked ?? false
@@ -62,9 +75,10 @@ final class CharacterSelectScene: BaseMenuScene {
     private var railLayoutScale: CGFloat = 1.0
 
     // MARK: - Factory
-    class func newCharacterSelectScene() -> CharacterSelectScene {
+    class func newCharacterSelectScene(openProfileOnEntry: Bool = false) -> CharacterSelectScene {
         let scene = CharacterSelectScene(size: CGSize(width: 1024, height: 768))
         scene.scaleMode = .resizeFill
+        scene.shouldOpenProfileOnEntry = openProfileOnEntry
         return scene
     }
 
@@ -101,12 +115,40 @@ final class CharacterSelectScene: BaseMenuScene {
         layoutHome(animated: false)
         refreshHomeContent(animated: false)
         setActiveSection(.characterSelect, animated: false, force: true)
+        observeProfileAvatarChanges()
+        observeProfileNameEditResults()
+        observeAuthProfileChanges()
+        if shouldOpenProfileOnEntry {
+            setActiveSection(.profile, animated: false, force: true)
+            showProfileDetailOverlay(mode: profileEntryMode())
+            didShowInitialNicknamePrompt = homeSnapshot.authProfile?.needsNicknameSetup == true
+        } else {
+            showInitialProfilePromptIfNeeded()
+        }
         syncCloudProgressIfNeeded()
+    }
+
+    override func willMove(from view: SKView) {
+        super.willMove(from: view)
+        if let observer = profileAvatarDidChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            profileAvatarDidChangeObserver = nil
+        }
+        if let observer = profileNameEditDidFinishObserver {
+            NotificationCenter.default.removeObserver(observer)
+            profileNameEditDidFinishObserver = nil
+        }
+        if let observer = authProfileDidChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            authProfileDidChangeObserver = nil
+        }
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         rebuildWarmGradientBackground()
+        accountMenuOverlay?.update(sceneSize: size, isAppleLinked: homeSnapshot.isAppleLinked)
+        updateProfileDetailOverlay()
         layoutHome(animated: false)
     }
 
@@ -175,15 +217,17 @@ final class CharacterSelectScene: BaseMenuScene {
 
         characterNameLabel.fontSize = GameConfig.characterHomeStageNameFontSize
         characterNameLabel.fontColor = .ganhoNavyDeep
-        characterNameLabel.horizontalAlignmentMode = .center
+        characterNameLabel.horizontalAlignmentMode = .left
         characterNameLabel.verticalAlignmentMode = .center
         characterNameLabel.zPosition = GameConfig.characterHomeCharacterZPosition + 2
         addChild(characterNameLabel)
 
         characterSkillLabel.fontSize = GameConfig.characterHomeStageSkillFontSize
         characterSkillLabel.fontColor = .ganhoNavyMuted
-        characterSkillLabel.horizontalAlignmentMode = .center
-        characterSkillLabel.verticalAlignmentMode = .center
+        characterSkillLabel.horizontalAlignmentMode = .left
+        characterSkillLabel.verticalAlignmentMode = .top
+        characterSkillLabel.numberOfLines = 0
+        characterSkillLabel.preferredMaxLayoutWidth = GameConfig.characterHomeStageInfoMaxWidth
         characterSkillLabel.zPosition = GameConfig.characterHomeCharacterZPosition + 2
         addChild(characterSkillLabel)
 
@@ -273,17 +317,21 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func homeLayoutScale() -> CGFloat {
+        let profile = DeviceLayoutProfile.resolve(for: self)
+        if profile == .padLandscape {
+            return profile.menuScale
+        }
         if size.height < GameConfig.characterHomeCompactHeightThreshold {
             return GameConfig.characterHomeCompactScale
         }
         if usesBottomMenu {
             return GameConfig.characterHomeBottomMenuScale
         }
-        return 1.0
+        return profile.menuScale
     }
 
     private func layoutHome(animated: Bool) {
-        let safe = SceneSafeArea.insets(for: self)
+        let safe = menuSafeInsets()
         let bottomMode = usesBottomMenu
         let scale = homeLayoutScale()
         layoutTopBar(safe: safe, scale: scale)
@@ -348,10 +396,9 @@ final class CharacterSelectScene: BaseMenuScene {
     private func layoutCharacterStage(safe: UIEdgeInsets,
                                       scale: CGFloat,
                                       bottomMode: Bool) {
-        let stageSize = CGSize(
-            width: GameConfig.characterHomeStageWidth,
-            height: GameConfig.characterHomeStageHeight
-        )
+        let stageSize = resolvedCharacterStageSize(safe: safe, scale: scale, bottomMode: bottomMode)
+        let stageContentRatio = min(1, stageSize.width / GameConfig.characterHomeStageWidth)
+        let contentScale = scale * stageContentRatio
         stagePanel.path = CGPath(
             roundedRect: CGRect(
                 x: -stageSize.width / 2,
@@ -374,9 +421,9 @@ final class CharacterSelectScene: BaseMenuScene {
             ),
             transform: nil
         )
-        stageShadow.setScale(scale)
+        stageShadow.setScale(contentScale)
 
-        let centerX = frame.midX + (
+        let preferredCenterX = frame.midX + (
             bottomMode
                 ? GameConfig.characterHomeCompactStageCenterOffsetX
                 : GameConfig.characterHomeStageCenterOffsetX
@@ -384,6 +431,13 @@ final class CharacterSelectScene: BaseMenuScene {
         let centerYRatio = bottomMode
             ? GameConfig.characterHomeCompactStageCenterYRatio
             : GameConfig.characterHomeStageCenterYRatio
+        let centerX = resolvedCharacterStageCenterX(
+            preferredCenterX: preferredCenterX,
+            stageWidth: stageSize.width,
+            safe: safe,
+            scale: scale,
+            bottomMode: bottomMode
+        )
         let center = CGPoint(x: centerX, y: frame.minY + frame.height * centerYRatio)
         let scaledSize = CGSize(width: stageSize.width * scale, height: stageSize.height * scale)
         characterStageFrame = CGRect(
@@ -395,7 +449,7 @@ final class CharacterSelectScene: BaseMenuScene {
         stagePanel.position = center
         stageShadow.position = CGPoint(
             x: center.x,
-            y: characterStageFrame.minY + GameConfig.characterHomeStageShadowHeight * scale / 2
+            y: characterStageFrame.minY + GameConfig.characterHomeStageShadowHeight * contentScale / 2
         )
 
         portraitNode?.setMaxSize(
@@ -404,23 +458,26 @@ final class CharacterSelectScene: BaseMenuScene {
                 height: GameConfig.characterHomePortraitMaxHeight
             )
         )
-        portraitNode?.setScale(scale)
+        portraitNode?.setScale(contentScale)
+        let portraitX = center.x - GameConfig.characterHomePortraitColumnOffsetX * contentScale
+        let infoX = center.x + GameConfig.characterHomeInfoColumnOffsetX * contentScale
         portraitNode?.position = CGPoint(
-            x: center.x,
-            y: characterStageFrame.minY + GameConfig.characterHomePortraitBottomInset * scale
+            x: portraitX,
+            y: characterStageFrame.minY + GameConfig.characterHomePortraitBottomInset * contentScale
         )
 
-        characterNameLabel.setScale(scale)
-        characterSkillLabel.setScale(scale)
-        speedChip.setScale(scale)
-        speedChipLabel.setScale(scale)
+        characterNameLabel.setScale(contentScale)
+        characterSkillLabel.setScale(contentScale)
+        characterSkillLabel.preferredMaxLayoutWidth = GameConfig.characterHomeStageInfoMaxWidth
+        speedChip.setScale(contentScale)
+        speedChipLabel.setScale(contentScale)
         characterNameLabel.position = CGPoint(
-            x: center.x,
-            y: characterStageFrame.maxY - GameConfig.characterHomeStageNameTopInset * scale
+            x: infoX,
+            y: center.y + GameConfig.characterHomeInfoNameOffsetY * contentScale
         )
         characterSkillLabel.position = CGPoint(
-            x: center.x,
-            y: characterNameLabel.position.y - GameConfig.characterHomeStageSkillGap * scale
+            x: infoX,
+            y: center.y + GameConfig.characterHomeInfoSkillOffsetY * contentScale
         )
         speedChip.path = CGPath(
             roundedRect: CGRect(
@@ -434,21 +491,88 @@ final class CharacterSelectScene: BaseMenuScene {
             transform: nil
         )
         speedChip.position = CGPoint(
-            x: center.x,
-            y: characterSkillLabel.position.y - GameConfig.characterHomeStageSkillGap * scale
+            x: infoX + GameConfig.characterHomeStageSpeedChipWidth * contentScale / 2,
+            y: center.y + GameConfig.characterHomeInfoSpeedOffsetY * contentScale
         )
         speedChipLabel.position = speedChip.position
 
         leftArrowChip?.setScale(scale)
         rightArrowChip?.setScale(scale)
+        let buttonHalf = GameConfig.characterHomeArrowButtonSize * scale / 2
+        let arrowGap = GameConfig.characterHomeArrowOutsideGap * scale
         leftArrowChip?.position = CGPoint(
-            x: characterStageFrame.minX + GameConfig.characterHomeArrowInsetX * scale,
+            x: max(
+                frame.minX + safe.left + buttonHalf,
+                characterStageFrame.minX - arrowGap - buttonHalf
+            ),
             y: characterStageFrame.midY
         )
         rightArrowChip?.position = CGPoint(
-            x: characterStageFrame.maxX - GameConfig.characterHomeArrowInsetX * scale,
+            x: min(
+                frame.maxX - safe.right - buttonHalf,
+                characterStageFrame.maxX + arrowGap + buttonHalf
+            ),
             y: characterStageFrame.midY
         )
+    }
+
+    private func resolvedCharacterStageSize(safe: UIEdgeInsets,
+                                            scale: CGFloat,
+                                            bottomMode: Bool) -> CGSize {
+        let bounds = characterStageHorizontalBounds(safe: safe, scale: scale, bottomMode: bottomMode)
+        let availableWidth = max(0, bounds.maxX - bounds.minX)
+        let desiredWidth = GameConfig.characterHomeStageWidth * scale
+        let resolvedWidth = min(desiredWidth, availableWidth)
+        return CGSize(
+            width: resolvedWidth / scale,
+            height: GameConfig.characterHomeStageHeight
+        )
+    }
+
+    private func resolvedCharacterStageCenterX(preferredCenterX: CGFloat,
+                                               stageWidth: CGFloat,
+                                               safe: UIEdgeInsets,
+                                               scale: CGFloat,
+                                               bottomMode: Bool) -> CGFloat {
+        let bounds = characterStageHorizontalBounds(safe: safe, scale: scale, bottomMode: bottomMode)
+        let halfWidth = stageWidth * scale / 2
+        let minCenterX = bounds.minX + halfWidth
+        let maxCenterX = bounds.maxX - halfWidth
+        guard minCenterX <= maxCenterX else { return preferredCenterX }
+        return min(max(preferredCenterX, minCenterX), maxCenterX)
+    }
+
+    private func characterStageHorizontalBounds(safe: UIEdgeInsets,
+                                                scale: CGFloat,
+                                                bottomMode: Bool) -> (minX: CGFloat, maxX: CGFloat) {
+        let profileRight = frame.minX
+            + safe.left
+            + GameConfig.characterHomeProfilePanelLeftInset * scale
+            + GameConfig.characterHomeProfilePanelWidth * scale
+        let detailLeft: CGFloat
+        if bottomMode {
+            detailLeft = frame.maxX
+                - safe.right
+                - GameConfig.characterHomeMenuRightInset * scale
+                - GameConfig.characterHomeDetailPanelWidth * scale
+        } else {
+            detailLeft = frame.maxX
+                - safe.right
+                - GameConfig.characterHomeMenuRightInset * scale
+                - GameConfig.characterHomeMenuButtonWidth * scale
+                - GameConfig.characterHomeDetailPanelGap * scale
+                - GameConfig.characterHomeDetailPanelWidth * scale
+        }
+        let inset = GameConfig.characterHomeDetailPanelGap * scale
+        let minX = profileRight + inset
+        let maxX = detailLeft - inset
+        guard maxX > minX else {
+            return (
+                frame.minX + safe.left + GameConfig.characterHomePanelHorizontalInset * scale,
+                frame.maxX - safe.right - GameConfig.characterHomePanelHorizontalInset * scale
+            )
+        }
+        return (minX, maxX)
     }
 
     private func layoutHomeMenu(safe: UIEdgeInsets, scale: CGFloat, bottomMode: Bool) {
@@ -594,8 +718,10 @@ final class CharacterSelectScene: BaseMenuScene {
         perDifficultyScoreRepo = .scoped(scope: scope)
         graduationRepo = .scoped(scope: scope)
         preferenceRepo = .scoped(scope: scope)
+        profileAvatarRepo = .scoped(scope: scope)
         mergeGlobalProgressIntoLocalFallbackIfNeeded(scope: scope, authProfile: authProfile)
         rebuildUnlockStates()
+        profileAvatarSnapshot = correctedProfileAvatar(profileAvatarRepo.current)
     }
 
     private func mergeGlobalProgressIntoLocalFallbackIfNeeded(scope: AccountProgressScope,
@@ -618,7 +744,10 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func rebuildUnlockStates() {
-        unlockStates = CharacterUnlockRules.states(graduations: graduationRepo.current)
+        unlockStates = CharacterUnlockRules.states(
+            graduations: graduationRepo.current,
+            scores: perDifficultyScoreRepo.current
+        )
     }
 
     private func correctedSavedCharacter(_ characterID: CharacterID) -> CharacterID {
@@ -626,10 +755,33 @@ final class CharacterSelectScene: BaseMenuScene {
             return characterID
         }
         let fallback = CharacterUnlockRules.firstUnlockedCharacter(
-            graduations: graduationRepo.current
+            graduations: graduationRepo.current,
+            scores: perDifficultyScoreRepo.current
         )
         preferenceRepo.save(fallback)
         return fallback
+    }
+
+    private func correctedProfileAvatar(_ snapshot: ProfileAvatarSnapshot) -> ProfileAvatarSnapshot {
+        guard let characterID = snapshot.selectedID.characterID else {
+            return snapshot
+        }
+        guard unlockStates[characterID]?.isUnlocked == true else {
+            profileAvatarRepo.save(characterID: .kim)
+            return profileAvatarRepo.current
+        }
+        return snapshot
+    }
+
+    private func unlockedAvatarCharacters() -> [CharacterID] {
+        let unlocked = CharacterID.allCases.filter { characterID in
+            unlockStates[characterID]?.isUnlocked == true
+        }
+        guard !unlocked.isEmpty else { return [.kim] }
+        if unlocked.contains(.kim) {
+            return unlocked
+        }
+        return [.kim] + unlocked
     }
 
     private func syncCloudProgressIfNeeded() {
@@ -661,7 +813,8 @@ final class CharacterSelectScene: BaseMenuScene {
         let unlockState = unlockStates[characterID]
             ?? CharacterUnlockRules.state(
                 for: characterID,
-                graduations: graduationRepo.current
+                graduations: graduationRepo.current,
+                scores: perDifficultyScoreRepo.current
             )
         let records = Difficulty.allCases.map { difficulty in
             CharacterHomeSnapshot.Record(
@@ -691,7 +844,8 @@ final class CharacterSelectScene: BaseMenuScene {
         let unlockState = unlockStates[selectedCharacterID]
             ?? CharacterUnlockRules.state(
                 for: selectedCharacterID,
-                graduations: graduationRepo.current
+                graduations: graduationRepo.current,
+                scores: perDifficultyScoreRepo.current
             )
         portraitNode?.update(
             characterID: selectedCharacterID,
@@ -710,9 +864,14 @@ final class CharacterSelectScene: BaseMenuScene {
         startButton.alpha = unlockState.isUnlocked
             ? 1.0
             : GameConfig.characterHomeLockedStartButtonAlpha
-        profileSummary.update(snapshot: homeSnapshot)
+        profileSummary.update(
+            snapshot: homeSnapshot,
+            avatar: profileAvatarSnapshot,
+            repository: profileAvatarRepo
+        )
         achievementStrip.update(snapshot: homeSnapshot)
         recordPanel.update(snapshot: homeSnapshot)
+        updateProfileDetailOverlay()
         updateCharacterRail(animated: animated)
     }
 
@@ -839,6 +998,17 @@ final class CharacterSelectScene: BaseMenuScene {
         guard !isTransitioning else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+
+        if let overlay = accountMenuOverlay {
+            handleAccountMenuAction(overlay.action(at: location))
+            return
+        }
+
+        if let overlay = profileDetailOverlay {
+            handleProfileDetailAction(overlay.action(at: location))
+            return
+        }
+
         swipeStartX = location.x
         didSwipeInCurrentTouch = false
         didStartInCharacterStage = characterStageFrame.contains(location)
@@ -850,6 +1020,13 @@ final class CharacterSelectScene: BaseMenuScene {
 
         if let section = homeMenu.section(at: location, in: self) {
             setActiveSection(section, animated: true)
+            if section == .profile {
+                showProfileDetailOverlay(mode: .detail)
+            }
+            return
+        }
+
+        if handleProfileSummaryTap(at: location) {
             return
         }
 
@@ -865,6 +1042,360 @@ final class CharacterSelectScene: BaseMenuScene {
         if handleRoughCharacterSideTap(at: location) {
             return
         }
+    }
+
+    private func handleProfileSummaryTap(at location: CGPoint) -> Bool {
+        guard profileSummary.calculateAccumulatedFrame().contains(location) else { return false }
+        setActiveSection(.profile, animated: true)
+        showProfileDetailOverlay(mode: .detail)
+        return true
+    }
+
+    // MARK: - Profile Detail
+    private func showProfileDetailOverlay(mode: ProfileDetailMode) {
+        profileDetailMode = mode
+        if profileDetailOverlay == nil {
+            let overlay = ProfileDetailOverlayNode(sceneSize: size)
+            profileDetailOverlay = overlay
+            addChild(overlay)
+        }
+        updateProfileDetailOverlay()
+    }
+
+    private func hideProfileDetailOverlay() {
+        profileDetailOverlay?.removeAllActions()
+        profileDetailOverlay?.removeFromParent()
+        profileDetailOverlay = nil
+        profileDetailMode = .detail
+    }
+
+    private func updateProfileDetailOverlay() {
+        guard let overlay = profileDetailOverlay else { return }
+        overlay.update(
+            sceneSize: size,
+            snapshot: homeSnapshot,
+            avatar: profileAvatarSnapshot,
+            repository: profileAvatarRepo,
+            unlockedCharacters: unlockedAvatarCharacters(),
+            mode: profileDetailMode
+        )
+    }
+
+    private func handleProfileDetailAction(_ action: ProfileDetailAction?) {
+        guard let action = action else { return }
+
+        switch action {
+        case .editProfileName:
+            requestProfileNameEdit(
+                required: profileDetailMode == .nicknamePrompt
+                    || homeSnapshot.authProfile?.needsNicknameSetup == true
+            )
+        case .chooseAvatar:
+            showProfileDetailOverlay(mode: .avatarPicker)
+        case .selectAvatar(let characterID):
+            profileAvatarRepo.save(characterID: characterID)
+            profileAvatarSnapshot = correctedProfileAvatar(profileAvatarRepo.current)
+            refreshHomeContent(animated: true)
+            showProfileDetailOverlay(mode: .detail)
+        case .choosePhoto:
+            requestProfilePhotoPicker()
+        case .linkApple:
+            hideProfileDetailOverlay()
+            handleAccountAppleLinkTap()
+        case .signOut:
+            hideProfileDetailOverlay()
+            handleAccountSignOutTap()
+        case .requestDeleteConfirmation:
+            hideProfileDetailOverlay()
+            showAccountMenuOverlay(mode: .confirmDelete)
+        case .close:
+            hideProfileDetailOverlay()
+        }
+    }
+
+    private func profileEntryMode() -> ProfileDetailMode {
+        return homeSnapshot.authProfile?.needsNicknameSetup == true ? .nicknamePrompt : .detail
+    }
+
+    private func showInitialProfilePromptIfNeeded() {
+        guard didShowInitialNicknamePrompt == false else { return }
+        guard homeSnapshot.authProfile?.needsNicknameSetup == true else { return }
+        didShowInitialNicknamePrompt = true
+        setActiveSection(.profile, animated: false, force: true)
+        showProfileDetailOverlay(mode: .nicknamePrompt)
+    }
+
+    private func requestProfileNameEdit(required: Bool) {
+        let request = ProfileNameEditRequest(
+            displayName: homeSnapshot.authProfile?.displayName,
+            nickname: homeSnapshot.authProfile?.nickname,
+            isNicknameRequired: required
+        )
+        NotificationCenter.default.post(
+            name: .ganhoProfileNameEditRequested,
+            object: nil,
+            userInfo: request.userInfo
+        )
+    }
+
+    private func requestProfilePhotoPicker() {
+        showAccountFeedback(GameConfig.profileDetailPhotoPickerRequestText)
+        NotificationCenter.default.post(
+            name: .ganhoProfilePhotoPickerRequested,
+            object: nil,
+            userInfo: [GameConfig.profileAvatarScopeUserInfoKey: accountScope]
+        )
+    }
+
+    private func observeProfileAvatarChanges() {
+        guard profileAvatarDidChangeObserver == nil else { return }
+        profileAvatarDidChangeObserver = NotificationCenter.default.addObserver(
+            forName: .ganhoProfileAvatarDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleProfileAvatarDidChange(notification)
+        }
+    }
+
+    private func handleProfileAvatarDidChange(_ notification: Notification) {
+        if let changedScope = notification.userInfo?[GameConfig.profileAvatarScopeUserInfoKey] as? AccountProgressScope,
+           changedScope.storageSuffix != accountScope.storageSuffix {
+            return
+        }
+        profileAvatarSnapshot = correctedProfileAvatar(profileAvatarRepo.current)
+        refreshHomeContent(animated: true)
+        showProfileDetailOverlay(mode: .detail)
+    }
+
+    private func observeProfileNameEditResults() {
+        guard profileNameEditDidFinishObserver == nil else { return }
+        profileNameEditDidFinishObserver = NotificationCenter.default.addObserver(
+            forName: .ganhoProfileNameEditDidFinish,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleProfileNameEditDidFinish(notification)
+        }
+    }
+
+    private func handleProfileNameEditDidFinish(_ notification: Notification) {
+        guard let result = ProfileNameEditResult(notification: notification) else { return }
+        refreshAfterAccountChange()
+        if result.didSave {
+            didShowInitialNicknamePrompt = true
+            showAccountFeedback(GameConfig.profileNameEditSavedText)
+            showProfileDetailOverlay(mode: .detail)
+        } else {
+            showAccountFeedback(GameConfig.profileNameEditFailedText)
+            if result.wasNicknameRequired || homeSnapshot.authProfile?.needsNicknameSetup == true {
+                showProfileDetailOverlay(mode: .nicknamePrompt)
+            }
+        }
+    }
+
+    private func observeAuthProfileChanges() {
+        guard authProfileDidChangeObserver == nil else { return }
+        authProfileDidChangeObserver = NotificationCenter.default.addObserver(
+            forName: .ganhoAuthProfileDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAuthProfileDidChange()
+        }
+    }
+
+    private func handleAuthProfileDidChange() {
+        guard !isAccountRequestInFlight else { return }
+        refreshAfterAccountChange()
+        showInitialProfilePromptIfNeeded()
+    }
+
+    // MARK: - Account Menu
+    private func showAccountMenuOverlay(mode: AccountMenuOverlayMode = .menu) {
+        if let overlay = accountMenuOverlay {
+            overlay.update(sceneSize: size, isAppleLinked: homeSnapshot.isAppleLinked, mode: mode)
+            return
+        }
+        let overlay = AccountMenuOverlayNode(
+            sceneSize: size,
+            isAppleLinked: homeSnapshot.isAppleLinked,
+            mode: mode
+        )
+        accountMenuOverlay = overlay
+        addChild(overlay)
+    }
+
+    private func hideAccountMenuOverlay() {
+        accountMenuOverlay?.removeAllActions()
+        accountMenuOverlay?.removeFromParent()
+        accountMenuOverlay = nil
+    }
+
+    private func handleAccountMenuAction(_ action: AccountMenuAction?) {
+        guard let action = action else { return }
+        switch action {
+        case .linkApple:
+            handleAccountAppleLinkTap()
+        case .signOut:
+            handleAccountSignOutTap()
+        case .requestDeleteConfirmation:
+            showAccountMenuOverlay(mode: .confirmDelete)
+        case .confirmDelete:
+            handleAccountDeleteTap()
+        case .cancel:
+            hideAccountMenuOverlay()
+        }
+    }
+
+    private func handleAccountAppleLinkTap() {
+        guard !isAccountRequestInFlight else { return }
+        guard let window = view?.window else {
+            showAccountFeedback(GameConfig.authActionFailedText)
+            return
+        }
+
+        let previousScope = accountScope
+        isAccountRequestInFlight = true
+        showAccountMenuOverlay(mode: .busy)
+
+        Task { [weak self] in
+            let result = await FirebaseAuthManager.shared.signInWithApple(presentationAnchor: window)
+            await MainActor.run {
+                guard let self = self else { return }
+                self.isAccountRequestInFlight = false
+                switch result {
+                case .success:
+                    self.refreshAfterAccountChange(migratingFrom: previousScope)
+                    self.hideAccountMenuOverlay()
+                    self.showAccountFeedback(GameConfig.authLinkedStatusText)
+                    self.showInitialProfilePromptIfNeeded()
+                    self.syncCloudProgressIfNeeded()
+                    Task {
+                        _ = await CloudSaveCoordinator.shared.flushPendingIfPossible()
+                    }
+                case .cancelled:
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                case .failure(let error):
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(self.appleFailureStatusText(for: error))
+                }
+            }
+        }
+    }
+
+    private func handleAccountSignOutTap() {
+        guard !isAccountRequestInFlight else { return }
+        isAccountRequestInFlight = true
+        showAccountMenuOverlay(mode: .busy)
+
+        Task { [weak self] in
+            let result = await FirebaseAuthManager.shared.signOutToGuestSession()
+            await MainActor.run {
+                guard let self = self else { return }
+                self.isAccountRequestInFlight = false
+                switch result {
+                case .success:
+                    self.transitionToStart(openLoginChoiceOnEntry: true)
+                case .cancelled:
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                case .failure:
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(GameConfig.authActionFailedText)
+                }
+            }
+        }
+    }
+
+    private func handleAccountDeleteTap() {
+        guard !isAccountRequestInFlight else { return }
+        guard let window = view?.window else {
+            showAccountFeedback(GameConfig.authActionFailedText)
+            return
+        }
+
+        isAccountRequestInFlight = true
+        showAccountMenuOverlay(mode: .busy)
+
+        Task { [weak self] in
+            let result = await FirebaseAuthManager.shared.deleteCurrentAccount(presentationAnchor: window)
+            await MainActor.run {
+                guard let self = self else { return }
+                self.isAccountRequestInFlight = false
+                switch result {
+                case .success:
+                    self.transitionToStart(openLoginChoiceOnEntry: true)
+                case .cancelled:
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                case .failure:
+                    self.showAccountMenuOverlay(mode: .menu)
+                    self.showAccountFeedback(GameConfig.authActionFailedText)
+                }
+            }
+        }
+    }
+
+    private func refreshAfterAccountChange(migratingFrom previousScope: AccountProgressScope? = nil) {
+        let previousSelection = selectedCharacterID
+        configureScopedRepositories()
+        if let previousScope = previousScope {
+            migrateProgressIfNeeded(from: previousScope, to: accountScope)
+            rebuildUnlockStates()
+            profileAvatarSnapshot = correctedProfileAvatar(profileAvatarRepo.current)
+        }
+        selectedCharacterID = correctedSavedCharacter(previousSelection)
+        currentIndex = characters.firstIndex(of: selectedCharacterID)
+            ?? GameConfig.characterHomeDefaultIndex
+        homeSnapshot = makeHomeSnapshot(for: selectedCharacterID)
+        layoutHome(animated: false)
+        refreshHomeContent(animated: true)
+    }
+
+    private func migrateProgressIfNeeded(from oldScope: AccountProgressScope,
+                                         to newScope: AccountProgressScope) {
+        guard oldScope.storageSuffix != newScope.storageSuffix else { return }
+
+        let oldScoreRepo = PerDifficultyScoreRepository.scoped(scope: oldScope)
+        let oldGraduationRepo = GraduationRepository.scoped(scope: oldScope)
+        let oldPreferenceRepo = CharacterPreferenceRepository.scoped(scope: oldScope)
+        let oldAvatarRepo = ProfileAvatarRepository.scoped(scope: oldScope)
+
+        _ = perDifficultyScoreRepo.mergeMax(oldScoreRepo.current)
+        _ = graduationRepo.mergeEarliest(oldGraduationRepo.current)
+        if !preferenceRepo.hasSavedPreference && oldPreferenceRepo.hasSavedPreference {
+            preferenceRepo.save(oldPreferenceRepo.current)
+        }
+        profileAvatarRepo.copyAvatarIfMissing(from: oldAvatarRepo)
+    }
+
+    private func appleFailureStatusText(for error: AuthError?) -> String {
+        switch error {
+        case .some(.appleAuthorizationTimedOut):
+            return GameConfig.loginChoiceAppleTimeoutText
+        case .some(.appleConfigurationFailed):
+            return GameConfig.loginChoiceAppleConfigurationText
+        case .some(.appleCredentialRejected):
+            return GameConfig.loginChoiceAppleCredentialText
+        default:
+            return GameConfig.authActionFailedText
+        }
+    }
+
+    private func showAccountFeedback(_ text: String) {
+        let originalText = headerSubLabel.text
+        headerSubLabel.text = text
+        headerSubLabel.removeAction(forKey: GameConfig.authStatusMessageActionKey)
+        let wait = SKAction.wait(forDuration: GameConfig.authStatusMessageDuration)
+        let restore = SKAction.run { [weak self] in
+            self?.headerSubLabel.text = originalText
+        }
+        headerSubLabel.run(
+            SKAction.sequence([wait, restore]),
+            withKey: GameConfig.authStatusMessageActionKey
+        )
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -940,10 +1471,10 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     // MARK: - Transition
-    private func transitionToStart() {
+    private func transitionToStart(openLoginChoiceOnEntry: Bool = false) {
         guard let view = self.view else { return }
         isTransitioning = true
-        let scene = StartScene.newStartScene()
+        let scene = StartScene.newStartScene(openLoginChoiceOnEntry: openLoginChoiceOnEntry)
         let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
         view.presentScene(scene, transition: fade)
     }

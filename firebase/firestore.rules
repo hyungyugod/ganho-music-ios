@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// ──────────────────────────────────────────────────────────────
+// GanhoMusic Firestore 보안 규칙
+//
+// 실제 iOS 코드 경로(CloudProgressRepository.swift)와 1:1 일치해야 한다.
+//   users/{uid}                      ← userData(merge)
+//   users/{uid}/scores/{localID}     ← scoreData(merge)
+//   users/{uid}/progress/summary     ← progressData(merge) / fetchProgress(read)
+//   계정 삭제: scores·progress 컬렉션 + users/{uid} 문서 삭제
+//
+// 컬렉션 이름 단일 진실 원천: GameConfig.swift
+//   cloudUsersCollectionName    = "users"
+//   cloudScoresCollectionName   = "scores"
+//   cloudProgressCollectionName = "progress"
+//
+// ⚠️ 이 규칙을 배포하지 않으면(테스트 모드) 누구나 타인 데이터를 읽고 쓸 수 있다.
+//   배포: `firebase deploy --only firestore:rules`
+//        또는 Firebase Console → Firestore → 규칙 탭에 붙여넣기
+// ──────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // 익명 세션 포함 — 문서 소유자(uid 일치)만 접근.
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // 본인 프로필 요약만 읽고 쓰고 지울 수 있다.
+      allow read, create, update, delete: if isOwner(uid);
+
+      // 게임 결과 기록 (한 판 = 1 문서, localID 키).
+      match /scores/{scoreId} {
+        allow read, create, update, delete: if isOwner(uid);
+      }
+
+      // 진행도 summary (highScore / stats / perDifficulty / graduations).
+      match /progress/{docId} {
+        allow read, create, update, delete: if isOwner(uid);
+      }
+    }
+
+    // 그 외 모든 경로는 기본 거부 (명시 매치 없으면 deny).
+  }
+}

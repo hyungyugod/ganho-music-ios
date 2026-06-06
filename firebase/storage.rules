@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// ──────────────────────────────────────────────────────────────
+// GanhoMusic Cloud Storage 보안 규칙
+//
+// 현재 앱은 Cloud Storage를 사용하지 않는다 (FirebaseStorage import 0건).
+// 따라서 모든 읽기/쓰기를 기본 차단한다 — 공격면 최소화.
+//
+// 향후 프로필 사진 등 Storage 기능을 추가하면 그때 경로별 규칙을 연다.
+// ──────────────────────────────────────────────────────────────
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
