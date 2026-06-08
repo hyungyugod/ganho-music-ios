@@ -56,7 +56,9 @@ extension PlayerSkill {
         case .dashClimb:      return GameConfig.dashClimbDuration
         case .bookClubRally:  return 0  // 즉발 — 끌어오기 액션은 노트 자체에 부착
         case .charmStudent:   return GameConfig.charmStudentDuration
-        case .taiwanTrip:     return GameConfig.taiwanTripInvulnerableDuration
+        // V2 무적 길이(1.6초)로 통일 — applyTaiwanTripBlink.totalDuration과 같은 상수를 참조해야
+        // progress·무적·깜빡임이 동시에 끝난다(레거시 taiwanTripInvulnerableDuration=1.0은 값만 보존, 미참조).
+        case .taiwanTrip:     return GameConfig.taiwanTripInvulnerableDurationV2
         }
     }
 
@@ -78,10 +80,10 @@ extension PlayerSkill {
     var fullDescription: String {
         switch self {
         case .none:           return ""
-        case .dashClimb:      return "바라보는 방향으로 4타일 고속 돌진. 경로 주변 F를 지우고 잠시 무적. 쿨다운 22초."
-        case .bookClubRally:  return "주변 8타일 안 음표를 넓게 끌어와 수집. 쿨다운 20초."
-        case .charmStudent:   return "수간호사를 4초간 매혹. F 대신 A 투척(수집 시 점수 2배). 게임당 1회."
-        case .taiwanTrip:     return "현재 위치의 반대 대각선 방향으로 순간이동. 착지 주변 F를 지우고 1초 무적. 쿨다운 22초."
+        case .dashClimb:      return "바라보는 방향으로 4타일 고속 돌진. 경로의 음표를 쓸어담고 주변 F를 지운다. 착지 시 충격파로 둘레 F까지 정화하며 잠시 무적. 쿨다운 22초."
+        case .bookClubRally:  return "주변 8타일 안 음표·A를 넓게 끌어와 수집하고, 같은 범위의 F를 한 번에 터뜨려 안전지대를 만든다. 쿨다운 20초."
+        case .charmStudent:   return "수간호사를 4초간 매혹. F 대신 A 투척(수집 시 점수 2배). 발동 시 화면이 흔들린다. 게임당 1회."
+        case .taiwanTrip:     return "현재 위치의 반대 대각선 방향으로 순간이동. 출발·착지 양쪽 F를 지우고 착지 주변 음표를 흡수하며 1.6초 무적. 쿨다운 22초."
         }
     }
 

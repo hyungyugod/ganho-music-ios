@@ -153,7 +153,9 @@ final class SkillSystem {
     }
 
     // MARK: - 1. Dash Climb (정간호)
-    /// 4 tile 거리 돌진 + 무적 + 경로상 F 제거 + 착지 충격파.
+    /// 4 tile 거리 돌진 + 무적 + 경로상 F 제거 + 착지 충격파(유지).
+    /// 추가: (점수) 돌진 경로 음표 흡수, (생존) 착지 주변 F 원형 정화 + 착지 후 무적 연장,
+    ///       (타격감) 착지 순간 카메라 진동 + 헤비 햅틱.
     /// 방향: DPad.currentDirection → lastDirection → 기본 우측 fallback.
     private func performDashClimb() {
         guard let scene = scene else { return }
@@ -173,6 +175,12 @@ final class SkillSystem {
             to: end,
             halfWidth: GameConfig.dashClimbProjectileClearHalfWidth
         )
+        // (점수) 돌진 경로 corridor 안 음표 흡수 — F 제거보다 약간 넓은 폭으로 "지나가며 빨아들임".
+        pullCollectiblesInCorridor(from: start, to: end,
+                                   halfWidth: GameConfig.dashClimbCollectHalfWidth,
+                                   color: .ganhoBloodAccent)
+        // (생존) 착지 주변 F 원형 정화 — corridor 밖까지.
+        clearProjectiles(near: end, radius: GameConfig.dashClimbLandingPurgeRadius)
         spawnSkillTrail(from: start, to: end, color: .ganhoBloodAccent, parent: scene.worldNode)
 
         // 무적 + 이동.
@@ -189,12 +197,17 @@ final class SkillSystem {
                 color: .ganhoBloodAccent,
                 parent: scene.worldNode
             )
+            scene.cameraNode.run(CameraShakeAction.make())   // 타격감: 화면 진동
+            scene.haptics.heavy()                              // 타격감: 헤비 햅틱
         }
+        // (생존) 무적 연장: 착지 후 바로 끄지 않고 dashClimbLandingInvulnerableExtra초 더 유지 후 해제.
+        let extendInvuln = SKAction.wait(forDuration: GameConfig.dashClimbLandingInvulnerableExtra)
         let endAction = SKAction.run { [weak player] in
             player?.isInvulnerable = false
             player?.physicsBody?.velocity = .zero
         }
-        player.run(.sequence([move, impact, endAction]), withKey: GameConfig.dashClimbActionKey)
+        player.run(.sequence([move, impact, extendInvuln, endAction]),
+                   withKey: GameConfig.dashClimbActionKey)
     }
 
     /// DPad → lastDirection → 기본 우측 순서로 방향 벡터 결정.
@@ -250,42 +263,39 @@ final class SkillSystem {
     }
 
     // MARK: - 2. Book Club Rally (건간호)
-    /// 반경 8타일 안 노트를 player 위치로 끌어오기.
-    /// 도착 시점 자연 contact → onNoteCollected 정상 발화 → 점수/콤보 자동.
-    /// F는 끌어오지 않음(이름 분기 "note"만).
+    /// 반경 8타일 안 노트(+A아이템)를 player 위치로 끌어오기 + 같은 반경 F 일괄 정화("안전지대 폭발").
+    /// 도착 시점 자연 contact → onNoteCollected/onAItemCollected 정상 발화 → 점수/콤보 자동.
+    /// "이펙트가 안 와닿는다" 대응: 2겹 충격파 링 + 헤비 햅틱 + 카메라 펄스로 시각/촉각 가중치 최우선.
     private func performBookClubRally() {
         guard let scene = scene else { return }
         let world = scene.worldNode
         let center = scene.player.position
         let radius = GameConfig.bookClubRallyRadius
-        let radiusSquared = radius * radius
 
+        // (생존) 같은 반경 F 일괄 정화 — "안전지대 폭발".
+        clearProjectiles(near: center, radius: radius)
+
+        // (타격감) 2겹 충격파 링 — 바깥 1겹 + 안쪽 1겹(반경/색 살짝 다르게).
         spawnSkillRing(at: center, radius: radius, color: .ganhoMint, parent: world)
+        spawnSkillRing(at: center,
+                       radius: radius * GameConfig.bookClubRallyOuterRingRatio,
+                       color: .ganhoCyanBeat,
+                       parent: world)
+        scene.haptics.heavy()
+        // (선택) 카메라 펄스 — 발동당 1회만(변위 누적 방지).
+        scene.cameraNode.run(CameraShakeAction.make())
 
-        // enumerate는 발동 시 1회만 — 매 프레임 호출 아님.
-        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
-            guard let self = self else { return }
-            let dx = node.position.x - center.x
-            let dy = node.position.y - center.y
-            // 거리^2 비교 — sqrt 회피(성능).
-            guard dx * dx + dy * dy < radiusSquared else { return }
-            node.removeAction(forKey: GameConfig.noteBobActionKey)
-            let startPosition = node.position
-            self.spawnSkillSparkle(at: startPosition, color: .ganhoMint, parent: world)
-            let pull = self.bookClubRallyPullAction(
-                for: node,
-                from: startPosition,
-                scene: scene
-            )
-            node.run(pull, withKey: GameConfig.bookClubRallyPullActionKey)
-        }
+        // (점수+시각) 음표 흡수 + A아이템 흡수는 pullCollectibles로 일원화 + 반짝이 다수.
+        pullCollectibles(near: center, radius: radius, includeAItems: true, color: .ganhoMint)
     }
 
-    /// 고정 좌표가 아니라 현재 player 위치를 계속 참조해 끌어오기 누락을 줄인다.
-    /// 점수는 직접 건드리지 않고 player-note contact 경로만 사용한다.
-    private func bookClubRallyPullAction(for targetNode: SKNode,
-                                         from startPosition: CGPoint,
-                                         scene: GameScene) -> SKAction {
+    /// 반경/corridor 흡수 헬퍼가 공유하는 *중립* 끌어오기 액션 생성기(DRY — dash/rally/taiwanTrip 공용).
+    /// 고정 좌표가 아니라 현재 player 위치를 계속 참조(customAction)해 player가 이동 중이어도 누락을 줄인다.
+    /// 점수는 직접 건드리지 않고 player-note / player-aItem contact 경로만 사용한다.
+    /// (구 bookClubRallyPullAction을 중립 이름으로 일반화 — 동작/액션 키 보존.)
+    private func pullCollectible(for targetNode: SKNode,
+                                from startPosition: CGPoint,
+                                scene: GameScene) -> SKAction {
         let duration = GameConfig.bookClubRallyMoveDuration
         guard duration > 0 else {
             return SKAction.run { [weak scene, weak targetNode] in
@@ -312,12 +322,77 @@ final class SkillSystem {
         return SKAction.sequence([pull, settleOnPlayer])
     }
 
+    /// 반경 안 "note"(필요 시 "aItem")를 player로 끌어와 contact→자동 수집(DRY — dash/rally/taiwanTrip 공용).
+    /// 점수/콤보 직접 set 금지 — 끌어오기→contact 경로만(ScoreSystem 회귀 0).
+    /// note는 onNoteCollected → recordNoteHit, aItem은 onAItemCollected → recordCharmedNoteHit(×2)로 자동 가산.
+    /// enumerate는 발동 시 1회만 — 매 프레임 호출 아님. player 이동 중이어도 pullCollectible이 실시간 참조.
+    private func pullCollectibles(near center: CGPoint,
+                                 radius: CGFloat,
+                                 includeAItems: Bool,
+                                 color: UIColor) {
+        guard let scene = scene else { return }
+        let world = scene.worldNode
+        let radiusSquared = radius * radius
+        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
+            guard let self = self else { return }
+            let dx = node.position.x - center.x
+            let dy = node.position.y - center.y
+            // 거리^2 비교 — sqrt 회피(성능).
+            guard dx * dx + dy * dy < radiusSquared else { return }
+            node.removeAction(forKey: GameConfig.noteBobActionKey)
+            let start = node.position
+            self.spawnSkillSparkle(at: start, color: color, parent: world)
+            node.run(self.pullCollectible(for: node, from: start, scene: scene),
+                     withKey: GameConfig.bookClubRallyPullActionKey)
+        }
+        guard includeAItems else { return }
+        world.enumerateChildNodes(withName: "aItem") { [weak self] node, _ in
+            guard let self = self else { return }
+            let dx = node.position.x - center.x
+            let dy = node.position.y - center.y
+            guard dx * dx + dy * dy < radiusSquared else { return }
+            // A아이템은 bob 액션이 없고 physicsBody.velocity로 이동 → 끌어오기 전 정지 필수(떨림 방지).
+            node.physicsBody?.velocity = .zero
+            let start = node.position
+            self.spawnSkillSparkle(at: start, color: color, parent: world)
+            node.run(self.pullCollectible(for: node, from: start, scene: scene),
+                     withKey: GameConfig.bookClubRallyPullActionKey)
+        }
+    }
+
+    /// start→end 선분(corridor) 안 "note"를 player로 끌어와 contact→자동 수집(돌진 "지나가며 빨아들임").
+    /// clearProjectilesInCorridor의 enumerate + squaredDistanceFromPointToSegment 패턴을 음표용으로 미러링.
+    /// 점수/콤보 직접 set 금지 — 끌어오기→contact 경로만(ScoreSystem 회귀 0).
+    private func pullCollectiblesInCorridor(from start: CGPoint,
+                                           to end: CGPoint,
+                                           halfWidth: CGFloat,
+                                           color: UIColor) {
+        guard let scene = scene else { return }
+        let world = scene.worldNode
+        let limitSquared = halfWidth * halfWidth
+        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
+            guard let self = self else { return }
+            let distanceSquared = self.squaredDistanceFromPointToSegment(
+                point: node.position,
+                start: start,
+                end: end
+            )
+            guard distanceSquared <= limitSquared else { return }
+            node.removeAction(forKey: GameConfig.noteBobActionKey)
+            let startPosition = node.position
+            self.spawnSkillSparkle(at: startPosition, color: color, parent: world)
+            node.run(self.pullCollectible(for: node, from: startPosition, scene: scene),
+                     withKey: GameConfig.bookClubRallyPullActionKey)
+        }
+    }
+
     // MARK: - 3. Charm Student (임간호)
     /// 모든 활성 F를 enchanted로 전환. 새로 발사되는 F는 EnemyNode의 charmActiveProvider가 A로 바꾼다.
     /// 매혹된 F/A는 지속시간이 끝나도 보상 상태를 유지해 사용자가 효과를 명확히 체감하게 한다.
     private func performCharmStudent() {
         guard let scene = scene else { return }
         let world = scene.worldNode
+        // ── 기존 게임성 100% 유지 (절대 변경 금지) ──
         ToastLabelNode.spawn(text: GameConfig.charmStudentToastText,
                              at: scene.enemy.position,
                              parent: world)
@@ -326,11 +401,25 @@ final class SkillSystem {
                 projectile.applyEnchanted()
             }
         }
+        // ── 신규: 시각·햅틱만 추가 (게임 수치 0 변경) ──
+        // 매혹 테마색은 코랄·피치 톤. ColorTokens에 ganhoPeachAccent 미존재 → 실재 토큰 ganhoCoralPrimary 사용.
+        let center = scene.player.position
+        spawnSkillRing(at: center,
+                       radius: GameConfig.charmStudentRingRadius,
+                       color: .ganhoCoralPrimary,
+                       parent: world)
+        spawnSkillRing(at: center,
+                       radius: GameConfig.charmStudentRingRadius * GameConfig.charmStudentOuterRingRatio,
+                       color: .ganhoCoralPrimary,
+                       parent: world)                              // 하트펄스 톤 2겹
+        scene.cameraNode.run(CameraShakeAction.make())             // 화면 전체 진동
+        scene.haptics.medium()
     }
 
     // MARK: - 4. Taiwan Trip (이간호)
-    /// 현재 위치의 반대 대각선 코너 쪽 안전 지점으로 멀리 텔레포트.
-    /// 1초 무적 + 깜빡임 액션.
+    /// 현재 위치의 반대 대각선 코너 쪽 안전 지점으로 멀리 텔레포트(유지).
+    /// 추가: (점수) 착지 주변 음표 흡수, (생존) 출발 지점 F 정화 + 무적 1.0→1.6초 연장,
+    ///       (타격감) 헤비 햅틱(카메라 진동은 기존 유지).
     private func performTaiwanTrip() {
         guard let scene = scene else { return }
         let player = scene.player
@@ -343,6 +432,8 @@ final class SkillSystem {
             color: .ganhoCyanBeat,
             parent: scene.worldNode
         )
+        // (생존) 출발 지점 F도 제거 — 텔레포트 전 발밑 정리.
+        clearProjectiles(near: start, radius: GameConfig.taiwanTripDeparturePurgeRadius)
 
         // 즉시 위치 이동.
         player.position = targetPosition
@@ -353,8 +444,14 @@ final class SkillSystem {
             color: .ganhoCyanBeat,
             parent: scene.worldNode
         )
+        // (점수) 착지 주변 음표 흡수.
+        pullCollectibles(near: targetPosition,
+                         radius: GameConfig.taiwanTripCollectRadius,
+                         includeAItems: false,
+                         color: .ganhoCyanBeat)
         clearProjectiles(near: targetPosition, radius: GameConfig.taiwanTripLandingPurgeRadius)
-        scene.cameraNode.run(CameraShakeAction.make())
+        scene.cameraNode.run(CameraShakeAction.make())   // 기존 유지
+        scene.haptics.heavy()                              // 타격감 추가
 
         // 무적 + 깜빡임. 동시에 set/clear.
         player.isInvulnerable = true
@@ -594,7 +691,8 @@ final class SkillSystem {
         let fadeOut = SKAction.fadeAlpha(to: GameConfig.taiwanTripFlashAlpha, duration: half)
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
         let cycle = SKAction.sequence([fadeOut, fadeIn])
-        let totalDuration = GameConfig.taiwanTripInvulnerableDuration
+        // V2 무적/깜빡임 길이(1.6초). PlayerSkill.duration(.taiwanTrip)도 같은 상수를 참조 — 종료 정합.
+        let totalDuration = GameConfig.taiwanTripInvulnerableDurationV2
         player.run(SKAction.repeatForever(cycle), withKey: GameConfig.taiwanTripBlinkActionKey)
         let restore = SKAction.run { [weak player] in
             player?.removeAction(forKey: GameConfig.taiwanTripBlinkActionKey)

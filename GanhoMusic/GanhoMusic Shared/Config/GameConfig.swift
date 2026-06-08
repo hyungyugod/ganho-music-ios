@@ -1115,6 +1115,12 @@ enum GameConfig {
     static let dashClimbProjectileClearHalfWidth: CGFloat = tileSize
     static let dashClimbImpactRadius: CGFloat = tileSize * 1.8
     static let dashClimbLandingSearchSteps: Int = 10
+    /// 돌진 경로(corridor) 음표 흡수 폭 (pt). F 제거 폭(tileSize)보다 약간 넓게 — "지나가며 빨아들임".
+    static let dashClimbCollectHalfWidth: CGFloat = tileSize * 1.4
+    /// 착지 주변 F 원형 정화 반경 (pt). corridor 밖까지 정리 — 착지 안전 확보.
+    static let dashClimbLandingPurgeRadius: CGFloat = tileSize * 2.0
+    /// 착지 후 무적 추가 유지 시간 (초). 돌진 종료 직후 죽음 방지용 짧은 여유.
+    static let dashClimbLandingInvulnerableExtra: TimeInterval = 0.35
 
     // 건간호 — 북클럽 소집 (.bookClubRally)
     /// 끌어오기 반경 (pt). 8 tile.
@@ -1125,6 +1131,8 @@ enum GameConfig {
     static let bookClubRallyCooldown: TimeInterval = 20
     static let bookClubRallyPullActionKey: String = "bookClubRallyPull"
     static let bookClubRallySparkleActionKey: String = "bookClubRallySparkle"
+    /// 2겹 충격파 바깥 링 반경 비율. 안쪽(radius) 대비 0.6배 안쪽 링 — "안전지대 폭발" 다층 톤.
+    static let bookClubRallyOuterRingRatio: CGFloat = 0.6
 
     // 임간호 — 나는야 모범생 (.charmStudent, 게임당 1회)
     /// 매혹 지속 시간 (초). 수간호사 발사 주기보다 길게 잡아 최소 1회 이상 A 투척을 체감하게 한다.
@@ -1132,6 +1140,10 @@ enum GameConfig {
     /// 매혹된 노트 수집 시 보너스 점수. scorePerNoteCombo(2)의 2배 = 4점.
     static let charmStudentBonusScore: Int = 4
     static let charmStudentToastText: String = "매혹!"
+    /// 매혹 발동 시각 링 반경 (pt). 3 tile — 전역 매혹의 무게감을 player 발밑에서 시작.
+    static let charmStudentRingRadius: CGFloat = tileSize * 3
+    /// 매혹 2겹 링 바깥 비율. 안쪽(charmStudentRingRadius) 대비 1.5배 — 하트펄스 톤 2겹.
+    static let charmStudentOuterRingRatio: CGFloat = 1.5
 
     // 이간호 — 대만여행 / 텔레포트 (.taiwanTrip)
     /// 레거시 값. V2 대만여행은 고정 거리 대신 현재 위치의 반대 대각선 안전 지점으로 이동한다.
@@ -1150,6 +1162,14 @@ enum GameConfig {
     static let taiwanTripLandingPurgeRadius: CGFloat = tileSize * 4
     static let taiwanTripBlinkActionKey: String = "taiwanTripBlink"
     static let taiwanTripInvulnerableActionKey: String = "taiwanTripInvulnerable"
+    /// 착지 주변 음표 흡수 반경 (pt). 착지 정화 반경(taiwanTripLandingPurgeRadius)과 정렬한 4 tile.
+    static let taiwanTripCollectRadius: CGFloat = tileSize * 4
+    /// 출발 지점 F 정화 반경 (pt). 출발 링 반경(taiwanTripDepartureRingRadius)과 정렬한 2 tile.
+    static let taiwanTripDeparturePurgeRadius: CGFloat = tileSize * 2
+    /// 연장된 무적/깜빡임 길이 (초). 레거시 taiwanTripInvulnerableDuration(1.0)을 대체하는 V2 값.
+    /// applyTaiwanTripBlink의 totalDuration과 PlayerSkill.duration(.taiwanTrip) *둘 다* 이 상수를 참조 —
+    /// 두 곳이 다른 값을 보면 progress·무적·깜빡임 종료가 어긋난다. 레거시 1.0 상수는 값 보존(미참조).
+    static let taiwanTripInvulnerableDurationV2: TimeInterval = 1.6
 
     // 스킬 공통 이펙트
     static let skillEffectZPosition: CGFloat = 35
