@@ -4,26 +4,22 @@
 //
 //  Sprint 1 · v2 Design System
 //
-//  크림 알약 + 코랄 테두리 + 입체 그림자 + 가우시안 블러 + 라벨. CharacterSelectScene 뒤로 버튼,
+//  크림 알약 + 낮은 네이비 테두리 + 라벨. CharacterSelectScene 뒤로 버튼,
 //  통계 칩, D-Pad 키, 난이도 칩에서 재사용.
-//  SKEffectNode + CIGaussianBlur는 iOS 13+ — 시뮬레이터에서도 정상 작동.
 //
 
 import SpriteKit
-import CoreImage
 
-/// 크림(ganhoPaper) 알약 + 코랄 2px 테두리 + 입체 그림자 + 가우시안 블러 + Jua 라벨.
-/// 묶음 A "Secondary 버튼 3계층"의 본보기 — 흰·크림이라도 그림자+테두리로 "버튼임"을 전달.
+/// 크림(ganhoPaper) 알약 + 낮은 네이비 테두리 + Jua 라벨.
 /// 부모(SKNode) = 좌표·name, 자식 = 시각. hit-test는 호출부의 `contains(location)` 패턴.
 final class GlassPillNode: SKNode {
 
     // MARK: - Properties
-    /// 입체 그림자(블러 비대상). background와 동일 모양 — blurEffect *밖*에 직접 부착해
-    /// 그림자가 블러로 흐려지지 않도록 한다. zPosition=-1로 배경보다 아래.
+    /// 톤다운 sprint 기본값에서는 숨겨지는 그림자 노드. destructive 등 미래 스타일 호환용으로 유지.
     private let shadowShape: SKShapeNode
-    /// 블러 효과 컨테이너 — background를 자식으로 감싸 가우시안 블러를 적용한다.
+    /// 기존 계층 호환용 effect container. 기본 스타일에서는 filter를 쓰지 않는다.
     private let blurEffect: SKEffectNode
-    /// 크림 알약 배경. fillColor = ganhoPaper α=0.82(불투명 상향), strokeColor = 코랄 2px.
+    /// 크림 알약 배경.
     private let background: SKShapeNode
     /// 라벨. fontName = Jua-Regular(없으면 시스템 fallback), fontColor = navyDeep.
     private let textLabel: SKLabelNode
@@ -42,23 +38,19 @@ final class GlassPillNode: SKNode {
         shadowShape.lineWidth = 0
         shadowShape.position = CGPoint(x: 0, y: GameConfig.glassPillShadowOffsetY)
         shadowShape.zPosition = -1
+        shadowShape.isHidden = GameConfig.glassPillShadowAlpha <= .zero
 
         background = SKShapeNode(
             rectOf: size,
             cornerRadius: size.height / 2
         )
-        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.glassPillFillAlpha)
-        background.strokeColor = .ganhoCoralPrimary
+        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.menuControlFillAlpha)
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
         background.lineWidth = GameConfig.glassPillBorderWidth
 
         blurEffect = SKEffectNode()
-        // SKEffectNode.filter는 CIFilter? 옵셔널 — CIFilter(name:) 옵셔널 결과를 직접 대입.
-        // 강제 언래핑 0건 — filter 자체가 nil 허용이라 별도 가드 불필요.
-        blurEffect.filter = CIFilter(
-            name: "CIGaussianBlur",
-            parameters: ["inputRadius": GameConfig.glassPillBlurRadius]
-        )
-        blurEffect.shouldRasterize = true
+        blurEffect.filter = nil
+        blurEffect.shouldRasterize = false
 
         textLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
 
@@ -104,5 +96,24 @@ final class GlassPillNode: SKNode {
         background.strokeColor = .ganhoCoralShadow
         textLabel.fontColor = .ganhoPaper
         shadowShape.fillColor = UIColor.ganhoInkBlack.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+    }
+
+    /// 캐릭터 홈 메뉴 버튼과 같은 크림 배경 + 네이비 테두리 톤.
+    /// 기본 GlassPill 스타일은 유지하고, 지정 호출부에서만 선택적으로 적용한다.
+    func applyCharacterHomeMenuStyle(active: Bool = false) {
+        shadowShape.isHidden = true
+        blurEffect.filter = nil
+        blurEffect.shouldRasterize = false
+
+        background.fillColor = active
+            ? .ganhoCoralPrimary
+            : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+        background.strokeColor = active
+            ? UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+        background.lineWidth = GameConfig.characterHomePanelLineWidth
+
+        textLabel.fontSize = GameConfig.characterHomeMenuFontSize
+        textLabel.fontColor = active ? .ganhoPaper : .ganhoNavyDeep
     }
 }

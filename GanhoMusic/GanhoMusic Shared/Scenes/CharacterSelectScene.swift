@@ -93,8 +93,7 @@ final class CharacterSelectScene: BaseMenuScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgWarmTop
-        setupWarmGradientBackground()
+        setupSolidMenuBackground()
 
         configureScopedRepositories()
         selectedCharacterID = correctedSavedCharacter(preferenceRepo.current)
@@ -146,7 +145,7 @@ final class CharacterSelectScene: BaseMenuScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildWarmGradientBackground()
+        rebuildSolidMenuBackground()
         accountMenuOverlay?.update(sceneSize: size, isAppleLinked: homeSnapshot.isAppleLinked)
         updateProfileDetailOverlay()
         layoutHome(animated: false)
@@ -179,9 +178,10 @@ final class CharacterSelectScene: BaseMenuScene {
             text: GameConfig.characterHomeBackButtonText,
             size: CGSize(
                 width: GameConfig.characterHomeBackButtonWidth,
-                height: GameConfig.characterHomeBackButtonHeight
+                height: GameConfig.characterHomeMenuButtonHeight
             )
         )
+        back.applyCharacterHomeMenuStyle()
         back.zPosition = GameConfig.characterHomeButtonZPosition
         backPill = back
         addChild(back)
@@ -248,16 +248,18 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func setupArrowChips() {
-        let size = CGSize(
-            width: GameConfig.characterHomeArrowButtonSize,
-            height: GameConfig.characterHomeArrowButtonSize
+        let arrowSize = CGSize(
+            width: GameConfig.characterHomeArrowPillWidth,
+            height: GameConfig.characterHomeMenuButtonHeight
         )
-        let left = GlassPillNode(text: GameConfig.characterHomeLeftArrowText, size: size)
+        let left = GlassPillNode(text: GameConfig.characterHomeLeftArrowText, size: arrowSize)
+        left.applyCharacterHomeMenuStyle()
         left.zPosition = GameConfig.characterHomeButtonZPosition
         leftArrowChip = left
         addChild(left)
 
-        let right = GlassPillNode(text: GameConfig.characterHomeRightArrowText, size: size)
+        let right = GlassPillNode(text: GameConfig.characterHomeRightArrowText, size: arrowSize)
+        right.applyCharacterHomeMenuStyle()
         right.zPosition = GameConfig.characterHomeButtonZPosition
         rightArrowChip = right
         addChild(right)
@@ -498,7 +500,7 @@ final class CharacterSelectScene: BaseMenuScene {
 
         leftArrowChip?.setScale(scale)
         rightArrowChip?.setScale(scale)
-        let buttonHalf = GameConfig.characterHomeArrowButtonSize * scale / 2
+        let buttonHalf = GameConfig.characterHomeArrowPillWidth * scale / 2
         let arrowGap = GameConfig.characterHomeArrowOutsideGap * scale
         leftArrowChip?.position = CGPoint(
             x: max(

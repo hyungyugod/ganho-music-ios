@@ -98,8 +98,7 @@ final class SkillExplanationScene: BaseMenuScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgWarmTop
-        setupWarmGradientBackground()
+        setupSolidMenuBackground()
         setupHeader()
         setupTopBar()
         setupAvatarCard()
@@ -115,7 +114,7 @@ final class SkillExplanationScene: BaseMenuScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildWarmGradientBackground()
+        rebuildSolidMenuBackground()
         layoutHeader()
         layoutTopBar()
         layoutAvatarCard()

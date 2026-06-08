@@ -67,10 +67,9 @@ final class ProfileSummaryPanelNode: SKNode {
             addChild(divider)
         }
 
-        // v2 톤: statusChip 네이비 → 코랄(묶음 A statusChip 어포던스와 정렬).
-        statusChip.fillColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.summaryStatusChipFillAlpha)
-        statusChip.strokeColor = .clear
+        statusChip.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+        statusChip.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+        statusChip.lineWidth = GameConfig.characterHomePanelLineWidth
         statusChip.zPosition = 1
         addChild(statusChip)
 
@@ -81,7 +80,7 @@ final class ProfileSummaryPanelNode: SKNode {
     private func setupLabels() {
         titleLabel.text = GameConfig.characterHomeProfileTitleText
         configure(label: titleLabel, fontSize: GameConfig.characterHomePanelTitleFontSize, color: .ganhoNavyDeep)
-        configure(label: statusLabel, fontSize: GameConfig.characterHomePanelSmallFontSize, color: .ganhoPaper)
+        configure(label: statusLabel, fontSize: GameConfig.characterHomePanelSmallFontSize, color: .ganhoNavyDeep)
         configure(label: nameLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
         configure(label: subLabel, fontSize: GameConfig.characterHomePanelBodyFontSize, color: .ganhoNavyMuted)
         configure(label: playTitleLabel, fontSize: GameConfig.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)

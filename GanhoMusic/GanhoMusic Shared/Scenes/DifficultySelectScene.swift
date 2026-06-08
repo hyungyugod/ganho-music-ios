@@ -77,8 +77,7 @@ final class DifficultySelectScene: BaseMenuScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        backgroundColor = .ganhoBgWarmTop
-        setupWarmGradientBackground()
+        setupSolidMenuBackground()
         setupMusicNoteEmitter()
         setupHeader()
         setupTopBar()
@@ -91,7 +90,7 @@ final class DifficultySelectScene: BaseMenuScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildWarmGradientBackground()
+        rebuildSolidMenuBackground()
         rebuildMusicNoteEmitter()
         layoutHeader()
         layoutTopBar()
@@ -101,6 +100,7 @@ final class DifficultySelectScene: BaseMenuScene {
     }
 
     private func setupMusicNoteEmitter() {
+        guard GameConfig.menuAmbientNotesEnabled else { return }
         let emitter = MusicNoteEmitterNode(sceneSize: size)
         emitter.position = .zero
         musicNoteEmitter = emitter

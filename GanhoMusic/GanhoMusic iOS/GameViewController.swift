@@ -13,6 +13,9 @@ class GameViewController: UIViewController {
     // MARK: - Properties
     private var profilePhotoPickerObserver: NSObjectProtocol?
     private var profileNameEditObserver: NSObjectProtocol?
+    private var profileNameEditorController: ProfileNameEditorViewController?
+    private var activeProfileNameEditRequest: ProfileNameEditRequest?
+    private var pendingProfileNameEditRequests: [ProfileNameEditRequest] = []
     private var pendingProfileAvatarScope: AccountProgressScope?
 
     // MARK: - Lifecycle
@@ -45,6 +48,11 @@ class GameViewController: UIViewController {
         skView.showsFPS = true
         skView.showsNodeCount = true
         #endif
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        presentPendingProfileNameEditorIfPossible()
     }
 
     deinit {
@@ -105,8 +113,17 @@ extension GameViewController {
     }
 
     private func handleProfileNameEditRequested(_ notification: Notification) {
-        guard presentedViewController == nil else { return }
         guard let request = ProfileNameEditRequest(notification: notification) else { return }
+        if let activeRequest = activeProfileNameEditRequest,
+           profileNameEditorController != nil,
+           profileNameEditRequest(activeRequest, matches: request) {
+            return
+        }
+        guard profileNameEditorController == nil,
+              presentedViewController == nil else {
+            enqueuePendingProfileNameEditRequest(request)
+            return
+        }
         presentProfileNameEditor(
             request: request,
             message: request.isNicknameRequired
@@ -117,137 +134,145 @@ extension GameViewController {
         )
     }
 
+    private func enqueuePendingProfileNameEditRequest(_ request: ProfileNameEditRequest) {
+        guard !pendingProfileNameEditRequests.contains(where: { profileNameEditRequest($0, matches: request) }) else {
+            return
+        }
+        pendingProfileNameEditRequests.append(request)
+    }
+
+    private func presentPendingProfileNameEditorIfPossible() {
+        guard profileNameEditorController == nil,
+              presentedViewController == nil,
+              !pendingProfileNameEditRequests.isEmpty else {
+            return
+        }
+        let request = pendingProfileNameEditRequests.removeFirst()
+        presentProfileNameEditor(
+            request: request,
+            message: request.isNicknameRequired
+                ? GameConfig.profileNameEditRequiredMessageText
+                : GameConfig.profileNameEditMessageText,
+            displayName: request.displayName,
+            nickname: request.nickname
+        )
+    }
+
+    private func profileNameEditRequest(_ lhs: ProfileNameEditRequest,
+                                        matches rhs: ProfileNameEditRequest) -> Bool {
+        return lhs.displayName == rhs.displayName
+            && lhs.nickname == rhs.nickname
+            && lhs.isNicknameRequired == rhs.isNicknameRequired
+    }
+
     private func presentProfileNameEditor(request: ProfileNameEditRequest,
                                           message: String,
                                           displayName: String?,
                                           nickname: String?) {
-        let alert = UIAlertController(
-            title: request.isNicknameRequired
+        let editor = ProfileNameEditorViewController(
+            titleText: request.isNicknameRequired
                 ? GameConfig.profileNameEditRequiredTitleText
                 : GameConfig.profileNameEditTitleText,
-            message: message,
-            preferredStyle: .alert
-        )
-        alert.addTextField { textField in
-            textField.placeholder = GameConfig.profileNameEditDisplayPlaceholderText
-            textField.text = displayName
-            textField.autocapitalizationType = .words
-            textField.clearButtonMode = .whileEditing
-        }
-        alert.addTextField { textField in
-            textField.placeholder = GameConfig.profileNameEditNicknamePlaceholderText
-            textField.text = nickname
-            textField.autocapitalizationType = .none
-            textField.clearButtonMode = .whileEditing
-        }
-
-        alert.addAction(
-            UIAlertAction(title: GameConfig.profileNameEditCancelText, style: .cancel)
-        )
-        let saveAction = UIAlertAction(
-            title: GameConfig.profileNameEditSaveText,
-            style: .default
-        ) { [weak self, weak alert] _ in
-            guard let self = self else { return }
-            let fields = alert?.textFields ?? []
-            let displayText = self.textFieldText(at: GameConfig.profileNameEditDisplayFieldIndex, in: fields)
-            let nicknameText = self.textFieldText(at: GameConfig.profileNameEditNicknameFieldIndex, in: fields)
-            if let validationMessage = self.nicknameValidationMessage(
-                for: nicknameText,
-                isRequired: request.isNicknameRequired
-            ) {
-                self.reopenProfileNameEditor(
-                    request: request,
-                    message: validationMessage,
-                    displayName: displayText,
-                    nickname: nicknameText
-                )
-                return
-            }
-
-            Task { [weak self] in
-                guard let self = self else { return }
-                let result = await FirebaseAuthManager.shared.updateProfileName(
-                    displayName: self.trimmedOptionalText(displayText),
-                    nickname: self.trimmedOptionalText(nicknameText),
-                    isNicknameRequired: request.isNicknameRequired
-                )
-                await MainActor.run {
-                    self.postProfileNameEditResult(
-                        didSave: result.isSuccess,
-                        wasNicknameRequired: request.isNicknameRequired
-                    )
-                }
-            }
-        }
-        alert.addAction(saveAction)
-        configureProfileNameValidation(
-            for: alert,
-            saveAction: saveAction,
+            messageText: message,
+            displayName: displayName,
+            nickname: nickname,
             isNicknameRequired: request.isNicknameRequired,
-            defaultMessage: message
+            validationProvider: { [weak self] nickname, isRequired in
+                self?.nicknameValidationMessage(for: nickname, isRequired: isRequired)
+            }
         )
-        present(alert, animated: true)
-    }
-
-    private func configureProfileNameValidation(for alert: UIAlertController,
-                                                saveAction: UIAlertAction,
-                                                isNicknameRequired: Bool,
-                                                defaultMessage: String) {
-        let updateValidationState: () -> Void = { [weak self, weak alert, weak saveAction] in
-            guard let self = self,
-                  let alert = alert else {
-                return
-            }
-            let fields = alert.textFields ?? []
-            let nicknameText = self.textFieldText(
-                at: GameConfig.profileNameEditNicknameFieldIndex,
-                in: fields
-            )
-            if let validationMessage = self.nicknameValidationMessage(
-                for: nicknameText,
-                isRequired: isNicknameRequired
-            ) {
-                alert.message = validationMessage
-            } else {
-                alert.message = defaultMessage
-            }
-            saveAction?.isEnabled = true
-        }
-
-        alert.textFields?.forEach { textField in
-            textField.addAction(
-                UIAction { _ in
-                    updateValidationState()
-                },
-                for: .editingChanged
-            )
-        }
-        updateValidationState()
-    }
-
-    private func reopenProfileNameEditor(request: ProfileNameEditRequest,
-                                         message: String,
-                                         displayName: String?,
-                                         nickname: String?) {
-        Task { @MainActor [weak self] in
-            for _ in 0..<5 {
-                guard self?.presentedViewController != nil else { break }
-                try? await Task.sleep(nanoseconds: GameConfig.nanosecondsPerSecond / 20)
-            }
-            guard let self = self, self.presentedViewController == nil else { return }
-            self.presentProfileNameEditor(
+        editor.modalPresentationStyle = .overFullScreen
+        editor.modalTransitionStyle = .crossDissolve
+        editor.onSave = { [weak self, weak editor] displayName, nickname in
+            self?.saveProfileNameFromEditor(
+                editor,
                 request: request,
-                message: message,
                 displayName: displayName,
                 nickname: nickname
             )
         }
+        editor.onCancel = { [weak self, weak editor] in
+            self?.cancelProfileNameEditor(editor, request: request)
+        }
+        activeProfileNameEditRequest = request
+        profileNameEditorController = editor
+        present(editor, animated: true)
     }
 
-    private func textFieldText(at index: Int, in fields: [UITextField]) -> String? {
-        guard fields.indices.contains(index) else { return nil }
-        return fields[index].text
+    private func saveProfileNameFromEditor(_ editor: ProfileNameEditorViewController?,
+                                           request: ProfileNameEditRequest,
+                                           displayName: String?,
+                                           nickname: String?) {
+        guard let editor = editor,
+              editor === profileNameEditorController else {
+            return
+        }
+        editor.setSaving(true)
+        Task { [weak self, weak editor] in
+            guard let self = self else { return }
+            let result = await FirebaseAuthManager.shared.updateProfileName(
+                displayName: self.trimmedOptionalText(displayName),
+                nickname: self.trimmedOptionalText(nickname),
+                isNicknameRequired: request.isNicknameRequired
+            )
+            await MainActor.run { [weak self, weak editor] in
+                self?.finishProfileNameSave(
+                    result: result,
+                    editor: editor,
+                    request: request
+                )
+            }
+        }
+    }
+
+    private func finishProfileNameSave(result: AccountActionResult,
+                                       editor: ProfileNameEditorViewController?,
+                                       request: ProfileNameEditRequest) {
+        guard let editor = editor,
+              editor === profileNameEditorController else {
+            return
+        }
+
+        switch result {
+        case .success:
+            editor.dismiss(animated: true) { [weak self, weak editor] in
+                guard let self = self,
+                      editor === self.profileNameEditorController else {
+                    return
+                }
+                self.profileNameEditorController = nil
+                self.activeProfileNameEditRequest = nil
+                self.postProfileNameEditResult(
+                    didSave: true,
+                    wasNicknameRequired: request.isNicknameRequired
+                )
+                self.presentPendingProfileNameEditorIfPossible()
+            }
+        case .cancelled, .failure:
+            editor.setSaving(false)
+            editor.showMessage(GameConfig.profileNameEditFailedText)
+        }
+    }
+
+    private func cancelProfileNameEditor(_ editor: ProfileNameEditorViewController?,
+                                         request: ProfileNameEditRequest) {
+        guard let editor = editor,
+              editor === profileNameEditorController else {
+            return
+        }
+        editor.dismiss(animated: true) { [weak self, weak editor] in
+            guard let self = self,
+                  editor === self.profileNameEditorController else {
+                return
+            }
+            self.profileNameEditorController = nil
+            self.activeProfileNameEditRequest = nil
+            self.postProfileNameEditResult(
+                didSave: false,
+                wasNicknameRequired: request.isNicknameRequired
+            )
+            self.presentPendingProfileNameEditorIfPossible()
+        }
     }
 
     private func nicknameValidationMessage(for nickname: String?,
@@ -284,14 +309,405 @@ extension GameViewController {
     }
 }
 
-private extension AccountActionResult {
-    var isSuccess: Bool {
-        switch self {
-        case .success:
-            return true
-        case .cancelled, .failure:
-            return false
+private final class ProfileNameEditorViewController: UIViewController {
+
+    // MARK: - Properties
+    private let titleText: String
+    private let defaultMessageText: String
+    private let initialDisplayName: String?
+    private let initialNickname: String?
+    private let isNicknameRequired: Bool
+    private let validationProvider: (String?, Bool) -> String?
+
+    private let dimView = UIView()
+    private let panelView = UIView()
+    private let contentStack = UIStackView()
+    private let titleLabel = UILabel()
+    private let messageLabel = UILabel()
+    private let nicknameField = ProfileNameTextField()
+    private let buttonStack = UIStackView()
+    private let cancelButton = UIButton(type: .system)
+    private let saveButton = UIButton(type: .system)
+    private var isSaving = false
+
+    /// 패널 수직 중심 제약. 키보드 회피 시 constant만 음수로 갱신해 패널을 위로 올린다.
+    private var panelCenterYConstraint: NSLayoutConstraint?
+
+    var onSave: ((String?, String?) -> Void)?
+    var onCancel: (() -> Void)?
+
+    // MARK: - Init
+    init(titleText: String,
+         messageText: String,
+         displayName: String?,
+         nickname: String?,
+         isNicknameRequired: Bool,
+         validationProvider: @escaping (String?, Bool) -> String?) {
+        self.titleText = titleText
+        defaultMessageText = messageText
+        initialDisplayName = displayName
+        initialNickname = nickname
+        self.isNicknameRequired = isNicknameRequired
+        self.validationProvider = validationProvider
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable, message: "Use init(titleText:messageText:displayName:nickname:isNicknameRequired:validationProvider:) instead.")
+    required init?(coder: NSCoder) {
+        return nil
+    }
+
+    // MARK: - Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .clear
+        setupDimView()
+        setupPanel()
+        setupContent()
+        setupConstraints()
+        observeKeyboard()
+        updateValidationState()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        nicknameField.becomeFirstResponder()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Public Update
+    func setSaving(_ saving: Bool) {
+        isSaving = saving
+        saveButton.isEnabled = !saving
+        cancelButton.isEnabled = !saving
+        saveButton.setTitle(
+            saving ? GameConfig.profileNameEditSavingText : GameConfig.profileNameEditSaveText,
+            for: .normal
+        )
+    }
+
+    func showMessage(_ text: String) {
+        setMessage(text, isError: true)
+    }
+
+    // MARK: - Setup
+    private func setupDimView() {
+        dimView.translatesAutoresizingMaskIntoConstraints = false
+        dimView.backgroundColor = UIColor.black.withAlphaComponent(GameConfig.profileNameEditDimAlpha)
+        view.addSubview(dimView)
+    }
+
+    private func setupPanel() {
+        panelView.translatesAutoresizingMaskIntoConstraints = false
+        panelView.backgroundColor = .ganhoPaper
+        panelView.layer.cornerRadius = GameConfig.profileNameEditPanelCornerRadius
+        panelView.layer.borderWidth = GameConfig.profileNameEditPanelBorderWidth
+        panelView.layer.borderColor = UIColor.ganhoNavyDeep
+            .withAlphaComponent(GameConfig.profileNameEditPanelBorderAlpha)
+            .cgColor
+        panelView.layer.shadowColor = UIColor.ganhoNavyDeep.cgColor
+        panelView.layer.shadowOpacity = GameConfig.profileNameEditPanelShadowAlpha
+        panelView.layer.shadowRadius = GameConfig.profileNameEditPanelShadowRadius
+        panelView.layer.shadowOffset = CGSize(
+            width: .zero,
+            height: GameConfig.profileNameEditPanelShadowOffsetY
+        )
+        view.addSubview(panelView)
+    }
+
+    private func setupContent() {
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.axis = .vertical
+        contentStack.alignment = .fill
+        contentStack.spacing = GameConfig.profileNameEditStackSpacing
+        panelView.addSubview(contentStack)
+
+        configureLabels()
+        configureFields()
+        configureButtons()
+
+        // 모달 제목이 "닉네임 설정"이므로 표시이름 칸은 노출하지 않는다.
+        // initialDisplayName은 saveTapped()에서 그대로 통과시켜 데이터 유실을 막는다.
+        contentStack.addArrangedSubview(titleLabel)
+        contentStack.addArrangedSubview(messageLabel)
+        contentStack.addArrangedSubview(nicknameField)
+        contentStack.addArrangedSubview(buttonStack)
+    }
+
+    private func configureLabels() {
+        titleLabel.text = titleText
+        titleLabel.font = UIFont(name: GameConfig.fontDisplay, size: GameConfig.profileNameEditTitleFontSize)
+            ?? .boldSystemFont(ofSize: GameConfig.profileNameEditTitleFontSize)
+        titleLabel.textColor = .ganhoNavyDeep
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 1
+
+        messageLabel.text = defaultMessageText
+        messageLabel.font = UIFont(name: GameConfig.fontBody, size: GameConfig.profileNameEditMessageFontSize)
+            ?? .systemFont(ofSize: GameConfig.profileNameEditMessageFontSize)
+        messageLabel.textColor = .ganhoNavyMuted
+        messageLabel.textAlignment = .center
+        messageLabel.numberOfLines = 0
+    }
+
+    private func configureFields() {
+        configure(textField: nicknameField, placeholder: GameConfig.profileNameEditNicknamePlaceholderText)
+        nicknameField.text = initialNickname
+        nicknameField.autocapitalizationType = .none
+        nicknameField.textContentType = .nickname
+        // 단일 칸이므로 키보드 done(✓) = 저장. textFieldShouldReturn에서 saveTapped() 호출.
+        nicknameField.delegate = self
+    }
+
+    private func configure(textField: UITextField, placeholder: String) {
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.placeholder = placeholder
+        textField.font = UIFont(name: GameConfig.fontBody, size: GameConfig.profileNameEditFieldFontSize)
+            ?? .systemFont(ofSize: GameConfig.profileNameEditFieldFontSize)
+        textField.textColor = .ganhoNavyDeep
+        textField.tintColor = .ganhoCoralPrimary
+        textField.backgroundColor = UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)
+        textField.clearButtonMode = .whileEditing
+        textField.returnKeyType = .done
+        textField.layer.cornerRadius = GameConfig.profileNameEditFieldCornerRadius
+        textField.layer.borderWidth = GameConfig.profileNameEditFieldBorderWidth
+        textField.layer.borderColor = UIColor.ganhoNavyDeep
+            .withAlphaComponent(GameConfig.profileNameEditFieldBorderAlpha)
+            .cgColor
+        textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        NSLayoutConstraint.activate([
+            textField.heightAnchor.constraint(equalToConstant: GameConfig.profileNameEditFieldHeight)
+        ])
+    }
+
+    private func configureButtons() {
+        buttonStack.axis = .horizontal
+        buttonStack.alignment = .fill
+        buttonStack.distribution = .fillEqually
+        buttonStack.spacing = GameConfig.profileNameEditButtonGap
+
+        configure(button: cancelButton, title: GameConfig.profileNameEditCancelText, isPrimary: false)
+        configure(button: saveButton, title: GameConfig.profileNameEditSaveText, isPrimary: true)
+        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+
+        buttonStack.addArrangedSubview(cancelButton)
+        buttonStack.addArrangedSubview(saveButton)
+    }
+
+    private func configure(button: UIButton, title: String, isPrimary: Bool) {
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle(title, for: .normal)
+        button.titleLabel?.font = UIFont(name: GameConfig.fontDisplay, size: GameConfig.profileNameEditButtonFontSize)
+            ?? .boldSystemFont(ofSize: GameConfig.profileNameEditButtonFontSize)
+        button.layer.cornerRadius = GameConfig.profileNameEditFieldCornerRadius
+        button.layer.borderWidth = GameConfig.menuControlLineWidth
+        button.layer.borderColor = UIColor.ganhoNavyDeep
+            .withAlphaComponent(GameConfig.menuControlStrokeAlpha)
+            .cgColor
+        button.backgroundColor = isPrimary ? .ganhoCoralPrimary : UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)
+        button.setTitleColor(isPrimary ? .ganhoPaper : .ganhoNavyDeep, for: .normal)
+        button.heightAnchor.constraint(equalToConstant: GameConfig.profileNameEditButtonHeight).isActive = true
+    }
+
+    private func setupConstraints() {
+        let safe = view.safeAreaLayoutGuide
+        let minimumWidth = panelView.widthAnchor.constraint(
+            greaterThanOrEqualToConstant: GameConfig.profileNameEditPanelMinWidth
+        )
+        minimumWidth.priority = UILayoutPriority(GameConfig.profileNameEditPanelMinimumWidthPriority)
+        let preferredWidth = panelView.widthAnchor.constraint(
+            equalToConstant: GameConfig.profileNameEditPanelMaxWidth
+        )
+        preferredWidth.priority = UILayoutPriority(GameConfig.profileNameEditPanelPreferredWidthPriority)
+
+        // 키보드 회피 시 constant만 갱신할 수 있도록 centerY 제약을 프로퍼티에 보관한다.
+        let centerY = panelView.centerYAnchor.constraint(equalTo: safe.centerYAnchor)
+        panelCenterYConstraint = centerY
+
+        NSLayoutConstraint.activate([
+            dimView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            dimView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            dimView.topAnchor.constraint(equalTo: view.topAnchor),
+            dimView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            panelView.centerXAnchor.constraint(equalTo: safe.centerXAnchor),
+            centerY,
+            panelView.widthAnchor.constraint(lessThanOrEqualToConstant: GameConfig.profileNameEditPanelMaxWidth),
+            preferredWidth,
+            panelView.leadingAnchor.constraint(
+                greaterThanOrEqualTo: safe.leadingAnchor,
+                constant: GameConfig.profileNameEditPanelHorizontalSafeInset
+            ),
+            panelView.trailingAnchor.constraint(
+                lessThanOrEqualTo: safe.trailingAnchor,
+                constant: -GameConfig.profileNameEditPanelHorizontalSafeInset
+            ),
+            panelView.topAnchor.constraint(
+                greaterThanOrEqualTo: safe.topAnchor,
+                constant: GameConfig.profileNameEditPanelVerticalSafeInset
+            ),
+            panelView.bottomAnchor.constraint(
+                lessThanOrEqualTo: safe.bottomAnchor,
+                constant: -GameConfig.profileNameEditPanelVerticalSafeInset
+            ),
+            minimumWidth,
+
+            contentStack.leadingAnchor.constraint(
+                equalTo: panelView.leadingAnchor,
+                constant: GameConfig.profileNameEditContentInset
+            ),
+            contentStack.trailingAnchor.constraint(
+                equalTo: panelView.trailingAnchor,
+                constant: -GameConfig.profileNameEditContentInset
+            ),
+            contentStack.topAnchor.constraint(
+                equalTo: panelView.topAnchor,
+                constant: GameConfig.profileNameEditContentInset
+            ),
+            contentStack.bottomAnchor.constraint(
+                equalTo: panelView.bottomAnchor,
+                constant: -GameConfig.profileNameEditContentInset
+            )
+        ])
+    }
+
+    // MARK: - Actions
+    @objc private func textFieldDidChange() {
+        updateValidationState()
+    }
+
+    @objc private func cancelTapped() {
+        guard !isSaving else { return }
+        view.endEditing(true)
+        onCancel?()
+    }
+
+    @objc private func saveTapped() {
+        guard !isSaving else { return }
+        if let message = validationProvider(nicknameField.text, isNicknameRequired) {
+            setMessage(message, isError: true)
+            updateSaveButton(enabled: false)
+            return
         }
+        view.endEditing(true)
+        // 표시이름 칸을 없앴으므로 보존한 initialDisplayName을 그대로 통과시킨다(데이터 유실 방지).
+        // onSave 시그니처 ((String?, String?) -> Void)?는 불변 — 상위 호출부 회귀 0.
+        onSave?(initialDisplayName, nicknameField.text)
+    }
+
+    // MARK: - Keyboard
+    private func observeKeyboard() {
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(keyboardWillChange(_:)),
+                       name: UIResponder.keyboardWillShowNotification, object: nil)
+        nc.addObserver(self, selector: #selector(keyboardWillChange(_:)),
+                       name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        nc.addObserver(self, selector: #selector(keyboardWillHide(_:)),
+                       name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    @objc private func keyboardWillChange(_ note: Notification) {
+        guard let frameValue = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {
+            return
+        }
+        // 현재 레이아웃을 확정한 뒤 패널 하단과 키보드 상단의 겹침을 계산한다.
+        view.layoutIfNeeded()
+        let kbFrameInView = view.convert(frameValue.cgRectValue, from: nil)
+        // 이미 적용된 이동량(constant)을 빼서 패널의 *원위치* 하단을 구한다.
+        // 이렇게 해야 키보드 이벤트가 연달아 와도(초기 willShow+willChangeFrame, 한글 후보바 등)
+        // 계산이 멱등(idempotent)해져 패널이 도로 떨어지며 가려지는 일이 없다.
+        let appliedShift = panelCenterYConstraint?.constant ?? 0
+        let naturalPanelBottom = panelView.frame.maxY - appliedShift
+        let kbTop = kbFrameInView.minY
+        let overlap = naturalPanelBottom - kbTop + GameConfig.profileNameEditKeyboardClearance
+        // UIKit 좌표계(좌상단 원점) — 위로 올리려면 constant는 음수. 겹치지 않으면 0.
+        let shift = max(0, overlap)
+        panelCenterYConstraint?.constant = -shift
+        animateAlongsideKeyboard(note)
+    }
+
+    @objc private func keyboardWillHide(_ note: Notification) {
+        panelCenterYConstraint?.constant = 0
+        animateAlongsideKeyboard(note)
+    }
+
+    private func animateAlongsideKeyboard(_ note: Notification) {
+        let duration = (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double)
+            ?? GameConfig.profileNameEditKeyboardAnimationDuration
+        UIView.animate(withDuration: duration) { [weak self] in
+            self?.view.layoutIfNeeded()
+        }
+    }
+
+    // MARK: - Validation
+    private func updateValidationState() {
+        guard !isSaving else { return }
+        if let message = validationProvider(nicknameField.text, isNicknameRequired) {
+            setMessage(message, isError: true)
+            updateSaveButton(enabled: false)
+            return
+        }
+        setMessage(defaultMessageText, isError: false)
+        updateSaveButton(enabled: true)
+    }
+
+    private func setMessage(_ text: String, isError: Bool) {
+        messageLabel.text = text
+        messageLabel.textColor = isError ? .ganhoCoralShadow : .ganhoNavyMuted
+    }
+
+    private func updateSaveButton(enabled: Bool) {
+        saveButton.isEnabled = enabled
+        saveButton.alpha = enabled
+            ? GameConfig.menuControlEnabledAlpha
+            : GameConfig.overlayButtonDisabledAlpha
+    }
+}
+
+// MARK: - UITextFieldDelegate
+extension ProfileNameEditorViewController: UITextFieldDelegate {
+    /// 단일 닉네임 칸이므로 done(✓) = 저장. 검증 통과 시 saveTapped()가
+    /// endEditing(true) + onSave까지 처리하고, 검증 실패 시 메시지만 띄우고 키보드 유지.
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        saveTapped()
+        return false
+    }
+}
+
+private final class ProfileNameTextField: UITextField {
+
+    // MARK: - Init
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+
+    @available(*, unavailable, message: "Use init(frame:) instead.")
+    required init?(coder: NSCoder) {
+        return nil
+    }
+
+    // MARK: - Insets
+    override func textRect(forBounds bounds: CGRect) -> CGRect {
+        return inset(bounds)
+    }
+
+    override func editingRect(forBounds bounds: CGRect) -> CGRect {
+        return inset(bounds)
+    }
+
+    override func placeholderRect(forBounds bounds: CGRect) -> CGRect {
+        return inset(bounds)
+    }
+
+    private func inset(_ bounds: CGRect) -> CGRect {
+        return bounds.insetBy(
+            dx: GameConfig.profileNameEditFieldHorizontalInset,
+            dy: .zero
+        )
     }
 }
 
@@ -325,7 +741,9 @@ extension GameViewController: PHPickerViewControllerDelegate {
     }
 
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
+        picker.dismiss(animated: true) { [weak self] in
+            self?.presentPendingProfileNameEditorIfPossible()
+        }
         guard let scope = pendingProfileAvatarScope,
               let result = results.first else {
             pendingProfileAvatarScope = nil

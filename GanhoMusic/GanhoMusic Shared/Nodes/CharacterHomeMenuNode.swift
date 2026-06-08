@@ -120,7 +120,7 @@ final class CharacterHomeMenuNode: SKNode {
                 ? .ganhoCoralPrimary
                 : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
             backgroundNodes[candidate]?.strokeColor = isActive
-                ? .ganhoCoralShadow
+                ? UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
                 : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
             labelNodes[candidate]?.fontColor = isActive ? .ganhoPaper : .ganhoNavyDeep
             guard let button = buttonNodes[candidate] else { continue }

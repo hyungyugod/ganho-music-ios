@@ -149,7 +149,7 @@ final class FirebaseAuthManager: NSObject {
     func updateProfileName(displayName: String?,
                            nickname: String?,
                            isNicknameRequired: Bool = false) async -> AccountActionResult {
-        guard let user = await ensureAnonymousSession() else {
+        guard let user = await currentUserForProfileEdit() else {
             NotificationCenter.default.post(name: .ganhoAuthProfileDidChange, object: nil)
             return .failure(nil)
         }
@@ -161,16 +161,7 @@ final class FirebaseAuthManager: NSObject {
         }
 
         let sanitizedDisplayName = sanitizedOptionalText(displayName)
-        let currentDisplayName = sanitizedOptionalText(user.displayName)
-        if sanitizedDisplayName != currentDisplayName {
-            let changeRequest = user.createProfileChangeRequest()
-            changeRequest.displayName = sanitizedDisplayName
-            do {
-                try await changeRequest.commitChanges()
-            } catch {
-                logger.warning("Firebase displayName update deferred: \(error.localizedDescription, privacy: .public)")
-            }
-        }
+        await commitFirebaseDisplayNameIfNeeded(user: user, displayName: sanitizedDisplayName)
 
         let snapshot = profileRepository.saveProfile(
             uid: user.uid,
@@ -187,6 +178,26 @@ final class FirebaseAuthManager: NSObject {
             logger.warning("Profile cloud sync deferred after local save: \(error.localizedDescription, privacy: .public)")
         }
         return .success
+    }
+
+    private func currentUserForProfileEdit() async -> User? {
+        if let user = Auth.auth().currentUser {
+            return user
+        }
+        return await ensureAnonymousSession()
+    }
+
+    private func commitFirebaseDisplayNameIfNeeded(user: User, displayName: String?) async {
+        let currentDisplayName = sanitizedOptionalText(user.displayName)
+        guard displayName != currentDisplayName else { return }
+
+        let changeRequest = user.createProfileChangeRequest()
+        changeRequest.displayName = displayName
+        do {
+            try await changeRequest.commitChanges()
+        } catch {
+            logger.warning("Firebase displayName update deferred: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func signOutToGuestSession() async -> AccountActionResult {

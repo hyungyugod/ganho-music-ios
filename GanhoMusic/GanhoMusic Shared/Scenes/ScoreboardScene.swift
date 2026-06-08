@@ -42,7 +42,7 @@ final class ScoreboardScene: SKScene {
 
     // 자식 노드 — didMove에서 부착, layoutAll에서 좌표만 갱신.
 
-    /// 따뜻한 3-stop 그라데이션 배경.
+    /// 이전 gradient 참조. 톤다운 sprint에서는 단색 배경만 사용하므로 nil 유지.
     private var gradientBg: GradientBackgroundNode?
     /// 좌상단 "← 결과로" GlassPill — touchesBegan hit-test 대상.
     private var backButton: GlassPillNode?
@@ -96,8 +96,7 @@ final class ScoreboardScene: SKScene {
     // MARK: - Lifecycle
 
     override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        setupBackgroundGradient()
+        setupSolidBackground()
         setupHeader()
         setupBackButton()
         setupBreadcrumbChip()
@@ -113,19 +112,10 @@ final class ScoreboardScene: SKScene {
 
     // MARK: - Setup
 
-    /// 따뜻한 3-stop 그라데이션 — ResultScene과 동일 톤(연속감).
-    private func setupBackgroundGradient() {
-        let gradient = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        gradient.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradient.zPosition = -20
-        gradient.name = "scoreboardGradientBg"
-        gradientBg = gradient
-        addChild(gradient)
+    private func setupSolidBackground() {
+        gradientBg?.removeFromParent()
+        gradientBg = nil
+        backgroundColor = GameConfig.menuSolidBackgroundColor
     }
 
     /// 헤더 — AccentLine + 타이틀 + 부제.
@@ -294,7 +284,6 @@ final class ScoreboardScene: SKScene {
     /// 매트릭스 안 셀/헤더 좌표는 cellPosition/rowHeader/colHeader 헬퍼가 frame 기준으로 직접 산출하므로
     /// 매트릭스 컨테이너의 position은 .zero(또는 무관)로 두고 자식 노드들의 position만 갱신한다.
     private func layoutAll() {
-        gradientBg?.position = CGPoint(x: frame.midX, y: frame.midY)
         let centerX = scoreboardSafeCenterX()
 
         // V4 — 타이틀 zone(타이틀·부제)을 +40pt 상향해 매트릭스 zone과 분리.

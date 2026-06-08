@@ -187,7 +187,7 @@ extension GameScene {
     }
 
     // MARK: - Skill Button (Phase 9-5)
-    /// 좌하단 SkillButtonNode를 cameraNode 자식으로 추가. D-Pad(우하단)와 대칭.
+    /// 우하단 SkillButtonNode를 cameraNode 자식으로 추가. D-Pad(좌하단)와 대칭.
     /// configure(skill:)로 라벨 + 김간호 비활성 상태 자동 set.
     /// onTap 콜백은 [weak self] 캡처 — SkillSystem.tryActivate 위임.
     func setupSkillButton() {
@@ -202,7 +202,7 @@ extension GameScene {
     }
 
     // MARK: - Run Button (Sprint 11)
-    /// 좌하단 SkillButtonNode 옆에 쿨타임 없는 hold-to-run 버튼을 부착한다.
+    /// 우하단 SkillButtonNode 왼쪽에 쿨타임 없는 hold-to-run 버튼을 부착한다.
     func setupRunButton() {
         cameraNode.addChild(runButton)
         runButton.onPressedChanged = { [weak self] pressed in
@@ -213,7 +213,7 @@ extension GameScene {
     }
 
     // MARK: - HUD Skill Slot (Phase 9-5)
-    /// 좌하단 SkillButtonNode 위에 HUDSkillSlotNode 부착(cameraNode 자식).
+    /// 우하단 SkillButtonNode 위에 HUDSkillSlotNode 부착(cameraNode 자식).
     /// configure(skill:)로 라벨 + 김간호 빈 슬롯 자동 set.
     func setupHUDSkillSlot() {
         cameraNode.addChild(hudSkillSlot)
@@ -222,7 +222,7 @@ extension GameScene {
     }
 
     /// scene.size 변경 시 SkillButtonNode 위치 재계산. addChild 0건 — 멱등.
-    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 좌하단 = (-x, -y).
+    /// cameraNode 자식 좌표계: (0,0) = 화면 중앙. 우하단 = (+x, -y).
     func layoutSkillButton() {
         let halfW = size.width  / 2
         let halfH = size.height / 2
@@ -241,17 +241,17 @@ extension GameScene {
             scale: scale
         )
         skillButton.position = CGPoint(
-            x: -(halfW - safe.left - marginX),
+            x: +(halfW - safe.right - marginX),
             y: -(halfH - safe.bottom - marginY)
         )
     }
 
-    /// scene.size 변경 시 RunButtonNode 위치 재계산. SkillButton 오른쪽에 고정한다.
+    /// scene.size 변경 시 RunButtonNode 위치 재계산. SkillButton 왼쪽에 고정한다.
     func layoutRunButton() {
         let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
         runButton.setScale(scale)
         runButton.position = CGPoint(
-            x: skillButton.position.x + GameConfig.runButtonGapFromSkill * scale,
+            x: skillButton.position.x - GameConfig.runButtonGapFromSkill * scale,
             y: skillButton.position.y
         )
     }
@@ -259,25 +259,11 @@ extension GameScene {
     /// scene.size 변경 시 HUDSkillSlotNode 위치 재계산. addChild 0건 — 멱등.
     /// SkillButtonNode 바로 위(hudSkillSlotOffsetY = 50pt 위).
     func layoutHUDSkillSlot() {
-        let halfW = size.width  / 2
-        let halfH = size.height / 2
-        let safe = SceneSafeArea.insets(for: self)
         let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
         hudSkillSlot.setScale(scale)
-        let radius = max(GameConfig.skillButtonV2Radius, GameConfig.skillButtonRadius)
-        let marginX = controlMargin(
-            base: GameConfig.skillButtonMarginX,
-            radius: radius,
-            scale: scale
-        )
-        let marginY = controlMargin(
-            base: GameConfig.skillButtonMarginY,
-            radius: radius,
-            scale: scale
-        )
         hudSkillSlot.position = CGPoint(
-            x: -(halfW - safe.left - marginX),
-            y: -(halfH - safe.bottom - marginY) + GameConfig.hudSkillSlotOffsetY * scale
+            x: skillButton.position.x,
+            y: skillButton.position.y + GameConfig.hudSkillSlotOffsetY * scale
         )
     }
 

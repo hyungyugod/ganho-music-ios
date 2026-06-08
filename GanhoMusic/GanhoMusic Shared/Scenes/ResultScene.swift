@@ -54,6 +54,7 @@ private struct ResultLayoutMetrics {
     let rightColumnX: CGFloat
     let topY: CGFloat
     let scoreY: CGFloat
+    let bestPillY: CGFloat
     let goalY: CGFloat
     let summaryY: CGFloat
     let nextGoalY: CGFloat
@@ -63,7 +64,7 @@ private struct ResultLayoutMetrics {
 
 /// 게임 종료 후 결과를 보여주는 독립 씬.
 /// `finalScore`/`bestScore`/`isNewBest`는 init 주입으로 박혀(`let`) 변조 불가.
-/// 신기록이면 "✨ NEW BEST! ✨", 아니면 "실습 종료"으로 분기 표시 (Sprint 5 v2).
+/// 신기록이면 BEST 문구 없는 축하 title, 아니면 "실습 종료"으로 분기 표시 (Sprint 5 v2).
 /// 표시 후 명시 버튼 탭으로 다음 씬 전환.
 /// TitleScene과 동일한 라벨/팩토리/터치 패턴을 답습.
 final class ResultScene: SKScene {
@@ -101,8 +102,9 @@ final class ResultScene: SKScene {
     /// Phase 7-1 — characterLabel(+115) 위쪽에 표시되는 난이도 라벨. Sprint 5에서 alpha=0(headerChip이 대체).
     private let difficultyLabel = SKLabelNode(text: "")
     private let promptLabel = SKLabelNode(text: "TAP TO RETURN")
-    /// Phase 6-15 — 신기록 시 화면 정중앙에 등장하는 황금 라벨. isNewBest일 때만 addChild.
-    private let newBestLabel = SKLabelNode(text: "NEW BEST!")
+    /// Phase 6-15 — 신기록 시 화면 정중앙에 등장할 수 있는 황금 보상 라벨.
+    /// BEST/NEW BEST 문구는 bestPill 한 곳만 담당하므로 중앙 라벨은 별도 축하 문구만 사용한다.
+    private let newBestLabel = SKLabelNode(text: "기록 갱신!")
 
     // Sprint 5 신규 자식 노드
     /// 부제 라벨. 분기 A: "수고했어요! 한 번 더 해볼까요?" / 분기 B: "최고 기록을 갱신했어요!"
@@ -150,7 +152,7 @@ final class ResultScene: SKScene {
     private var headerChip: DarkContextChipNode?
     /// AccentLine 카드 상단 액센트.
     private let accentLine = AccentLineNode()
-    /// 따뜻한 3-stop 그라데이션 배경 (배경 검정 사각형 *교체*).
+    /// 이전 gradient 참조. 톤다운 sprint에서는 단색 배경만 사용하므로 nil 유지.
     private var gradientBg: GradientBackgroundNode?
     private var overlayBackground: SKSpriteNode?
     private var overlayPanel: SKShapeNode?
@@ -226,9 +228,7 @@ final class ResultScene: SKScene {
 
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
-        // Sprint 5 — 그라데이션 배경이 담당. 기존 backgroundColor는 fallback으로 clear.
-        backgroundColor = .clear
-        setupBackgroundGradient()                       // Sprint 5 — 3-stop 따뜻한 그라데이션
+        setupSolidBackground()
         setupOverlayPanel()                             // Phase 8-4 — 카드 패널 (Sprint 5에서 v2 토큰으로 갈아 끼움)
         setupLabels()
     }
@@ -236,32 +236,20 @@ final class ResultScene: SKScene {
     /// scene.size 변경 시(회전·resize) 라벨 위치 재계산. 자식 추가는 setupLabels에서만.
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        rebuildBackgroundGradient()
+        rebuildSolidBackground()
         layoutLabels()
     }
 
     // MARK: - Setup
 
-    /// Sprint 5 — 3-stop 따뜻한 그라데이션 배경. 기존 검정 반투명 사각형(zPosition=-10) *교체*.
-    /// `GradientBackgroundNode.threeStop` 정적 팩토리 호출 — Sprint 1 인프라 재사용, 신규 노드 0건.
-    private func setupBackgroundGradient() {
-        let gradient = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        gradient.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradient.zPosition = -20    // setupOverlayPanel의 bg(zPosition=-10) 아래
-        gradient.name = "resultGradientBg"
-        gradientBg = gradient
-        addChild(gradient)
-    }
-
-    private func rebuildBackgroundGradient() {
+    private func setupSolidBackground() {
         gradientBg?.removeFromParent()
         gradientBg = nil
-        setupBackgroundGradient()
+        backgroundColor = GameConfig.menuSolidBackgroundColor
+    }
+
+    private func rebuildSolidBackground() {
+        setupSolidBackground()
     }
 
     /// Phase 8-4 — 원본 웹게임 `#overlayEnd .game-overlay__panel--end` 톤 재현.
@@ -329,11 +317,12 @@ final class ResultScene: SKScene {
         difficultyLabel.alpha = 0
         statsLabel.alpha = 0
         promptLabel.alpha = 0
+        statsLabel.isHidden = true
+        promptLabel.isHidden = true
 
-        // Sprint 7 Phase D — bestLabel은 *V3 bestPill*이 시각 대체. alpha=0으로 차단(노드 트리 보존).
-        // startBestLabelGoldBlink 액션이 0.5↔1.0 깜빡여도 bestLabel 위치(-60)는 V3에서 *비어 있는* 자리라
-        // 우상단 bestPill의 명확성에 영향 0. NewBest sparkle/heavy/사운드는 byte-identical 유지.
+        // Sprint 7 Phase D — bestLabel은 bestPill이 시각 대체. hidden으로 중복 BEST 노출을 차단한다.
         bestLabel.alpha = 0
+        bestLabel.isHidden = true
     }
 
     private func configurePrimaryResultLabels() {
@@ -440,13 +429,13 @@ final class ResultScene: SKScene {
         label.alpha = 1
     }
 
-    /// Sprint 5 — titleLabel v2 토큰. 분기 A(navyDeep "실습 종료") / B(gold "✨ NEW BEST! ✨").
+    /// Sprint 5 — titleLabel v2 토큰. BEST 문구는 bestPill만 담당한다.
     /// 분기 B에서는 *fontColor만* 골드로 — 기존 fontColor 분기와 동거.
     private func configureTitleLabelV2() {
         let titleText: String
         let titleColor: UIColor
         if isNewBest {
-            titleText = "✨ NEW BEST! ✨"
+            titleText = "신기록 달성"
             titleColor = .ganhoMusicGold
         } else {
             titleText = "실습 종료"
@@ -727,8 +716,6 @@ final class ResultScene: SKScene {
         layoutGoalLabels(metrics: metrics)
         layoutStats(metrics: metrics)
         layoutButtons()
-        // gradient 배경 위치 — frame.midY 기준 정중앙. size 변화 시에도 안전.
-        gradientBg?.position = CGPoint(x: frame.midX, y: frame.midY)
     }
 
     private func layoutBackgroundAndPanel(panelSize: CGSize) {
@@ -817,6 +804,18 @@ final class ResultScene: SKScene {
         let summaryY = goalY - GameConfig.resultWideGoalSummaryGapV7 * scale
         let nextGoalY = goalY - GameConfig.resultWideNextGoalGapV7 * scale
         let statsY = center.y - panelSize.height / 2 + GameConfig.resultWideStatsBottomInsetV7 * scale
+        // V11 — 점수 아래 "충분한" 간격을 우선하고, 하단 stat과는 최소 간격만 보장한다.
+        // scoreLabel.calculateAccumulatedFrame()는 contentScale 적용 타이밍에 좌우되므로
+        // width-aware 패턴과 동일하게 폰트 크기 근사(fallback)로 점수 높이를 잡는다.
+        let pillHalfHeight = GameConfig.resultBestPillHeightV3 * scale / 2
+        let scoreHalfHeight = GameConfig.resultScoreNumFontSizeV2 * scale / 2
+        let desiredBestPillY = scoreY - scoreHalfHeight
+            - GameConfig.resultBestPillScoreGapV11 * scale - pillHalfHeight
+        let statsTopY = statsY + GameConfig.resultStatValueFontSizeV2 * scale
+        let minPillY = statsTopY
+            + GameConfig.resultBestPillStatsClearanceV11 * scale + pillHalfHeight
+        // 점수 아래 간격을 우선하되, stat 그룹과 겹칠 때만 끌어올린다.
+        let bestPillY = max(minPillY, desiredBestPillY)
         return ResultLayoutMetrics(
             panelSize: panelSize,
             panelCenter: center,
@@ -824,6 +823,7 @@ final class ResultScene: SKScene {
             rightColumnX: rightColumnX,
             topY: topY,
             scoreY: scoreY,
+            bestPillY: bestPillY,
             goalY: goalY,
             summaryY: summaryY,
             nextGoalY: nextGoalY,
@@ -848,7 +848,7 @@ final class ResultScene: SKScene {
         )
         scoreSubLabel.position = CGPoint(
             x: metrics.leftColumnX,
-            y: metrics.scoreY - GameConfig.resultWideBestPillBelowScoreV7 * metrics.scale
+            y: metrics.bestPillY
         )
         titleLabel.position = CGPoint(
             x: metrics.leftColumnX,
@@ -865,7 +865,7 @@ final class ResultScene: SKScene {
         )
         bestPill?.position = CGPoint(
             x: metrics.leftColumnX,
-            y: metrics.scoreY - GameConfig.resultWideBestPillBelowScoreV7 * metrics.scale
+            y: metrics.bestPillY
         )
     }
 
@@ -1323,11 +1323,11 @@ final class ResultScene: SKScene {
         return CharacterID.allCases.first { $0.displayName == characterName }
     }
 
-    // MARK: - New Best (Phase 6-15)
+    // MARK: - Record Reward (Phase 6-15)
 
-    /// 신기록 진입 시점에만 발화. 중앙 대형 라벨은 현재 결과 카드의 title/score/best pill과
-    /// 정보가 중복되어 시각 겹침을 만들 수 있으므로 노드 트리에는 붙이지 않는다.
-    /// 햅틱/사운드/sparkle/bestLabel blink는 revealNewBest()에서 그대로 유지한다.
+    /// 신기록 진입 시점에만 발화. BEST/NEW BEST 문구는 bestPill에만 남기고
+    /// 중앙 보상 라벨은 별도 축하 문구로만 표시한다.
+    /// 햅틱/사운드/sparkle/bestPill pulse는 revealNewBest()에서 그대로 유지한다.
     private func configureNewBestLabel() {
         newBestLabel.fontSize = GameConfig.newBestFontSize
         newBestLabel.fontColor = .ganhoYellowF      // 황금 — ComboPopup x10 황금기와 동일 톤
@@ -1351,7 +1351,7 @@ final class ResultScene: SKScene {
         run(.sequence([wait, reveal]))
     }
 
-    /// 0.3초 지연 후 호출. 시각 등장 + 햅틱 + 사운드 + bestLabel 황금 전환을 한 묶음으로 발화.
+    /// 0.3초 지연 후 호출. 중앙 보상 라벨 + 햅틱 + 사운드 + BEST pill pulse를 한 묶음으로 발화.
     /// newBestLabel은 ResultScene 자체와 함께 정리됨 — 씬 해제 시 ARC가 처리(자가 소멸 노드와 달리 명시적 cleanup 불필요).
     private func revealNewBest() {
         // 1) 촉각: heavy = 도달의 무게감. ResultScene 새 인스턴스라 endGame heavy와 톤 충돌 없음.
@@ -1372,27 +1372,29 @@ final class ResultScene: SKScene {
         if newBestLabel.parent != nil {
             newBestLabel.run(SKAction.group([fadeIn, pulse]))
         }
-        // 4) bestLabel 황금 전환 + 깜빡임 시작
+        // 4) BEST pill 깜빡임 시작. legacy bestLabel은 hidden 유지.
         startBestLabelGoldBlink()
         // 5) Sprint 5 — sparkle 5발 부착 (마지막 라인 추가). 기존 시퀀스 보존.
         emitSparkleBurst()
     }
 
-    /// bestLabel을 황금으로 전환 + alpha 깜빡임 무한 반복.
+    /// legacy bestLabel은 숨기고 실제 표시되는 BEST pill에 alpha 깜빡임을 적용한다.
     /// withKey 패턴(6-14 tensionBlink 답습) — 같은 키 재호출 시 자동 교체로 자연 멱등.
     /// 씬 해제 시 ARC가 액션 정리하므로 명시적 stop 불필요.
     private func startBestLabelGoldBlink() {
-        bestLabel.fontColor = .ganhoYellowF   // 황금 색 즉시 전환 (fontColor 직접 교체)
+        bestLabel.removeAllActions()
+        bestLabel.alpha = 0
+        bestLabel.isHidden = true
         let fadeOut = SKAction.fadeAlpha(
             to: GameConfig.newBestBlinkMinAlpha,
             duration: GameConfig.newBestBlinkHalfPeriod
         )
         let fadeIn = SKAction.fadeAlpha(
-            to: 1.0,
+            to: GameConfig.menuControlEnabledAlpha,
             duration: GameConfig.newBestBlinkHalfPeriod
         )
         let cycle = SKAction.sequence([fadeOut, fadeIn])
-        bestLabel.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
+        bestPill?.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
     }
 
     /// Sprint 5 — 신기록 시 카드 주변 5개 좌표에 SparkleEffectNode 부착 + emit().

@@ -173,7 +173,7 @@ enum GameConfig {
     /// D-Pad 전체 알파 (반투명). 게임 위에 떠 있는 느낌.
     /// Phase 2-7 hotfix — 0.5 → 0.7. 어두운 배경에서 사용자가 *터치 위치 인지* 가능.
     static let dpadAlpha: CGFloat = 0.7
-    /// D-Pad 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
+    /// D-Pad 좌측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
     static let dpadMarginX: CGFloat = 90
     /// D-Pad 하단 가장자리에서의 안쪽 마진 (pt).
     static let dpadMarginY: CGFloat = 90
@@ -505,19 +505,19 @@ enum GameConfig {
     static let tensionBlinkActionKey: String = "tensionBlink"
 
     // MARK: - New Best (Phase 6-15)
-    /// 화면 중앙 "NEW BEST!" 폰트 크기 (pt). resultScoreFontSize(24)보다 큼, countdownFontSize(96)보단 작음.
+    /// 화면 중앙 신기록 보상 라벨 폰트 크기 (pt). resultScoreFontSize(24)보다 큼, countdownFontSize(96)보단 작음.
     static let newBestFontSize: CGFloat = 56
-    /// frame.midY 기준 NewBest! 라벨 Y 오프셋. 0 = 정중앙. bestLabel과 같은 y지만 zPosition으로 위에 겹침.
+    /// frame.midY 기준 신기록 보상 라벨 Y 오프셋. 0 = 정중앙.
     static let newBestOffsetY: CGFloat = 0
-    /// NewBest! 라벨 zPosition. comboPopupZPosition(150)과 동급 — ResultScene 기본 z=0 위.
+    /// 신기록 보상 라벨 zPosition. comboPopupZPosition(150)과 동급 — ResultScene 기본 z=0 위.
     static let newBestZPosition: CGFloat = 150
-    /// ResultScene 진입 후 NewBest! 발화까지 지연 (초). fade transition(0.4s) 끝나고 score 인지 후 등장.
+    /// ResultScene 진입 후 신기록 보상 발화까지 지연 (초). fade transition(0.4s) 끝나고 score 인지 후 등장.
     static let newBestRevealDelay: TimeInterval = 0.3
-    /// NewBest! fade-in 길이 (초).
+    /// 신기록 보상 라벨 fade-in 길이 (초).
     static let newBestFadeInDuration: TimeInterval = 0.3
-    /// NewBest! scale pulse 한 사이클 총 길이 (초). up(0.4) + down(0.4) = 0.8.
+    /// 신기록 보상 라벨 scale pulse 한 사이클 총 길이 (초). up(0.4) + down(0.4) = 0.8.
     static let newBestScalePulseDuration: TimeInterval = 0.8
-    /// NewBest! scale pulse 정점 스케일 (1.0 → 1.2 → 1.0).
+    /// 신기록 보상 라벨 scale pulse 정점 스케일 (1.0 → 1.2 → 1.0).
     static let newBestEndScalePeak: CGFloat = 1.2
     /// bestLabel 황금 깜빡임 최소 alpha. 1.0 ↔ 0.5 사이 보간.
     static let newBestBlinkMinAlpha: CGFloat = 0.5
@@ -920,8 +920,6 @@ enum GameConfig {
     static let profileNameEditNicknameUserInfoKey: String = "profileNameEditNickname"
     static let profileNameEditRequiredUserInfoKey: String = "profileNameEditRequired"
     static let profileNameEditSucceededUserInfoKey: String = "profileNameEditSucceeded"
-    static let profileNameEditDisplayFieldIndex: Int = 0
-    static let profileNameEditNicknameFieldIndex: Int = 1
     static let profileNameEditTitleText: String = "프로필 이름"
     static let profileNameEditRequiredTitleText: String = "닉네임 설정"
     static let profileNameEditMessageText: String = "게임 안에서 불릴 이름을 정해 주세요."
@@ -930,11 +928,44 @@ enum GameConfig {
     static let profileNameEditNicknamePlaceholderText: String = "닉네임"
     static let profileNameEditSaveText: String = "저장"
     static let profileNameEditCancelText: String = "취소"
+    static let profileNameEditSavingText: String = "저장 중"
     static let profileNameEditNicknameEmptyText: String = "닉네임을 입력해 주세요."
     static let profileNameEditNicknameTooShortText: String = "닉네임을 조금 더 적어 주세요."
     static let profileNameEditNicknameTooLongText: String = "닉네임이 너무 길어요."
     static let profileNameEditSavedText: String = "프로필 이름 저장"
     static let profileNameEditFailedText: String = "이름 저장 실패"
+    static let profileNameEditDimAlpha: CGFloat = 0.42
+    static let profileNameEditPanelMaxWidth: CGFloat = 420
+    static let profileNameEditPanelMinWidth: CGFloat = 320
+    static let profileNameEditPanelHorizontalSafeInset: CGFloat = 28
+    static let profileNameEditPanelVerticalSafeInset: CGFloat = 18
+    static let profileNameEditPanelCornerRadius: CGFloat = 18
+    static let profileNameEditPanelBorderWidth: CGFloat = 1
+    static let profileNameEditPanelBorderAlpha: CGFloat = 0.24
+    static let profileNameEditPanelShadowAlpha: Float = 0.14
+    static let profileNameEditPanelShadowRadius: CGFloat = 14
+    static let profileNameEditPanelShadowOffsetY: CGFloat = 5
+    static let profileNameEditContentInset: CGFloat = 22
+    static let profileNameEditStackSpacing: CGFloat = 12
+    static let profileNameEditFieldHeight: CGFloat = 40
+    static let profileNameEditButtonHeight: CGFloat = 38
+    static let profileNameEditButtonGap: CGFloat = 10
+    static let profileNameEditTitleFontSize: CGFloat = 22
+    static let profileNameEditMessageFontSize: CGFloat = 13
+    static let profileNameEditFieldFontSize: CGFloat = 15
+    static let profileNameEditButtonFontSize: CGFloat = 15
+    static let profileNameEditFieldCornerRadius: CGFloat = 10
+    static let profileNameEditFieldBorderWidth: CGFloat = 1
+    static let profileNameEditFieldBorderAlpha: CGFloat = 0.22
+    static let profileNameEditFieldHorizontalInset: CGFloat = 12
+    static let profileNameEditPanelMinimumWidthPriority: Float = 750
+    static let profileNameEditPanelPreferredWidthPriority: Float = 760
+
+    // MARK: - Profile Name Editor — Keyboard Avoidance (신규)
+    /// 키보드 상단과 패널 하단 사이 최소 여유(pt). 저장 버튼이 키보드에 닿지 않게.
+    static let profileNameEditKeyboardClearance: CGFloat = 16
+    /// 키보드 회피 애니메이션 길이 fallback(초). 노티에 duration 없을 때만 사용.
+    static let profileNameEditKeyboardAnimationDuration: TimeInterval = 0.25
     /// 사용자 요청에 따라 BGM은 번들에 있어도 재생하지 않는다.
     static let isBGMEnabled: Bool = false
 
@@ -1057,11 +1088,11 @@ enum GameConfig {
     /// 캐릭터별 스킬 시스템. SkillSystem이 호출, HUDSkillSlotNode가 시각화.
     /// 4 스킬(정/건/임/이) + 김간호는 *스킬 없음*(정공법 정체성).
 
-    // 공통 — SkillButtonNode (좌하단 1탭 발동)
+    // 공통 — SkillButtonNode (우하단 1탭 발동)
     /// 스킬 버튼 반지름 (pt). D-Pad 한 변(44)과 시각 균형.
     static let skillButtonRadius: CGFloat = 32
     /// 버튼 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.
-    /// D-Pad(dpadMarginX=90)와 대칭 — 두 손가락 자연 위치.
+    /// 좌하단 D-Pad와 대칭 — 두 손가락 자연 위치.
     static let skillButtonMarginX: CGFloat = 72
     /// 버튼 하단 가장자리에서의 안쪽 마진 (pt). D-Pad와 동일 높이로 정렬.
     static let skillButtonMarginY: CGFloat = 90
@@ -1438,21 +1469,21 @@ enum GameConfig {
 
     /// GlassPillNode 배경 크림(ganhoPaper) α. 묶음 A 어포던스 강화 — 0.55 → 0.82로 불투명 상향.
     /// "버튼인지 글자인지" 헷갈리던 흰 알약을 또렷한 크림 표면으로.
-    static let glassPillFillAlpha: CGFloat = 0.82
+    static let glassPillFillAlpha: CGFloat = 0.94
     /// GlassPillNode stroke α — 살짝의 외곽선. (코랄 테두리 전환 후에도 다른 참조 보호 위해 유지.)
-    static let glassPillStrokeAlpha: CGFloat = 0.25
+    static let glassPillStrokeAlpha: CGFloat = 0.20
     /// GlassPillNode 가우시안 블러 반경. §3.3.B = radius 12.
-    static let glassPillBlurRadius: CGFloat = 12
+    static let glassPillBlurRadius: CGFloat = 0
     /// GlassPillNode 라벨 폰트 크기.
     static let glassPillFontSize: CGFloat = 14
 
     // GlassPill 어포던스 강화 (묶음 A) — Secondary 버튼 3계층 입체화.
     /// 코랄 테두리 두께(pt). 흰·크림 알약에도 "버튼임"을 전달하는 또렷한 경계.
-    static let glassPillBorderWidth: CGFloat = 2
+    static let glassPillBorderWidth: CGFloat = 1
     /// 입체 그림자 노드 y 오프셋(pt). 음수 = 아래로 떨궈 떠 있는 느낌.
-    static let glassPillShadowOffsetY: CGFloat = -4
+    static let glassPillShadowOffsetY: CGFloat = 0
     /// 입체 그림자 노드 알파. ganhoCoralShadow 위에 곱해 은은한 그림자.
-    static let glassPillShadowAlpha: CGFloat = 0.30
+    static let glassPillShadowAlpha: CGFloat = 0
     /// destructive 톤(계정 삭제) fill 불투명. 딥코랄을 거의 꽉 차게.
     static let glassPillDestructiveFillAlpha: CGFloat = 0.92
 
@@ -1479,17 +1510,27 @@ enum GameConfig {
     static let darkContextChipBadgeVerticalInset: CGFloat = 8
 
     /// PrimaryButtonNode v2 그림자 y 오프셋(pt) — 음수면 아래쪽. §3.3.A = 6 → -6.
-    static let primaryButtonShadowOffsetY: CGFloat = -6
+    static let primaryButtonShadowOffsetY: CGFloat = 0
     /// PrimaryButtonNode v2 그림자 blur(pt).
-    static let primaryButtonShadowBlurRadius: CGFloat = 12
+    static let primaryButtonShadowBlurRadius: CGFloat = 0
     /// PrimaryButtonNode v2 우측 화살표 원 반경(pt).
     static let primaryButtonArrowRadius: CGFloat = 12
     /// PrimaryButtonNode v2 우측 화살표 우측 마진(pt) — 배경 우측 끝에서 안쪽 거리.
     static let primaryButtonArrowInsetX: CGFloat = 22
     /// PrimaryButtonNode v2 우측 화살표 원 화이트 α — 살짝 반투명한 동그라미.
-    static let primaryButtonArrowCircleAlpha: CGFloat = 0.25
+    static let primaryButtonArrowCircleAlpha: CGFloat = 0.12
     /// PrimaryButtonNode v2 우측 화살표 라벨 폰트 크기(pt).
     static let primaryButtonArrowLabelFontSize: CGFloat = 14
+
+    // MARK: - Tone Down Controls
+    static let menuSolidBackgroundColor: UIColor = .ganhoPaper
+    static let menuAmbientNotesEnabled: Bool = false
+    static let menuControlFillAlpha: CGFloat = 0.94
+    static let menuControlStrokeAlpha: CGFloat = 0.20
+    static let menuControlLineWidth: CGFloat = 1
+    static let menuControlShadowAlpha: CGFloat = 0
+    static let menuControlArrowAlpha: CGFloat = 0.12
+    static let menuControlEnabledAlpha: CGFloat = 1.0
 
     // MARK: - Sprint 2 · StartScene v2 Layout
     // DESIGN_RENEWAL_REQUEST.md §4.1 + mockups/main-screen-v2.html.
@@ -1612,13 +1653,13 @@ enum GameConfig {
     static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
 
     // MARK: - Overlay Action Button
-    static let overlayButtonShadowOffsetY: CGFloat = -5
-    static let overlayButtonPressedOffsetY: CGFloat = -3
+    static let overlayButtonShadowOffsetY: CGFloat = 0
+    static let overlayButtonPressedOffsetY: CGFloat = 0
     static let overlayButtonPressDuration: TimeInterval = 0.08
     static let overlayButtonPressActionKey: String = "overlayButtonPress"
     /// 오버레이 버튼 테두리 두께(pt). 묶음 A — secondary 코랄 2px 테두리 가시성 위해 1 → 2.
     /// primary는 stroke가 clear라 영향 없음, destructive는 코랄딥 테두리라 OK.
-    static let overlayButtonLineWidth: CGFloat = 2
+    static let overlayButtonLineWidth: CGFloat = 1
     static let overlayButtonDisabledAlpha: CGFloat = 0.48
     static let overlayButtonTitleFontSize: CGFloat = 16
     static let overlayButtonSubtitleFontSize: CGFloat = 11
@@ -1631,7 +1672,7 @@ enum GameConfig {
     static let overlayButtonSubtitleOffsetY: CGFloat = -11
     static let overlayButtonSingleTitleOffsetY: CGFloat = 0
     static let overlayButtonHighlightHeight: CGFloat = 3
-    static let overlayButtonHighlightAlpha: CGFloat = 0.20
+    static let overlayButtonHighlightAlpha: CGFloat = 0
     static let overlayButtonCornerRadius: CGFloat = 12
     static let overlayButtonDefaultIconText: String = "♪"
     static let overlayButtonSecondaryIconText: String = "·"
@@ -1701,44 +1742,44 @@ enum GameConfig {
     static let profileDetailDimAlpha: CGFloat = 0.50
     static let profileDetailPanelFillAlpha: CGFloat = 0.94
     static let profileDetailPanelStrokeAlpha: CGFloat = 0.35
-    static let profileDetailPanelWidth: CGFloat = 620
-    static let profileDetailPanelCompactWidth: CGFloat = 520
-    static let profileDetailPanelHeight: CGFloat = 382
-    static let profileDetailPanelCornerRadius: CGFloat = 22
+    static let profileDetailPanelWidth: CGFloat = 560
+    static let profileDetailPanelCompactWidth: CGFloat = 480
+    static let profileDetailPanelHeight: CGFloat = 326
+    static let profileDetailPanelCornerRadius: CGFloat = 18
     static let profileDetailPanelLineWidth: CGFloat = 1
-    static let profileDetailPanelHorizontalInset: CGFloat = 34
-    static let profileDetailPanelTopInset: CGFloat = 34
-    static let profileDetailAvatarSize = CGSize(width: 92, height: 92)
+    static let profileDetailPanelHorizontalInset: CGFloat = 26
+    static let profileDetailPanelTopInset: CGFloat = 26
+    static let profileDetailAvatarSize = CGSize(width: 74, height: 74)
     static let profileDetailHeaderTextGap: CGFloat = 22
     static let profileDetailTitleOffsetY: CGFloat = 18
     static let profileDetailBodyBelowTitleGap: CGFloat = 28
-    static let profileDetailTitleFontSize: CGFloat = 26
-    static let profileDetailBodyFontSize: CGFloat = 14
-    static let profileDetailBodyWidth: CGFloat = 360
-    static let profileDetailMetricWidth: CGFloat = 120
-    static let profileDetailMetricGap: CGFloat = 22
+    static let profileDetailTitleFontSize: CGFloat = 22
+    static let profileDetailBodyFontSize: CGFloat = 12
+    static let profileDetailBodyWidth: CGFloat = 300
+    static let profileDetailMetricWidth: CGFloat = 104
+    static let profileDetailMetricGap: CGFloat = 14
     static let profileDetailMetricTitleOffsetY: CGFloat = 48
     static let profileDetailMetricValueOffsetY: CGFloat = 20
-    static let profileDetailMetricTitleFontSize: CGFloat = 13
-    static let profileDetailMetricValueFontSize: CGFloat = 22
+    static let profileDetailMetricTitleFontSize: CGFloat = 12
+    static let profileDetailMetricValueFontSize: CGFloat = 20
     static let profileDetailButtonWidth: CGFloat = 98
     static let profileDetailWideButtonWidth: CGFloat = 126
-    static let profileDetailButtonHeight: CGFloat = 32
+    static let profileDetailButtonHeight: CGFloat = 30
     static let profileDetailButtonGap: CGFloat = 12
-    static let profileDetailFirstButtonRowOffsetY: CGFloat = -78
-    static let profileDetailSecondButtonRowOffsetY: CGFloat = -126
-    static let profileDetailBottomButtonOffsetY: CGFloat = -130
-    static let profileDetailAvatarOptionSize = CGSize(width: 84, height: 112)
-    static let profileDetailAvatarOptionPortraitSize = CGSize(width: 58, height: 72)
-    static let profileDetailAvatarOptionGap: CGFloat = 12
-    static let profileDetailAvatarOptionCornerRadius: CGFloat = 14
+    static let profileDetailFirstButtonRowOffsetY: CGFloat = -72
+    static let profileDetailSecondButtonRowOffsetY: CGFloat = -118
+    static let profileDetailBottomButtonOffsetY: CGFloat = -118
+    static let profileDetailAvatarOptionSize = CGSize(width: 74, height: 98)
+    static let profileDetailAvatarOptionPortraitSize = CGSize(width: 50, height: 62)
+    static let profileDetailAvatarOptionGap: CGFloat = 8
+    static let profileDetailAvatarOptionCornerRadius: CGFloat = 12
     static let profileDetailAvatarOptionFillAlpha: CGFloat = 0.82
     static let profileDetailAvatarOptionSelectedFillAlpha: CGFloat = 0.88
     static let profileDetailAvatarOptionSelectedLineWidth: CGFloat = 2
     static let profileDetailAvatarOptionPortraitOffsetY: CGFloat = 2
-    static let profileDetailAvatarOptionLabelOffsetY: CGFloat = 42
-    static let profileDetailAvatarOptionLabelFontSize: CGFloat = 13
-    static let profileDetailAvatarOptionsOffsetY: CGFloat = -14
+    static let profileDetailAvatarOptionLabelOffsetY: CGFloat = 36
+    static let profileDetailAvatarOptionLabelFontSize: CGFloat = 12
+    static let profileDetailAvatarOptionsOffsetY: CGFloat = -18
     static let profileDetailTitleText: String = "개인프로필"
     static let profileDetailChooseAvatarText: String = "초상화 변경"
     static let profileDetailChoosePhotoText: String = "사진 선택"
@@ -2600,6 +2641,14 @@ enum GameConfig {
     static let resultBestPillHeightV3: CGFloat = 28
     /// BEST GlassPill 중앙 x 오프셋(+120pt — scoreLabel 우측). frame.midX 기준.
     static let resultBestPillOffsetXV3: CGFloat = 120
+    static let resultBestPillTopGap: CGFloat = 48
+    static let resultBestPillBottomGap: CGFloat = 18
+
+    // ResultScene BEST pill 수직 리듬 (신규 / V11)
+    /// 점수 라벨 baseline ↔ BEST pill 중심 사이 목표 간격(pt). 점수 아래 충분한 호흡.
+    static let resultBestPillScoreGapV11: CGFloat = 40
+    /// stat 그룹 상단 ↔ BEST pill 중심 사이 최소 간격(pt). 하단 클램프 바닥값.
+    static let resultBestPillStatsClearanceV11: CGFloat = 14
 
     // ResultScene V3 — headerChip · title · subtitle · accentLine 위로 올림
     /// headerChip y 오프셋(+115pt — V2의 +100보다 위). 타이틀 위쪽으로 끌어올림.
@@ -2641,7 +2690,7 @@ enum GameConfig {
     // ResultScene V3 — BEST GlassPill 텍스트 분기
     /// 일반 분기 BEST 칩 텍스트 prefix("🏆 BEST"). 뒤에 ` \(bestScore)` 합성.
     static let resultBestPillTextNormalV3: String = "🏆 BEST"
-    /// 신기록 분기 BEST 칩 텍스트("★ NEW BEST!"). 깜빡임은 기존 bestLabel(alpha=0)이 담당.
+    /// 신기록 분기 BEST 칩 텍스트("★ NEW BEST!").
     static let resultBestPillTextNewV3: String = "★ NEW BEST!"
 
     // ScoreboardScene — 15셀 매트릭스 기본
@@ -3514,6 +3563,8 @@ enum GameConfig {
     static let characterHomeAccentLineOffsetY: CGFloat = 19
     static let characterHomeBackButtonWidth: CGFloat = 106
     static let characterHomeBackButtonHeight: CGFloat = 30
+    static let characterHomeArrowPillWidth: CGFloat = 54
+    static let characterHomeAccountChipWidth: CGFloat = 150
 
     static let characterHomeProfilePanelWidth: CGFloat = 210
     static let characterHomeProfilePanelHeight: CGFloat = 268
@@ -3581,12 +3632,12 @@ enum GameConfig {
     static let characterHomePanelLineWidth: CGFloat = 1.2
     static let characterHomePanelFillAlpha: CGFloat = 0.74
     static let characterHomePanelStrokeAlpha: CGFloat = 0.34
-    static let characterHomePanelFocusedStrokeAlpha: CGFloat = 0.78
-    static let characterHomeFocusedScale: CGFloat = 1.03
+    static let characterHomePanelFocusedStrokeAlpha: CGFloat = 0.42
+    static let characterHomeFocusedScale: CGFloat = 1.0
     static let characterHomeUnfocusedAlpha: CGFloat = 0.72
     static let characterHomeStageShadowWidth: CGFloat = 260
     static let characterHomeStageShadowHeight: CGFloat = 38
-    static let characterHomeStageShadowAlpha: CGFloat = 0.22
+    static let characterHomeStageShadowAlpha: CGFloat = 0.12
     static let characterHomePortraitBreathScale: CGFloat = 1.025
     static let characterHomePortraitBreathDuration: TimeInterval = 1.2
     static let characterHomeFocusAnimationDuration: TimeInterval = 0.16

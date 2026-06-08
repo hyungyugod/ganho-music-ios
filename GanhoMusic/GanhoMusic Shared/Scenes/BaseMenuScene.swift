@@ -3,40 +3,28 @@
 //  GanhoMusic Shared
 //
 //  메뉴 씬 공용 베이스. 4개 씬(Start/CharacterSelect/DifficultySelect/SkillExplanation)이
-//  공유하던 그라데이션 배경 setup/rebuild 보일러플레이트를 한 곳에 모음.
+//  공유하는 단색 배경 setup/rebuild 보일러플레이트를 한 곳에 모음.
 //  ResultScene/ScoreboardScene은 다른 변수명·인라인 구조라 대상 외.
 //
 
 import SpriteKit
 import UIKit
 
-/// 4개 메뉴 씬의 공용 베이스. 따뜻한 3-stop 그라데이션 배경만 제공.
-/// 자식 씬은 `didMove`에서 `setupWarmGradientBackground()`, `didChangeSize`에서
-/// `rebuildWarmGradientBackground()`를 호출하면 끝. 결과 픽셀은 기존 4개 씬 동일.
+/// 4개 메뉴 씬의 공용 베이스. 메뉴 단색 배경과 safe area layout helper를 제공.
 class BaseMenuScene: SKScene {
 
-    /// 그라데이션 노드 참조 — didChangeSize 재생성에서 removeFromParent용.
+    /// 기존 그라데이션 노드가 남아 있을 경우 단색 배경 전환 때 제거하기 위한 참조.
     private var gradientBackground: GradientBackgroundNode?
 
-    /// 3-stop warm gradient(피치 → 코랄 → 라벤더) 배경 부착.
-    /// didMove에서 1회 호출. 자식 씬이 직접 색을 바꾸고 싶으면 이 메소드를 호출하지 않고 직접 노드 생성.
-    func setupWarmGradientBackground() {
-        let node = GradientBackgroundNode.threeStop(
-            size: size,
-            topColor: .ganhoBgWarmTop,
-            midColor: .ganhoBgWarmMid,
-            bottomColor: .ganhoBgWarmBottom
-        )
-        node.position = CGPoint(x: frame.midX, y: frame.midY)
-        gradientBackground = node
-        addChild(node)
-    }
-
-    /// 사이즈 변경 시 그라데이션 재생성. 기존 노드 removeFromParent 후 새로 부착.
-    func rebuildWarmGradientBackground() {
+    /// 톤 다운 sprint 기본 배경. 그라데이션 노드를 제거하고 단색 배경만 유지한다.
+    func setupSolidMenuBackground() {
         gradientBackground?.removeFromParent()
         gradientBackground = nil
-        setupWarmGradientBackground()
+        backgroundColor = GameConfig.menuSolidBackgroundColor
+    }
+
+    func rebuildSolidMenuBackground() {
+        setupSolidMenuBackground()
     }
 
     // MARK: - Layout

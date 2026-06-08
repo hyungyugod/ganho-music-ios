@@ -60,10 +60,11 @@ final class OverlayActionButtonNode: SKNode {
     // MARK: - Configure
     private func configureNodes(iconText: String?) {
         shadowNode.position = CGPoint(x: 0, y: GameConfig.overlayButtonShadowOffsetY)
-        shadowNode.fillColor = shadowColor
+        shadowNode.fillColor = shadowColor.withAlphaComponent(GameConfig.menuControlShadowAlpha)
         shadowNode.strokeColor = .clear
         shadowNode.lineWidth = 0
         shadowNode.zPosition = -1
+        shadowNode.isHidden = GameConfig.menuControlShadowAlpha <= .zero
         addChild(shadowNode)
 
         backgroundNode.fillColor = fillColor
@@ -80,6 +81,7 @@ final class OverlayActionButtonNode: SKNode {
         highlightNode.strokeColor = .clear
         highlightNode.lineWidth = 0
         highlightNode.zPosition = 1
+        highlightNode.isHidden = GameConfig.overlayButtonHighlightAlpha <= .zero
         contentNode.addChild(highlightNode)
 
         iconCircleNode.position = CGPoint(
@@ -145,6 +147,7 @@ final class OverlayActionButtonNode: SKNode {
 
     func playPressFeedback() {
         guard isEnabled else { return }
+        guard GameConfig.overlayButtonPressedOffsetY != .zero else { return }
         contentNode.removeAction(forKey: GameConfig.overlayButtonPressActionKey)
         contentNode.position = .zero
         let down = SKAction.moveBy(
@@ -226,9 +229,9 @@ final class OverlayActionButtonNode: SKNode {
     private var strokeColor: UIColor {
         switch style {
         case .primary:
-            return .clear
+            return UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
         case .secondary:
-            return .ganhoCoralPrimary
+            return UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
         case .destructive:
             return .ganhoCoralShadow
         }

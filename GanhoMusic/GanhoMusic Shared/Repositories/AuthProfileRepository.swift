@@ -33,7 +33,7 @@ final class AuthProfileRepository {
         let isSameUser = existing?.uid == user.uid
         let firebaseDisplayName = sanitizedOptionalText(user.displayName)
         let preservedDisplayName = isSameUser
-            ? sanitizedOptionalText(existing?.displayName)
+            ? sanitizedOptionalText(existing?.displayName) ?? firebaseDisplayName
             : firebaseDisplayName
         let preservedNickname = isSameUser
             ? sanitizedOptionalText(existing?.nickname)

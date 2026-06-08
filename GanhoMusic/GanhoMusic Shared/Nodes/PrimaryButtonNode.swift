@@ -44,9 +44,10 @@ final class PrimaryButtonNode: SKNode {
             rectOf: buttonSize,
             cornerRadius: cornerRadius
         )
-        shadowShape.fillColor = .ganhoCoralShadow
+        shadowShape.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.menuControlShadowAlpha)
         shadowShape.strokeColor = .clear
         shadowShape.lineWidth = 0
+        shadowShape.isHidden = GameConfig.menuControlShadowAlpha <= .zero
 
         // (2) 본 배경 — 코랄 fill, stroke 없음(v2는 그림자만으로 위계 표현).
         background = SKShapeNode(
@@ -54,8 +55,8 @@ final class PrimaryButtonNode: SKNode {
             cornerRadius: cornerRadius
         )
         background.fillColor = .ganhoCoralPrimary
-        background.strokeColor = .clear
-        background.lineWidth = 0
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
+        background.lineWidth = GameConfig.menuControlLineWidth
 
         // (3) 우측 화살표 원 — 배경 우측 끝에서 primaryButtonArrowInsetX 안쪽.
         arrowCircle = SKShapeNode(circleOfRadius: GameConfig.primaryButtonArrowRadius)

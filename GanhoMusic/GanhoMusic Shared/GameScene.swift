@@ -37,7 +37,7 @@ class GameScene: SKScene {
     let contactRouter = ContactRouter()   // Phase 2-11 — 충돌 분기 책임 분리
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
     let skillSystem = SkillSystem()       // Phase 9-5 — 캐릭터별 스킬 시스템
-    let skillButton = SkillButtonNode()   // Phase 9-5 — 좌하단 1탭 발동 버튼
+    let skillButton = SkillButtonNode()   // Phase 9-5 — 우하단 1탭 발동 버튼
     let runButton = RunButtonNode()       // Sprint 11 — 쿨타임 없는 hold-to-run 버튼
     let hudSkillSlot = HUDSkillSlotNode() // Phase 9-5 — 스킬 쿨다운 진행 시각화
     let pauseButton = PauseButtonNode()   // Sprint 3 — 우상단 일시정지 시각 placeholder
@@ -147,8 +147,8 @@ class GameScene: SKScene {
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
         setupStoneGuard()    // Phase 4-1 신설 — StoneGuardNode를 worldNode 자식으로 (4 waypoint 시계방향)
         setupProfessor()     // Phase 9-7 신설 — ProfessorNode를 worldNode 자식으로 (hard만, 가드 내부)
-        setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 좌하단에
-        setupRunButton()     // Sprint 11 — SkillButton 옆 hold-to-run 버튼
+        setupSkillButton()   // Phase 9-5 — SkillButtonNode를 cameraNode 우하단에
+        setupRunButton()     // Sprint 11 — SkillButton 왼쪽 hold-to-run 버튼
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
         setupPauseButton()   // Sprint 3 — PauseButtonNode를 cameraNode 우상단에 (시각 placeholder)
         skillSystem.configure(scene: self, skill: characterID.skill)  // Phase 9-5 — 활성 스킬 set

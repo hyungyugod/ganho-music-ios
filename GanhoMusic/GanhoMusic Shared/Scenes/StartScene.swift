@@ -52,8 +52,7 @@ final class StartScene: BaseMenuScene {
     // MARK: - Lifecycle
     override func didMove(to view: SKView) {
         // Sprint 2 — 1프레임 fallback도 warm top으로 (다크 플래시 회피).
-        backgroundColor = .ganhoBgWarmTop
-        setupWarmGradientBackground()         // Sprint 2 — 3-stop warm gradient. zPos -20.
+        setupSolidMenuBackground()
         setupMusicNoteEmitter()               // Phase 10-2 — 보존. zPos -15.
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
         setupNurseAvatar()                    // Sprint 6 — 좌측 김간호 큰 그림.
@@ -66,7 +65,7 @@ final class StartScene: BaseMenuScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         // Phase 10-2 — 그라데이션/음표 emitter는 sceneSize 의존 → 사이즈 변경 시 재생성.
-        rebuildWarmGradientBackground()
+        rebuildSolidMenuBackground()
         rebuildMusicNoteEmitter()
         loginChoiceOverlay?.update(sceneSize: size)
         layoutTitleBlock()
@@ -77,6 +76,7 @@ final class StartScene: BaseMenuScene {
 
     /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
     private func setupMusicNoteEmitter() {
+        guard GameConfig.menuAmbientNotesEnabled else { return }
         let emitter = MusicNoteEmitterNode(sceneSize: size)
         // 원점은 씬 좌측 하단 (0,0) — emitter 내부 좌표계가 sceneSize 범위에 그대로 매핑.
         emitter.position = .zero
@@ -349,10 +349,11 @@ final class StartScene: BaseMenuScene {
         let chip = GlassPillNode(
             text: GameConfig.authLinkedStatusText,
             size: CGSize(
-                width: GameConfig.startSceneAccountChipWidth,
-                height: GameConfig.startSceneAccountChipHeight
+                width: GameConfig.characterHomeAccountChipWidth,
+                height: GameConfig.characterHomeMenuButtonHeight
             )
         )
+        chip.applyCharacterHomeMenuStyle()
         chip.zPosition = GameConfig.characterHomeButtonZPosition
         chip.isHidden = true
         accountChip = chip
@@ -366,11 +367,11 @@ final class StartScene: BaseMenuScene {
             x: frame.maxX
                 - safe.right
                 - GameConfig.startSceneAccountChipRightInset
-                - GameConfig.startSceneAccountChipWidth / 2,
+                - GameConfig.characterHomeAccountChipWidth / 2,
             y: frame.maxY
                 - safe.top
                 - GameConfig.startSceneAccountChipTopInset
-                - GameConfig.startSceneAccountChipHeight / 2
+                - GameConfig.characterHomeMenuButtonHeight / 2
         )
     }
 

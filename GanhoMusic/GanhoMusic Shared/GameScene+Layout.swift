@@ -47,7 +47,7 @@ extension GameScene {
             scale: scale
         )
         dpad.position = CGPoint(
-            x: +(halfW - safe.right - marginX),
+            x: -(halfW - safe.left - marginX),
             y: -(halfH - safe.bottom - marginY)
         )
     }
