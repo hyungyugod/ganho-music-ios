@@ -34,11 +34,13 @@ final class ScoreboardScene: SKScene {
     private var isTransitioning = false
 
     /// PerDifficulty 최고점수 — 매트릭스 셀 값 소스. UserDefaults 기반 stateless.
-    private let perDiffRepo = PerDifficultyScoreRepository()
-    /// 누적 플레이 통계 — 하단 stat 라벨 소스.
+    /// GameScene과 동일한 계정 스코프 키를 읽어야 누적이 보이므로 init에서 `.scoped`로 생성한다.
+    private let perDiffRepo: PerDifficultyScoreRepository
+    /// 누적 플레이 통계 — 하단 stat 라벨 소스. GameScene도 unscoped라 그대로 둔다(PLAYS/TOTAL 회귀 방지).
     private let statsRepo = StatisticsRepository()
     /// 졸업 일시 사전 — 하단 stat 라벨의 졸업장 개수 소스. count = current.keys 수.
-    private let graduationRepo = GraduationRepository()
+    /// GameScene과 동일한 계정 스코프 키를 읽어야 졸업장이 보이므로 init에서 `.scoped`로 생성한다.
+    private let graduationRepo: GraduationRepository
 
     // 자식 노드 — didMove에서 부착, layoutAll에서 좌표만 갱신.
 
@@ -79,6 +81,8 @@ final class ScoreboardScene: SKScene {
     // MARK: - Init
 
     /// 두 컨텍스트 모두 `let` — super.init 전에 저장. 외부에서는 newScoreboardScene 팩토리 사용.
+    /// perDiffRepo·graduationRepo도 `let` stored property이므로 GameScene.swift 118~123행과 동일하게
+    /// 계정 스코프(.scoped)로 super.init **이전**에 할당한다 — 저장(GameScene)과 같은 키를 읽어 누적을 노출.
     private init(
         size: CGSize,
         lastUpdatedKey: (CharacterID, Difficulty)?,
@@ -86,6 +90,11 @@ final class ScoreboardScene: SKScene {
     ) {
         self.lastUpdatedKey = lastUpdatedKey
         self.returnContext = returnContext
+        let scope = AccountProgressScopeProvider.current(
+            authProfile: AuthProfileRepository().current
+        )
+        self.perDiffRepo = PerDifficultyScoreRepository.scoped(scope: scope)
+        self.graduationRepo = GraduationRepository.scoped(scope: scope)
         super.init(size: size)
     }
 

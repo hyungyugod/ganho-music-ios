@@ -54,7 +54,12 @@ private struct ResultLayoutMetrics {
     let rightColumnX: CGFloat
     let topY: CGFloat
     let scoreY: CGFloat
+    /// 점수 아래 캡션(scoreSubLabel) 전용 y. 하단 stat 클램프를 포함한 기존 산식 그대로 보존.
     let bestPillY: CGFloat
+    /// V12 — BEST pill 우상단 전용 중심 x. rightColumnX에서 우측으로 보정 — 점수 컬럼과 구조적 분리.
+    let bestPillX: CGFloat
+    /// V12 — BEST pill 우상단 전용 중심 y. topY 바로 아래(헤더 행) — 점수(scoreY)와 겹칠 수 없음.
+    let bestPillTopY: CGFloat
     let goalY: CGFloat
     let summaryY: CGFloat
     let nextGoalY: CGFloat
@@ -815,7 +820,12 @@ final class ResultScene: SKScene {
         let minPillY = statsTopY
             + GameConfig.resultBestPillStatsClearanceV11 * scale + pillHalfHeight
         // 점수 아래 간격을 우선하되, stat 그룹과 겹칠 때만 끌어올린다.
+        // V12 — 이 값은 이제 scoreSubLabel(점수 아래 캡션)만 사용한다. BEST pill은 아래 우상단 좌표로 분리.
         let bestPillY = max(minPillY, desiredBestPillY)
+        // V12 — BEST pill 우상단 전용 좌표. 클램프와 무관 → 점수(leftColumnX, scoreY)와 구조적으로 겹칠 수 없다.
+        // 좌상단 headerChip(leftColumnX, topY)과 대칭. x는 우측 컬럼에서 더 우측으로, y는 topY 바로 아래(헤더 행).
+        let bestPillX = rightColumnX + GameConfig.resultBestPillTopOffsetXV12 * scale
+        let bestPillTopY = topY - GameConfig.resultBestPillTopBelowTopV12 * scale
         return ResultLayoutMetrics(
             panelSize: panelSize,
             panelCenter: center,
@@ -824,6 +834,8 @@ final class ResultScene: SKScene {
             topY: topY,
             scoreY: scoreY,
             bestPillY: bestPillY,
+            bestPillX: bestPillX,
+            bestPillTopY: bestPillTopY,
             goalY: goalY,
             summaryY: summaryY,
             nextGoalY: nextGoalY,
@@ -863,9 +875,11 @@ final class ResultScene: SKScene {
             x: metrics.leftColumnX - scoreIconOffsetX,
             y: metrics.scoreY
         )
+        // V12 — BEST pill을 점수 컬럼(leftColumnX)에서 빼내 카드 우상단으로 이동.
+        // 좌상단 headerChip과 대칭이며 점수(leftColumnX, scoreY)와 구조적으로 겹칠 수 없다.
         bestPill?.position = CGPoint(
-            x: metrics.leftColumnX,
-            y: metrics.bestPillY
+            x: metrics.bestPillX,
+            y: metrics.bestPillTopY
         )
     }
 

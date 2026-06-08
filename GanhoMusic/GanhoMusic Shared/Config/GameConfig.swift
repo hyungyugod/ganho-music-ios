@@ -2666,9 +2666,19 @@ enum GameConfig {
 
     // ResultScene BEST pill 수직 리듬 (신규 / V11)
     /// 점수 라벨 baseline ↔ BEST pill 중심 사이 목표 간격(pt). 점수 아래 충분한 호흡.
+    /// V12부터 BEST pill은 우상단으로 이동 — 이 값은 scoreSubLabel(점수 아래 캡션 y)만 사용.
     static let resultBestPillScoreGapV11: CGFloat = 40
     /// stat 그룹 상단 ↔ BEST pill 중심 사이 최소 간격(pt). 하단 클램프 바닥값.
+    /// V12부터 scoreSubLabel y 산출의 하단 클램프로만 쓰인다(BEST pill은 우상단 고정).
     static let resultBestPillStatsClearanceV11: CGFloat = 14
+
+    // ResultScene BEST pill 우상단 재배치 (신규 / V12)
+    /// BEST pill 중심 x를 rightColumnX에서 우측으로 미는 보정량(pt). 좌상단 headerChip과 대칭.
+    /// accentLine(panelCenter.x 가로선)·goal 라벨(rightColumnX 정렬)과 시각 여유를 확보한다.
+    static let resultBestPillTopOffsetXV12: CGFloat = 34
+    /// BEST pill 중심 y를 topY에서 아래로 내리는 보정량(pt). accentLine 가로선과 시각 겹침을 피한다.
+    /// 헤더 행과 거의 같은 높이이되 미세하게 아래로 떨어뜨려 가로선 위에 pill이 또렷이 얹힌다.
+    static let resultBestPillTopBelowTopV12: CGFloat = 4
 
     // ResultScene V3 — headerChip · title · subtitle · accentLine 위로 올림
     /// headerChip y 오프셋(+115pt — V2의 +100보다 위). 타이틀 위쪽으로 끌어올림.
