@@ -22,7 +22,10 @@ final class WallTileNode: SKSpriteNode {
     // MARK: - Lifecycle
     /// 1셀 runtime tileSize + 픽셀 톤 단색 + 정적 physicsBody.
     /// 텍스처 nil — Phase J 픽셀 톤 외곽 효과 도입 시 텍스처로 승격 가능.
-    init() {
+    /// - Parameter breakable: 내부 벽이면 true → name=breakableWallName(dashClimb enumerate 대상).
+    ///   외곽 벽은 false(기본) → name=wallTileNodeName(파괴 비대상, 맵 이탈 방지).
+    ///   physicsBody 정책(category=wall 등)은 breakable 무관 *동일* — 이름만 다르다.
+    init(breakable: Bool = false) {
         let tileSize = GameConfig.tileSize
         let size = CGSize(
             width:  tileSize,
@@ -30,7 +33,7 @@ final class WallTileNode: SKSpriteNode {
         )
         let color = UIColor.ganhoIngameWallFill
         super.init(texture: nil, color: color, size: size)
-        name = GameConfig.wallTileNodeName
+        name = breakable ? GameConfig.breakableWallName : GameConfig.wallTileNodeName
         zPosition = GameConfig.wallTileZPosition
 
         let shadow = SKSpriteNode(

@@ -68,13 +68,14 @@ final class MapNode: SKNode {
     private func buildOuterWall() {
         let lastCol = GameConfig.mapColumns - 1
         let lastRow = GameConfig.mapRows - 1
+        // 외곽 벽은 breakable: false — dashClimb으로 부서지면 맵 밖 이탈 가능(P0 회피).
         for col in 0...lastCol {
-            attachWallTile(col: col, row: 0)
-            attachWallTile(col: col, row: lastRow)
+            attachWallTile(col: col, row: 0, breakable: false)
+            attachWallTile(col: col, row: lastRow, breakable: false)
         }
         for row in 1..<lastRow {
-            attachWallTile(col: 0,       row: row)
-            attachWallTile(col: lastCol, row: row)
+            attachWallTile(col: 0,       row: row, breakable: false)
+            attachWallTile(col: lastCol, row: row, breakable: false)
         }
     }
 
@@ -83,7 +84,8 @@ final class MapNode: SKNode {
     private func buildEasyInterior() {
         for origR in GameConfig.easyMapCenterPillarOrigRStart...GameConfig.easyMapCenterPillarOrigREnd {
             for col in GameConfig.easyMapCenterPillarColStart...GameConfig.easyMapCenterPillarColEnd {
-                attachWallTile(col: col, row: convertOrigRowToIOS(origR))
+                // 내부 기둥 — breakable: true (dashClimb 경로면 부서짐).
+                attachWallTile(col: col, row: convertOrigRowToIOS(origR), breakable: true)
             }
         }
     }
@@ -178,13 +180,13 @@ final class MapNode: SKNode {
                            vWallCol: Int,
                            vWallOrigRStart: Int, vWallOrigREnd: Int,
                            doorOrigR: Int) {
-        // 가로벽 1행
+        // 가로벽 1행 — 내부 방 벽이므로 breakable: true.
         for col in hWallColStart...hWallColEnd {
-            attachWallTile(col: col, row: convertOrigRowToIOS(hWallOrigR))
+            attachWallTile(col: col, row: convertOrigRowToIOS(hWallOrigR), breakable: true)
         }
-        // 세로벽 — door 1칸은 *건너뜀* (원본 m[doorR][c]=0)
+        // 세로벽 — door 1칸은 *건너뜀* (원본 m[doorR][c]=0). 내부 방 벽이므로 breakable: true.
         for origR in vWallOrigRStart...vWallOrigREnd where origR != doorOrigR {
-            attachWallTile(col: vWallCol, row: convertOrigRowToIOS(origR))
+            attachWallTile(col: vWallCol, row: convertOrigRowToIOS(origR), breakable: true)
         }
     }
 
@@ -194,20 +196,23 @@ final class MapNode: SKNode {
                                   origRStart: Int, origREnd: Int) {
         for origR in origRStart...origREnd {
             for col in colStart...colEnd {
-                attachWallTile(col: col, row: convertOrigRowToIOS(origR))
+                // 내부 중앙 기둥 — breakable: true.
+                attachWallTile(col: col, row: convertOrigRowToIOS(origR), breakable: true)
             }
         }
     }
 
     private func attachHorizontalRun(colStart: Int, colEnd: Int, row: Int) {
         for col in colStart...colEnd {
-            attachWallTile(col: col, row: row)
+            // 추가 장애물 — breakable: true.
+            attachWallTile(col: col, row: row, breakable: true)
         }
     }
 
     private func attachVerticalRun(col: Int, rowStart: Int, rowEnd: Int) {
         for row in rowStart...rowEnd {
-            attachWallTile(col: col, row: row)
+            // 추가 장애물 — breakable: true.
+            attachWallTile(col: col, row: row, breakable: true)
         }
     }
 
@@ -224,8 +229,9 @@ final class MapNode: SKNode {
 
     /// 단일 (col, row) 셀에 WallTileNode 1개 부착 — 모든 빌더의 최종 진입점.
     /// position은 tileCoordinate(col:row:) 셀 중심점 사용 — anchorPoint .center 기본값과 자연 정합.
-    private func attachWallTile(col: Int, row: Int) {
-        let tile = WallTileNode()
+    /// - Parameter breakable: 내부 벽이면 true(dashClimb 파괴 대상), 외곽이면 false(맵 이탈 방지).
+    private func attachWallTile(col: Int, row: Int, breakable: Bool) {
+        let tile = WallTileNode(breakable: breakable)
         tile.position = tileCoordinate(col: col, row: row)
         addChild(tile)
     }

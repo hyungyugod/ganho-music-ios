@@ -41,9 +41,14 @@ private enum GoalJudgement {
 }
 
 private struct GoalLabelContent {
-    let judgementText: String
-    let judgementColor: UIColor
+    /// 큰 verdict 텍스트 — "성공" / "실패". 우측 컬럼 머리글로 격상.
+    let verdictText: String
+    /// verdict 색 — 성공=gold / 실패=coral.
+    let verdictColor: UIColor
+    /// 이진 판정 결과(finalScore >= target). nextText 분기의 단일 진실 원천.
+    let isSuccess: Bool
     let summaryText: String
+    /// verdict 아래 한 줄. 실패=gap 문구 / 성공=격려 문구.
     let nextText: String
 }
 
@@ -60,7 +65,8 @@ private struct ResultLayoutMetrics {
     let bestPillX: CGFloat
     /// V12 — BEST pill 우상단 전용 중심 y. topY 바로 아래(헤더 행) — 점수(scoreY)와 겹칠 수 없음.
     let bestPillTopY: CGFloat
-    let goalY: CGFloat
+    /// V1 — 큰 verdict("성공"/"실패") 머리글 y. 기존 goalY 슬롯을 verdict 전용으로 재정의.
+    let verdictY: CGFloat
     let summaryY: CGFloat
     let nextGoalY: CGFloat
     let statsY: CGFloat
@@ -507,14 +513,16 @@ final class ResultScene: SKScene {
     }
 
     /// Sprint 2 — 저장 없이 현재 점수와 난이도 목표만으로 결과 판정/요약/다음 목표를 구성한다.
+    /// Verdict 격상 — goalJudgementLabel을 큰 "성공/실패"(display 폰트, resultVerdictFontSize)로 표시한다.
     private func configureGoalLabels() {
         let content = makeGoalLabelContent()
+        // 큰 verdict — display 폰트 + resultVerdictFontSize. 색은 성공=gold / 실패=coral.
         configureLabelV2(
             goalJudgementLabel,
-            text: content.judgementText,
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultGoalLabelFontSize,
-            fontColor: content.judgementColor
+            text: content.verdictText,
+            fontName: GameConfig.fontDisplay,
+            fontSize: GameConfig.resultVerdictFontSize,
+            fontColor: content.verdictColor
         )
         configureLabelV2(
             goalSummaryLabel,
@@ -534,16 +542,34 @@ final class ResultScene: SKScene {
 
     private func makeGoalLabelContent() -> GoalLabelContent {
         let target = difficulty.targetScore
-        let judgement = GoalJudgement.make(score: finalScore, target: target)
+        // 이진 판정 — verdict의 단일 진실 원천. 경계값(==)은 성공. 기존 GoalJudgement는 보존(미사용).
+        let isSuccess = finalScore >= target
         let gap = max(0, target - finalScore)
+        let verdictText = isSuccess
+            ? GameConfig.resultVerdictSuccessText
+            : GameConfig.resultVerdictFailureText
+        let verdictColor: UIColor = isSuccess
+            ? .ganhoMusicGold
+            : .ganhoCoralPrimary
+        // 성공=격려 문구 / 실패=부족 점수 안내.
+        let nextText = isSuccess
+            ? GameConfig.resultVerdictSuccessSubText
+            : makeFailureGapText(gap: gap)
         return GoalLabelContent(
-            judgementText: "\(judgement.title) · \(GameConfig.resultGoalTargetPrefix) \(target)",
-            judgementColor: judgement.color,
-            summaryText: "\(GameConfig.resultGoalRoundPrefix) \(finalScore)\(GameConfig.resultGoalPointSuffix) · \(difficulty.displayName) \(GameConfig.resultGoalDifficultySuffix)",
-            nextText: makeNextGoalText(gap: gap)
+            verdictText: verdictText,
+            verdictColor: verdictColor,
+            isSuccess: isSuccess,
+            summaryText: "\(GameConfig.resultGoalRoundPrefix) \(finalScore)\(GameConfig.resultGoalPointSuffix) · \(GameConfig.resultGoalTargetPrefix) \(target)\(GameConfig.resultGoalPointSuffix)",
+            nextText: nextText
         )
     }
 
+    /// 실패 시 부족 점수 안내 — "{gap}점 더 모아야 해요". gap 0(이론상 성공)일 땐 isSuccess 분기로 호출되지 않는다.
+    private func makeFailureGapText(gap: Int) -> String {
+        return "\(gap)\(GameConfig.resultGoalPointSuffix)\(GameConfig.resultVerdictFailureGapSuffix)"
+    }
+
+    /// 다음 목표까지 남은 점수 안내(기존 의미 보존 — verdict 경로와 분리). 회귀 방지를 위해 그대로 둔다.
     private func makeNextGoalText(gap: Int) -> String {
         if gap == 0 {
             return GameConfig.resultGoalNextComboText
@@ -805,9 +831,10 @@ final class ResultScene: SKScene {
         let rightColumnX = leftEdge + leftWidth + columnGap + rightWidth / 2
         let topY = center.y + panelSize.height / 2 - GameConfig.resultWideTopInsetV7 * scale
         let scoreY = topY - GameConfig.resultWideScoreBelowTopV7 * scale
-        let goalY = topY - GameConfig.resultWideGoalBelowTopV7 * scale
-        let summaryY = goalY - GameConfig.resultWideGoalSummaryGapV7 * scale
-        let nextGoalY = goalY - GameConfig.resultWideNextGoalGapV7 * scale
+        // V1 — verdict 큰 폰트 전용 슬롯. 기존 goalY를 verdict y로 재정의하고 아래 요소를 verdict 기준으로 내린다.
+        let verdictY = topY - GameConfig.resultVerdictBelowTopV1 * scale
+        let summaryY = verdictY - GameConfig.resultVerdictSummaryGapV1 * scale
+        let nextGoalY = verdictY - GameConfig.resultVerdictNextGoalGapV1 * scale
         let statsY = center.y - panelSize.height / 2 + GameConfig.resultWideStatsBottomInsetV7 * scale
         // V11 — 점수 아래 "충분한" 간격을 우선하고, 하단 stat과는 최소 간격만 보장한다.
         // scoreLabel.calculateAccumulatedFrame()는 contentScale 적용 타이밍에 좌우되므로
@@ -836,7 +863,7 @@ final class ResultScene: SKScene {
             bestPillY: bestPillY,
             bestPillX: bestPillX,
             bestPillTopY: bestPillTopY,
-            goalY: goalY,
+            verdictY: verdictY,
             summaryY: summaryY,
             nextGoalY: nextGoalY,
             statsY: statsY,
@@ -884,9 +911,10 @@ final class ResultScene: SKScene {
     }
 
     private func layoutGoalLabels(metrics: ResultLayoutMetrics) {
+        // 큰 verdict를 verdict 슬롯에. summary/nextGoal/divider는 verdict 아래로 충분히 내려 겹침 0.
         goalJudgementLabel.position = CGPoint(
             x: metrics.rightColumnX,
-            y: metrics.goalY
+            y: metrics.verdictY
         )
         goalSummaryLabel.position = CGPoint(
             x: metrics.rightColumnX,
@@ -898,7 +926,7 @@ final class ResultScene: SKScene {
         )
         divider.position = CGPoint(
             x: metrics.rightColumnX,
-            y: metrics.goalY - GameConfig.resultWideDividerBelowGoalV7 * metrics.scale
+            y: metrics.verdictY - GameConfig.resultVerdictDividerGapV1 * metrics.scale
         )
     }
 

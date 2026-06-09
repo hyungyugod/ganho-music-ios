@@ -187,14 +187,6 @@ enum GameConfig {
     static let dpadThumbRadius: CGFloat = 18
     /// 아날로그 D-Pad thumb 알파.
     static let dpadThumbAlpha: CGFloat = 0.82
-    /// 방향 전환 입력 보간 응답값.
-    static let dpadInputTurnResponse: CGFloat = 18
-    /// 입력 해제 보간 응답값.
-    static let dpadInputReleaseResponse: CGFloat = 24
-    /// 정지 상태에서 첫 D-Pad 입력이 들어왔을 때 쓰는 보간 응답값.
-    static let dpadInputInitialResponse: CGFloat = 36
-    /// 첫 입력 프레임에 보장할 최소 입력 크기. 최고 속도는 올리지 않고 출발 지연만 줄인다.
-    static let dpadInputInitialMagnitude: CGFloat = 0.55
     /// 보간 결과를 0으로 스냅하는 임계값.
     static let dpadInputSnapEpsilon: CGFloat = 0.02
     /// 한 축이 다른 축보다 이 배수 이상 우세하면 작은 축을 제거한다.
@@ -448,6 +440,27 @@ enum GameConfig {
     /// HUD(100) 위는 유지 — 임팩트 강조. HitFlash(200) 아래.
     static let comboBreakZPosition: CGFloat = 140
 
+    // MARK: - Milestone Banner (Score Progress)
+    /// 절반(A) 마일스톤 안내 접미사. 호출부에서 "\(remaining)" + 이 접미사로 조립한다.
+    /// 남은 개수는 발화 시점 실제값(target-score)이라 난이도별로 자동 반응
+    /// (하드 target 40 → 절반 score≥20 → remaining≈20 → "20개만 더 모아봐요!").
+    static let milestoneHalfSuffix: String = "개만 더 모아봐요!"
+    /// 목표 임박(B) 마일스톤 안내 문구. 점수가 목표-10점 이상에 도달했을 때 1회 표시.
+    static let milestoneNearText: String = "10점만 더!"
+    /// B 마일스톤 임계 = 졸업 목표 - 이 값(점). 10점 남았을 때 발화.
+    static let milestoneNearTargetRemaining: Int = 10
+    /// 마일스톤 배너 글자 크기 (pt). comboPopupV2FontSize(48)보다 작게 — 흐름을 가리지 않는 조용한 격려.
+    static let milestoneBannerFontSize: CGFloat = 26
+    /// 배너 fadeIn / fadeOut 각각의 길이 (초). 부드럽게 등장·퇴장.
+    static let milestoneBannerFadeDuration: TimeInterval = 0.3
+    /// 배너 hold 길이 (초). 총 노출 ≈ fadeIn(0.3) + hold(0.9) + fadeOut(0.3) = 1.5초.
+    static let milestoneBannerHoldDuration: TimeInterval = 0.9
+    /// 배너 zPosition. comboPopupZPosition(150)과 동급 — HUD(100) 위, HitFlash(200) 아래.
+    static let milestoneBannerZPosition: CGFloat = 150
+    /// 배너 화면 상단 중앙 y 오프셋 (pt). cameraNode 자식 기준 (0,0)=화면 중앙, +y=위.
+    /// HUD 슬롯 행(화면 최상단)보다 충분히 아래(상단 1/4 부근)에 둬 슬롯과 시각적으로 겹치지 않게 한다.
+    static let milestoneBannerOffsetY: CGFloat = 120
+
     // MARK: - Countdown (Phase 6-13)
     /// 카운트다운 숫자/GO! 폰트 크기 (pt). comboPopup(48)의 2배 — 화면 중앙 단독 강조.
     static let countdownFontSize: CGFloat = 96
@@ -694,9 +707,9 @@ enum GameConfig {
     static let projectileFireIntervalEndByDifficulty: [Difficulty: TimeInterval] = [
         .easy: 1.2, .normal: 0.68, .hard: 0.48
     ]
-    /// 난이도별 F 벽 통과 정책. hard만 벽 contact 없이 수명으로 정리한다.
+    /// 난이도별 F 벽 통과 정책. normal·hard가 벽 contact 없이 수명으로 정리한다.
     static let projectilePassesWallsByDifficulty: [Difficulty: Bool] = [
-        .easy: false, .normal: false, .hard: true
+        .easy: false, .normal: true, .hard: true
     ]
     /// 난이도별 F 자동 수명. hard 벽 통과 시 누적 방지를 위해 필수다.
     static let projectileLifetimeByDifficulty: [Difficulty: TimeInterval] = [
@@ -860,8 +873,10 @@ enum GameConfig {
     /// 실제 체감 난이도는 F 밀도/발사 주기/음표 TTL이 담당하고, 이 값은 결과 화면의 "졸업 기준"을 담당한다.
     /// `[Difficulty: Int]` dict — Difficulty enum이 단일 진실 원천. 추가 난이도 시 dict 한 줄만 늘리면 됨.
     static let targetScoreByDifficulty: [Difficulty: Int] = [
-        .easy: 40, .normal: 55, .hard: 70
+        .easy: 70, .normal: 50, .hard: 40   // 화면 라벨 하=70 / 중=50 / 상=40 (easy↔hard 역전, normal 유지)
     ]
+    /// 난이도 dict 조회 실패 시 안전 기본 졸업 목표(강제 언래핑 회피). normal과 동일 값.
+    static let targetScoreByDifficultyFallback: Int = 50
     /// 다음 캐릭터 해금에 필요한 이전 캐릭터의 단일 난이도 최고점.
     static let characterUnlockRequiredScore: Int = 25
     /// 캐릭터 홈 잠김 설명 문구.
@@ -887,6 +902,25 @@ enum GameConfig {
     static let resultGoalTargetPrefix: String = "목표"
     static let resultGoalRoundPrefix: String = "이번 판"
     static let resultGoalDifficultySuffix: String = "난이도"
+    // MARK: - Result Verdict (성공/실패 큰 판정)
+    /// 결과 verdict 성공 텍스트. finalScore >= target일 때 우측 컬럼 머리글.
+    static let resultVerdictSuccessText: String = "성공"
+    /// 결과 verdict 실패 텍스트. finalScore < target일 때 우측 컬럼 머리글.
+    static let resultVerdictFailureText: String = "실패"
+    /// 성공 시 verdict 아래 한 줄 격려 문구. gap 점수 대신 보여 다음 도전을 권한다.
+    static let resultVerdictSuccessSubText: String = "좋아요! 더 높이 가볼까요?"
+    /// 실패 gap 문구 접미. "{gap}점" + 이 접미 = "{gap}점 더 모아야 해요".
+    static let resultVerdictFailureGapSuffix: String = " 더 모아야 해요"
+    /// 큰 verdict 폰트 크기. 기존 보조 라벨(15pt) 대비 약 3배로 "성공/실패"를 즉각 전달.
+    static let resultVerdictFontSize: CGFloat = 44
+    /// V1 — verdict 머리글 y(우측 컬럼 topY 기준 아래). 큰 폰트를 topY 가까이 두고 아래로 펼친다.
+    static let resultVerdictBelowTopV1: CGFloat = 56
+    /// V1 — verdict ↓ summary 세로 간격. verdict 큰 폰트 높이 + 여백 이상으로 겹침 0 보장.
+    static let resultVerdictSummaryGapV1: CGFloat = 60
+    /// V1 — verdict ↓ nextGoal 세로 간격. summary 아래로 한 줄 더 내린다.
+    static let resultVerdictNextGoalGapV1: CGFloat = 88
+    /// V1 — verdict ↓ divider 세로 간격. nextGoal 아래에서 우측 컬럼을 마무리한다.
+    static let resultVerdictDividerGapV1: CGFloat = 114
     static let comboPopupTextMilestone3: String = "x3 +2"
     static let comboPopupTextMilestone5: String = "x5 +3"
     static let comboPopupTextMilestone7: String = "x7 +4"
@@ -1020,7 +1054,11 @@ enum GameConfig {
     static let pixelSpriteScale: CGFloat = 2
     /// 걷기 애니메이션의 step1↔step2 교차 주기 (초). 0.18 = 1초당 ~5.5회 교차 — *총총* 보행 톤.
     /// 너무 짧으면 후드득 떨림, 너무 길면 *멈춤*처럼 보임. 픽셀 retro 게임 평균 보행 주기.
+    /// 적/빌런(EnemyNode·StoneGuardNode·ProfessorNode) 공유 — 이 값을 바꾸면 그들 보행 속도까지 변한다.
     static let pixelWalkFrameInterval: TimeInterval = 0.18
+    /// 플레이어 전용 step1↔step2 교차 주기 (초). 0.11 = 1초당 ~9회 교차 — 적/빌런(0.18)보다 또렷이 빠른
+    /// 직접 조작 보행 톤. 전역 pixelWalkFrameInterval과 분리해 적/빌런 보행 속도에 영향 0.
+    static let playerWalkFrameInterval: TimeInterval = 0.11
 
     // MARK: - Game UI Tokens (Phase 8-3)
     /// 원본 game.css 패널/카드 layout 상수 1:1 매핑.
@@ -1121,6 +1159,11 @@ enum GameConfig {
     static let dashClimbLandingPurgeRadius: CGFloat = tileSize * 2.0
     /// 착지 후 무적 추가 유지 시간 (초). 돌진 종료 직후 죽음 방지용 짧은 여유.
     static let dashClimbLandingInvulnerableExtra: TimeInterval = 0.35
+    /// 돌진 corridor 안 breakable 벽 매칭 폭 (pt). 플레이어 폭 기준 — 지나가는 통로의 벽만 부숨.
+    /// 음표 흡수(dashClimbCollectHalfWidth)보다 좁게 — 옆 칸 벽 과잉 파괴 방지.
+    static let dashClimbWallBreakHalfWidth: CGFloat = playerWidth
+    /// 부서지는 벽 fadeOut 시간 (초). 시각적 "부서지는" 톤 — physics는 그 전에 즉시 nil 처리.
+    static let dashClimbWallBreakFadeDuration: TimeInterval = 0.15
 
     // 건간호 — 북클럽 소집 (.bookClubRally)
     /// 끌어오기 반경 (pt). 8 tile.
@@ -1288,8 +1331,15 @@ enum GameConfig {
     static let stethoscopeThrowIntervalStart: TimeInterval = 3.2
     /// 발사 주기 끝값 (초). 게임 종료 시점 도달값. 게임 진행률 1 → 2.1초.
     static let stethoscopeThrowIntervalEnd: TimeInterval = 2.1
-    /// 동시에 떠 있을 수 있는 청진기 최대 수. 과밀 누적을 막기 위해 2발로 제한.
-    static let stethoscopeMaxConcurrent: Int = 2
+    /// 동시에 떠 있을 수 있는 청진기 최대 수. 다발(fanCount) 한 사이클 + 직전 사이클 잔존 여유.
+    /// stethoscopeFanCount 이상이어야 throwStethoscope의 사이클 진입 가드를 다발이 통과한다.
+    static let stethoscopeMaxConcurrent: Int = 8
+    /// 한 발사 사이클에 흩뿌리는 청진기 개수. 플레이어 향 1개(0번) + 나머지 radial 분산.
+    static let stethoscopeFanCount: Int = 5
+    /// 다발 분산 각도 폭(radian). 2π = 전방위 균등 radial. 값을 좁히면 플레이어 각도 중심 부채꼴.
+    static let stethoscopeFanSpreadRadians: CGFloat = .pi * 2
+    /// 다발 각 방향 경고선 노출 여부. 공정성 — 모든 방향을 텔레그래프 0.4s 동안 예고.
+    static let stethoscopeFanWarningLinesEnabled: Bool = true
     /// 청진기 회전 1회전 길이 (초). 시각 회전 SKAction.rotate — 충돌 박스 무관 (allowsRotation=false).
     /// Sprint 10 Phase E — 원본 game.js L2922~L2960 `now/100 % 2π` 일치(2π × 0.1 ≈ 0.628초).
     static let stethoscopeRotationDuration: TimeInterval = 0.628
@@ -1593,6 +1643,15 @@ enum GameConfig {
     static let startSceneAccountChipHeight: CGFloat = 30
     static let startSceneAccountChipRightInset: CGFloat = 36
     static let startSceneAccountChipTopInset: CGFloat = 34
+    /// 시작 버튼을 기존 하단 안전영역 앵커에서 위로 올리는 양(pt). 아래에 들어갈 연동 caption(높이+gap)을 흡수한다.
+    /// caption("Apple 연동됨")에 더 가깝게 붙도록 축소.
+    static let startSceneStartButtonLift: CGFloat = 18
+    /// "Apple 연동됨" plain 텍스트 폰트 크기(pt). 기존 pill 대비 작게 — 조용한 상태 표시.
+    static let startSceneAuthCaptionFontSize: CGFloat = 13
+    /// 시작 버튼 하단 ~ 연동 caption 중심 간격(pt). menuCompactScale 적용.
+    static let startSceneAuthCaptionGap: CGFloat = 12
+    /// 연동 caption 탭 히트 영역 패딩(pt). 작은 글자라 텍스트 bbox만으로는 탭이 좁아 inset으로 확장.
+    static let startSceneAuthCaptionHitPadding: CGFloat = 10
     static let authGuestStatusText: String = "게스트 기록"
     static let authLinkedStatusText: String = "Apple 연동됨"
     static let authLocalFallbackStatusText: String = "로컬 플레이 가능"
@@ -3012,6 +3071,19 @@ enum GameConfig {
     static let sergeantParkIntroDurationV4: Double = 2.2
     /// 박병장 등장 후 화면 머무는 시간(8.0s).
     static let sergeantParkOnStageDurationV4: Double = 8.0
+
+    // 박병장 컷씬 멘트 + 이펙트 (요청 2)
+    /// 박병장 등장 컷씬 토스트 멘트. AS-IS 하드코딩 "박병장 등장!"(GameScene+Setup) 대체.
+    /// 긴 문장이라 numberOfLines=0 + preferredMaxLayoutWidth로 줄바꿈해 화면 폭 초과 방지.
+    static let sergeantParkIntroToastText: String = "석조무사가 친구인 박병장을 불러 유저를 도와줍니다!"
+    /// 컷씬 토스트 폰트(24pt). 긴 멘트가 화면 폭 안에 들어오도록 36→24 축소.
+    static let sergeantParkIntroToastFontSize: CGFloat = 24
+    /// 컷씬 토스트 줄바꿈 최대 폭(pt). 멀티라인 wrap 기준. landscape 가시영역 내.
+    static let sergeantParkIntroToastMaxWidth: CGFloat = 420
+    /// 컷씬 등장 플래시 zPosition(301). overlay(300) 위. HitFlash 본체(200) 미간섭.
+    static let sergeantParkIntroFlashZPosition: CGFloat = 301
+    /// 컷씬 시작 시 heavy 햅틱 2회 사이 간격(초). Timer 금지 — SKAction.wait 경유.
+    static let sergeantParkIntroHapticGap: Double = 0.12
 
     // 비행기 시각
     /// 비행기 조종석 알파(0.6). attachCockpit에서 ganhoNavyDeep × alpha.

@@ -46,8 +46,12 @@ enum PixelPalette {
             return [
                 "J": .ganhoPixelHairJung,
                 "j": .ganhoPixelHairJungShadow,
-                "K": .ganhoPixelPickHead,   // 헤드(금속)
-                "k": .ganhoPixelPickHandle  // 자루(갈색)
+                "K": .ganhoPixelPickHead,        // 헤드(금속)
+                "k": .ganhoPixelPickHandle,      // 자루(갈색)
+                "Z": .ganhoPixelHatJung,         // 러닝캡 본체(적홍)
+                "z": .ganhoPixelHatJungShadow,   // 캡 음영
+                "Y": .ganhoPixelGlassFrameJung,  // 안경 테(검정)
+                "y": .ganhoPixelGlassLensJung    // 렌즈(옅은 반사)
             ]
         case .geon:
             return [

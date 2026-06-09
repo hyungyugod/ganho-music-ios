@@ -33,7 +33,9 @@ final class StartScene: BaseMenuScene {
     private var musicNoteEmitter: MusicNoteEmitterNode?
     /// Sprint 6 — 좌측 김간호 큰 그림. SKShapeNode 컨테이너. didChangeSize에서 재배치.
     private var nurseAvatar: NurseAvatarNode?
-    private var accountChip: GlassPillNode?
+    /// Sprint 11 — "Apple 연동됨" 상태 표시. 우상단 테두리 pill(GlassPillNode) → 시작 버튼 바로 아래
+    /// plain 텍스트 라벨로 교체. 표시/숨김은 isHidden(게이트 = canUseAppleLinkedSession)으로 통제.
+    private let authCaptionLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
     private var currentAuthProfile: AuthProfileSnapshot?
     private var authStateReady = false
     private var shouldOpenLoginChoiceOnEntry = false
@@ -57,7 +59,13 @@ final class StartScene: BaseMenuScene {
         setupTitleBlock()                     // Sprint 2 — AccentLine + Jua 2-라인 + Gowun Dodum 태그.
         setupNurseAvatar()                    // Sprint 6 — 좌측 김간호 큰 그림.
         setupStartButton()
-        setupAccountChip()
+        setupAuthCaption()                    // Sprint 11 — caption 바닥을 아바타 몸 아래선에 정렬
+        // Sprint 11+ — 종속 방향 역전: 아바타 → caption → 버튼. setup 내부 layout은 각자 1회 호출되나
+        // setupStartButton이 setupAuthCaption보다 먼저라 버튼 첫 layout 시 caption이 옛 값이다.
+        // 모든 setup(addChild) 완료 후 정해진 순서로 일괄 재배치해 최종 정합을 보장한다.
+        layoutNurseAvatar()
+        layoutAuthCaption()
+        layoutStartButton()
         attachStartButtonPulse()              // Phase 10-2 — 시작 버튼 호흡 pulse
         loadInitialAuthState()
     }
@@ -69,9 +77,11 @@ final class StartScene: BaseMenuScene {
         rebuildMusicNoteEmitter()
         loginChoiceOverlay?.update(sceneSize: size)
         layoutTitleBlock()
-        layoutNurseAvatar()                   // Sprint 6.
-        layoutStartButton()
-        layoutAccountChip()
+        // Sprint 11+ — 종속 방향 역전: 아바타 몸 아래선 → caption 바닥 → 시작 버튼.
+        // 반드시 avatar → caption → button 순서로 호출(caption이 avatar 프레임을, button이 caption을 읽음).
+        layoutNurseAvatar()                   // Sprint 6. setScale/position 확정 → accumulatedFrame 유효.
+        layoutAuthCaption()                   // caption 바닥을 아바타 몸 아래선에 정렬
+        layoutStartButton()                   // 버튼은 caption 위로 동반(둘이 함께 이동)
     }
 
     /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
@@ -216,9 +226,16 @@ final class StartScene: BaseMenuScene {
     private func layoutStartButton() {
         let scale = menuCompactScale()
         startButton.setScale(scale)
+        let buttonHalf = GameConfig.primaryButtonHeight * scale / 2
+        // Sprint 11+ — 버튼은 caption 위로 동반(둘이 함께 이동). caption은 .bottom 정렬이라
+        // position.y가 곧 caption 바닥 → 그 위로 글자높이(fontSize)만큼 더하면 caption 상단.
+        // caption은 isHidden이어도 position은 유효하므로 게이트 상태와 무관하게 기준이 깨지지 않는다.
+        let captionTopY = authCaptionLabel.position.y
+            + GameConfig.startSceneAuthCaptionFontSize * scale
+        // startSceneStartButtonLift를 caption↔버튼 간격으로 재활용(새 매직넘버 도입 금지).
         startButton.position = CGPoint(
             x: frame.midX,
-            y: bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
+            y: captionTopY + GameConfig.startSceneStartButtonLift * scale + buttonHalf
         )
         attachStartButtonPulse()
     }
@@ -262,7 +279,9 @@ final class StartScene: BaseMenuScene {
             handleLoginChoiceAction(overlay.action(at: location))
             return
         }
-        if canUseAppleLinkedSession, accountChip?.contains(location) == true {
+        // Sprint 11 — 연동 caption 탭 → 프로필 진입(기능 경로 보존). 작은 글자라 텍스트 bbox에
+        //   hit 패딩을 inset으로 더해 탭 영역을 넓힌다. isHidden 게이트로 비연동 시 자동 차단.
+        if canUseAppleLinkedSession, !authCaptionLabel.isHidden, authCaptionHitFrame().contains(location) {
             transitionToCharacterSelect(openProfileOnEntry: true)
             return
         }
@@ -279,7 +298,7 @@ final class StartScene: BaseMenuScene {
     private func loadInitialAuthState() {
         currentAuthProfile = nil
         authStateReady = false
-        refreshAccountChip()
+        refreshAuthCaption()
         if shouldOpenLoginChoiceOnEntry {
             showLoginChoiceOverlay(
                 mode: .busy,
@@ -293,7 +312,7 @@ final class StartScene: BaseMenuScene {
                 guard let self = self, !self.isTransitioning else { return }
                 self.authStateReady = true
                 self.currentAuthProfile = profile
-                self.refreshAccountChip()
+                self.refreshAuthCaption()
                 self.resolveLoginChoiceOnEntryIfNeeded()
             }
         }
@@ -326,7 +345,7 @@ final class StartScene: BaseMenuScene {
                 guard let self = self, !self.isTransitioning else { return }
                 self.authStateReady = true
                 self.currentAuthProfile = profile
-                self.refreshAccountChip()
+                self.refreshAuthCaption()
                 if self.canUseAppleLinkedSession {
                     self.transitionToCharacterSelect(
                         openProfileOnEntry: profile?.needsNicknameSetup == true
@@ -344,44 +363,61 @@ final class StartScene: BaseMenuScene {
         showLoginChoiceOverlay()
     }
 
-    // MARK: - Account Chip
-    private func setupAccountChip() {
-        let chip = GlassPillNode(
-            text: GameConfig.authLinkedStatusText,
-            size: CGSize(
-                width: GameConfig.characterHomeAccountChipWidth,
-                height: GameConfig.characterHomeMenuButtonHeight
+    // MARK: - Auth Caption
+    /// Sprint 11 — "Apple 연동됨"을 테두리/배경 없는 plain 텍스트로. GlassPillNode·필 스타일 제거.
+    /// 표시/숨김 게이트(canUseAppleLinkedSession)는 refreshAuthCaption이 단일 진실 원천으로 유지.
+    private func setupAuthCaption() {
+        authCaptionLabel.text = GameConfig.authLinkedStatusText   // 상수 그대로 재사용
+        authCaptionLabel.fontSize = GameConfig.startSceneAuthCaptionFontSize
+        authCaptionLabel.fontColor = .ganhoNavyMuted             // plain·저채도(테두리/배경 없음)
+        authCaptionLabel.horizontalAlignmentMode = .center
+        authCaptionLabel.verticalAlignmentMode = .center
+        authCaptionLabel.zPosition = GameConfig.characterHomeButtonZPosition
+        authCaptionLabel.isHidden = true                         // 기존 게이트 동작 보존
+        addChild(authCaptionLabel)
+        layoutAuthCaption()
+    }
+
+    /// caption 바닥을 옆 NurseAvatar의 몸 아래선과 같은 높이에 정렬한다(가로는 화면 중앙).
+    /// 종속 방향: 아바타 몸 아래선 → caption 바닥. 반드시 layoutNurseAvatar() *이후*,
+    /// layoutStartButton() *이전*에 호출(아바타 프레임을 읽고, 버튼이 이 caption을 다시 읽음).
+    /// 아바타가 nil이거나 프레임이 비정상일 때를 대비해 기존 화면 하단 기준 식으로 안전 fallback.
+    private func layoutAuthCaption() {
+        let scale = menuCompactScale()
+        authCaptionLabel.setScale(scale)
+        // 바닥 기준 정렬 — position.y가 곧 caption 바닥(폰트 높이 계산 불필요).
+        authCaptionLabel.verticalAlignmentMode = .bottom
+        authCaptionLabel.horizontalAlignmentMode = .center
+        guard let avatar = nurseAvatar else {
+            // fallback — 아바타 부재 시 화면 하단 앵커 기준(회귀 안전).
+            authCaptionLabel.position = CGPoint(
+                x: frame.midX,
+                y: bottomCTAAnchorY(
+                    buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2
+                )
             )
-        )
-        chip.applyCharacterHomeMenuStyle()
-        chip.zPosition = GameConfig.characterHomeButtonZPosition
-        chip.isHidden = true
-        accountChip = chip
-        addChild(chip)
-        layoutAccountChip()
-    }
-
-    private func layoutAccountChip() {
-        let safe = menuSafeInsets()
-        accountChip?.position = CGPoint(
-            x: frame.maxX
-                - safe.right
-                - GameConfig.startSceneAccountChipRightInset
-                - GameConfig.characterHomeAccountChipWidth / 2,
-            y: frame.maxY
-                - safe.top
-                - GameConfig.startSceneAccountChipTopInset
-                - GameConfig.characterHomeMenuButtonHeight / 2
-        )
-    }
-
-    private func refreshAccountChip() {
-        if canUseAppleLinkedSession {
-            accountChip?.setText(GameConfig.authLinkedStatusText)
-            accountChip?.isHidden = false
-        } else {
-            accountChip?.isHidden = true
+            return
         }
+        // 아바타는 scene 직속 자식 → accumulatedFrame.minY가 곧 씬 좌표 몸 아래선(별도 convert 불필요).
+        let avatarBottomY = avatar.calculateAccumulatedFrame().minY
+        authCaptionLabel.position = CGPoint(x: frame.midX, y: avatarBottomY)
+    }
+
+    private func refreshAuthCaption() {
+        if canUseAppleLinkedSession {
+            authCaptionLabel.text = GameConfig.authLinkedStatusText
+            authCaptionLabel.isHidden = false
+        } else {
+            authCaptionLabel.isHidden = true
+        }
+    }
+
+    /// 연동 caption 탭 히트 영역. 작은 글자라 텍스트 bbox만으로는 좁아 hit 패딩만큼 inset으로 확장.
+    private func authCaptionHitFrame() -> CGRect {
+        return authCaptionLabel.calculateAccumulatedFrame().insetBy(
+            dx: -GameConfig.startSceneAuthCaptionHitPadding,
+            dy: -GameConfig.startSceneAuthCaptionHitPadding
+        )
     }
 
     // MARK: - Login Choice
@@ -501,7 +537,7 @@ final class StartScene: BaseMenuScene {
     /// 인증 선택 성공 시 다음 단계(CharacterSelect)로 전환.
     /// Sprint 6 — 난이도 인자 전달 제거. CharacterSelectScene.newCharacterSelectScene()을 *인자 없이* 호출.
     /// Phase 10-2 — *게임플레이 동작 불변* — presentScene 대상, sceneTransitionDuration 모두 그대로.
-    /// 타이틀/시작버튼/NurseAvatar 슬라이드업 + fade-out *prelude*만 추가.
+    /// 타이틀/시작버튼/NurseAvatar/연동 caption 슬라이드업 + fade-out *prelude*만 추가.
     private func transitionToCharacterSelect(openProfileOnEntry: Bool) {
         guard let view = self.view else { return }
         isTransitioning = true
@@ -529,6 +565,7 @@ final class StartScene: BaseMenuScene {
         titleLine2.run(exit)
         taglineLabel.run(exit)
         nurseAvatar?.run(exit)
+        authCaptionLabel.run(exit)            // Sprint 11 — 시작 버튼과 함께 슬라이드/페이드(일관성)
 
         // Phase 10-2 — 슬라이드 완료 후 presentScene.
         // Sprint 6 — newCharacterSelectScene을 *인자 없이* 호출(difficulty 제거).

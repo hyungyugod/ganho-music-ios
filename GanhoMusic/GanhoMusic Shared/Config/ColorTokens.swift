@@ -112,6 +112,14 @@ extension UIColor {
     static let ganhoPixelPickHead = UIColor(hex: "#9aa0a8")
     /// jung 곡괭이 자루(갈색) — game.js 'k' #7a4f2a
     static let ganhoPixelPickHandle = UIColor(hex: "#7a4f2a")
+    /// jung 적홍 러닝캡 본체 — SVG 차양 #C44A3D(crimson) 계열. 픽셀 키 'Z'.
+    static let ganhoPixelHatJung = UIColor(hex: "#c44a3d")
+    /// jung 러닝캡 음영 — #c44a3d 톤다운 변형. 픽셀 키 'z'.
+    static let ganhoPixelHatJungShadow = UIColor(hex: "#9a3329")
+    /// jung 안경 테(검정) — geon ganhoPixelGlassFrame(#1f1a1f) 계열 검정. 픽셀 키 'Y'.
+    static let ganhoPixelGlassFrameJung = UIColor(hex: "#1a1620")
+    /// jung 안경 렌즈(옅은 반사) — SVG 렌즈 옅은 반사 + geon 'f'(#e8f0f8) 계열. 픽셀 키 'y'.
+    static let ganhoPixelGlassLensJung = UIColor(hex: "#dfe8f5")
 
     // geon 전용 (game.js L665-672)
     /// geon 단정 머리 본체 — game.js 'G' #30221c

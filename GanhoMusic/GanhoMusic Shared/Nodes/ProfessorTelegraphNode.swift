@@ -69,4 +69,21 @@ final class ProfessorTelegraphNode: SKNode {
         addChild(line)
         warningLine = line
     }
+
+    /// 다발 청진기용 다각도 경고선 오버로드(요청3). 기존 단일 angle 시그니처는 보존.
+    /// ProjectileWarningLineNode init이 이미 `angles: [CGFloat]` 배열을 받아 선 N개를 그리므로 그대로 위임.
+    /// stethoscopeFanWarningLinesEnabled=false면 경고선을 부착하지 않는다(공정성 토글).
+    func attachWarningLine(angles: [CGFloat], profile: DangerWarningProfile, originOffsetY: CGFloat) {
+        warningLine?.removeFromParent()
+        guard GameConfig.stethoscopeFanWarningLinesEnabled, !angles.isEmpty else { return }
+        let line = ProjectileWarningLineNode(
+            angles: angles,
+            length: profile.telegraphLineLength,
+            color: .ganhoCoralPrimary,
+            alpha: profile.telegraphLineAlpha
+        )
+        line.position = CGPoint(x: 0, y: originOffsetY)
+        addChild(line)
+        warningLine = line
+    }
 }

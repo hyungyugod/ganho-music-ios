@@ -124,27 +124,46 @@ enum PixelSprite {
         }
     }
 
-    // MARK: - jung Overlay (game.js L526-551)
-    /// 근육질 짧은머리 — 각진 넓은 머리 + 상의 어깨 2px 확장 + 오른손 곡괭이(세로).
-    /// 'J'=짧은머리 본체, 'j'=음영. 어깨 행(11)을 넓혀 근육질 인상.
+    // MARK: - jung Overlay (game.js L526-551 + 적홍 러닝캡 + 둥근 검정 안경)
+    /// 근육질 짧은머리 + 적홍 러닝캡(Z/z) + 둥근 검정 안경(Y/y) + 상의 어깨 2px 확장 + 오른손 곡괭이(세로).
+    /// 'J'=짧은머리 본체, 'j'=음영, 'Z'=캡 본체(적홍), 'z'=캡 음영, 'Y'=안경 테(검정), 'y'=렌즈(반사).
+    /// 모자는 행 1~5(머리 위 덮어쓰기), 안경은 행 6~7(얼굴 눈 자리 덮어쓰기). up(뒷모습)은 모자만.
+    /// 행별 *정확히 16자* 불변식 — 곡괭이 prefix(14)+2자(14+16) 정합 위해 곡괭이를 *마지막에* 적용.
     private static func applyJungOverlay(_ base: inout Frame, direction: PixelDirection) {
-        base[1] = "................"
-        base[2] = "....JJJJJJJJ...."
-        base[3] = "...JJJJJJJJJJ..."
-        base[4] = "..JJJJJJJJJJJJ.."
-        base[5] = "..jjSSSSSSSSjj.."
+        // 1) 적홍 러닝캡 — 행 1~3 크라운(Z 본체 + 챙), 행 4 챙 음영 + 옆머리(J), 행 5 옆머리 음영(j) + 이마(S).
+        base[1] = "....ZZZZZZZZ...." // 캡 크라운 꼭대기 (적홍 Z)
+        base[2] = "...ZZZZZZZZZZ..." // 캡 본체
+        base[3] = "..ZZZZZZZZZZZZ.." // 캡 챙(brim) 라인
+        base[4] = "..zzJJJJJJJJzz.." // 챙 음영(z) + 짧은머리 옆선(J)
+        base[5] = "..jjSSSSSSSSjj.." // 옆머리 음영(j) + 이마(S) — 기존 행5 유지
+        // 2) 방향별 — up(뒷모습)은 안경 없이 뒤통수 머리만, 그 외는 둥근 검정 안경(행 6~7).
         if direction == .up {
             base[6] = "..JJJJJJJJJJJJ.."
             base[7] = "..JJJJJJJJJJJJ.."
             base[8] = "..JJJJJJJJJJJJ.."
             base[9] = "..JJJJJJJJJJJJ.."
             base[10] = "...JJJJJJJJJJ..."
+        } else {
+            // 둥근 검정 안경 — geon F/f 방향별 분기 패턴 차용(Y=테, y=렌즈 반사).
+            switch direction {
+            case .down:
+                base[6] = "..SSYYSSSSYYSS.." // 양쪽 안경테(둥근 상단)
+                base[7] = "..SSYySSSSyYSS.." // 렌즈(반사 y, 둥근 하단)
+            case .left:
+                base[6] = "..SSSSSSSSYYSS.." // 오른쪽 한쪽만
+                base[7] = "..SSSSSSSSyYSS.."
+            case .right:
+                base[6] = "..SSYYSSSSSSSS.." // 왼쪽 한쪽만
+                base[7] = "..SSYySSSSSSSS.."
+            case .up:
+                break // 위 분기에서 처리됨
+            }
         }
-        // 어깨 확장 (좌우 1px씩)
+        // 3) 어깨 확장 (좌우 1px씩) — 기존 유지(보존).
         base[11] = "...WWWWWWWWWW..."
         base[14] = "...WWWWWWWWWW..."
-        // 곡괭이 — 오른쪽 옆구리, 세로 자루(K1) + 헤드(K2) 2픽셀
-        // 행 11~17 오른쪽에 자루, 행 10에 헤드 (game.js L546-551)
+        // 4) 곡괭이 — 오른쪽 옆구리, 세로 자루(K1) + 헤드(K2) 2픽셀 (game.js L546-551, 보존).
+        // 모자/안경보다 *나중에* 적용 — 우측 2칸이 항상 마지막에 덮여 prefix(14) 정합 유지.
         base[10] = String(base[10].prefix(14)) + "KK"      // 헤드 우상단
         base[11] = String(base[11].prefix(14)) + "kK"
         base[12] = String(base[12].prefix(14)) + ".K"

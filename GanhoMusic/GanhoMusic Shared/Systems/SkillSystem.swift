@@ -168,6 +168,10 @@ final class SkillSystem {
             x: start.x + direction.dx * GameConfig.dashClimbDistance,
             y: start.y + direction.dy * GameConfig.dashClimbDistance
         )
+        // landing 계산 *직전* corridor breakable 벽 파괴 — physicsBody nil → containsWall이
+        // 그 셀을 더 이상 벽으로 안 봄 → dashLandingTarget이 부서진 틈을 자연 관통.
+        breakWallsInCorridor(from: start, to: rawEnd,
+                             halfWidth: GameConfig.dashClimbWallBreakHalfWidth)
         let end = dashLandingTarget(from: start, rawEnd: rawEnd)
 
         clearProjectilesInCorridor(
@@ -231,35 +235,35 @@ final class SkillSystem {
         return CGVector(dx: vector.dx / length, dy: vector.dy / length)
     }
 
-    /// start→end 선분에 가장 가까운 *첫* breakableWall 1개를 fadeOut + 제거.
-    /// breakableWall name으로 enumerate — name 없는 외곽 벽/장식 기둥/hard 맵 벽은 미선택.
-    /// 두 점 사이 manhattan 거리 < dashClimbDistance 가드로 *지나가는* 벽만 대상.
-    private func breakFirstBreakableWall(from start: CGPoint, to end: CGPoint) {
+    /// start→end 선분과 수직거리² ≤ halfWidth²인 breakableWall 셀을 *전부* 부순다.
+    /// physicsBody 즉시 nil → wallRects/containsWall 양쪽에서 그 셀이 *그 프레임부터* 벽이 아님
+    /// (직후 dashLandingTarget 계산이 틈을 관통). 시각은 fadeOut 후 removeFromParent로 "부서지는" 톤.
+    /// breakableWallName으로만 enumerate → 외곽 벽(wallTile)·HospitalProp는 절대 미선택(맵 이탈 방지).
+    /// 좌표: WallTileNode는 worldNode → MapNode → WallTileNode 계층이라 node.position이 MapNode 로컬.
+    /// start/end는 world 좌표이므로 node.parent?.convert(_:to:)로 world 변환 후 선분 거리 판정.
+    private func breakWallsInCorridor(from start: CGPoint, to end: CGPoint, halfWidth: CGFloat) {
         guard let world = scene?.worldNode else { return }
-        var found: SKNode?
-        var bestDistance: CGFloat = .greatestFiniteMagnitude
-        world.enumerateChildNodes(withName: GameConfig.breakableWallName) { node, _ in
-            // 시작점에서 벽까지 manhattan 거리.
-            let dx = node.position.x - start.x
-            let dy = node.position.y - start.y
-            let distance = abs(dx) + abs(dy)
-            // 돌진 거리 + 1 tile 여유 안쪽 + 시작점보다 *진행 방향*인 노드만.
-            // 방향 dot product가 양수 = 진행 방향(역행 벽 무시).
-            let forward = dx * (end.x - start.x) + dy * (end.y - start.y)
-            guard forward > 0 else { return }
-            guard distance < GameConfig.dashClimbDistance + GameConfig.tileSize else { return }
-            if distance < bestDistance {
-                bestDistance = distance
-                found = node
-            }
+        let limitSquared = halfWidth * halfWidth
+        // 재귀 검색("//") — WallTileNode가 worldNode 직속이 아니라 MapNode 자식이므로 후손까지 탐색.
+        world.enumerateChildNodes(withName: "//" + GameConfig.breakableWallName) { [weak self] node, _ in
+            guard let self = self else { return }
+            // MapNode 로컬 좌표 → world 좌표 변환 후 선분 거리 판정.
+            let nodeWorldPos = node.parent?.convert(node.position, to: world) ?? node.position
+            let distanceSquared = self.squaredDistanceFromPointToSegment(
+                point: nodeWorldPos,
+                start: start,
+                end: end
+            )
+            guard distanceSquared <= limitSquared else { return }
+            // 1) 물리 즉시 제거 — landing 계산 전에 벽 판정에서 빠지도록(관통의 핵심).
+            node.physicsBody = nil
+            // 2) 시각 fadeOut 후 제거 — physics 콜백 밖이라 안전.
+            node.removeAllActions()
+            node.run(.sequence([
+                .fadeOut(withDuration: GameConfig.dashClimbWallBreakFadeDuration),
+                .removeFromParent()
+            ]))
         }
-        guard let wall = found else { return }
-        // 즉시 removeFromParent 대신 fadeOut + 제거 — 시각적 자연 톤.
-        // physics 콜백 안이 아니므로 즉시 제거도 안전하지만 fadeOut으로 *부서지는* 느낌.
-        wall.run(.sequence([
-            .fadeOut(withDuration: 0.15),
-            .removeFromParent()
-        ]))
     }
 
     // MARK: - 2. Book Club Rally (건간호)

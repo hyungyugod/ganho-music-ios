@@ -91,6 +91,13 @@ class GameScene: SKScene {
     /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
     var sergeantParkDebuted: Bool = false
 
+    /// 점수 절반(A) 마일스톤 1회 발화 가드. triggeredComboMilestones(콤보 전용)와 완전 분리 —
+    /// 기준(점수 vs 콤보)·의미가 달라 신규 Bool을 둔다(혼용 금지).
+    /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전) — sergeantParkDebuted 패턴 답습.
+    var halfScoreMilestoneShown: Bool = false
+    /// 목표-10점(B) 마일스톤 1회 발화 가드. 새 GameScene 인스턴스에서 자동 false 리셋.
+    var nearTargetMilestoneShown: Bool = false
+
     /// Sprint 10 Phase H — 한 판 내 발화된 컷씬 ID Set (원본 game.js `state.cutscenesShown`와 byte-equal).
     /// 5종 컷씬 모두 *매 판 1회* 발화 정책 — UserDefaults 영구 스킵 X. 새 GameScene 인스턴스에서 자동 비어 시작.
     /// 사용처: mid1/mid2 update 폴링 1회 가드. Set.contains O(1) — 매 프레임 호출 안전.
@@ -191,6 +198,12 @@ class GameScene: SKScene {
             }
         }
 
+        // 점수 마일스톤 안내 배너 — 게임을 멈추지 않는 순수 시각 격려.
+        // 점수는 콤보당 +1~+4로 *비연속* 증가하므로 정확값에 안 멈춰도 누락되지 않게 '>=' 교차로 판정.
+        // .playing 가드는 위에서 이미 통과 + 0도달은 early return으로 처리됨 → countdown/종료 중 미발화.
+        // triggeredComboMilestones(콤보 전용)와 완전 분리된 멱등 Bool 2개로 각 배너 한 판 1회만 발화.
+        updateScoreMilestoneBanners()
+
         // Phase 6-14 — 5초 긴박감 폴링 (.playing 상태에서만, 위 guard 통과 후).
         // 카운트다운(.countdown) 중에는 위 `guard gameState == .playing`에서 이미 차단 →
         // BGM 미재생 상태와 시간 비교차 0. 카운트다운(2~3초) + 5초 윈도우는 시간상 *겹칠 일 0*.
@@ -247,11 +260,14 @@ class GameScene: SKScene {
         // 돌진 중에는 currentDirection이 zero로 유지되어 velocity 0 — SKAction.move만 위치 변경.
         player.update(deltaTime: dt)
 
-        // Phase 8-1 — PlayerNode 픽셀 방향/걷기 프레임 갱신 (시각만 — 게임 로직 무관).
+        // Phase 8-1 — PlayerNode 픽셀 걷기 프레임 갱신 (시각만 — 게임 로직 무관).
         // wall-slide 수동 이동이 적용된 직후의 실제 이동 벡터를 읽어 이번 프레임 시각에 반영한다.
+        // Sprint 11 — 방향(facing)은 D-Pad onDirectionChanged 콜백(GameScene+Setup)이 입력 즉시 단독 담당.
+        //   updatePixelDirection(velocity) 호출 제거 — velocity 기반은 실제 이동 후라 한 프레임 늦고
+        //   벽에 막혀 velocity≈0이면 방향이 안 바뀌는 입력 지연 원인이었다(메서드 자체는 fallback용 보존).
+        //   tickWalkFrame은 그대로 isMoving(velocity 기반)으로 다리 교차 여부만 판단 — 방향과 책임 분리.
         let velocity = player.movementVelocity
         let isMoving = abs(velocity.dx) > 0.1 || abs(velocity.dy) > 0.1
-        player.updatePixelDirection(velocity)
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
 
         // 3) 카메라 follow — runtime compact 맵(32×20, 800×500pt) 가장자리 클램프 적용.
@@ -293,6 +309,32 @@ class GameScene: SKScene {
 
         // Phase 9-5 — HUDSkillSlot 진행률 시각화. SkillSystem.progress는 4 상태 분기 후 반환.
         hudSkillSlot.update(progress: skillSystem.progress)
+    }
+
+    // MARK: - Milestone Banner
+    /// 점수 마일스톤 안내 배너 폴링. `update(_:)`의 `.playing` 가드·0도달 early return 이후에만 호출됨.
+    /// 점수는 콤보당 +1~+4로 비연속 증가 → '>=' 교차로 판정해 정확값에 안 멈춰도 누락 0.
+    /// 각 마일스톤은 멱등 Bool로 한 판 1회만 spawn(가드 통과 시에만 addChild → 매 프레임 생성 0).
+    /// A/B는 독립 `if`라 같은 프레임 동시 충족 시에도 둘 다 안전하게 발화(겹쳐도 자가 소멸).
+    private func updateScoreMilestoneBanners() {
+        let target = GameConfig.targetScoreByDifficulty[difficulty]
+            ?? GameConfig.targetScoreByDifficultyFallback
+        let score = scoreSystem.score
+        // A(절반): ceil(target/2). target ≥ 40이라 항상 절반 < (target-10) → A가 먼저.
+        let halfThreshold = Int((Double(target) / 2.0).rounded(.up))
+        if !halfScoreMilestoneShown, score >= halfThreshold {
+            halfScoreMilestoneShown = true
+            // 발화 시점 실제 남은 개수. 점수는 비연속 증가(+1~+4)라 발화 시 score>=halfThreshold →
+            // remaining은 절반 근처 양수. max(0,...)으로 음수 방어(이론상 미발생이나 안전).
+            let remaining = max(0, target - score)
+            let text = "\(remaining)" + GameConfig.milestoneHalfSuffix
+            MilestoneBannerNode.spawn(text: text, parent: cameraNode)
+        }
+        // B(10점 남음): target - milestoneNearTargetRemaining.
+        if !nearTargetMilestoneShown, score >= target - GameConfig.milestoneNearTargetRemaining {
+            nearTargetMilestoneShown = true
+            MilestoneBannerNode.spawn(text: GameConfig.milestoneNearText, parent: cameraNode)
+        }
     }
 
 }

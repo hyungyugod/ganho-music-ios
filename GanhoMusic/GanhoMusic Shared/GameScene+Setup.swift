@@ -170,10 +170,13 @@ extension GameScene {
         node.warningProfile = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
         worldNode.addChild(node)
         professor = node
-        // Sprint 10 Phase F — farthest-first 시작 정책. worldNode 부착 직후 selectInitialWaypoint이
-        // 플레이어로부터 가장 먼 waypoint를 시작 위치로 결정 + startPatrolFrom으로 8자 패트롤 시퀀스 자동 시작.
-        // 옛 *첫 waypoint 하드코딩* 폐기. 원본 game.js L2618~L2628(farthest-first) byte-equal.
-        node.selectInitialWaypoint(from: player.position)
+        // 요청4 — 점대칭 스폰 정책. worldNode 부착 직후 spawnOpposite이 플레이어 스폰의
+        // 점대칭(맵 중심 기준 정반대)을 시작 위치로 두고, 그 점 최근접 waypoint부터 8자 패트롤을 시작한다.
+        // farthest-first(selectInitialWaypoint) 대비 정확히 정반대 → 등장 직후 즉사성 피격 완화.
+        node.spawnOpposite(
+            of: player.position,
+            mapSize: CGSize(width: GameConfig.mapWidth, height: GameConfig.mapHeight)
+        )
         // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
         // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
         node.startThrowingStethoscopes(
@@ -350,16 +353,45 @@ extension GameScene {
         closeup.alpha = 0
         overlay.addChild(closeup)
 
-        // 토스트 "박병장 등장!" — fontDisplay 36pt, coralPrimary.
+        // 토스트 — 긴 서사 멘트 상수화 + 멀티라인 줄바꿈(36→24pt). coralPrimary.
         let toast = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-        toast.text = "박병장 등장!"
-        toast.fontSize = 36
+        toast.text = GameConfig.sergeantParkIntroToastText            // 하드코딩 제거 → 상수
+        toast.fontSize = GameConfig.sergeantParkIntroToastFontSize    // 36 → 24 (긴 문장)
         toast.fontColor = .ganhoCoralPrimary
+        // 긴 문장 줄바꿈 — 한 줄 폭 초과 방지(numberOfLines/lineBreakMode/maxWidth 3종 필수).
+        toast.numberOfLines = 0
+        toast.lineBreakMode = .byWordWrapping
+        toast.preferredMaxLayoutWidth = GameConfig.sergeantParkIntroToastMaxWidth
+        toast.horizontalAlignmentMode = .center
+        toast.verticalAlignmentMode = .center                        // 다줄 수직 중심 안정
         toast.position = CGPoint(x: 0, y: -120)
         toast.alpha = 0
         overlay.addChild(toast)
 
         cameraNode.addChild(overlay)
+
+        // 컷씬 등장 임팩트 강화 (요청 2) — 햅틱 + 이펙트 3종. 모두 overlay/cameraNode에 *추가*만.
+        // 기존 dim/closeup/toast fade 시퀀스(0.4/1.4/0.4=2.2s)·completion 콜백은 0줄 변경.
+        // (1) 묵직한 진동 heavy 2회 — Timer/DispatchQueue 금지, SKAction.sequence 경유. [weak self] 필수.
+        let haptic1 = SKAction.run { [weak self] in self?.haptics.heavy() }
+        let haptic2 = SKAction.run { [weak self] in self?.haptics.heavy() }
+        let hapticGap = SKAction.wait(forDuration: GameConfig.sergeantParkIntroHapticGap)
+        overlay.run(.sequence([haptic1, hapticGap, haptic2]))
+
+        // (2) 카메라 쉐이크 — cameraNode에 직접 run(자가 원위치 복귀).
+        cameraNode.run(CameraShakeAction.make())
+
+        // (3) 등장 플래시 — HitFlashNode 재사용(붉은 풀스크린, 자가 소멸). 컷씬 전용 zPos로 overlay 위에.
+        let flash = HitFlashNode()
+        flash.zPosition = GameConfig.sergeantParkIntroFlashZPosition
+        cameraNode.addChild(flash)
+        flash.flash(sceneSize: size)
+
+        // (4) closeup 주변 반짝임 — SparkleEffectNode 8방향 방사(자가 소멸). 얼굴 중심에서 방사.
+        let sparkle = SparkleEffectNode()
+        sparkle.position = closeup.position
+        overlay.addChild(sparkle)
+        sparkle.emit()
 
         // 0.4s fadeIn / 1.4s hold / 0.4s fadeOut = 2.2s 총 길이.
         // sergeantParkIntroDurationV4(2.2s)와 정확히 일치.

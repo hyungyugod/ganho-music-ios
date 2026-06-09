@@ -85,10 +85,16 @@ final class PlayerNode: SKSpriteNode {
     /// apply(_ characterID:)에서 부착, facing/updatePixelDirection에서 texture 교체만.
     private var pixelSpriteChild: SKSpriteNode?
 
-    /// 5 × 4 = 20 SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
+    /// 5 × 4 = 20 SKTexture 정적 캐시(idle 전용). 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
     /// static — PlayerNode 인스턴스 전환(캐릭터 재선택 후 재시작)에도 1회 워밍 유지.
     /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전.
+    /// facing/init/attach가 계속 사용 — Sprint 10 Phase A 이후에도 보존(idle 방향 텍스처 단일 원천).
     private static var textureCache: [CharacterID: [PixelDirection: SKTexture]] = [:]
+    /// 걷기 프레임용 3차원 정적 캐시. [캐릭터][방향][프레임(idle/step1/step2)].
+    /// 최대 5 × 4 × 3 = 60 텍스처(lazy 실사용분만). 16×20×4byte 기준 ≈ 77KB — 허용 범위.
+    /// idle 전용 textureCache와 분리 — frame 파라미터를 받아 step1/step2를 실제로 렌더해야
+    /// 인게임에서 다리 교차가 자식 texture에 반영된다(Sprint 10 Phase A 누락 결함 해소).
+    private static var walkTextureCache: [CharacterID: [PixelDirection: [PixelFrame: SKTexture]]] = [:]
     private let nearMissWarning = PlayerNearMissWarningNode()
 
     // MARK: - Init
@@ -222,6 +228,31 @@ final class PlayerNode: SKSpriteNode {
             textureCache[characterID] = [:]
         }
         textureCache[characterID]?[direction] = texture
+        return texture
+    }
+
+    /// 걷기 프레임 텍스처 정적 캐시 헬퍼(frame 파라미터 포함). 첫 호출 시 lazy 생성 → 이후 O(1) lookup.
+    /// cachedTexture(for:direction:)가 항상 .idle만 렌더하는 것과 달리, step1/step2도 실제로 렌더한다.
+    /// PixelSprite.data(for:direction:frame:) → PixelSpriteRenderer 경로는 cachedTexture와 동형(강제 언래핑 0).
+    /// SKTexture는 GPU 텍스처 공유 안전 — 다중 PlayerNode 인스턴스가 같은 텍스처 참조해도 OK.
+    private static func walkTexture(for characterID: CharacterID,
+                                    direction: PixelDirection,
+                                    frame: PixelFrame) -> SKTexture {
+        if let cached = walkTextureCache[characterID]?[direction]?[frame] {
+            return cached
+        }
+        let sprite = PixelSprite.data(for: characterID,
+                                      direction: direction,
+                                      frame: frame)
+        let palette = PixelPalette.palette(for: characterID)
+        let texture = PixelSpriteRenderer.texture(from: sprite, palette: palette)
+        if walkTextureCache[characterID] == nil {
+            walkTextureCache[characterID] = [:]
+        }
+        if walkTextureCache[characterID]?[direction] == nil {
+            walkTextureCache[characterID]?[direction] = [:]
+        }
+        walkTextureCache[characterID]?[direction]?[frame] = texture
         return texture
     }
 
@@ -638,26 +669,49 @@ final class PlayerNode: SKSpriteNode {
     /// GameScene.update가 매 프레임 호출. 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
     /// 텍스처 재생성은 *변경 순간에만* — 매 프레임 호출이라도 변화 없으면 비용 0.
     /// - Parameter isMoving: 외부에서 판단(velocity != .zero 등). 명시 인자로 받아 책임 분리.
-    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.10). 자식은 idle 고정(walk 부활은 후속 Phase).
-    ///                     refreshTexture() 호출은 self.texture만 영향 — 자식은 항상 idle.
+    /// Sprint 11 — 두 결함 동시 해소:
+    ///   (1) 첫 스텝 지연 — idle에서 시작하면 한 interval 대기 없이 즉시 step1로 토글(출발 버벅임 제거).
+    ///   (2) walk 프레임 미반영 — applyWalkFrameTexture()가 self뿐 아니라 자식 pixelSpriteChild에도
+    ///       step별 텍스처를 set해 인게임에서 다리 교차가 실제로 보이게 한다.
+    ///   주기는 플레이어 전용 playerWalkFrameInterval(0.11) 사용 — 적/빌런(0.18) 보행 톤 불변.
     func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
         guard isMoving else {
             // 정지 — idle로 전환 (이미 idle이면 noop, 텍스처 재생성 없음).
             if pixelFrame != .idle {
                 pixelFrame = .idle
                 frameAccumulator = 0
-                refreshTexture()
+                applyWalkFrameTexture()   // self + 자식 동기(idle 복귀)
             }
             return
         }
-        // 이동 중 — 누적 시간이 임계 도달 시 step1↔step2 토글.
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
+        // 정지→이동 첫 프레임: idle이면 한 interval 대기 없이 즉시 step1로 토글(출발 지연 제거).
+        if pixelFrame == .idle {
+            pixelFrame = .step1
             frameAccumulator = 0
-            // 처음 idle → step1, 이후 step1 ↔ step2 교차.
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            refreshTexture()
+            applyWalkFrameTexture()
+            return
         }
+        // 이동 중 — 누적 시간이 임계(플레이어 전용) 도달 시 step1↔step2 토글.
+        frameAccumulator += deltaTime
+        if frameAccumulator >= GameConfig.playerWalkFrameInterval {
+            frameAccumulator = 0
+            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
+            applyWalkFrameTexture()
+        }
+    }
+
+    /// 현재 pixelDirection + pixelFrame 조합 텍스처를 본체(self)와 자식 pixelSpriteChild 양쪽에 set.
+    /// refreshTexture()가 self.texture(투명 placeholder)만 갱신하던 것과 달리, 시각 단일 진실 원천인
+    /// 자식까지 갱신해야 걷기 프레임이 화면에 실제로 보인다(Sprint 10 Phase A 누락 결함 해소).
+    /// 텍스처는 walkTexture 정적 캐시에서 가져오므로 매 호출 재생성 없음 — 변화 없는 프레임은 노드가 noop 처리.
+    private func applyWalkFrameTexture() {
+        let tex = Self.walkTexture(
+            for: currentCharacterID,
+            direction: pixelDirection,
+            frame: pixelFrame
+        )
+        texture = tex                  // 본체(placeholder) 값 정합 유지
+        pixelSpriteChild?.texture = tex
     }
 
     // MARK: - Texture Refresh

@@ -97,6 +97,31 @@ final class ProfessorNode: SKSpriteNode {
         startPatrolFrom(index: maxIndex)
     }
 
+    /// 플레이어 스폰의 점대칭(맵 중심 기준 정반대)에서 시작(요청4). 등장 직후 즉사성 피격 완화.
+    /// 좌표는 점대칭점 그대로 두되, patrol은 그 점에서 최근접 waypoint부터 시작해 8자 연속성 유지.
+    /// selectInitialWaypoint(farthest-first)과 병존 — setupProfessor 호출부만 이쪽으로 교체.
+    func spawnOpposite(of playerPosition: CGPoint, mapSize: CGSize) {
+        let wps = GameConfig.professorWaypoints
+        guard !wps.isEmpty else { return }
+        let opposite = CGPoint(
+            x: mapSize.width  - playerPosition.x,
+            y: mapSize.height - playerPosition.y
+        )
+        var minDist: CGFloat = .greatestFiniteMagnitude
+        var nearestIndex = 0
+        for (i, wp) in wps.enumerated() {
+            let d = hypot(wp.x - opposite.x, wp.y - opposite.y)
+            if d < minDist {
+                minDist = d
+                nearestIndex = i
+            }
+        }
+        // 이전 패트롤 액션 정지(있다면) — 멱등 호출 안전(selectInitialWaypoint과 동일 정책).
+        removeAction(forKey: GameConfig.professorPatrolActionKey)
+        position = opposite
+        startPatrolFrom(index: nearestIndex)
+    }
+
     // MARK: - Patrol (Sprint 10 Phase F · 8자 순환)
     /// 4 waypoint 8자 무한 순환 SKAction. 시작 인덱스부터 반대로 재구성하여
     /// run하기 직전 위치는 waypoints[startIndex]에 있어야 함(selectInitialWaypoint이 보장).
@@ -164,12 +189,13 @@ final class ProfessorNode: SKSpriteNode {
         return start + (end - start) * progress
     }
 
-    /// 청진기 발사 1사이클 — 텔레그래프 0.4s 후 fireStethoscope.
+    /// 청진기 발사 1사이클 — 텔레그래프 0.4s 후 다발(fan) fireStethoscope.
     /// 1) worldRef nil 가드 — 발사 불가 시 자연 noop.
     /// 2) targetProvider() nil 가드 — player 위치 미공급 시 noop.
-    /// 3) max concurrent 가드 — 동시 4발 초과 시 noop(텔레그래프도 부착 안 함).
-    /// 4) ProfessorTelegraphNode 부착 → 0.4s 후 fireStethoscope + 텔레그래프 제거.
-    /// 원본 game.js L3084~L3106 byte-equal — telegraph 사이에 chase/throw 추가 X.
+    /// 3) max concurrent 가드 — 동시 한도 초과 시 noop(텔레그래프도 부착 안 함).
+    ///    한도(stethoscopeMaxConcurrent)는 fanCount 이상으로 설정돼 다발 1사이클을 막지 않는다.
+    /// 4) ProfessorTelegraphNode 부착 → 다각도 경고선(fan) → 0.4s 후 fireStethoscope + 텔레그래프 제거.
+    /// 단발이 아니라 플레이어 향 1개 + radial 분산 fanAngles를 한 번에 흩뿌린다(요청3).
     private func throwStethoscope() {
         guard let world = worldRef else { return }
         guard let target = targetProvider() else { return }
@@ -177,9 +203,9 @@ final class ProfessorNode: SKSpriteNode {
         let telegraph = ProfessorTelegraphNode()
         telegraph.position = CGPoint(x: 0, y: GameConfig.professorTelegraphOffsetY)
         addChild(telegraph)
-        let angle = atan2(target.y - position.y, target.x - position.x)
+        let fanAngles = stethoscopeFanAngles(towards: target)
         telegraph.attachWarningLine(
-            angle: angle,
+            angles: fanAngles,
             profile: warningProfile,
             originOffsetY: -GameConfig.professorTelegraphOffsetY
         )
@@ -188,32 +214,38 @@ final class ProfessorNode: SKSpriteNode {
         let fire = SKAction.run { [weak self, weak telegraph, weak world] in
             telegraph?.removeFromParent()
             guard let self = self, let world = world else { return }
-            self.fireStethoscope(target: target, world: world)
+            self.fireStethoscope(angles: fanAngles, world: world)
         }
         run(.sequence([wait, fire]))
     }
 
-    /// 실제 청진기 발사. 텔레그래프 종료 직후 호출.
-    /// spawnPoint = 본체 위치 + unitVec × 12px — 자기와 충돌해 즉시 사라지는 버그 방지.
-    /// velocity = unitVec × stethoscopeSpeed(220).
-    /// 원본 game.js L3094 byte-equal.
-    private func fireStethoscope(target: CGPoint, world: SKNode) {
-        let dx = target.x - position.x
-        let dy = target.y - position.y
-        let magnitude = hypot(dx, dy)
-        guard magnitude > 0 else { return }
-        let unitX = dx / magnitude
-        let unitY = dy / magnitude
-        let steth = StethoscopeNode()
-        steth.position = CGPoint(
-            x: position.x + unitX * GameConfig.stethoscopeFireStartOffset,
-            y: position.y + unitY * GameConfig.stethoscopeFireStartOffset
-        )
-        steth.physicsBody?.velocity = CGVector(
-            dx: unitX * GameConfig.stethoscopeSpeed,
-            dy: unitY * GameConfig.stethoscopeSpeed
-        )
-        world.addChild(steth)
+    /// 다발 발사 방향 배열 산출. 0번은 플레이어 향(base) 보장 → 나머지는 spread/count 간격으로 분산.
+    /// spread=2π면 base 기준 전방위 균등 radial, spread<2π면 base 중심 부채꼴(같은 코드).
+    private func stethoscopeFanAngles(towards target: CGPoint) -> [CGFloat] {
+        let base = atan2(target.y - position.y, target.x - position.x)
+        let count = max(1, GameConfig.stethoscopeFanCount)
+        let step = GameConfig.stethoscopeFanSpreadRadians / CGFloat(count)
+        return (0..<count).map { base + step * CGFloat($0) }
+    }
+
+    /// 실제 청진기 다발 발사. 텔레그래프 종료 직후 호출.
+    /// 각 방향마다 spawnPoint = 본체 위치 + unitVec × stethoscopeFireStartOffset — 자기 충돌로 즉시 소멸 방지.
+    /// velocity = unitVec × stethoscopeSpeed. 속도/offset 수치는 단발 시절과 동일(요청3 범위 = 개수/방향만).
+    private func fireStethoscope(angles: [CGFloat], world: SKNode) {
+        for angle in angles {
+            let unitX = cos(angle)
+            let unitY = sin(angle)
+            let steth = StethoscopeNode()
+            steth.position = CGPoint(
+                x: position.x + unitX * GameConfig.stethoscopeFireStartOffset,
+                y: position.y + unitY * GameConfig.stethoscopeFireStartOffset
+            )
+            steth.physicsBody?.velocity = CGVector(
+                dx: unitX * GameConfig.stethoscopeSpeed,
+                dy: unitY * GameConfig.stethoscopeSpeed
+            )
+            world.addChild(steth)
+        }
     }
 
     /// worldNode 안 청진기("stethoscope" 이름) 개수. SpawnSystem.currentProjectileCount 패턴 답습.
