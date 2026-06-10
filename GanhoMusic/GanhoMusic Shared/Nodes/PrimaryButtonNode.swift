@@ -31,11 +31,11 @@ final class PrimaryButtonNode: SKNode {
 
     // MARK: - Init
     /// 버튼 텍스트만 받아 그림자 + 배경 + 화살표 + 라벨 부착.
-    /// 크기는 GameConfig 상수(primaryButtonWidth/Height) 고정 — 호출부 변동 없음.
+    /// 크기는 UILayout 상수(primaryButtonWidth/Height) 고정 — 호출부 변동 없음.
     init(text: String) {
         let buttonSize = CGSize(
-            width: GameConfig.primaryButtonWidth,
-            height: GameConfig.primaryButtonHeight
+            width: UILayout.primaryButtonWidth,
+            height: UILayout.primaryButtonHeight
         )
         let cornerRadius = buttonSize.height / 2
 
@@ -44,10 +44,10 @@ final class PrimaryButtonNode: SKNode {
             rectOf: buttonSize,
             cornerRadius: cornerRadius
         )
-        shadowShape.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.menuControlShadowAlpha)
+        shadowShape.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.menuControlShadowAlpha)
         shadowShape.strokeColor = .clear
         shadowShape.lineWidth = 0
-        shadowShape.isHidden = GameConfig.menuControlShadowAlpha <= .zero
+        shadowShape.isHidden = UILayout.menuControlShadowAlpha <= .zero
 
         // (2) 본 배경 — 코랄 fill, stroke 없음(v2는 그림자만으로 위계 표현).
         background = SKShapeNode(
@@ -55,28 +55,28 @@ final class PrimaryButtonNode: SKNode {
             cornerRadius: cornerRadius
         )
         background.fillColor = .ganhoCoralPrimary
-        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
-        background.lineWidth = GameConfig.menuControlLineWidth
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.menuControlStrokeAlpha)
+        background.lineWidth = UILayout.menuControlLineWidth
 
         // (3) 우측 화살표 원 — 배경 우측 끝에서 primaryButtonArrowInsetX 안쪽.
-        arrowCircle = SKShapeNode(circleOfRadius: GameConfig.primaryButtonArrowRadius)
+        arrowCircle = SKShapeNode(circleOfRadius: UILayout.primaryButtonArrowRadius)
         arrowCircle.fillColor = UIColor.white
-            .withAlphaComponent(GameConfig.primaryButtonArrowCircleAlpha)
+            .withAlphaComponent(UILayout.primaryButtonArrowCircleAlpha)
         arrowCircle.strokeColor = .clear
         arrowCircle.lineWidth = 0
 
         // (4) 화살표 라벨 — 원 중앙.
-        arrowLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        arrowLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
 
         // (5) 본 라벨.
-        textLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        textLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
 
         super.init()
         name = "primaryButton"
         zPosition = 100
 
         // 배치 순서: shadow(z=-1) → background(z=0) → arrowCircle(z=1) → arrowLabel(z=2) → textLabel(z=2)
-        shadowShape.position = CGPoint(x: 0, y: GameConfig.primaryButtonShadowOffsetY)
+        shadowShape.position = CGPoint(x: 0, y: UILayout.primaryButtonShadowOffsetY)
         shadowShape.zPosition = -1
         addChild(shadowShape)
 
@@ -84,7 +84,7 @@ final class PrimaryButtonNode: SKNode {
         background.zPosition = 0
         addChild(background)
 
-        let arrowX = buttonSize.width / 2 - GameConfig.primaryButtonArrowInsetX
+        let arrowX = buttonSize.width / 2 - UILayout.primaryButtonArrowInsetX
         arrowCircle.position = CGPoint(x: arrowX, y: 0)
         arrowCircle.zPosition = 1
         addChild(arrowCircle)
@@ -104,7 +104,7 @@ final class PrimaryButtonNode: SKNode {
     /// 우측 화살표 라벨 스타일 — 원 중앙, 흰색 작은 폰트.
     private func configureArrowLabel(centerX: CGFloat) {
         arrowLabel.text = "▶"
-        arrowLabel.fontSize = GameConfig.primaryButtonArrowLabelFontSize
+        arrowLabel.fontSize = UILayout.primaryButtonArrowLabelFontSize
         arrowLabel.fontColor = .white
         arrowLabel.horizontalAlignmentMode = .center
         arrowLabel.verticalAlignmentMode = .center
@@ -115,7 +115,7 @@ final class PrimaryButtonNode: SKNode {
     /// 텍스트 라벨 스타일 — 캡슐 정중앙. CharacterCardNode.configureLabel과 동형 패턴.
     private func configureTextLabel(text: String) {
         textLabel.text = text
-        textLabel.fontSize = GameConfig.primaryButtonFontSize
+        textLabel.fontSize = UILayout.primaryButtonFontSize
         textLabel.fontColor = .white
         textLabel.horizontalAlignmentMode = .center
         textLabel.verticalAlignmentMode = .center
@@ -126,12 +126,12 @@ final class PrimaryButtonNode: SKNode {
 
     private func fitTextLabel() {
         textLabel.setScale(1.0)
-        let maxWidth = GameConfig.primaryButtonWidth
-            - GameConfig.primaryButtonTextHorizontalPadding * 2
-            - GameConfig.primaryButtonArrowReservedWidth
+        let maxWidth = UILayout.primaryButtonWidth
+            - UILayout.primaryButtonTextHorizontalPadding * 2
+            - UILayout.primaryButtonArrowReservedWidth
         let width = textLabel.calculateAccumulatedFrame().width
         guard width > maxWidth, width > 0 else { return }
-        let scale = max(GameConfig.labelMinimumScale, maxWidth / width)
+        let scale = max(Typography.labelMinimumScale, maxWidth / width)
         textLabel.setScale(scale)
     }
 }

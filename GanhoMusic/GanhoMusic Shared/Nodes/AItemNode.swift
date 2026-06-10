@@ -27,14 +27,14 @@ final class AItemNode: SKSpriteNode {
     // MARK: - Init
     init() {
         let physicsSize = CGSize(
-            width:  GameConfig.fProjectileSize,
-            height: GameConfig.fProjectileSize
+            width:  GameplayTuning.fProjectileSize,
+            height: GameplayTuning.fProjectileSize
         )
         let visualSize = CGSize(
-            width:  GameConfig.fProjectileVisualSize,
-            height: GameConfig.fProjectileVisualSize
+            width:  GameplayTuning.fProjectileVisualSize,
+            height: GameplayTuning.fProjectileVisualSize
         )
-        let texture = PixelSpriteRenderer.aItemTexture(color: GameConfig.aItemColor)
+        let texture = PixelSpriteRenderer.aItemTexture(color: Palette.aItemColor)
         super.init(texture: texture, color: .clear, size: visualSize)
         name = "aItem"   // ContactRouter handleAItemContact 분기 키 + GameScene+Setup의 enumerate 키
         zPosition = 5

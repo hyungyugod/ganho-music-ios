@@ -8,7 +8,7 @@
 import Foundation
 
 /// 마지막으로 선택한 캐릭터(CharacterID)를 UserDefaults에 raw String으로 영구 저장.
-/// 키 문자열은 GameConfig.characterPreferenceUserDefaultsKey로 단일화.
+/// 키 문자열은 StorageKeys.characterPreferenceUserDefaultsKey로 단일화.
 /// init에 defaults/key를 기본값으로 받아 DI를 허용 — prod는 CharacterPreferenceRepository(),
 /// 테스트는 별도 suite 주입 가능. 단일 스레드(메인) 호출 가정 → 락/큐 없음.
 /// 패턴: HighScoreRepository / StatisticsRepository와 동형 (3번째 Repository).
@@ -20,7 +20,7 @@ final class CharacterPreferenceRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.characterPreferenceUserDefaultsKey) {
+         key: String = StorageKeys.characterPreferenceUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }
@@ -29,7 +29,7 @@ final class CharacterPreferenceRepository {
                        defaults: UserDefaults = .standard) -> CharacterPreferenceRepository {
         return CharacterPreferenceRepository(
             defaults: defaults,
-            key: "\(GameConfig.characterPreferenceUserDefaultsKey).\(scope.storageSuffix)"
+            key: "\(StorageKeys.characterPreferenceUserDefaultsKey).\(scope.storageSuffix)"
         )
     }
 

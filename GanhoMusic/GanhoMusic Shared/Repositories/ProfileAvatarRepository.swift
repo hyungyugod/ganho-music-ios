@@ -22,7 +22,7 @@ final class ProfileAvatarRepository {
     private let fileManager: FileManager
 
     private var storageKey: String {
-        return "\(GameConfig.profileAvatarUserDefaultsKeyPrefix).\(scope.storageSuffix)"
+        return "\(StorageKeys.profileAvatarUserDefaultsKeyPrefix).\(scope.storageSuffix)"
     }
 
     private var photoDirectoryURL: URL? {
@@ -30,7 +30,7 @@ final class ProfileAvatarRepository {
             return nil
         }
         return documents.appendingPathComponent(
-            GameConfig.profileAvatarPhotoDirectoryName,
+            UILayout.profileAvatarPhotoDirectoryName,
             isDirectory: true
         )
     }
@@ -199,15 +199,15 @@ final class ProfileAvatarRepository {
             if character.isLetter || character.isNumber {
                 return character
             }
-            return GameConfig.profileAvatarFileNameSeparator
+            return UILayout.profileAvatarFileNameSeparator
         }
         let suffix = String(safeSuffix)
         let timestamp = Int(Date().timeIntervalSince1970)
-        return "\(GameConfig.profileAvatarPhotoFilePrefix)\(suffix)\(GameConfig.profileAvatarFileNameSeparator)\(timestamp)\(GameConfig.profileAvatarPhotoFileExtension)"
+        return "\(UILayout.profileAvatarPhotoFilePrefix)\(suffix)\(UILayout.profileAvatarFileNameSeparator)\(timestamp)\(UILayout.profileAvatarPhotoFileExtension)"
     }
 
     private func normalizedJPEGData(from image: UIImage) -> Data? {
-        let maxSide = GameConfig.profileAvatarPhotoMaxPixelDimension
+        let maxSide = UILayout.profileAvatarPhotoMaxPixelDimension
         let originalSize = image.size
         guard originalSize.width > 0, originalSize.height > 0 else { return nil }
 
@@ -221,6 +221,6 @@ final class ProfileAvatarRepository {
         let normalized = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
-        return normalized.jpegData(compressionQuality: GameConfig.profileAvatarPhotoJPEGCompression)
+        return normalized.jpegData(compressionQuality: UILayout.profileAvatarPhotoJPEGCompression)
     }
 }

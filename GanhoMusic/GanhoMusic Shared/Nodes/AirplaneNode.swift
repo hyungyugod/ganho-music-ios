@@ -29,7 +29,7 @@ final class AirplaneNode: SKSpriteNode, SelfDismissingNode {
     ]
 
     /// 도트 매트릭스 팔레트. 'A'/'W' 두 색만 — '.'은 팔레트 미등록 = 자연 투명.
-    /// inline UIColor literal 아닌 GameConfig extension(.ganhoPixelPlaneBody/Window) 재사용 — DRY.
+    /// inline UIColor literal 아닌 Palette extension(.ganhoPixelPlaneBody/Window) 재사용 — DRY.
     private static let airplanePalette: [Character: UIColor] = [
         "A": .ganhoPixelPlaneBody,
         "W": .ganhoPixelPlaneWindow
@@ -42,7 +42,7 @@ final class AirplaneNode: SKSpriteNode, SelfDismissingNode {
         let tex = PixelSpriteRenderer.texture(
             rows: Self.airplaneRows,
             palette: Self.airplanePalette,
-            scale: GameConfig.airplanePixelScale
+            scale: FeelTuning.airplanePixelScale
         )
         super.init(texture: tex, color: .clear, size: tex.size())
         name = "airplane"
@@ -66,7 +66,7 @@ final class AirplaneNode: SKSpriteNode, SelfDismissingNode {
         let endX   = +(sceneWidth / 2 + size.width)
         position = CGPoint(x: startX, y: y)
         let move    = SKAction.move(to: CGPoint(x: endX, y: y),
-                                    duration: GameConfig.airplaneCrossDuration)
+                                    duration: FeelTuning.airplaneCrossDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([move, cleanup]))
     }

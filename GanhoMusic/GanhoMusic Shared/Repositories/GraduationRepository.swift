@@ -38,7 +38,7 @@ final class GraduationRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.graduationUserDefaultsKey) {
+         key: String = StorageKeys.graduationUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }
@@ -47,7 +47,7 @@ final class GraduationRepository {
                        defaults: UserDefaults = .standard) -> GraduationRepository {
         return GraduationRepository(
             defaults: defaults,
-            key: "\(GameConfig.graduationUserDefaultsKey).\(scope.storageSuffix)"
+            key: "\(StorageKeys.graduationUserDefaultsKey).\(scope.storageSuffix)"
         )
     }
 

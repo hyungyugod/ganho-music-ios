@@ -24,11 +24,11 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// 텍스트 포맷 "x{N} BREAK" — 단순 "BREAK"보다 *내가 잃은 것*을 명확히 보여줘 손실감 강화.
     init(brokenCombo: Int) {
         // Sprint 10 Phase J — fontDisplay → fontPixel. 인게임 픽셀 톤 통일.
-        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        self.label = SKLabelNode(fontNamed: Typography.fontPixel)
         self.label.text = "x\(brokenCombo) BREAK"
         super.init()
         name = "comboBreak"
-        zPosition = GameConfig.comboBreakZPosition
+        zPosition = ZOrder.comboBreakZPosition
         configureLabel()
         // Sprint 3 — navy 외곽선 4방향 자식 (라벨 뒤 z=-1).
         addOutline(text: "x\(brokenCombo) BREAK")
@@ -47,11 +47,11 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// **Sprint 3: SKAction 본문 0건 변경.**
     func animate() {
         let moveDown  = SKAction.moveBy(x: 0,
-                                         y: -GameConfig.comboBreakFallDistance,
-                                         duration: GameConfig.comboBreakDuration)
-        let fadeOut   = SKAction.fadeOut(withDuration: GameConfig.comboBreakDuration)
-        let scaleDown = SKAction.scale(to: GameConfig.comboBreakEndScale,
-                                        duration: GameConfig.comboBreakDuration)
+                                         y: -FeelTuning.comboBreakFallDistance,
+                                         duration: FeelTuning.comboBreakDuration)
+        let fadeOut   = SKAction.fadeOut(withDuration: FeelTuning.comboBreakDuration)
+        let scaleDown = SKAction.scale(to: FeelTuning.comboBreakEndScale,
+                                        duration: FeelTuning.comboBreakDuration)
         let group     = SKAction.group([moveDown, fadeOut, scaleDown])
         let cleanup   = SKAction.removeFromParent()
         run(.sequence([group, cleanup]))
@@ -63,7 +63,7 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// 색은 단일 톤 — 환호(ComboPopupNode)는 등급별 4색이지만 끊김은 *값 하나*(임계값 10+).
     private func configureLabel() {
         // Sprint 10 Phase J — ganhoCoralShadow → ganhoPixelComboRed.
-        label.fontSize = GameConfig.comboBreakV2FontSize
+        label.fontSize = UILayout.comboBreakFontSize
         label.fontColor = .ganhoPixelComboRed
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
@@ -74,7 +74,7 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
     /// Sprint 10 Phase J — 픽셀 외곽선 4방향 시뮬레이션. ComboPopupNode와 동일 패턴.
     /// fontDisplay → fontPixel, ganhoNavyDeep → ganhoPixelOutlineBlack swap.
     private func addOutline(text: String) {
-        let offset = GameConfig.comboPopupV2OutlineWidth
+        let offset = UILayout.comboPopupOutlineWidth
         let offsets: [CGPoint] = [
             CGPoint(x: -offset, y:  0),
             CGPoint(x: +offset, y:  0),
@@ -82,9 +82,9 @@ final class ComboBreakNode: SKNode, SelfDismissingNode {
             CGPoint(x:  0,      y: +offset)
         ]
         for off in offsets {
-            let outline = SKLabelNode(fontNamed: GameConfig.fontPixel)
+            let outline = SKLabelNode(fontNamed: Typography.fontPixel)
             outline.text = text
-            outline.fontSize = GameConfig.comboBreakV2FontSize
+            outline.fontSize = UILayout.comboBreakFontSize
             outline.fontColor = .ganhoPixelOutlineBlack
             outline.verticalAlignmentMode = .center
             outline.horizontalAlignmentMode = .center

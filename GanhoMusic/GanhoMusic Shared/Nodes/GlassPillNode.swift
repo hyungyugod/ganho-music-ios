@@ -33,26 +33,26 @@ final class GlassPillNode: SKNode {
             rectOf: size,
             cornerRadius: size.height / 2
         )
-        shadowShape.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+        shadowShape.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.glassPillShadowAlpha)
         shadowShape.strokeColor = .clear
         shadowShape.lineWidth = 0
-        shadowShape.position = CGPoint(x: 0, y: GameConfig.glassPillShadowOffsetY)
+        shadowShape.position = CGPoint(x: 0, y: UILayout.glassPillShadowOffsetY)
         shadowShape.zPosition = -1
-        shadowShape.isHidden = GameConfig.glassPillShadowAlpha <= .zero
+        shadowShape.isHidden = UILayout.glassPillShadowAlpha <= .zero
 
         background = SKShapeNode(
             rectOf: size,
             cornerRadius: size.height / 2
         )
-        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.menuControlFillAlpha)
-        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
-        background.lineWidth = GameConfig.glassPillBorderWidth
+        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.menuControlFillAlpha)
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.menuControlStrokeAlpha)
+        background.lineWidth = UILayout.glassPillBorderWidth
 
         blurEffect = SKEffectNode()
         blurEffect.filter = nil
         blurEffect.shouldRasterize = false
 
-        textLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        textLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
 
         super.init()
         name = "glassPill"
@@ -76,7 +76,7 @@ final class GlassPillNode: SKNode {
     /// 라벨 스타일 — 알약 정중앙. blurEffect 위(zPosition=1)에 또렷하게 표시.
     private func configureLabel(text: String) {
         textLabel.text = text
-        textLabel.fontSize = GameConfig.glassPillFontSize
+        textLabel.fontSize = UILayout.glassPillFontSize
         textLabel.fontColor = .ganhoNavyDeep
         textLabel.horizontalAlignmentMode = .center
         textLabel.verticalAlignmentMode = .center
@@ -92,10 +92,10 @@ final class GlassPillNode: SKNode {
     /// 계정 삭제 등 파괴적 액션용 톤(딥코랄 fill + 흰 글자). init 이후 호출 — 시그니처 불변.
     /// setText(_:)가 fontColor를 건드리지 않으므로 confirmDelete 모드 전환 후에도 글자색 유지.
     func applyDestructiveStyle() {
-        background.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.glassPillDestructiveFillAlpha)
+        background.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.glassPillDestructiveFillAlpha)
         background.strokeColor = .ganhoCoralShadow
         textLabel.fontColor = .ganhoPaper
-        shadowShape.fillColor = UIColor.ganhoInkBlack.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+        shadowShape.fillColor = UIColor.ganhoInkBlack.withAlphaComponent(UILayout.glassPillShadowAlpha)
     }
 
     /// 캐릭터 홈 메뉴 버튼과 같은 크림 배경 + 네이비 테두리 톤.
@@ -107,13 +107,13 @@ final class GlassPillNode: SKNode {
 
         background.fillColor = active
             ? .ganhoCoralPrimary
-            : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+            : UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
         background.strokeColor = active
-            ? UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        background.lineWidth = GameConfig.characterHomePanelLineWidth
+            ? UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        background.lineWidth = UILayout.characterHomePanelLineWidth
 
-        textLabel.fontSize = GameConfig.characterHomeMenuFontSize
+        textLabel.fontSize = UILayout.characterHomeMenuFontSize
         textLabel.fontColor = active ? .ganhoPaper : .ganhoNavyDeep
     }
 }

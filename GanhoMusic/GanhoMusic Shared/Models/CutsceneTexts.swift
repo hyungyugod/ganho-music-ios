@@ -9,7 +9,7 @@
 //
 //  TODO(원본 정합): 원본 game.js의 L200~L233 한국어 본문을 직접 grep해
 //  byte-equal로 일치시킬 것. 본 파일은 docs/ORIGINAL_GAME_ANALYSIS.md §7.6 요약 +
-//  기존 GameConfig 정합 텍스트(professorWarningBody / stoneGuardWarningBody) 보존 +
+//  기존 Config 정합 텍스트(professorWarningBody / stoneGuardWarningBody) 보존 +
 //  intro/mid1 캐릭터별 본문은 합리적 한국어 placeholder. 추후 게임.js 직접 추출 후 갱신.
 //
 
@@ -109,19 +109,19 @@ enum CutsceneTexts {
 
     /// easy/normal 난이도 인트로 직후 발화되는 *석조무사* 거짓 경고 컷씬.
     /// 원본 game.js L226~L228 — "마주치면 잡혀갑니다" 거짓 경고(실제로는 박병장 비행기 이스터에그 트리거).
-    /// 기존 GameConfig.stoneGuardWarningTitle/Body(Phase 10-1d 정합 텍스트) 재사용 — 회귀 0.
+    /// 기존 FeelTuning.stoneGuardWarningTitle/Body(Phase 10-1d 정합 텍스트) 재사용 — 회귀 0.
     static let introStoneGuard: (title: String, body: String) = (
-        title: GameConfig.stoneGuardWarningTitle,
-        body: GameConfig.stoneGuardWarningBody
+        title: FeelTuning.stoneGuardWarningTitle,
+        body: FeelTuning.stoneGuardWarningBody
     )
 
     // MARK: - introProfessor (hard)
 
     /// hard 난이도 인트로 직후 발화되는 *이교수 청진기* 경고 컷씬.
     /// 원본 game.js L229~L233 — "청진기에 맞으면 정지" 경고.
-    /// 기존 GameConfig.professorWarningTitle/Body(Phase 9-7 정합 텍스트) 재사용 — 회귀 0.
+    /// 기존 GameplayTuning.professorWarningTitle/Body(Phase 9-7 정합 텍스트) 재사용 — 회귀 0.
     static let introProfessor: (title: String, body: String) = (
-        title: GameConfig.professorWarningTitle,
-        body: GameConfig.professorWarningBody
+        title: GameplayTuning.professorWarningTitle,
+        body: GameplayTuning.professorWarningBody
     )
 }

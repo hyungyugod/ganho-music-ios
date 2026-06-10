@@ -217,7 +217,7 @@ final class FirebaseAuthManager: NSObject {
 
         let uid = user.uid
         let isAppleLinked = user.providerData.contains { provider in
-            provider.providerID == GameConfig.authAppleProviderID
+            provider.providerID == StorageKeys.authAppleProviderID
         }
 
         do {
@@ -359,7 +359,7 @@ final class FirebaseAuthManager: NSObject {
     private func startAppleAuthorizationTimeout() {
         appleTimeoutTask?.cancel()
         let timeoutNanoseconds = UInt64(
-            GameConfig.authAppleRequestTimeout * Double(GameConfig.nanosecondsPerSecond)
+            StorageKeys.authAppleRequestTimeout * Double(StorageKeys.nanosecondsPerSecond)
         )
         appleTimeoutTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: timeoutNanoseconds)
@@ -392,8 +392,8 @@ final class FirebaseAuthManager: NSObject {
     private func isValidNickname(_ text: String?,
                                  isRequired: Bool) -> Bool {
         guard let text = text else { return !isRequired }
-        return text.count >= GameConfig.profileNicknameMinLength
-            && text.count <= GameConfig.profileNicknameMaxLength
+        return text.count >= StorageKeys.profileNicknameMinLength
+            && text.count <= StorageKeys.profileNicknameMaxLength
     }
 }
 
@@ -480,8 +480,8 @@ private enum AuthErrorMapper {
 // MARK: - Nonce
 private enum NonceGenerator {
     static func randomNonceString() throws -> String {
-        let characters = Array(GameConfig.authNonceCharacterSet)
-        var randomBytes = [UInt8](repeating: 0, count: GameConfig.authNonceLength)
+        let characters = Array(StorageKeys.authNonceCharacterSet)
+        var randomBytes = [UInt8](repeating: 0, count: StorageKeys.authNonceLength)
         let status = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
         guard status == errSecSuccess else { throw AuthError.nonceGenerationFailed }
 

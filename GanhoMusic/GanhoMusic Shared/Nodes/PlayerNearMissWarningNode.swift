@@ -13,15 +13,15 @@ final class PlayerNearMissWarningNode: SKNode {
     private var isPulsing = false
 
     override init() {
-        ring = SKShapeNode(circleOfRadius: GameConfig.playerNearMissRingRadius)
+        ring = SKShapeNode(circleOfRadius: GameplayTuning.playerNearMissRingRadius)
         super.init()
         name = "playerNearMissWarning"
-        zPosition = GameConfig.playerNearMissRingZPosition
+        zPosition = ZOrder.playerNearMissRingZPosition
         alpha = 0
 
         ring.strokeColor = .ganhoIngameDanger
-        ring.lineWidth = GameConfig.playerNearMissRingLineWidth
-        ring.fillColor = UIColor.ganhoIngameDangerDeep.withAlphaComponent(GameConfig.enemyDangerRingFillAlpha)
+        ring.lineWidth = GameplayTuning.playerNearMissRingLineWidth
+        ring.fillColor = UIColor.ganhoIngameDangerDeep.withAlphaComponent(GameplayTuning.enemyDangerRingFillAlpha)
         ring.zPosition = 0
         addChild(ring)
     }
@@ -37,25 +37,25 @@ final class PlayerNearMissWarningNode: SKNode {
             return
         }
         let t = max(0, min(1, (profile.projectileNearMissRadius - distance) / profile.projectileNearMissRadius))
-        alpha = GameConfig.playerNearMissRingMinAlpha + t * GameConfig.playerNearMissRingAlphaRange
+        alpha = GameplayTuning.playerNearMissRingMinAlpha + t * GameplayTuning.playerNearMissRingAlphaRange
         startPulseIfNeeded()
     }
 
     private func startPulseIfNeeded() {
         guard !isPulsing else { return }
         isPulsing = true
-        let grow = SKAction.scale(to: GameConfig.playerNearMissRingPulseScale,
-                                  duration: GameConfig.playerNearMissRingPulseHalfDuration)
+        let grow = SKAction.scale(to: GameplayTuning.playerNearMissRingPulseScale,
+                                  duration: GameplayTuning.playerNearMissRingPulseHalfDuration)
         let shrink = SKAction.scale(to: 1.0,
-                                    duration: GameConfig.playerNearMissRingPulseHalfDuration)
+                                    duration: GameplayTuning.playerNearMissRingPulseHalfDuration)
         ring.run(.repeatForever(.sequence([grow, shrink])),
-                 withKey: GameConfig.playerNearMissRingPulseActionKey)
+                 withKey: GameplayTuning.playerNearMissRingPulseActionKey)
     }
 
     private func stopPulse() {
         guard isPulsing else { return }
         isPulsing = false
-        ring.removeAction(forKey: GameConfig.playerNearMissRingPulseActionKey)
+        ring.removeAction(forKey: GameplayTuning.playerNearMissRingPulseActionKey)
         ring.setScale(1.0)
     }
 }

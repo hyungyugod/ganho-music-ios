@@ -19,11 +19,11 @@ struct AccountProgressScope {
     }
 
     var isLocalFallback: Bool {
-        return isAnonymous && uid == GameConfig.accountProgressLocalFallbackUID
+        return isAnonymous && uid == StorageKeys.accountProgressLocalFallbackUID
     }
 
     var migrationStorageKey: String {
-        return "\(GameConfig.accountProgressLocalFallbackMigrationKey).\(storageSuffix)"
+        return "\(StorageKeys.accountProgressLocalFallbackMigrationKey).\(storageSuffix)"
     }
 }
 
@@ -34,7 +34,7 @@ enum AccountProgressScopeProvider {
         guard let profile = authProfile,
               !profile.uid.isEmpty else {
             return AccountProgressScope(
-                uid: GameConfig.accountProgressLocalFallbackUID,
+                uid: StorageKeys.accountProgressLocalFallbackUID,
                 isAnonymous: true
             )
         }

@@ -19,7 +19,7 @@ final class CharacterHomeMenuNode: SKNode {
     // MARK: - Init
     override init() {
         super.init()
-        zPosition = GameConfig.characterHomeMenuZPosition
+        zPosition = ZOrder.characterHomeMenuZPosition
         setupButtons()
     }
 
@@ -34,21 +34,21 @@ final class CharacterHomeMenuNode: SKNode {
             container.name = "characterHomeMenu_\(section.rawValue)"
 
             let size = CGSize(
-                width: GameConfig.characterHomeMenuButtonWidth,
-                height: GameConfig.characterHomeMenuButtonHeight
+                width: UILayout.characterHomeMenuButtonWidth,
+                height: UILayout.characterHomeMenuButtonHeight
             )
             let background = SKShapeNode(
                 rectOf: size,
-                cornerRadius: GameConfig.characterHomeMenuButtonHeight / 2
+                cornerRadius: UILayout.characterHomeMenuButtonHeight / 2
             )
-            background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-            background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-            background.lineWidth = GameConfig.characterHomePanelLineWidth
+            background.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+            background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+            background.lineWidth = UILayout.characterHomePanelLineWidth
             container.addChild(background)
 
-            let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let label = SKLabelNode(fontNamed: Typography.fontDisplay)
             label.text = section.title
-            label.fontSize = GameConfig.characterHomeMenuFontSize
+            label.fontSize = UILayout.characterHomeMenuFontSize
             label.fontColor = .ganhoNavyDeep
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
@@ -76,24 +76,24 @@ final class CharacterHomeMenuNode: SKNode {
     func contentSize(bottomMode: Bool) -> CGSize {
         if bottomMode {
             let count = CGFloat(CharacterHomeSection.allCases.count)
-            let width = GameConfig.characterHomeMenuButtonWidth * count
-                + GameConfig.characterHomeMenuGap * max(0, count - 1)
-            return CGSize(width: width, height: GameConfig.characterHomeMenuButtonHeight)
+            let width = UILayout.characterHomeMenuButtonWidth * count
+                + UILayout.characterHomeMenuGap * max(0, count - 1)
+            return CGSize(width: width, height: UILayout.characterHomeMenuButtonHeight)
         }
 
         let count = CGFloat(CharacterHomeSection.allCases.count)
-        let height = GameConfig.characterHomeMenuButtonHeight * count
-            + GameConfig.characterHomeMenuGap * max(0, count - 1)
-        return CGSize(width: GameConfig.characterHomeMenuButtonWidth, height: height)
+        let height = UILayout.characterHomeMenuButtonHeight * count
+            + UILayout.characterHomeMenuGap * max(0, count - 1)
+        return CGSize(width: UILayout.characterHomeMenuButtonWidth, height: height)
     }
 
     private func layoutVertical() {
         let sections = CharacterHomeSection.allCases
         let totalHeight = contentSize(bottomMode: false).height
-        let startY = totalHeight / 2 - GameConfig.characterHomeMenuButtonHeight / 2
+        let startY = totalHeight / 2 - UILayout.characterHomeMenuButtonHeight / 2
         for (index, section) in sections.enumerated() {
             let y = startY - CGFloat(index) * (
-                GameConfig.characterHomeMenuButtonHeight + GameConfig.characterHomeMenuGap
+                UILayout.characterHomeMenuButtonHeight + UILayout.characterHomeMenuGap
             )
             buttonNodes[section]?.position = CGPoint(x: 0, y: y)
         }
@@ -102,10 +102,10 @@ final class CharacterHomeMenuNode: SKNode {
     private func layoutHorizontal() {
         let sections = CharacterHomeSection.allCases
         let totalWidth = contentSize(bottomMode: true).width
-        let startX = -totalWidth / 2 + GameConfig.characterHomeMenuButtonWidth / 2
+        let startX = -totalWidth / 2 + UILayout.characterHomeMenuButtonWidth / 2
         for (index, section) in sections.enumerated() {
             let x = startX + CGFloat(index) * (
-                GameConfig.characterHomeMenuButtonWidth + GameConfig.characterHomeMenuGap
+                UILayout.characterHomeMenuButtonWidth + UILayout.characterHomeMenuGap
             )
             buttonNodes[section]?.position = CGPoint(x: x, y: 0)
         }
@@ -118,21 +118,21 @@ final class CharacterHomeMenuNode: SKNode {
             let isActive = candidate == section
             backgroundNodes[candidate]?.fillColor = isActive
                 ? .ganhoCoralPrimary
-                : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+                : UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
             backgroundNodes[candidate]?.strokeColor = isActive
-                ? UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-                : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+                ? UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+                : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
             labelNodes[candidate]?.fontColor = isActive ? .ganhoPaper : .ganhoNavyDeep
             guard let button = buttonNodes[candidate] else { continue }
-            button.removeAction(forKey: GameConfig.characterHomeSectionFocusActionKey)
-            let targetScale = isActive ? GameConfig.characterHomeFocusedScale : 1.0
+            button.removeAction(forKey: UILayout.characterHomeSectionFocusActionKey)
+            let targetScale = isActive ? UILayout.characterHomeFocusedScale : 1.0
             if animated {
                 let action = SKAction.scale(
                     to: targetScale,
-                    duration: GameConfig.characterHomeFocusAnimationDuration
+                    duration: UILayout.characterHomeFocusAnimationDuration
                 )
                 action.timingMode = .easeInEaseOut
-                button.run(action, withKey: GameConfig.characterHomeSectionFocusActionKey)
+                button.run(action, withKey: UILayout.characterHomeSectionFocusActionKey)
             } else {
                 button.setScale(targetScale)
             }

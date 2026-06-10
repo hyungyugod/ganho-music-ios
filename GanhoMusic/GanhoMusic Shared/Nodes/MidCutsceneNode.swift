@@ -32,7 +32,7 @@ enum MidCutsceneNode {
             body: texts.body,
             parent: scene.cameraNode,
             sceneSize: scene.size,
-            fontName: GameConfig.pixelCutsceneFontName,
+            fontName: Typography.pixelCutsceneFontName,
             onDismiss: onDismiss
         )
     }
@@ -50,7 +50,7 @@ enum MidCutsceneNode {
             body: texts.body,
             parent: scene.cameraNode,
             sceneSize: scene.size,
-            fontName: GameConfig.pixelCutsceneFontName,
+            fontName: Typography.pixelCutsceneFontName,
             onDismiss: onDismiss
         )
     }

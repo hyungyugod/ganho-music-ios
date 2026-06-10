@@ -54,15 +54,15 @@ final class CharacterCardNode: SKNode {
     init(id: CharacterID) {
         self.id = id
         let cardSize = CGSize(
-            width: GameConfig.characterCardWidthV3,
-            height: GameConfig.characterCardHeightV3
+            width: UILayout.characterCardWidth,
+            height: UILayout.characterCardHeight
         )
         // 반투명 화이트 카드 배경(ganhoUIBgCard 톤은 다크 — v3는 흰 톤이지만 setSelected에서 교체).
         background = SKSpriteNode(color: .ganhoUIBgCard, size: cardSize)
         // v3 cornerRadius 22 — NIKKE 식 둥근 사각.
         border = SKShapeNode(
             rectOf: cardSize,
-            cornerRadius: GameConfig.characterCardCornerRadiusV3
+            cornerRadius: UILayout.characterCardCornerRadius
         )
         nameLabel = SKLabelNode(text: id.displayName)
 
@@ -87,7 +87,7 @@ final class CharacterCardNode: SKNode {
         background.zPosition = 0
         border.fillColor = .clear
         border.strokeColor = .ganhoUIBorder
-        border.lineWidth = GameConfig.uiPanelLineWidth
+        border.lineWidth = UILayout.uiPanelLineWidth
         border.position = .zero
         border.zPosition = 1
         addChild(background)
@@ -110,7 +110,7 @@ final class CharacterCardNode: SKNode {
     /// 안에 이모지(⚡/💧/🌿/🌙/🌸)를 16pt로 배치.
     private func attachElementBadge() {
         // 6각형 path — outer radius 14, 시작 각도 .pi/2 (꼭짓점이 위).
-        let r = GameConfig.characterCardElementHexRadius
+        let r = UILayout.characterCardElementHexRadius
         let path = CGMutablePath()
         for i in 0..<6 {
             let angle = CGFloat(i) * .pi / 3 + .pi / 2
@@ -126,20 +126,20 @@ final class CharacterCardNode: SKNode {
         elementHex.path = path
         elementHex.fillColor = id.dotColor
         elementHex.strokeColor = .white
-        elementHex.lineWidth = GameConfig.characterCardElementHexStrokeWidth
+        elementHex.lineWidth = UILayout.characterCardElementHexStrokeWidth
 
-        let halfW = GameConfig.characterCardWidthV3 / 2
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfW = UILayout.characterCardWidth / 2
+        let halfH = UILayout.characterCardHeight / 2
         elementHex.position = CGPoint(
-            x: -halfW + GameConfig.characterCardElementHexInsetX,
-            y:  halfH - GameConfig.characterCardElementHexInsetY
+            x: -halfW + UILayout.characterCardElementHexInsetX,
+            y:  halfH - UILayout.characterCardElementHexInsetY
         )
         elementHex.zPosition = 5
         addChild(elementHex)
 
         elementSymbolLabel.text = id.elementSymbol
-        elementSymbolLabel.fontName = GameConfig.fontDisplay
-        elementSymbolLabel.fontSize = GameConfig.characterCardElementSymbolFontSize
+        elementSymbolLabel.fontName = Typography.fontDisplay
+        elementSymbolLabel.fontSize = UILayout.characterCardElementSymbolFontSize
         elementSymbolLabel.horizontalAlignmentMode = .center
         elementSymbolLabel.verticalAlignmentMode = .center
         elementSymbolLabel.position = elementHex.position
@@ -151,8 +151,8 @@ final class CharacterCardNode: SKNode {
     /// navyDeep × 0.85 fill + 골드 로마숫자(I/II/III).
     private func attachRarityBadge() {
         let badgeSize = CGSize(
-            width: GameConfig.characterCardRarityBadgeWidth,
-            height: GameConfig.characterCardRarityBadgeHeight
+            width: UILayout.characterCardRarityBadgeWidth,
+            height: UILayout.characterCardRarityBadgeHeight
         )
         rarityBadge.path = CGPath(
             roundedRect: CGRect(
@@ -161,20 +161,20 @@ final class CharacterCardNode: SKNode {
                 width: badgeSize.width,
                 height: badgeSize.height
             ),
-            cornerWidth: GameConfig.characterCardRarityBadgeCornerRadius,
-            cornerHeight: GameConfig.characterCardRarityBadgeCornerRadius,
+            cornerWidth: UILayout.characterCardRarityBadgeCornerRadius,
+            cornerHeight: UILayout.characterCardRarityBadgeCornerRadius,
             transform: nil
         )
         rarityBadge.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.characterCardRarityBadgeFillAlpha)
+            .withAlphaComponent(UILayout.characterCardRarityBadgeFillAlpha)
         rarityBadge.strokeColor = .clear
         rarityBadge.lineWidth = 0
 
-        let halfW = GameConfig.characterCardWidthV3 / 2
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfW = UILayout.characterCardWidth / 2
+        let halfH = UILayout.characterCardHeight / 2
         rarityBadge.position = CGPoint(
-            x: -halfW + GameConfig.characterCardRarityBadgeInsetX,
-            y: -halfH + GameConfig.characterCardRarityBadgeInsetY
+            x: -halfW + UILayout.characterCardRarityBadgeInsetX,
+            y: -halfH + UILayout.characterCardRarityBadgeInsetY
         )
         rarityBadge.zPosition = 5
         addChild(rarityBadge)
@@ -187,8 +187,8 @@ final class CharacterCardNode: SKNode {
         default: roman = "I"  // 안전 fallback (현재 값은 1·2·3만, Int 전체 case 망라 불가)
         }
         rarityLabel.text = roman
-        rarityLabel.fontName = GameConfig.fontDisplay
-        rarityLabel.fontSize = GameConfig.characterCardRarityBadgeFontSize
+        rarityLabel.fontName = Typography.fontDisplay
+        rarityLabel.fontSize = UILayout.characterCardRarityBadgeFontSize
         rarityLabel.fontColor = .ganhoMusicGold
         rarityLabel.horizontalAlignmentMode = .center
         rarityLabel.verticalAlignmentMode = .center
@@ -201,16 +201,16 @@ final class CharacterCardNode: SKNode {
     /// coralLight × 0.85 fill + 흰색 "1회"/"∞" 라벨. 자동 폭(라벨 너비 + padding).
     private func attachCDChip() {
         cdLabel.text = id.skill.cooldownText
-        cdLabel.fontName = GameConfig.fontDisplay
-        cdLabel.fontSize = GameConfig.characterCardCDChipFontSize
+        cdLabel.fontName = Typography.fontDisplay
+        cdLabel.fontSize = UILayout.characterCardCDChipFontSize
         cdLabel.fontColor = .white
         cdLabel.horizontalAlignmentMode = .center
         cdLabel.verticalAlignmentMode = .center
 
         // 라벨 너비 + padding으로 자동 폭 계산.
         let labelW = cdLabel.frame.width
-        let chipW = labelW + GameConfig.characterCardCDChipHorizontalPadding * 2
-        let chipH = GameConfig.characterCardCDChipHeight
+        let chipW = labelW + UILayout.characterCardCDChipHorizontalPadding * 2
+        let chipH = UILayout.characterCardCDChipHeight
         cdChip.path = CGPath(
             roundedRect: CGRect(
                 x: -chipW / 2,
@@ -223,15 +223,15 @@ final class CharacterCardNode: SKNode {
             transform: nil
         )
         cdChip.fillColor = UIColor.ganhoCoralLight
-            .withAlphaComponent(GameConfig.characterCardCDChipFillAlpha)
+            .withAlphaComponent(UILayout.characterCardCDChipFillAlpha)
         cdChip.strokeColor = .clear
         cdChip.lineWidth = 0
 
-        let halfW = GameConfig.characterCardWidthV3 / 2
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfW = UILayout.characterCardWidth / 2
+        let halfH = UILayout.characterCardHeight / 2
         cdChip.position = CGPoint(
-            x: halfW - GameConfig.characterCardCDChipInsetX - chipW / 2,
-            y: halfH - GameConfig.characterCardCDChipInsetY
+            x: halfW - UILayout.characterCardCDChipInsetX - chipW / 2,
+            y: halfH - UILayout.characterCardCDChipInsetY
         )
         cdChip.zPosition = 5
         addChild(cdChip)
@@ -248,15 +248,15 @@ final class CharacterCardNode: SKNode {
         addChild(nameLabel)
 
         speedLabel.text = "⚡ ×\(formattedSpeed(id.playerSpeedMultiplier))"
-        speedLabel.fontName = GameConfig.fontBody
-        speedLabel.fontSize = GameConfig.characterCardSpeedFontSizeV3
+        speedLabel.fontName = Typography.fontBody
+        speedLabel.fontSize = UILayout.characterCardSpeedFontSize
         speedLabel.fontColor = .ganhoScrubMint
         speedLabel.horizontalAlignmentMode = .center
         speedLabel.verticalAlignmentMode = .center
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfH = UILayout.characterCardHeight / 2
         speedLabel.position = CGPoint(
             x: 0,
-            y: -halfH + GameConfig.characterCardSpeedOffsetYV3
+            y: -halfH + UILayout.characterCardSpeedOffsetY
         )
         speedLabel.zPosition = 5
         addChild(speedLabel)
@@ -272,8 +272,8 @@ final class CharacterCardNode: SKNode {
     private func attachSelectedDecor() {
         // 하단 코랄 radial glow (타원). Sprint 9 Phase A — 카드 내부 하단 inset + 폭 축소.
         let glowSize = CGSize(
-            width: GameConfig.characterCardSelectedGlowWidthV9,
-            height: GameConfig.characterCardSelectedGlowHeightV9
+            width: UILayout.characterCardSelectedGlowWidth,
+            height: UILayout.characterCardSelectedGlowHeight
         )
         selectedGlow.path = CGPath(
             ellipseIn: CGRect(
@@ -285,14 +285,14 @@ final class CharacterCardNode: SKNode {
             transform: nil
         )
         selectedGlow.fillColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.characterCardSelectedGlowAlpha)
+            .withAlphaComponent(UILayout.characterCardSelectedGlowAlpha)
         selectedGlow.strokeColor = .clear
         selectedGlow.lineWidth = 0
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfH = UILayout.characterCardHeight / 2
         // Sprint 9 Phase A — 카드 내부 하단 inset(22pt 안쪽). AS-IS: -halfH + (-12) (외부).
         selectedGlow.position = CGPoint(
             x: 0,
-            y: -halfH + GameConfig.characterCardSelectedGlowInsetBottomV9
+            y: -halfH + UILayout.characterCardSelectedGlowInsetBottom
         )
         // background(zPos 0) 뒤로 — 카드 내부에서 잔잔하게 비치는 느낌.
         selectedGlow.zPosition = -1
@@ -301,8 +301,8 @@ final class CharacterCardNode: SKNode {
 
         // 상단 "선택됨" 코랄 알약.
         let pillSize = CGSize(
-            width: GameConfig.characterCardSelectedPillWidth,
-            height: GameConfig.characterCardSelectedPillHeight
+            width: UILayout.characterCardSelectedPillWidth,
+            height: UILayout.characterCardSelectedPillHeight
         )
         selectedPill.path = CGPath(
             roundedRect: CGRect(
@@ -321,15 +321,15 @@ final class CharacterCardNode: SKNode {
         // Sprint 9 Phase A — 카드 내부 상단 inset(16pt 안쪽). AS-IS: halfH + 14 (외부).
         selectedPill.position = CGPoint(
             x: 0,
-            y: halfH - GameConfig.characterCardSelectedPillInsetTopV9
+            y: halfH - UILayout.characterCardSelectedPillInsetTop
         )
         selectedPill.zPosition = 10
         selectedPill.isHidden = true
         addChild(selectedPill)
 
-        selectedPillLabel.text = GameConfig.characterCardSelectedPillText
-        selectedPillLabel.fontName = GameConfig.fontDisplay
-        selectedPillLabel.fontSize = GameConfig.characterCardSelectedPillFontSize
+        selectedPillLabel.text = UILayout.characterCardSelectedPillText
+        selectedPillLabel.fontName = Typography.fontDisplay
+        selectedPillLabel.fontSize = UILayout.characterCardSelectedPillFontSize
         selectedPillLabel.fontColor = .white
         selectedPillLabel.horizontalAlignmentMode = .center
         selectedPillLabel.verticalAlignmentMode = .center
@@ -346,11 +346,11 @@ final class CharacterCardNode: SKNode {
     ///        + 글로우/알약 표시.
     /// false → alpha 0.5 + scale 1.0 + 기본 토큰 + 글로우/알약 숨김.
     func setSelected(_ selected: Bool) {
-        alpha = selected ? 1.0 : GameConfig.characterCardDeselectedAlpha
-        let targetScale: CGFloat = selected ? GameConfig.characterCardSelectedScale : 1.0
+        alpha = selected ? 1.0 : UILayout.characterCardDeselectedAlpha
+        let targetScale: CGFloat = selected ? UILayout.characterCardSelectedScale : 1.0
         removeAction(forKey: "cardScale")
         run(
-            SKAction.scale(to: targetScale, duration: GameConfig.characterCardScaleDuration),
+            SKAction.scale(to: targetScale, duration: UILayout.characterCardScaleDuration),
             withKey: "cardScale"
         )
         // 시각 토큰 교체:
@@ -369,15 +369,15 @@ final class CharacterCardNode: SKNode {
     // MARK: - Configure
     /// 이름 라벨 — 카드 하단 내부(Jua 15pt). Phase A에서 fontSize/offset v3로 갱신.
     private func configureNameLabel() {
-        nameLabel.fontName = GameConfig.fontDisplay
-        nameLabel.fontSize = GameConfig.characterCardNameFontSizeV3
+        nameLabel.fontName = Typography.fontDisplay
+        nameLabel.fontSize = UILayout.characterCardNameFontSize
         nameLabel.fontColor = .ganhoNavyMuted
         nameLabel.horizontalAlignmentMode = .center
         nameLabel.verticalAlignmentMode = .center
-        let halfH = GameConfig.characterCardHeightV3 / 2
+        let halfH = UILayout.characterCardHeight / 2
         nameLabel.position = CGPoint(
             x: 0,
-            y: -halfH + GameConfig.characterCardNameOffsetYV3
+            y: -halfH + UILayout.characterCardNameOffsetY
         )
         nameLabel.zPosition = 5
     }
@@ -434,15 +434,15 @@ extension CharacterCardNode {
         let isCenter: Bool
         switch role {
         case .center:
-            targetScale = GameConfig.characterSwipeCardScaleCenterV12
+            targetScale = UILayout.characterSwipeCardScaleCenter
             targetAlpha = 1.0
             isCenter = true
         case .left, .right:
-            targetScale = GameConfig.characterSwipeCardScaleSideV12
-            targetAlpha = GameConfig.characterSwipeCardAlphaSideV12
+            targetScale = UILayout.characterSwipeCardScaleSide
+            targetAlpha = UILayout.characterSwipeCardAlphaSide
             isCenter = false
         case .offscreen:
-            targetScale = GameConfig.characterSwipeCardScaleSideV12
+            targetScale = UILayout.characterSwipeCardScaleSide
             targetAlpha = 0
             isCenter = false
         }

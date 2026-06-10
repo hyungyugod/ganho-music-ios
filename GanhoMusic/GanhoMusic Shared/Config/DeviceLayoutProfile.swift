@@ -20,7 +20,7 @@ enum DeviceLayoutProfile {
         if idiom == .pad {
             return .padLandscape
         }
-        if scene.size.height < GameConfig.compactLandscapeMinHeight {
+        if scene.size.height < UILayout.compactLandscapeMinHeight {
             return .phoneCompact
         }
         return .phoneRegular
@@ -31,11 +31,11 @@ enum DeviceLayoutProfile {
     var menuScale: CGFloat {
         switch self {
         case .phoneCompact:
-            return GameConfig.compactLayoutScale
+            return UILayout.compactLayoutScale
         case .phoneRegular:
-            return GameConfig.regularLayoutScale
+            return UILayout.regularLayoutScale
         case .padLandscape:
-            return GameConfig.ipadMenuLayoutScale
+            return UILayout.ipadMenuLayoutScale
         }
     }
 
@@ -44,7 +44,7 @@ enum DeviceLayoutProfile {
         case .phoneCompact, .phoneRegular:
             return .greatestFiniteMagnitude
         case .padLandscape:
-            return GameConfig.ipadMenuMaxContentWidth
+            return UILayout.ipadMenuMaxContentWidth
         }
     }
 
@@ -53,7 +53,7 @@ enum DeviceLayoutProfile {
         case .phoneCompact, .phoneRegular:
             return .greatestFiniteMagnitude
         case .padLandscape:
-            return GameConfig.ipadResultMaxContentWidth
+            return UILayout.ipadResultMaxContentWidth
         }
     }
 
@@ -62,7 +62,7 @@ enum DeviceLayoutProfile {
         case .phoneCompact, .phoneRegular:
             return .greatestFiniteMagnitude
         case .padLandscape:
-            return GameConfig.ipadScoreboardMaxContentWidth
+            return UILayout.ipadScoreboardMaxContentWidth
         }
     }
 
@@ -71,44 +71,44 @@ enum DeviceLayoutProfile {
     var ingameHUDScale: CGFloat {
         switch self {
         case .phoneCompact, .phoneRegular:
-            return GameConfig.regularLayoutScale
+            return UILayout.regularLayoutScale
         case .padLandscape:
-            return GameConfig.ipadIngameHUDScale
+            return UILayout.ipadIngameHUDScale
         }
     }
 
     var ingameControlScale: CGFloat {
         switch self {
         case .phoneCompact, .phoneRegular:
-            return GameConfig.regularLayoutScale
+            return UILayout.regularLayoutScale
         case .padLandscape:
-            return GameConfig.ipadIngameControlScale
+            return UILayout.ipadIngameControlScale
         }
     }
 
     var ingameTopButtonScale: CGFloat {
         switch self {
         case .phoneCompact, .phoneRegular:
-            return GameConfig.regularLayoutScale
+            return UILayout.regularLayoutScale
         case .padLandscape:
-            return GameConfig.ipadIngameTopButtonScale
+            return UILayout.ipadIngameTopButtonScale
         }
     }
 
     func cameraScale(for size: CGSize) -> CGFloat {
         switch self {
         case .phoneCompact, .phoneRegular:
-            return GameConfig.regularLayoutScale
+            return UILayout.regularLayoutScale
         case .padLandscape:
             guard size.width > 0, size.height > 0 else {
-                return GameConfig.regularLayoutScale
+                return UILayout.regularLayoutScale
             }
-            let fitWidth = GameConfig.mapWidth / size.width
-            let fitHeight = GameConfig.mapHeight / size.height
+            let fitWidth = GameplayTuning.mapWidth / size.width
+            let fitHeight = GameplayTuning.mapHeight / size.height
             let fitScale = min(fitWidth, fitHeight)
             return max(
-                GameConfig.ipadCameraScaleFloor,
-                min(GameConfig.ipadCameraScaleCeiling, fitScale)
+                UILayout.ipadCameraScaleFloor,
+                min(UILayout.ipadCameraScaleCeiling, fitScale)
             )
         }
     }

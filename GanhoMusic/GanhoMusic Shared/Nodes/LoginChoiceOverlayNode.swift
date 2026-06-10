@@ -28,36 +28,36 @@ final class LoginChoiceOverlayNode: SKNode {
     private let heroFrameNode = SKShapeNode()
     private let portraitNode = CharacterPortraitNode(
         characterID: .kim,
-        maxSize: GameConfig.loginChoiceHeroPortraitMaxSize
+        maxSize: UILayout.loginChoiceHeroPortraitMaxSize
     )
-    private let heroCaptionLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let bodyLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let statusLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let heroCaptionLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let bodyLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let statusLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let guestButton = OverlayActionButtonNode(
-        title: GameConfig.loginChoiceGuestCardTitleText,
-        subtitle: GameConfig.loginChoiceGuestCardSubtitleText,
+        title: UILayout.loginChoiceGuestCardTitleText,
+        subtitle: UILayout.loginChoiceGuestCardSubtitleText,
         size: CGSize(
-            width: GameConfig.loginChoiceCardWidth,
-            height: GameConfig.loginChoiceCardHeight
+            width: UILayout.loginChoiceCardWidth,
+            height: UILayout.loginChoiceCardHeight
         ),
         style: .secondary
     )
     private let appleButton = OverlayActionButtonNode(
-        title: GameConfig.loginChoiceAppleCardTitleText,
-        subtitle: GameConfig.loginChoiceAppleCardSubtitleText,
+        title: UILayout.loginChoiceAppleCardTitleText,
+        subtitle: UILayout.loginChoiceAppleCardSubtitleText,
         size: CGSize(
-            width: GameConfig.loginChoiceCardWidth,
-            height: GameConfig.loginChoiceCardHeight
+            width: UILayout.loginChoiceCardWidth,
+            height: UILayout.loginChoiceCardHeight
         ),
         style: .primary
     )
     private let cancelButton = OverlayActionButtonNode(
-        title: GameConfig.loginChoiceCancelButtonText,
+        title: UILayout.loginChoiceCancelButtonText,
         subtitle: nil,
         size: CGSize(
-            width: GameConfig.loginChoiceCancelButtonWidth,
-            height: GameConfig.loginChoiceButtonHeight
+            width: UILayout.loginChoiceCancelButtonWidth,
+            height: UILayout.loginChoiceButtonHeight
         ),
         style: .secondary
     )
@@ -68,7 +68,7 @@ final class LoginChoiceOverlayNode: SKNode {
         self.mode = mode
         super.init()
         name = "loginChoiceOverlay"
-        zPosition = GameConfig.loginChoiceOverlayZPosition
+        zPosition = ZOrder.loginChoiceOverlayZPosition
         configureNodes()
         setMode(mode, statusText: "")
         update(sceneSize: sceneSize)
@@ -81,86 +81,86 @@ final class LoginChoiceOverlayNode: SKNode {
 
     // MARK: - Configure
     private func configureNodes() {
-        dimNode.fillColor = UIColor.ganhoBgDeep.withAlphaComponent(GameConfig.loginChoiceDimAlpha)
+        dimNode.fillColor = UIColor.ganhoBgDeep.withAlphaComponent(UILayout.loginChoiceDimAlpha)
         dimNode.strokeColor = .clear
         dimNode.lineWidth = 0
-        dimNode.zPosition = GameConfig.loginChoiceDimZPosition
+        dimNode.zPosition = ZOrder.loginChoiceDimZPosition
         addChild(dimNode)
 
         // 패널 그림자 — 따뜻한 코랄 톤으로(라이트 카드에 어울리게). 어둠→따뜻한 그림자.
-        panelShadowNode.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+        panelShadowNode.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.glassPillShadowAlpha)
         panelShadowNode.strokeColor = .clear
         panelShadowNode.lineWidth = 0
-        panelShadowNode.position = CGPoint(x: 0, y: GameConfig.overlayButtonShadowOffsetY)
-        panelShadowNode.zPosition = GameConfig.loginChoicePanelZPosition - 1
+        panelShadowNode.position = CGPoint(x: 0, y: UILayout.overlayButtonShadowOffsetY)
+        panelShadowNode.zPosition = ZOrder.loginChoicePanelZPosition - 1
         addChild(panelShadowNode)
 
         // 패널 본체 — 어두운 남보라 → 밝은 크림 카드 + 코랄 테두리(다크→라이트 v2화).
-        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.loginChoicePanelFillAlpha)
-        panelNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.loginChoicePanelStrokeAlpha)
-        panelNode.lineWidth = GameConfig.loginChoicePanelLineWidth
-        panelNode.zPosition = GameConfig.loginChoicePanelZPosition
+        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.loginChoicePanelFillAlpha)
+        panelNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.loginChoicePanelStrokeAlpha)
+        panelNode.lineWidth = UILayout.loginChoicePanelLineWidth
+        panelNode.zPosition = ZOrder.loginChoicePanelZPosition
         addChild(panelNode)
 
         // 악센트 스트립 — 골드 → 코랄.
         accentStripNode.fillColor = .ganhoCoralPrimary
         accentStripNode.strokeColor = .clear
         accentStripNode.lineWidth = 0
-        accentStripNode.zPosition = GameConfig.loginChoiceLabelZPosition
+        accentStripNode.zPosition = ZOrder.loginChoiceLabelZPosition
         addChild(accentStripNode)
 
         // hero 프레임 — 어두운 바닥톤 → 부드러운 라벤더 + 코랄 테두리.
-        heroFrameNode.fillColor = UIColor.ganhoLavenderSoft.withAlphaComponent(GameConfig.loginChoicePanelStrokeAlpha)
-        heroFrameNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.loginChoicePanelStrokeAlpha)
-        heroFrameNode.lineWidth = GameConfig.loginChoicePanelLineWidth
-        heroFrameNode.zPosition = GameConfig.loginChoiceLabelZPosition
+        heroFrameNode.fillColor = UIColor.ganhoLavenderSoft.withAlphaComponent(UILayout.loginChoicePanelStrokeAlpha)
+        heroFrameNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.loginChoicePanelStrokeAlpha)
+        heroFrameNode.lineWidth = UILayout.loginChoicePanelLineWidth
+        heroFrameNode.zPosition = ZOrder.loginChoiceLabelZPosition
         addChild(heroFrameNode)
 
-        portraitNode.zPosition = GameConfig.loginChoiceLabelZPosition + 1
+        portraitNode.zPosition = ZOrder.loginChoiceLabelZPosition + 1
         addChild(portraitNode)
 
-        heroCaptionLabel.text = GameConfig.loginChoiceHeroCaptionText
-        heroCaptionLabel.fontSize = GameConfig.loginChoiceHeroCaptionFontSize
+        heroCaptionLabel.text = UILayout.loginChoiceHeroCaptionText
+        heroCaptionLabel.fontSize = UILayout.loginChoiceHeroCaptionFontSize
         // 밝은 카드 위 가독 — 흰계열 → 네이비 muted.
         heroCaptionLabel.fontColor = .ganhoNavyMuted
         heroCaptionLabel.horizontalAlignmentMode = .center
         heroCaptionLabel.verticalAlignmentMode = .center
-        heroCaptionLabel.zPosition = GameConfig.loginChoiceLabelZPosition + 2
+        heroCaptionLabel.zPosition = ZOrder.loginChoiceLabelZPosition + 2
         addChild(heroCaptionLabel)
 
-        titleLabel.text = GameConfig.loginChoiceTitleText
-        titleLabel.fontSize = GameConfig.loginChoiceTitleFontSize
+        titleLabel.text = UILayout.loginChoiceTitleText
+        titleLabel.fontSize = UILayout.loginChoiceTitleFontSize
         // 타이틀 위계 최상 — 골드 → 네이비 deep(본문 대비 또렷).
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .left
         titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = GameConfig.loginChoiceLabelZPosition
+        titleLabel.zPosition = ZOrder.loginChoiceLabelZPosition
         addChild(titleLabel)
 
-        bodyLabel.text = GameConfig.loginChoiceBodyText
-        bodyLabel.fontSize = GameConfig.loginChoiceBodyFontSize
+        bodyLabel.text = UILayout.loginChoiceBodyText
+        bodyLabel.fontSize = UILayout.loginChoiceBodyFontSize
         // 본문 — 흰계열 → 네이비 muted.
         bodyLabel.fontColor = .ganhoNavyMuted
         bodyLabel.horizontalAlignmentMode = .left
         bodyLabel.verticalAlignmentMode = .top
         bodyLabel.numberOfLines = 0
-        bodyLabel.preferredMaxLayoutWidth = GameConfig.loginChoiceBodyWidth
-        bodyLabel.zPosition = GameConfig.loginChoiceLabelZPosition
+        bodyLabel.preferredMaxLayoutWidth = UILayout.loginChoiceBodyWidth
+        bodyLabel.zPosition = ZOrder.loginChoiceLabelZPosition
         addChild(bodyLabel)
 
-        statusLabel.fontSize = GameConfig.loginChoiceStatusFontSize
+        statusLabel.fontSize = UILayout.loginChoiceStatusFontSize
         // 상태/피드백 강조 — 골드 → 코랄.
         statusLabel.fontColor = .ganhoCoralPrimary
         statusLabel.horizontalAlignmentMode = .center
         statusLabel.verticalAlignmentMode = .center
-        statusLabel.zPosition = GameConfig.loginChoiceLabelZPosition
+        statusLabel.zPosition = ZOrder.loginChoiceLabelZPosition
         addChild(statusLabel)
 
-        guestButton.zPosition = GameConfig.loginChoiceButtonZPosition
+        guestButton.zPosition = ZOrder.loginChoiceButtonZPosition
         addChild(guestButton)
-        appleButton.zPosition = GameConfig.loginChoiceButtonZPosition
+        appleButton.zPosition = ZOrder.loginChoiceButtonZPosition
         addChild(appleButton)
-        cancelButton.zPosition = GameConfig.loginChoiceButtonZPosition
+        cancelButton.zPosition = ZOrder.loginChoiceButtonZPosition
         addChild(cancelButton)
     }
 
@@ -174,7 +174,7 @@ final class LoginChoiceOverlayNode: SKNode {
 
     func setMode(_ mode: LoginChoiceOverlayMode, statusText: String) {
         self.mode = mode
-        removeAction(forKey: GameConfig.loginChoiceStatusMessageActionKey)
+        removeAction(forKey: UILayout.loginChoiceStatusMessageActionKey)
         statusLabel.text = statusText
         let enabled = mode != .busy
         guestButton.setEnabled(enabled)
@@ -183,17 +183,17 @@ final class LoginChoiceOverlayNode: SKNode {
     }
 
     func setStatus(_ text: String) {
-        removeAction(forKey: GameConfig.loginChoiceStatusMessageActionKey)
+        removeAction(forKey: UILayout.loginChoiceStatusMessageActionKey)
         statusLabel.text = text
         guard !text.isEmpty else { return }
 
-        let wait = SKAction.wait(forDuration: GameConfig.loginChoiceStatusMessageDuration)
+        let wait = SKAction.wait(forDuration: UILayout.loginChoiceStatusMessageDuration)
         let clear = SKAction.run { [weak self] in
             self?.statusLabel.text = nil
         }
         run(
             SKAction.sequence([wait, clear]),
-            withKey: GameConfig.loginChoiceStatusMessageActionKey
+            withKey: UILayout.loginChoiceStatusMessageActionKey
         )
     }
 
@@ -208,12 +208,12 @@ final class LoginChoiceOverlayNode: SKNode {
     }
 
     private func updatePanelPath(sceneSize: CGSize) {
-        let panelWidth = sceneSize.width < GameConfig.compactNarrowWidth
-            ? GameConfig.loginChoicePanelCompactWidth
-            : GameConfig.loginChoicePanelWidth
+        let panelWidth = sceneSize.width < UILayout.compactNarrowWidth
+            ? UILayout.loginChoicePanelCompactWidth
+            : UILayout.loginChoicePanelWidth
         let panelSize = CGSize(
             width: panelWidth,
-            height: GameConfig.loginChoicePanelHeight
+            height: UILayout.loginChoicePanelHeight
         )
         let rect = CGRect(
             x: -panelSize.width / 2,
@@ -223,65 +223,65 @@ final class LoginChoiceOverlayNode: SKNode {
         )
         let panelPath = CGPath(
             roundedRect: rect,
-            cornerWidth: GameConfig.loginChoicePanelCornerRadius,
-            cornerHeight: GameConfig.loginChoicePanelCornerRadius,
+            cornerWidth: UILayout.loginChoicePanelCornerRadius,
+            cornerHeight: UILayout.loginChoicePanelCornerRadius,
             transform: nil
         )
         panelNode.path = panelPath
         panelShadowNode.path = panelPath
         accentStripNode.path = CGPath(
             roundedRect: CGRect(
-                x: -panelSize.width / 2 + GameConfig.loginChoicePanelCornerRadius,
-                y: panelSize.height / 2 - GameConfig.loginChoicePanelCornerRadius,
-                width: GameConfig.accentLineWidth,
-                height: GameConfig.overlayButtonHighlightHeight
+                x: -panelSize.width / 2 + UILayout.loginChoicePanelCornerRadius,
+                y: panelSize.height / 2 - UILayout.loginChoicePanelCornerRadius,
+                width: UILayout.accentLineWidth,
+                height: UILayout.overlayButtonHighlightHeight
             ),
-            cornerWidth: GameConfig.overlayButtonHighlightHeight / 2,
-            cornerHeight: GameConfig.overlayButtonHighlightHeight / 2,
+            cornerWidth: UILayout.overlayButtonHighlightHeight / 2,
+            cornerHeight: UILayout.overlayButtonHighlightHeight / 2,
             transform: nil
         )
         heroFrameNode.path = CGPath(
             roundedRect: CGRect(
-                x: -GameConfig.loginChoiceHeroFrameWidth / 2,
-                y: -GameConfig.loginChoiceHeroFrameHeight / 2,
-                width: GameConfig.loginChoiceHeroFrameWidth,
-                height: GameConfig.loginChoiceHeroFrameHeight
+                x: -UILayout.loginChoiceHeroFrameWidth / 2,
+                y: -UILayout.loginChoiceHeroFrameHeight / 2,
+                width: UILayout.loginChoiceHeroFrameWidth,
+                height: UILayout.loginChoiceHeroFrameHeight
             ),
-            cornerWidth: GameConfig.loginChoiceHeroFrameCornerRadius,
-            cornerHeight: GameConfig.loginChoiceHeroFrameCornerRadius,
+            cornerWidth: UILayout.loginChoiceHeroFrameCornerRadius,
+            cornerHeight: UILayout.loginChoiceHeroFrameCornerRadius,
             transform: nil
         )
     }
 
     private func layoutContent() {
-        let contentX = GameConfig.loginChoiceContentOffsetX
-        heroFrameNode.position = CGPoint(x: GameConfig.loginChoiceHeroFrameOffsetX, y: 0)
+        let contentX = UILayout.loginChoiceContentOffsetX
+        heroFrameNode.position = CGPoint(x: UILayout.loginChoiceHeroFrameOffsetX, y: 0)
         portraitNode.position = CGPoint(
-            x: GameConfig.loginChoiceHeroFrameOffsetX,
-            y: -GameConfig.loginChoiceHeroPortraitMaxSize.height / 2
+            x: UILayout.loginChoiceHeroFrameOffsetX,
+            y: -UILayout.loginChoiceHeroPortraitMaxSize.height / 2
         )
         heroCaptionLabel.position = CGPoint(
-            x: GameConfig.loginChoiceHeroFrameOffsetX,
-            y: GameConfig.loginChoiceHeroCaptionOffsetY
+            x: UILayout.loginChoiceHeroFrameOffsetX,
+            y: UILayout.loginChoiceHeroCaptionOffsetY
         )
-        titleLabel.position = CGPoint(x: contentX - GameConfig.loginChoiceBodyWidth / 2, y: GameConfig.loginChoiceTitleOffsetY)
-        bodyLabel.position = CGPoint(x: contentX - GameConfig.loginChoiceBodyWidth / 2, y: GameConfig.loginChoiceBodyOffsetY)
-        statusLabel.position = CGPoint(x: 0, y: GameConfig.loginChoiceStatusOffsetY)
+        titleLabel.position = CGPoint(x: contentX - UILayout.loginChoiceBodyWidth / 2, y: UILayout.loginChoiceTitleOffsetY)
+        bodyLabel.position = CGPoint(x: contentX - UILayout.loginChoiceBodyWidth / 2, y: UILayout.loginChoiceBodyOffsetY)
+        statusLabel.position = CGPoint(x: 0, y: UILayout.loginChoiceStatusOffsetY)
         layoutChoiceButtons()
-        cancelButton.position = CGPoint(x: contentX, y: GameConfig.loginChoiceCancelButtonOffsetY)
+        cancelButton.position = CGPoint(x: contentX, y: UILayout.loginChoiceCancelButtonOffsetY)
     }
 
     private func layoutChoiceButtons() {
-        let contentX = GameConfig.loginChoiceContentOffsetX
+        let contentX = UILayout.loginChoiceContentOffsetX
         guestButton.position = CGPoint(
             x: contentX,
-            y: GameConfig.loginChoiceCardFirstOffsetY
+            y: UILayout.loginChoiceCardFirstOffsetY
         )
         appleButton.position = CGPoint(
             x: contentX,
-            y: GameConfig.loginChoiceCardFirstOffsetY
-                - GameConfig.loginChoiceCardHeight
-                - GameConfig.loginChoiceCardGap
+            y: UILayout.loginChoiceCardFirstOffsetY
+                - UILayout.loginChoiceCardHeight
+                - UILayout.loginChoiceCardGap
         )
     }
 

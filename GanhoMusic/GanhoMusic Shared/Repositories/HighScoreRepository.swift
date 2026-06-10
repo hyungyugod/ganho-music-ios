@@ -8,7 +8,7 @@
 import Foundation
 
 /// 최고 점수를 UserDefaults에 영구 저장하는 영속 계층.
-/// 키 문자열은 호출부에 노출되지 않고 `GameConfig.highScoreUserDefaultsKey`로 단일화.
+/// 키 문자열은 호출부에 노출되지 않고 `StorageKeys.highScoreUserDefaultsKey`로 단일화.
 /// init에 `defaults`/`key`를 기본값으로 받아 DI를 허용 — prod는 `HighScoreRepository()`,
 /// 테스트는 별도 suite를 주입할 수 있다.
 /// 단일 스레드(메인) 호출 가정 → 락/큐 없음.
@@ -20,7 +20,7 @@ final class HighScoreRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.highScoreUserDefaultsKey) {
+         key: String = StorageKeys.highScoreUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }

@@ -23,17 +23,17 @@ extension GameScene {
 
     private func startAirforceRescueSequence() {
         let sergeant = SergeantParkNode.makeIntroCloseup()
-        sergeant.zPosition = GameConfig.sergeantCloseupZPosition
+        sergeant.zPosition = ZOrder.sergeantCloseupZPosition
         sergeant.alpha = 0
-        sergeant.position = CGPoint(x: 0, y: GameConfig.sergeantCloseupOffsetY)
+        sergeant.position = CGPoint(x: 0, y: FeelTuning.sergeantCloseupOffsetY)
         cameraNode.addChild(sergeant)
-        let sergeantFadeIn = SKAction.fadeIn(withDuration: GameConfig.sergeantCloseupFadeInDuration)
-        let sergeantStay = SKAction.wait(forDuration: GameConfig.sergeantCloseupStayDuration)
-        let sergeantFadeOut = SKAction.fadeOut(withDuration: GameConfig.sergeantCloseupFadeOutDuration)
+        let sergeantFadeIn = SKAction.fadeIn(withDuration: FeelTuning.sergeantCloseupFadeInDuration)
+        let sergeantStay = SKAction.wait(forDuration: FeelTuning.sergeantCloseupStayDuration)
+        let sergeantFadeOut = SKAction.fadeOut(withDuration: FeelTuning.sergeantCloseupFadeOutDuration)
         let sergeantCleanup = SKAction.removeFromParent()
         sergeant.run(.sequence([sergeantFadeIn, sergeantStay, sergeantFadeOut, sergeantCleanup]))
 
-        enemy.startFleeing(duration: GameConfig.enemyFleeDuration) { [weak self] in
+        enemy.startFleeing(duration: GameplayTuning.enemyFleeDuration) { [weak self] in
             guard let self = self else { return }
             let target = self.spawnSystem.currentObstaclesTarget
             var currentF = 0
@@ -45,8 +45,8 @@ extension GameScene {
         }
 
         let plane = AirplaneNode()
-        let planeY = +(size.height / 2 - GameConfig.airplaneTopOffset)
-        let waitPlane = SKAction.wait(forDuration: GameConfig.airplaneDelayAfterOverlay)
+        let planeY = +(size.height / 2 - FeelTuning.airplaneTopOffset)
+        let waitPlane = SKAction.wait(forDuration: FeelTuning.airplaneDelayAfterOverlay)
         let attachPlane = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.cameraNode.addChild(plane)
@@ -58,7 +58,7 @@ extension GameScene {
         cameraNode.addChild(bomb)
         bomb.flash(sceneSize: size)
 
-        let waitPurge = SKAction.wait(forDuration: GameConfig.bombFlashDelay)
+        let waitPurge = SKAction.wait(forDuration: FeelTuning.bombFlashDelay)
         let attachPurge = SKAction.run { [weak self] in
             self?.spawnSystem.purgeAllF()
         }

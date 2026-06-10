@@ -34,14 +34,14 @@ final class CloudProgressRepository {
 
         for record in records {
             let scoreDocument = userDocument
-                .collection(GameConfig.cloudScoresCollectionName)
+                .collection(StorageKeys.cloudScoresCollectionName)
                 .document(record.localID)
             batch.setData(scoreData(record: record), forDocument: scoreDocument, merge: true)
         }
 
         let progressDocument = userDocument
-            .collection(GameConfig.cloudProgressCollectionName)
-            .document(GameConfig.cloudProgressSummaryDocumentName)
+            .collection(StorageKeys.cloudProgressCollectionName)
+            .document(StorageKeys.cloudProgressSummaryDocumentName)
         batch.setData(progressData(progress: progress), forDocument: progressDocument, merge: true)
 
         try await commit(batch: batch)
@@ -58,8 +58,8 @@ final class CloudProgressRepository {
     // MARK: - Read
     func fetchProgress(uid: String) async throws -> CloudProgressSnapshot? {
         let progressDocument = userDocument(uid: uid)
-            .collection(GameConfig.cloudProgressCollectionName)
-            .document(GameConfig.cloudProgressSummaryDocumentName)
+            .collection(StorageKeys.cloudProgressCollectionName)
+            .document(StorageKeys.cloudProgressSummaryDocumentName)
         let snapshot = try await getDocument(progressDocument)
         guard snapshot.exists,
               let data = snapshot.data() else {
@@ -72,12 +72,12 @@ final class CloudProgressRepository {
     func deleteUserData(uid: String) async throws {
         let userDocument = userDocument(uid: uid)
         try await deleteCollection(
-            userDocument.collection(GameConfig.cloudScoresCollectionName),
-            batchLimit: GameConfig.cloudDeleteBatchLimit
+            userDocument.collection(StorageKeys.cloudScoresCollectionName),
+            batchLimit: StorageKeys.cloudDeleteBatchLimit
         )
         try await deleteCollection(
-            userDocument.collection(GameConfig.cloudProgressCollectionName),
-            batchLimit: GameConfig.cloudDeleteBatchLimit
+            userDocument.collection(StorageKeys.cloudProgressCollectionName),
+            batchLimit: StorageKeys.cloudDeleteBatchLimit
         )
         try await deleteDocument(userDocument)
     }
@@ -85,7 +85,7 @@ final class CloudProgressRepository {
     // MARK: - Data Mapping
     private func userDocument(uid: String) -> DocumentReference {
         return firestore
-            .collection(GameConfig.cloudUsersCollectionName)
+            .collection(StorageKeys.cloudUsersCollectionName)
             .document(uid)
     }
 
@@ -223,7 +223,7 @@ final class CloudProgressRepository {
 
     private func deleteCollection(_ collection: CollectionReference,
                                   batchLimit: Int) async throws {
-        let boundedLimit = max(1, min(batchLimit, GameConfig.cloudDeleteBatchLimit))
+        let boundedLimit = max(1, min(batchLimit, StorageKeys.cloudDeleteBatchLimit))
 
         while true {
             let snapshot = try await getDocuments(collection.limit(to: boundedLimit))

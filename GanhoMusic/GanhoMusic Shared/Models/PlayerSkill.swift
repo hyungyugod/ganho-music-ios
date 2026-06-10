@@ -42,10 +42,10 @@ extension PlayerSkill {
     var cooldown: TimeInterval {
         switch self {
         case .none:           return 1  // division-by-zero 회피 sentinel (실제 발동 없음)
-        case .dashClimb:      return GameConfig.dashClimbCooldown
-        case .bookClubRally:  return GameConfig.bookClubRallyCooldown
+        case .dashClimb:      return GameplayTuning.dashClimbCooldown
+        case .bookClubRally:  return GameplayTuning.bookClubRallyCooldown
         case .charmStudent:   return .infinity  // 게임당 1회 — 진행률 영원 0
-        case .taiwanTrip:     return GameConfig.taiwanTripCooldown
+        case .taiwanTrip:     return GameplayTuning.taiwanTripCooldown
         }
     }
 
@@ -53,12 +53,12 @@ extension PlayerSkill {
     var duration: TimeInterval {
         switch self {
         case .none:           return 0
-        case .dashClimb:      return GameConfig.dashClimbDuration
+        case .dashClimb:      return GameplayTuning.dashClimbDuration
         case .bookClubRally:  return 0  // 즉발 — 끌어오기 액션은 노트 자체에 부착
-        case .charmStudent:   return GameConfig.charmStudentDuration
+        case .charmStudent:   return GameplayTuning.charmStudentDuration
         // V2 무적 길이(1.6초)로 통일 — applyTaiwanTripBlink.totalDuration과 같은 상수를 참조해야
         // progress·무적·깜빡임이 동시에 끝난다(레거시 taiwanTripInvulnerableDuration=1.0은 값만 보존, 미참조).
-        case .taiwanTrip:     return GameConfig.taiwanTripInvulnerableDurationV2
+        case .taiwanTrip:     return GameplayTuning.taiwanTripInvulnerableDuration
         }
     }
 

@@ -32,15 +32,15 @@ final class FProjectileNode: SKSpriteNode {
     // MARK: - Init
     init() {
         let physicsSize = CGSize(
-            width:  GameConfig.fProjectileSize,
-            height: GameConfig.fProjectileSize
+            width:  GameplayTuning.fProjectileSize,
+            height: GameplayTuning.fProjectileSize
         )
         let visualSize = CGSize(
-            width:  GameConfig.fProjectileVisualSize,
-            height: GameConfig.fProjectileVisualSize
+            width:  GameplayTuning.fProjectileVisualSize,
+            height: GameplayTuning.fProjectileVisualSize
         )
-        let texture = PixelSpriteRenderer.fProjectileTexture(color: GameConfig.fProjectileColor)
-        haloNode = SKShapeNode(circleOfRadius: GameConfig.projectileDangerHaloRadius)
+        let texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.fProjectileColor)
+        haloNode = SKShapeNode(circleOfRadius: UILayout.projectileDangerHaloRadius)
         outlineNode = SKShapeNode(rectOf: visualSize)
         super.init(texture: texture, color: .clear, size: visualSize)
         name = "projectile"   // ContactRouter 호환 (기존 onProjectileHitPlayer/Wall 콜백 재사용)
@@ -68,22 +68,22 @@ final class FProjectileNode: SKSpriteNode {
     /// 매혹 진입. texture를 분홍(.ganhoPinkNote)으로 교체. 멱등(재호출 안전).
     func applyEnchanted() {
         isEnchanted = true
-        texture = PixelSpriteRenderer.fProjectileTexture(color: GameConfig.aItemColor)
+        texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.aItemColor)
         haloNode.strokeColor = UIColor.ganhoIngameRewardMint
-            .withAlphaComponent(GameConfig.projectileDangerHaloAlpha)
+            .withAlphaComponent(UILayout.projectileDangerHaloAlpha)
         haloNode.fillColor = UIColor.ganhoIngameReward
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha)
         outlineNode.strokeColor = .ganhoPixelHudWhite
     }
 
     /// 매혹 해제. texture를 원색(빨강)으로 복원.
     func clearEnchanted() {
         isEnchanted = false
-        texture = PixelSpriteRenderer.fProjectileTexture(color: GameConfig.fProjectileColor)
+        texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.fProjectileColor)
         haloNode.strokeColor = UIColor.ganhoIngameDanger
-            .withAlphaComponent(GameConfig.projectileDangerHaloAlpha)
+            .withAlphaComponent(UILayout.projectileDangerHaloAlpha)
         haloNode.fillColor = UIColor.ganhoIngameDangerDeep
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha)
         outlineNode.strokeColor = .ganhoPixelOutlineBlack
     }
 
@@ -96,25 +96,25 @@ final class FProjectileNode: SKSpriteNode {
 
     func applyLifetime(_ lifetime: TimeInterval) {
         guard lifetime.isFinite, lifetime > 0 else { return }
-        removeAction(forKey: GameConfig.projectileLifetimeActionKey)
+        removeAction(forKey: GameplayTuning.projectileLifetimeActionKey)
         run(.sequence([
             .wait(forDuration: lifetime),
             .removeFromParent()
-        ]), withKey: GameConfig.projectileLifetimeActionKey)
+        ]), withKey: GameplayTuning.projectileLifetimeActionKey)
     }
 
     // MARK: - Readability
     private func configureReadabilityNodes() {
         haloNode.strokeColor = UIColor.ganhoIngameDanger
-            .withAlphaComponent(GameConfig.projectileDangerHaloAlpha)
-        haloNode.lineWidth = GameConfig.ingameObjectHaloLineWidth
+            .withAlphaComponent(UILayout.projectileDangerHaloAlpha)
+        haloNode.lineWidth = UILayout.ingameObjectHaloLineWidth
         haloNode.fillColor = UIColor.ganhoIngameDangerDeep
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha)
         haloNode.zPosition = -1
         addChild(haloNode)
 
         outlineNode.strokeColor = .ganhoPixelOutlineBlack
-        outlineNode.lineWidth = GameConfig.projectileOutlineWidth
+        outlineNode.lineWidth = UILayout.projectileOutlineWidth
         outlineNode.fillColor = .clear
         outlineNode.zPosition = 1
         addChild(outlineNode)
@@ -131,25 +131,25 @@ final class FProjectileNode: SKSpriteNode {
     private func startNearMissPulseIfNeeded() {
         guard !isNearMissPulsing else { return }
         isNearMissPulsing = true
-        let haloGrow = SKAction.scale(to: GameConfig.projectileNearMissPulseScale,
-                                      duration: GameConfig.projectileNearMissPulseHalfDuration)
+        let haloGrow = SKAction.scale(to: GameplayTuning.projectileNearMissPulseScale,
+                                      duration: GameplayTuning.projectileNearMissPulseHalfDuration)
         let haloShrink = SKAction.scale(to: 1.0,
-                                        duration: GameConfig.projectileNearMissPulseHalfDuration)
-        let outlineGrow = SKAction.scale(to: GameConfig.projectileNearMissPulseScale,
-                                         duration: GameConfig.projectileNearMissPulseHalfDuration)
+                                        duration: GameplayTuning.projectileNearMissPulseHalfDuration)
+        let outlineGrow = SKAction.scale(to: GameplayTuning.projectileNearMissPulseScale,
+                                         duration: GameplayTuning.projectileNearMissPulseHalfDuration)
         let outlineShrink = SKAction.scale(to: 1.0,
-                                           duration: GameConfig.projectileNearMissPulseHalfDuration)
+                                           duration: GameplayTuning.projectileNearMissPulseHalfDuration)
         haloNode.run(.repeatForever(.sequence([haloGrow, haloShrink])),
-                     withKey: GameConfig.projectileNearMissPulseActionKey)
+                     withKey: GameplayTuning.projectileNearMissPulseActionKey)
         outlineNode.run(.repeatForever(.sequence([outlineGrow, outlineShrink])),
-                        withKey: GameConfig.projectileNearMissPulseActionKey)
+                        withKey: GameplayTuning.projectileNearMissPulseActionKey)
     }
 
     private func stopNearMissPulse() {
         guard isNearMissPulsing else { return }
         isNearMissPulsing = false
-        haloNode.removeAction(forKey: GameConfig.projectileNearMissPulseActionKey)
-        outlineNode.removeAction(forKey: GameConfig.projectileNearMissPulseActionKey)
+        haloNode.removeAction(forKey: GameplayTuning.projectileNearMissPulseActionKey)
+        outlineNode.removeAction(forKey: GameplayTuning.projectileNearMissPulseActionKey)
         haloNode.setScale(1.0)
         outlineNode.setScale(1.0)
     }

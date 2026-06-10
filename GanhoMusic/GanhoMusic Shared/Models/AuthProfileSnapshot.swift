@@ -16,7 +16,7 @@ struct AuthProfileSnapshot: Codable {
     let updatedAt: Date
 
     var isAppleLinked: Bool {
-        return providerIDs.contains(GameConfig.authAppleProviderID)
+        return providerIDs.contains(StorageKeys.authAppleProviderID)
     }
 
     var preferredDisplayName: String? {

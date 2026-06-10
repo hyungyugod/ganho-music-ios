@@ -27,7 +27,7 @@ final class PerDifficultyScoreRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.perDifficultyScoreUserDefaultsKey) {
+         key: String = StorageKeys.perDifficultyScoreUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }
@@ -36,7 +36,7 @@ final class PerDifficultyScoreRepository {
                        defaults: UserDefaults = .standard) -> PerDifficultyScoreRepository {
         return PerDifficultyScoreRepository(
             defaults: defaults,
-            key: "\(GameConfig.perDifficultyScoreUserDefaultsKey).\(scope.storageSuffix)"
+            key: "\(StorageKeys.perDifficultyScoreUserDefaultsKey).\(scope.storageSuffix)"
         )
     }
 

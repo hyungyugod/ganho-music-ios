@@ -26,41 +26,41 @@ final class WallTileNode: SKSpriteNode {
     ///   외곽 벽은 false(기본) → name=wallTileNodeName(파괴 비대상, 맵 이탈 방지).
     ///   physicsBody 정책(category=wall 등)은 breakable 무관 *동일* — 이름만 다르다.
     init(breakable: Bool = false) {
-        let tileSize = GameConfig.tileSize
+        let tileSize = GameplayTuning.tileSize
         let size = CGSize(
             width:  tileSize,
             height: tileSize
         )
         let color = UIColor.ganhoIngameWallFill
         super.init(texture: nil, color: color, size: size)
-        name = breakable ? GameConfig.breakableWallName : GameConfig.wallTileNodeName
-        zPosition = GameConfig.wallTileZPosition
+        name = breakable ? GameplayTuning.breakableWallName : GameplayTuning.wallTileNodeName
+        zPosition = ZOrder.wallTileZPosition
 
         let shadow = SKSpriteNode(
             color: .ganhoIngameWallShadow,
-            size: CGSize(width: size.width, height: GameConfig.wallTileShadowHeight)
+            size: CGSize(width: size.width, height: UILayout.wallTileShadowHeight)
         )
         shadow.position = CGPoint(
             x: 0,
-            y: -size.height / 2 + GameConfig.wallTileShadowHeight / 2
+            y: -size.height / 2 + UILayout.wallTileShadowHeight / 2
         )
         shadow.zPosition = 1
         addChild(shadow)
 
         let topLine = SKSpriteNode(
             color: .ganhoIngameWallHighlight,
-            size: CGSize(width: size.width, height: GameConfig.wallTileHighlightHeight)
+            size: CGSize(width: size.width, height: UILayout.wallTileHighlightHeight)
         )
         topLine.position = CGPoint(
             x: 0,
-            y: size.height / 2 - GameConfig.wallTileHighlightHeight / 2
+            y: size.height / 2 - UILayout.wallTileHighlightHeight / 2
         )
         topLine.zPosition = 2
         addChild(topLine)
 
         let outline = SKShapeNode(rectOf: size)
         outline.strokeColor = .ganhoPixelOutlineBlack
-        outline.lineWidth = GameConfig.ingameWallStrokeWidth
+        outline.lineWidth = UILayout.ingameWallStrokeWidth
         outline.fillColor = .clear
         outline.zPosition = 3
         addChild(outline)

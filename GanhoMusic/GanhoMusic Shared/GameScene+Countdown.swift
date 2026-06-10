@@ -12,15 +12,15 @@ extension GameScene {
     func showCountdown() {
         let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
         dim.alpha = 0
-        dim.zPosition = GameConfig.countdownDimZPositionV9
-        dim.name = GameConfig.countdownDimNodeName
+        dim.zPosition = ZOrder.countdownDimZPosition
+        dim.name = FeelTuning.countdownDimNodeName
         cameraNode.addChild(dim)
-        dim.run(.fadeAlpha(to: GameConfig.countdownDimAlphaV9,
-                           duration: GameConfig.countdownDimFadeInDuration))
+        dim.run(.fadeAlpha(to: FeelTuning.countdownDimAlpha,
+                           duration: FeelTuning.countdownDimFadeInDuration))
 
         let node = CountdownNode()
         node.position = .zero
-        node.zPosition = GameConfig.countdownNodeZPositionV9
+        node.zPosition = ZOrder.countdownNodeZPosition
         node.isHidden = false
         node.alpha = 1.0
         cameraNode.addChild(node)
@@ -35,7 +35,7 @@ extension GameScene {
             },
             onComplete: { [weak self] in
                 guard let self = self else { return }
-                let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownDimFadeOutDuration)
+                let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.countdownDimFadeOutDuration)
                 let cleanup = SKAction.removeFromParent()
                 let startGame = SKAction.run { [weak self] in
                     self?.startGameProperly()
@@ -56,11 +56,11 @@ extension GameScene {
             enemy: enemy,
             progressProvider: { [weak self] in
                 guard let self = self else { return 0 }
-                return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+                return Double(1.0 - self.remainingTime / GameplayTuning.gameDuration)
             }
         )
         gameState = .playing
-        if GameConfig.isBGMEnabled {
+        if FeelTuning.isBGMEnabled {
             bgm.play()
         }
     }

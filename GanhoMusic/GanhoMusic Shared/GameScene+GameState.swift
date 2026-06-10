@@ -65,7 +65,7 @@ extension GameScene {
         panel.zPosition = 1
         overlay.addChild(panel)
 
-        let title = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        let title = SKLabelNode(fontNamed: Typography.fontDisplay)
         title.text = "일시정지"
         title.fontSize = 28
         title.fontColor = .ganhoNavyDeep
@@ -137,7 +137,7 @@ extension GameScene {
 
         guard let view = self.view else { return }
         let scene = CharacterSelectScene.newCharacterSelectScene()
-        view.presentScene(scene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
+        view.presentScene(scene, transition: .fade(withDuration: FeelTuning.sceneTransitionDuration))
     }
 
     func endGame() {
@@ -200,12 +200,12 @@ extension GameScene {
             isNewGraduation: isNewGraduation,
             graduatedAt: graduatedAt
         )
-        view.presentScene(resultScene, transition: .fade(withDuration: GameConfig.sceneTransitionDuration))
+        view.presentScene(resultScene, transition: .fade(withDuration: FeelTuning.sceneTransitionDuration))
     }
 
     private static func isGraduated(characterID: CharacterID,
                                     scores repo: PerDifficultyScoreRepository) -> Bool {
-        let targets = GameConfig.targetScoreByDifficulty
+        let targets = GameplayTuning.targetScoreByDifficulty
         for difficulty in Difficulty.allCases {
             let target = targets[difficulty] ?? Int.max
             if repo.best(characterID: characterID, difficulty: difficulty) < target {

@@ -22,7 +22,7 @@ final class MapNode: SKNode {
     override init() {
         super.init()
         name = "mapNode"
-        zPosition = GameConfig.mapNodeZPosition   // -50: 체크보드(-100) 위, 외곽 벽(0) 아래.
+        zPosition = ZOrder.mapNodeZPosition   // -50: 체크보드(-100) 위, 외곽 벽(0) 아래.
     }
 
     /// 코더 init은 사용하지 않음 — SKS 파일이 아닌 코드 부착 전용 노드.
@@ -35,14 +35,14 @@ final class MapNode: SKNode {
     /// Phase C 빌런/벽 스폰의 단일 좌표 진입점.
     /// 산식: (col + 0.5) × runtime tileSize, (row + 0.5) × runtime tileSize.
     func tileCoordinate(col: Int, row: Int) -> CGPoint {
-        return GameConfig.tileCenter(col: col, row: row)
+        return GameplayTuning.tileCenter(col: col, row: row)
     }
 
     /// 월드 전체 크기 (pt). Phase C/카메라 클램프에서 단일 진실 원천으로 참조 가능.
     func worldSize() -> CGSize {
         return CGSize(
-            width:  GameConfig.mapWidth,
-            height: GameConfig.mapHeight
+            width:  GameplayTuning.mapWidth,
+            height: GameplayTuning.mapHeight
         )
     }
 
@@ -66,8 +66,8 @@ final class MapNode: SKNode {
     /// 32×20 맵의 가장자리 1셀 둘레 — 원본 game.js L264~L265.
     /// 가로(top/bottom)는 전 col(0..lastCol), 세로(left/right)는 1..lastRow-1로 중복 0(OQ-3).
     private func buildOuterWall() {
-        let lastCol = GameConfig.mapColumns - 1
-        let lastRow = GameConfig.mapRows - 1
+        let lastCol = GameplayTuning.mapColumns - 1
+        let lastRow = GameplayTuning.mapRows - 1
         // 외곽 벽은 breakable: false — dashClimb으로 부서지면 맵 밖 이탈 가능(P0 회피).
         for col in 0...lastCol {
             attachWallTile(col: col, row: 0, breakable: false)
@@ -82,8 +82,8 @@ final class MapNode: SKNode {
     /// Easy 내부 — 중앙 2×4 픽셀 기둥 1개 (game.js L267~L271).
     /// 원본 좌표 m[r][c]=1 r∈[8..11], c∈[15..16] → iosRow = 19 - origR로 변환.
     private func buildEasyInterior() {
-        for origR in GameConfig.easyMapCenterPillarOrigRStart...GameConfig.easyMapCenterPillarOrigREnd {
-            for col in GameConfig.easyMapCenterPillarColStart...GameConfig.easyMapCenterPillarColEnd {
+        for origR in GameplayTuning.easyMapCenterPillarOrigRStart...GameplayTuning.easyMapCenterPillarOrigREnd {
+            for col in GameplayTuning.easyMapCenterPillarColStart...GameplayTuning.easyMapCenterPillarColEnd {
                 // 내부 기둥 — breakable: true (dashClimb 경로면 부서짐).
                 attachWallTile(col: col, row: convertOrigRowToIOS(origR), breakable: true)
             }
@@ -112,64 +112,64 @@ final class MapNode: SKNode {
     /// 중앙 기둥은 좌(1×2 세로) / 우(1×2 세로) / 상(2×1 가로) / 하(2×1 가로).
     private func buildHardInterior() {
         // 좌상 방 — m[5][4..9]=1 + m[2..5][9]=1 (문 m[3][9]=0)
-        buildRoom(hWallOrigR:      GameConfig.hardMapRoomTopLeftHWallOrigR,
-                  hWallColStart:   GameConfig.hardMapRoomTopLeftHWallColStart,
-                  hWallColEnd:     GameConfig.hardMapRoomTopLeftHWallColEnd,
-                  vWallCol:        GameConfig.hardMapRoomTopLeftVWallCol,
-                  vWallOrigRStart: GameConfig.hardMapRoomTopLeftVWallOrigRStart,
-                  vWallOrigREnd:   GameConfig.hardMapRoomTopLeftVWallOrigREnd,
-                  doorOrigR:       GameConfig.hardMapRoomTopLeftDoorOrigR)
+        buildRoom(hWallOrigR:      GameplayTuning.hardMapRoomTopLeftHWallOrigR,
+                  hWallColStart:   GameplayTuning.hardMapRoomTopLeftHWallColStart,
+                  hWallColEnd:     GameplayTuning.hardMapRoomTopLeftHWallColEnd,
+                  vWallCol:        GameplayTuning.hardMapRoomTopLeftVWallCol,
+                  vWallOrigRStart: GameplayTuning.hardMapRoomTopLeftVWallOrigRStart,
+                  vWallOrigREnd:   GameplayTuning.hardMapRoomTopLeftVWallOrigREnd,
+                  doorOrigR:       GameplayTuning.hardMapRoomTopLeftDoorOrigR)
 
         // 우상 방 — m[5][22..27]=1 + m[2..5][22]=1 (문 m[3][22]=0)
-        buildRoom(hWallOrigR:      GameConfig.hardMapRoomTopRightHWallOrigR,
-                  hWallColStart:   GameConfig.hardMapRoomTopRightHWallColStart,
-                  hWallColEnd:     GameConfig.hardMapRoomTopRightHWallColEnd,
-                  vWallCol:        GameConfig.hardMapRoomTopRightVWallCol,
-                  vWallOrigRStart: GameConfig.hardMapRoomTopRightVWallOrigRStart,
-                  vWallOrigREnd:   GameConfig.hardMapRoomTopRightVWallOrigREnd,
-                  doorOrigR:       GameConfig.hardMapRoomTopRightDoorOrigR)
+        buildRoom(hWallOrigR:      GameplayTuning.hardMapRoomTopRightHWallOrigR,
+                  hWallColStart:   GameplayTuning.hardMapRoomTopRightHWallColStart,
+                  hWallColEnd:     GameplayTuning.hardMapRoomTopRightHWallColEnd,
+                  vWallCol:        GameplayTuning.hardMapRoomTopRightVWallCol,
+                  vWallOrigRStart: GameplayTuning.hardMapRoomTopRightVWallOrigRStart,
+                  vWallOrigREnd:   GameplayTuning.hardMapRoomTopRightVWallOrigREnd,
+                  doorOrigR:       GameplayTuning.hardMapRoomTopRightDoorOrigR)
 
         // 좌하 방 — m[14][4..9]=1 + m[14..17][9]=1 (문 m[16][9]=0)
-        buildRoom(hWallOrigR:      GameConfig.hardMapRoomBottomLeftHWallOrigR,
-                  hWallColStart:   GameConfig.hardMapRoomBottomLeftHWallColStart,
-                  hWallColEnd:     GameConfig.hardMapRoomBottomLeftHWallColEnd,
-                  vWallCol:        GameConfig.hardMapRoomBottomLeftVWallCol,
-                  vWallOrigRStart: GameConfig.hardMapRoomBottomLeftVWallOrigRStart,
-                  vWallOrigREnd:   GameConfig.hardMapRoomBottomLeftVWallOrigREnd,
-                  doorOrigR:       GameConfig.hardMapRoomBottomLeftDoorOrigR)
+        buildRoom(hWallOrigR:      GameplayTuning.hardMapRoomBottomLeftHWallOrigR,
+                  hWallColStart:   GameplayTuning.hardMapRoomBottomLeftHWallColStart,
+                  hWallColEnd:     GameplayTuning.hardMapRoomBottomLeftHWallColEnd,
+                  vWallCol:        GameplayTuning.hardMapRoomBottomLeftVWallCol,
+                  vWallOrigRStart: GameplayTuning.hardMapRoomBottomLeftVWallOrigRStart,
+                  vWallOrigREnd:   GameplayTuning.hardMapRoomBottomLeftVWallOrigREnd,
+                  doorOrigR:       GameplayTuning.hardMapRoomBottomLeftDoorOrigR)
 
         // 우하 방 — m[14][22..27]=1 + m[14..17][22]=1 (문 m[16][22]=0)
-        buildRoom(hWallOrigR:      GameConfig.hardMapRoomBottomRightHWallOrigR,
-                  hWallColStart:   GameConfig.hardMapRoomBottomRightHWallColStart,
-                  hWallColEnd:     GameConfig.hardMapRoomBottomRightHWallColEnd,
-                  vWallCol:        GameConfig.hardMapRoomBottomRightVWallCol,
-                  vWallOrigRStart: GameConfig.hardMapRoomBottomRightVWallOrigRStart,
-                  vWallOrigREnd:   GameConfig.hardMapRoomBottomRightVWallOrigREnd,
-                  doorOrigR:       GameConfig.hardMapRoomBottomRightDoorOrigR)
+        buildRoom(hWallOrigR:      GameplayTuning.hardMapRoomBottomRightHWallOrigR,
+                  hWallColStart:   GameplayTuning.hardMapRoomBottomRightHWallColStart,
+                  hWallColEnd:     GameplayTuning.hardMapRoomBottomRightHWallColEnd,
+                  vWallCol:        GameplayTuning.hardMapRoomBottomRightVWallCol,
+                  vWallOrigRStart: GameplayTuning.hardMapRoomBottomRightVWallOrigRStart,
+                  vWallOrigREnd:   GameplayTuning.hardMapRoomBottomRightVWallOrigREnd,
+                  doorOrigR:       GameplayTuning.hardMapRoomBottomRightDoorOrigR)
 
         // 중앙-좌 기둥 — m[9..10][12]=1 (1×2 세로)
-        attachPillarRect(colStart:   GameConfig.hardMapCenterLeftPillarCol,
-                         colEnd:     GameConfig.hardMapCenterLeftPillarCol,
-                         origRStart: GameConfig.hardMapCenterLeftPillarOrigRStart,
-                         origREnd:   GameConfig.hardMapCenterLeftPillarOrigREnd)
+        attachPillarRect(colStart:   GameplayTuning.hardMapCenterLeftPillarCol,
+                         colEnd:     GameplayTuning.hardMapCenterLeftPillarCol,
+                         origRStart: GameplayTuning.hardMapCenterLeftPillarOrigRStart,
+                         origREnd:   GameplayTuning.hardMapCenterLeftPillarOrigREnd)
 
         // 중앙-우 기둥 — m[9..10][19]=1 (1×2 세로)
-        attachPillarRect(colStart:   GameConfig.hardMapCenterRightPillarCol,
-                         colEnd:     GameConfig.hardMapCenterRightPillarCol,
-                         origRStart: GameConfig.hardMapCenterRightPillarOrigRStart,
-                         origREnd:   GameConfig.hardMapCenterRightPillarOrigREnd)
+        attachPillarRect(colStart:   GameplayTuning.hardMapCenterRightPillarCol,
+                         colEnd:     GameplayTuning.hardMapCenterRightPillarCol,
+                         origRStart: GameplayTuning.hardMapCenterRightPillarOrigRStart,
+                         origREnd:   GameplayTuning.hardMapCenterRightPillarOrigREnd)
 
         // 중앙-상 기둥 — m[7][15..16]=1 (2×1 가로)
-        attachPillarRect(colStart:   GameConfig.hardMapCenterTopPillarColStart,
-                         colEnd:     GameConfig.hardMapCenterTopPillarColEnd,
-                         origRStart: GameConfig.hardMapCenterTopPillarOrigR,
-                         origREnd:   GameConfig.hardMapCenterTopPillarOrigR)
+        attachPillarRect(colStart:   GameplayTuning.hardMapCenterTopPillarColStart,
+                         colEnd:     GameplayTuning.hardMapCenterTopPillarColEnd,
+                         origRStart: GameplayTuning.hardMapCenterTopPillarOrigR,
+                         origREnd:   GameplayTuning.hardMapCenterTopPillarOrigR)
 
         // 중앙-하 기둥 — m[12][15..16]=1 (2×1 가로)
-        attachPillarRect(colStart:   GameConfig.hardMapCenterBottomPillarColStart,
-                         colEnd:     GameConfig.hardMapCenterBottomPillarColEnd,
-                         origRStart: GameConfig.hardMapCenterBottomPillarOrigR,
-                         origREnd:   GameConfig.hardMapCenterBottomPillarOrigR)
+        attachPillarRect(colStart:   GameplayTuning.hardMapCenterBottomPillarColStart,
+                         colEnd:     GameplayTuning.hardMapCenterBottomPillarColEnd,
+                         origRStart: GameplayTuning.hardMapCenterBottomPillarOrigR,
+                         origREnd:   GameplayTuning.hardMapCenterBottomPillarOrigR)
     }
 
     /// 4 모서리 방의 공통 빌더 — 가로벽 1행 + 세로벽(문 1칸 분기).
@@ -217,10 +217,10 @@ final class MapNode: SKNode {
     }
 
     private func attachHospitalProps() {
-        for placement in GameConfig.hospitalPropPlacements {
+        for placement in UILayout.hospitalPropPlacements {
             let prop = HospitalPropNode(
                 kind: placement.kind,
-                size: GameConfig.hospitalPropSize(for: placement.kind)
+                size: UILayout.hospitalPropSize(for: placement.kind)
             )
             prop.position = tileCoordinate(col: placement.col, row: placement.row)
             addChild(prop)
@@ -239,6 +239,6 @@ final class MapNode: SKNode {
     /// 원본 좌표계(Y↓, r=0이 맵 상단) → iOS SpriteKit(Y↑) 변환.
     /// iosRow = MAP_H - 1 - origR (주의사항 1).
     private func convertOrigRowToIOS(_ origR: Int) -> Int {
-        return GameConfig.mapRows - 1 - origR
+        return GameplayTuning.mapRows - 1 - origR
     }
 }

@@ -22,7 +22,7 @@ final class CharacterPortraitNode: SKNode {
         self.maxSize = maxSize
         super.init()
         sprite.anchorPoint = CGPoint(x: 0.5, y: 0)
-        sprite.zPosition = GameConfig.characterHomeCharacterZPosition
+        sprite.zPosition = ZOrder.characterHomeCharacterZPosition
         addChild(sprite)
         update(characterID: characterID)
         startIdleBreathing()
@@ -48,7 +48,7 @@ final class CharacterPortraitNode: SKNode {
     func setLocked(_ locked: Bool) {
         sprite.color = locked ? .black : .clear
         sprite.colorBlendFactor = locked ? 1.0 : 0.0
-        sprite.alpha = locked ? GameConfig.characterHomeLockedPortraitAlpha : 1.0
+        sprite.alpha = locked ? UILayout.characterHomeLockedPortraitAlpha : 1.0
     }
 
     func setMaxSize(_ size: CGSize) {
@@ -89,18 +89,18 @@ final class CharacterPortraitNode: SKNode {
     // MARK: - Animation
     private func startIdleBreathing() {
         let up = SKAction.scale(
-            to: GameConfig.characterHomePortraitBreathScale,
-            duration: GameConfig.characterHomePortraitBreathDuration
+            to: UILayout.characterHomePortraitBreathScale,
+            duration: UILayout.characterHomePortraitBreathDuration
         )
         up.timingMode = .easeInEaseOut
         let down = SKAction.scale(
             to: 1.0,
-            duration: GameConfig.characterHomePortraitBreathDuration
+            duration: UILayout.characterHomePortraitBreathDuration
         )
         down.timingMode = .easeInEaseOut
         sprite.run(
             SKAction.repeatForever(SKAction.sequence([up, down])),
-            withKey: GameConfig.characterHomePortraitBreathActionKey
+            withKey: UILayout.characterHomePortraitBreathActionKey
         )
     }
 }

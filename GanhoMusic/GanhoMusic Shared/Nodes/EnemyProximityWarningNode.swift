@@ -13,15 +13,15 @@ final class EnemyProximityWarningNode: SKNode {
     private var isPulsing = false
 
     init(color: UIColor = .ganhoIngameDanger) {
-        ring = SKShapeNode(circleOfRadius: GameConfig.enemyDangerRingRadius)
+        ring = SKShapeNode(circleOfRadius: GameplayTuning.enemyDangerRingRadius)
         super.init()
         name = "enemyProximityWarning"
-        zPosition = GameConfig.enemyDangerRingZPosition
+        zPosition = ZOrder.enemyDangerRingZPosition
         alpha = 0
 
         ring.strokeColor = color
-        ring.lineWidth = GameConfig.enemyDangerRingLineWidth
-        ring.fillColor = color.withAlphaComponent(GameConfig.enemyDangerRingFillAlpha)
+        ring.lineWidth = GameplayTuning.enemyDangerRingLineWidth
+        ring.fillColor = color.withAlphaComponent(GameplayTuning.enemyDangerRingFillAlpha)
         ring.zPosition = 0
         addChild(ring)
     }
@@ -42,9 +42,9 @@ final class EnemyProximityWarningNode: SKNode {
         }
         let range = max(1, start - critical)
         let t = max(0, min(1, (start - distance) / range))
-        alpha = (GameConfig.enemyDangerRingMinAlpha + t * GameConfig.enemyDangerRingAlphaRange)
+        alpha = (GameplayTuning.enemyDangerRingMinAlpha + t * GameplayTuning.enemyDangerRingAlphaRange)
             * alphaMultiplier
-        if t > GameConfig.enemyDangerRingPulseThreshold {
+        if t > GameplayTuning.enemyDangerRingPulseThreshold {
             startPulseIfNeeded()
         } else {
             stopPulse()
@@ -54,18 +54,18 @@ final class EnemyProximityWarningNode: SKNode {
     private func startPulseIfNeeded() {
         guard !isPulsing else { return }
         isPulsing = true
-        let grow = SKAction.scale(to: GameConfig.enemyDangerRingPulseScale,
-                                  duration: GameConfig.enemyDangerRingPulseHalfDuration)
+        let grow = SKAction.scale(to: GameplayTuning.enemyDangerRingPulseScale,
+                                  duration: GameplayTuning.enemyDangerRingPulseHalfDuration)
         let shrink = SKAction.scale(to: 1.0,
-                                    duration: GameConfig.enemyDangerRingPulseHalfDuration)
+                                    duration: GameplayTuning.enemyDangerRingPulseHalfDuration)
         ring.run(.repeatForever(.sequence([grow, shrink])),
-                 withKey: GameConfig.enemyDangerRingPulseActionKey)
+                 withKey: GameplayTuning.enemyDangerRingPulseActionKey)
     }
 
     private func stopPulse() {
         guard isPulsing else { return }
         isPulsing = false
-        ring.removeAction(forKey: GameConfig.enemyDangerRingPulseActionKey)
+        ring.removeAction(forKey: GameplayTuning.enemyDangerRingPulseActionKey)
         ring.setScale(1.0)
     }
 }

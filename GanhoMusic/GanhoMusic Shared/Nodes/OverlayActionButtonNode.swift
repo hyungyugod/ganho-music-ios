@@ -23,9 +23,9 @@ final class OverlayActionButtonNode: SKNode {
     private let backgroundNode: SKShapeNode
     private let highlightNode: SKShapeNode
     private let iconCircleNode: SKShapeNode
-    private let iconLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let subtitleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let iconLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let subtitleLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private var isEnabled = true
 
     // MARK: - Init
@@ -36,15 +36,15 @@ final class OverlayActionButtonNode: SKNode {
          iconText: String? = nil) {
         self.buttonSize = size
         self.style = style
-        let cornerRadius = min(GameConfig.overlayButtonCornerRadius, size.height / 2)
+        let cornerRadius = min(UILayout.overlayButtonCornerRadius, size.height / 2)
         shadowNode = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
         backgroundNode = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
         highlightNode = SKShapeNode(
-            rectOf: CGSize(width: size.width - GameConfig.overlayButtonCornerRadius,
-                           height: GameConfig.overlayButtonHighlightHeight),
-            cornerRadius: GameConfig.overlayButtonHighlightHeight / 2
+            rectOf: CGSize(width: size.width - UILayout.overlayButtonCornerRadius,
+                           height: UILayout.overlayButtonHighlightHeight),
+            cornerRadius: UILayout.overlayButtonHighlightHeight / 2
         )
-        iconCircleNode = SKShapeNode(circleOfRadius: GameConfig.overlayButtonIconRadius)
+        iconCircleNode = SKShapeNode(circleOfRadius: UILayout.overlayButtonIconRadius)
         super.init()
         name = "overlayActionButton"
         configureNodes(iconText: iconText)
@@ -59,33 +59,33 @@ final class OverlayActionButtonNode: SKNode {
 
     // MARK: - Configure
     private func configureNodes(iconText: String?) {
-        shadowNode.position = CGPoint(x: 0, y: GameConfig.overlayButtonShadowOffsetY)
-        shadowNode.fillColor = shadowColor.withAlphaComponent(GameConfig.menuControlShadowAlpha)
+        shadowNode.position = CGPoint(x: 0, y: UILayout.overlayButtonShadowOffsetY)
+        shadowNode.fillColor = shadowColor.withAlphaComponent(UILayout.menuControlShadowAlpha)
         shadowNode.strokeColor = .clear
         shadowNode.lineWidth = 0
         shadowNode.zPosition = -1
-        shadowNode.isHidden = GameConfig.menuControlShadowAlpha <= .zero
+        shadowNode.isHidden = UILayout.menuControlShadowAlpha <= .zero
         addChild(shadowNode)
 
         backgroundNode.fillColor = fillColor
         backgroundNode.strokeColor = strokeColor
-        backgroundNode.lineWidth = GameConfig.overlayButtonLineWidth
+        backgroundNode.lineWidth = UILayout.overlayButtonLineWidth
         backgroundNode.zPosition = 0
         contentNode.addChild(backgroundNode)
 
         highlightNode.position = CGPoint(
             x: 0,
-            y: buttonSize.height / 2 - GameConfig.overlayButtonHighlightHeight
+            y: buttonSize.height / 2 - UILayout.overlayButtonHighlightHeight
         )
-        highlightNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.overlayButtonHighlightAlpha)
+        highlightNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.overlayButtonHighlightAlpha)
         highlightNode.strokeColor = .clear
         highlightNode.lineWidth = 0
         highlightNode.zPosition = 1
-        highlightNode.isHidden = GameConfig.overlayButtonHighlightAlpha <= .zero
+        highlightNode.isHidden = UILayout.overlayButtonHighlightAlpha <= .zero
         contentNode.addChild(highlightNode)
 
         iconCircleNode.position = CGPoint(
-            x: -buttonSize.width / 2 + GameConfig.overlayButtonIconOffsetX,
+            x: -buttonSize.width / 2 + UILayout.overlayButtonIconOffsetX,
             y: 0
         )
         iconCircleNode.fillColor = iconFillColor
@@ -95,7 +95,7 @@ final class OverlayActionButtonNode: SKNode {
         contentNode.addChild(iconCircleNode)
 
         iconLabel.text = resolvedIconText(iconText)
-        iconLabel.fontSize = GameConfig.overlayButtonSubtitleFontSize
+        iconLabel.fontSize = UILayout.overlayButtonSubtitleFontSize
         iconLabel.fontColor = iconTextColor
         iconLabel.horizontalAlignmentMode = .center
         iconLabel.verticalAlignmentMode = .center
@@ -120,11 +120,11 @@ final class OverlayActionButtonNode: SKNode {
         }
         switch style {
         case .primary:
-            return GameConfig.overlayButtonDefaultIconText
+            return UILayout.overlayButtonDefaultIconText
         case .secondary:
-            return GameConfig.overlayButtonSecondaryIconText
+            return UILayout.overlayButtonSecondaryIconText
         case .destructive:
-            return GameConfig.overlayButtonDestructiveIconText
+            return UILayout.overlayButtonDestructiveIconText
         }
     }
 
@@ -142,27 +142,27 @@ final class OverlayActionButtonNode: SKNode {
 
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
-        alpha = enabled ? 1.0 : GameConfig.overlayButtonDisabledAlpha
+        alpha = enabled ? 1.0 : UILayout.overlayButtonDisabledAlpha
     }
 
     func playPressFeedback() {
         guard isEnabled else { return }
-        guard GameConfig.overlayButtonPressedOffsetY != .zero else { return }
-        contentNode.removeAction(forKey: GameConfig.overlayButtonPressActionKey)
+        guard UILayout.overlayButtonPressedOffsetY != .zero else { return }
+        contentNode.removeAction(forKey: UILayout.overlayButtonPressActionKey)
         contentNode.position = .zero
         let down = SKAction.moveBy(
             x: 0,
-            y: GameConfig.overlayButtonPressedOffsetY,
-            duration: GameConfig.overlayButtonPressDuration
+            y: UILayout.overlayButtonPressedOffsetY,
+            duration: UILayout.overlayButtonPressDuration
         )
         let up = SKAction.moveBy(
             x: 0,
-            y: -GameConfig.overlayButtonPressedOffsetY,
-            duration: GameConfig.overlayButtonPressDuration
+            y: -UILayout.overlayButtonPressedOffsetY,
+            duration: UILayout.overlayButtonPressDuration
         )
         contentNode.run(
             SKAction.sequence([down, up]),
-            withKey: GameConfig.overlayButtonPressActionKey
+            withKey: UILayout.overlayButtonPressActionKey
         )
     }
 
@@ -180,23 +180,23 @@ final class OverlayActionButtonNode: SKNode {
     private func layoutLabels() {
         titleLabel.setScale(1.0)
         subtitleLabel.setScale(1.0)
-        let leftX = -buttonSize.width / 2 + GameConfig.overlayButtonTextLeftInset
+        let leftX = -buttonSize.width / 2 + UILayout.overlayButtonTextLeftInset
         if subtitleLabel.isHidden {
-            titleLabel.fontSize = GameConfig.overlayButtonSingleTitleFontSize
+            titleLabel.fontSize = UILayout.overlayButtonSingleTitleFontSize
             titleLabel.position = CGPoint(
                 x: leftX,
-                y: GameConfig.overlayButtonSingleTitleOffsetY
+                y: UILayout.overlayButtonSingleTitleOffsetY
             )
         } else {
-            titleLabel.fontSize = GameConfig.overlayButtonTitleFontSize
+            titleLabel.fontSize = UILayout.overlayButtonTitleFontSize
             titleLabel.position = CGPoint(
                 x: leftX,
-                y: GameConfig.overlayButtonTitleOffsetY
+                y: UILayout.overlayButtonTitleOffsetY
             )
-            subtitleLabel.fontSize = GameConfig.overlayButtonSubtitleFontSize
+            subtitleLabel.fontSize = UILayout.overlayButtonSubtitleFontSize
             subtitleLabel.position = CGPoint(
                 x: leftX,
-                y: GameConfig.overlayButtonSubtitleOffsetY
+                y: UILayout.overlayButtonSubtitleOffsetY
             )
         }
         fit(label: titleLabel)
@@ -206,11 +206,11 @@ final class OverlayActionButtonNode: SKNode {
     private func fit(label: SKLabelNode) {
         guard !label.isHidden else { return }
         let maxWidth = buttonSize.width
-            - GameConfig.overlayButtonTextLeftInset
-            - GameConfig.overlayButtonTextRightInset
+            - UILayout.overlayButtonTextLeftInset
+            - UILayout.overlayButtonTextRightInset
         let width = label.calculateAccumulatedFrame().width
         guard width > maxWidth, width > 0 else { return }
-        label.setScale(max(GameConfig.labelMinimumScale, maxWidth / width))
+        label.setScale(max(Typography.labelMinimumScale, maxWidth / width))
     }
 
     // MARK: - Style
@@ -229,9 +229,9 @@ final class OverlayActionButtonNode: SKNode {
     private var strokeColor: UIColor {
         switch style {
         case .primary:
-            return UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
+            return UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.menuControlStrokeAlpha)
         case .secondary:
-            return UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.menuControlStrokeAlpha)
+            return UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.menuControlStrokeAlpha)
         case .destructive:
             return .ganhoCoralShadow
         }
@@ -242,7 +242,7 @@ final class OverlayActionButtonNode: SKNode {
         case .primary:
             return .ganhoCoralShadow
         case .secondary:
-            return UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+            return UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.glassPillShadowAlpha)
         case .destructive:
             return .ganhoCoralShadow
         }
@@ -260,7 +260,7 @@ final class OverlayActionButtonNode: SKNode {
     private var subtitleColor: UIColor {
         switch style {
         case .primary, .destructive:
-            return UIColor.ganhoPaper.withAlphaComponent(GameConfig.ingameHUDReadableAlpha)
+            return UIColor.ganhoPaper.withAlphaComponent(UILayout.ingameHUDReadableAlpha)
         case .secondary:
             return .ganhoNavyMuted
         }
@@ -269,10 +269,10 @@ final class OverlayActionButtonNode: SKNode {
     private var iconFillColor: UIColor {
         switch style {
         case .primary, .destructive:
-            return UIColor.ganhoPaper.withAlphaComponent(GameConfig.primaryButtonArrowCircleAlpha)
+            return UIColor.ganhoPaper.withAlphaComponent(UILayout.primaryButtonArrowCircleAlpha)
         case .secondary:
             // 코랄 아이콘 원 — SPEC 0.18~0.25 범위. glassPillStrokeAlpha(0.25) 재사용으로 매직 넘버 0.
-            return UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.glassPillStrokeAlpha)
+            return UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.glassPillStrokeAlpha)
         }
     }
 

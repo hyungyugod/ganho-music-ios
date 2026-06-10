@@ -36,8 +36,8 @@ final class AirforceOverlayNode: SKNode, SelfDismissingNode {
     /// 부모(cameraNode)에 addChild 직후 호출. 1.5초 대기 → 0.3초 페이드아웃 → 자가 제거.
     /// self 미사용 — [weak self] 캡처 불필요.
     func showAndDismiss() {
-        let wait    = SKAction.wait(forDuration: GameConfig.airforceOverlayDisplayDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.airforceOverlayFadeOutDuration)
+        let wait    = SKAction.wait(forDuration: FeelTuning.airforceOverlayDisplayDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.airforceOverlayFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([wait, fadeOut, cleanup]))
     }
@@ -48,8 +48,8 @@ final class AirforceOverlayNode: SKNode, SelfDismissingNode {
     /// fontColor: ganhoPixelWarning(#FFD23F) — 비행기/폭탄과 톤 정합.
     /// cameraNode 자식 (0,0) = 화면 중앙. label position도 (0,0)으로 두면 화면 정중앙.
     private func configureLabel() {
-        label.fontName = GameConfig.pixelOverlayFontName
-        label.fontSize = GameConfig.airforceOverlayFontSize
+        label.fontName = Typography.pixelOverlayFontName
+        label.fontSize = FeelTuning.airforceOverlayFontSize
         label.fontColor = .ganhoPixelWarning
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center

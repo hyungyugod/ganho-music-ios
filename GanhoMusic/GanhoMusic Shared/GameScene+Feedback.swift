@@ -10,7 +10,7 @@ import SpriteKit
 // MARK: - Combo Feedback
 extension GameScene {
     func playNoteCollectFeedback(gainedPoints: Int, combo: Int) {
-        if gainedPoints >= GameConfig.scorePerNoteComboHigh {
+        if gainedPoints >= GameplayTuning.scorePerNoteComboHigh {
             haptics.medium()
             audio.play(.comboMilestoneSoft)
         } else {
@@ -48,7 +48,7 @@ extension GameScene {
 
     func checkAndTriggerComboBreak() {
         let combo = scoreSystem.combo
-        if combo >= GameConfig.comboBreakThreshold {
+        if combo >= FeelTuning.comboBreakThreshold {
             triggerComboBreak(brokenAt: combo)
         }
     }
@@ -56,7 +56,7 @@ extension GameScene {
     func playBodyHitFeedback() {
         haptics.heavy()
         cameraNode.run(CameraShakeAction.make())
-        ToastLabelNode.spawn(text: GameConfig.bodyHitToastText,
+        ToastLabelNode.spawn(text: GameplayTuning.bodyHitToastText,
                              at: player.position,
                              parent: worldNode)
     }
@@ -67,7 +67,7 @@ extension GameScene {
         let flash = HitFlashNode()
         cameraNode.addChild(flash)
         flash.flash(sceneSize: size)
-        ToastLabelNode.spawn(text: GameConfig.projectileHitToastText,
+        ToastLabelNode.spawn(text: GameplayTuning.projectileHitToastText,
                              at: player.position,
                              parent: worldNode)
     }

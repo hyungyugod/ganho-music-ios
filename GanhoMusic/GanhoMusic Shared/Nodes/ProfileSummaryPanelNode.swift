@@ -12,29 +12,29 @@ final class ProfileSummaryPanelNode: SKNode {
 
     // MARK: - Properties
     private let background = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     private let statusChip = SKShapeNode()
-    private let statusLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let statusLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     // 묶음 B 위계 강화용 추가 노드 — 메트릭 3종을 "한 덩어리"로 시각화.
     private let metricGroupBox = SKShapeNode()      // 라벤더 패드 (배경)
     private let metricDividerTop = SKShapeNode()    // 플레이↔최고
     private let metricDividerBottom = SKShapeNode() // 최고↔총점
     private let avatarView = ProfileAvatarViewNode()
-    private let nameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let subLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let playTitleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let playValueLabel = SKLabelNode(fontNamed: GameConfig.fontNumeric)
-    private let bestTitleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let bestValueLabel = SKLabelNode(fontNamed: GameConfig.fontNumeric)
-    private let totalTitleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
-    private let totalValueLabel = SKLabelNode(fontNamed: GameConfig.fontNumeric)
+    private let nameLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let subLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let playTitleLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let playValueLabel = SKLabelNode(fontNamed: Typography.fontNumeric)
+    private let bestTitleLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let bestValueLabel = SKLabelNode(fontNamed: Typography.fontNumeric)
+    private let totalTitleLabel = SKLabelNode(fontNamed: Typography.fontBody)
+    private let totalValueLabel = SKLabelNode(fontNamed: Typography.fontNumeric)
     private var layoutScale: CGFloat = 1.0
     private var isFocused = false
 
     // MARK: - Init
     override init() {
         super.init()
-        zPosition = GameConfig.characterHomePanelZPosition
+        zPosition = ZOrder.characterHomePanelZPosition
         setupPanel()
         setupLabels()
     }
@@ -45,14 +45,14 @@ final class ProfileSummaryPanelNode: SKNode {
 
     // MARK: - Setup
     private func setupPanel() {
-        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        background.lineWidth = GameConfig.characterHomePanelLineWidth
+        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        background.lineWidth = UILayout.characterHomePanelLineWidth
         addChild(background)
 
         // 메트릭 그룹 박스(라벤더 패드) — 배경 위(zPosition 1), 라벨(zPosition 2) 아래.
         metricGroupBox.fillColor = UIColor.ganhoLavenderSoft
-            .withAlphaComponent(GameConfig.summaryMetricGroupFillAlpha)
+            .withAlphaComponent(UILayout.summaryMetricGroupFillAlpha)
         metricGroupBox.strokeColor = .clear
         metricGroupBox.zPosition = 1
         addChild(metricGroupBox)
@@ -61,15 +61,15 @@ final class ProfileSummaryPanelNode: SKNode {
         [metricDividerTop, metricDividerBottom].forEach { divider in
             divider.fillColor = .clear
             divider.strokeColor = UIColor.ganhoNavyMuted
-                .withAlphaComponent(GameConfig.summaryMetricDividerAlpha)
-            divider.lineWidth = GameConfig.summaryMetricDividerLineWidth
+                .withAlphaComponent(UILayout.summaryMetricDividerAlpha)
+            divider.lineWidth = UILayout.summaryMetricDividerLineWidth
             divider.zPosition = 1
             addChild(divider)
         }
 
-        statusChip.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-        statusChip.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        statusChip.lineWidth = GameConfig.characterHomePanelLineWidth
+        statusChip.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+        statusChip.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        statusChip.lineWidth = UILayout.characterHomePanelLineWidth
         statusChip.zPosition = 1
         addChild(statusChip)
 
@@ -78,21 +78,21 @@ final class ProfileSummaryPanelNode: SKNode {
     }
 
     private func setupLabels() {
-        titleLabel.text = GameConfig.characterHomeProfileTitleText
-        configure(label: titleLabel, fontSize: GameConfig.characterHomePanelTitleFontSize, color: .ganhoNavyDeep)
-        configure(label: statusLabel, fontSize: GameConfig.characterHomePanelSmallFontSize, color: .ganhoNavyDeep)
-        configure(label: nameLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
-        configure(label: subLabel, fontSize: GameConfig.characterHomePanelBodyFontSize, color: .ganhoNavyMuted)
-        configure(label: playTitleLabel, fontSize: GameConfig.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
-        configure(label: playValueLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
-        configure(label: bestTitleLabel, fontSize: GameConfig.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
-        configure(label: bestValueLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoCoralPrimary)
-        configure(label: totalTitleLabel, fontSize: GameConfig.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
-        configure(label: totalValueLabel, fontSize: GameConfig.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
+        titleLabel.text = UILayout.characterHomeProfileTitleText
+        configure(label: titleLabel, fontSize: UILayout.characterHomePanelTitleFontSize, color: .ganhoNavyDeep)
+        configure(label: statusLabel, fontSize: UILayout.characterHomePanelSmallFontSize, color: .ganhoNavyDeep)
+        configure(label: nameLabel, fontSize: UILayout.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
+        configure(label: subLabel, fontSize: UILayout.characterHomePanelBodyFontSize, color: .ganhoNavyMuted)
+        configure(label: playTitleLabel, fontSize: UILayout.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
+        configure(label: playValueLabel, fontSize: UILayout.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
+        configure(label: bestTitleLabel, fontSize: UILayout.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
+        configure(label: bestValueLabel, fontSize: UILayout.characterHomePanelValueFontSize, color: .ganhoCoralPrimary)
+        configure(label: totalTitleLabel, fontSize: UILayout.characterHomePanelMetricFontSize, color: .ganhoNavyMuted)
+        configure(label: totalValueLabel, fontSize: UILayout.characterHomePanelValueFontSize, color: .ganhoNavyDeep)
 
-        playTitleLabel.text = GameConfig.characterHomePlayCountLabelText
-        bestTitleLabel.text = GameConfig.characterHomeBestScoreLabelText
-        totalTitleLabel.text = GameConfig.characterHomeTotalScoreLabelText
+        playTitleLabel.text = UILayout.characterHomePlayCountLabelText
+        bestTitleLabel.text = UILayout.characterHomeBestScoreLabelText
+        totalTitleLabel.text = UILayout.characterHomeTotalScoreLabelText
 
         [
             titleLabel, statusLabel, nameLabel, subLabel,
@@ -115,7 +115,7 @@ final class ProfileSummaryPanelNode: SKNode {
         statusLabel.text = snapshot.accountStatusText
         nameLabel.text = snapshot.profileNameText
         subLabel.text = snapshot.profileSubText
-        playValueLabel.text = "\(snapshot.playCount)\(GameConfig.characterHomePlaySuffixText)"
+        playValueLabel.text = "\(snapshot.playCount)\(UILayout.characterHomePlaySuffixText)"
         bestValueLabel.text = scoreText(snapshot.highScore)
         totalValueLabel.text = scoreText(snapshot.totalScore)
     }
@@ -127,12 +127,12 @@ final class ProfileSummaryPanelNode: SKNode {
         avatarView.update(
             snapshot: avatar,
             repository: repository,
-            size: GameConfig.profileAvatarSummarySize
+            size: UILayout.profileAvatarSummarySize
         )
     }
 
     private func scoreText(_ score: Int) -> String {
-        return "\(score)\(GameConfig.characterHomePointSuffixText)"
+        return "\(score)\(UILayout.characterHomePointSuffixText)"
     }
 
     // MARK: - Layout
@@ -144,63 +144,63 @@ final class ProfileSummaryPanelNode: SKNode {
                 width: size.width,
                 height: size.height
             ),
-            cornerWidth: GameConfig.characterHomePanelCornerRadius,
-            cornerHeight: GameConfig.characterHomePanelCornerRadius,
+            cornerWidth: UILayout.characterHomePanelCornerRadius,
+            cornerHeight: UILayout.characterHomePanelCornerRadius,
             transform: nil
         )
         statusChip.path = CGPath(
             roundedRect: CGRect(
-                x: -GameConfig.characterHomeProfileStatusChipWidth / 2,
-                y: -GameConfig.characterHomeProfileStatusChipHeight / 2,
-                width: GameConfig.characterHomeProfileStatusChipWidth,
-                height: GameConfig.characterHomeProfileStatusChipHeight
+                x: -UILayout.characterHomeProfileStatusChipWidth / 2,
+                y: -UILayout.characterHomeProfileStatusChipHeight / 2,
+                width: UILayout.characterHomeProfileStatusChipWidth,
+                height: UILayout.characterHomeProfileStatusChipHeight
             ),
-            cornerWidth: GameConfig.characterHomeProfileStatusChipHeight / 2,
-            cornerHeight: GameConfig.characterHomeProfileStatusChipHeight / 2,
+            cornerWidth: UILayout.characterHomeProfileStatusChipHeight / 2,
+            cornerHeight: UILayout.characterHomeProfileStatusChipHeight / 2,
             transform: nil
         )
 
-        let leftX = -size.width / 2 + GameConfig.characterHomePanelHorizontalInset
+        let leftX = -size.width / 2 + UILayout.characterHomePanelHorizontalInset
         let avatarX = size.width / 2
-            - GameConfig.characterHomePanelHorizontalInset
-            - GameConfig.profileAvatarSummarySize.width / 2
+            - UILayout.characterHomePanelHorizontalInset
+            - UILayout.profileAvatarSummarySize.width / 2
         let avatarY = size.height / 2
-            - GameConfig.characterHomePanelVerticalInset
-            - GameConfig.profileAvatarSummarySize.height / 2
+            - UILayout.characterHomePanelVerticalInset
+            - UILayout.profileAvatarSummarySize.height / 2
         avatarView.position = CGPoint(x: avatarX, y: avatarY)
 
-        var cursorY = size.height / 2 - GameConfig.characterHomePanelVerticalInset
+        var cursorY = size.height / 2 - UILayout.characterHomePanelVerticalInset
         titleLabel.position = CGPoint(x: leftX, y: cursorY)
-        cursorY -= GameConfig.characterHomePanelTitleFontSize + GameConfig.characterHomeDetailPanelGap
+        cursorY -= UILayout.characterHomePanelTitleFontSize + UILayout.characterHomeDetailPanelGap
 
         statusChip.position = CGPoint(
-            x: leftX + GameConfig.characterHomeProfileStatusChipWidth / 2,
+            x: leftX + UILayout.characterHomeProfileStatusChipWidth / 2,
             y: cursorY
         )
         statusLabel.position = CGPoint(
-            x: statusChip.position.x - GameConfig.characterHomeProfileStatusChipWidth / 2
-                + GameConfig.characterHomePanelHorizontalInset,
+            x: statusChip.position.x - UILayout.characterHomeProfileStatusChipWidth / 2
+                + UILayout.characterHomePanelHorizontalInset,
             y: cursorY
         )
-        cursorY -= GameConfig.characterHomeProfileStatusChipHeight / 2
-            + GameConfig.characterHomeDetailPanelGap
-            + GameConfig.characterHomePanelValueFontSize / 2
+        cursorY -= UILayout.characterHomeProfileStatusChipHeight / 2
+            + UILayout.characterHomeDetailPanelGap
+            + UILayout.characterHomePanelValueFontSize / 2
 
         nameLabel.position = CGPoint(x: leftX, y: cursorY)
-        cursorY -= GameConfig.characterHomePanelValueFontSize
-            + GameConfig.characterHomeAchievementBadgeGap
+        cursorY -= UILayout.characterHomePanelValueFontSize
+            + UILayout.characterHomeAchievementBadgeGap
 
         let textMaxWidth = avatarX
-            - GameConfig.profileAvatarSummarySize.width / 2
-            - GameConfig.characterHomeDetailPanelGap
+            - UILayout.profileAvatarSummarySize.width / 2
+            - UILayout.characterHomeDetailPanelGap
             - leftX
         subLabel.preferredMaxLayoutWidth = max(
-            GameConfig.characterHomeProfileStatusChipWidth,
+            UILayout.characterHomeProfileStatusChipWidth,
             textMaxWidth
         )
         subLabel.position = CGPoint(x: leftX, y: cursorY)
-        cursorY -= GameConfig.characterHomePanelBodyFontSize
-            + GameConfig.characterHomeDetailPanelGap
+        cursorY -= UILayout.characterHomePanelBodyFontSize
+            + UILayout.characterHomeDetailPanelGap
 
         layoutMetric(
             title: playTitleLabel,
@@ -208,14 +208,14 @@ final class ProfileSummaryPanelNode: SKNode {
             leftX: leftX,
             y: cursorY
         )
-        cursorY -= GameConfig.characterHomeProfileMetricGap
+        cursorY -= UILayout.characterHomeProfileMetricGap
         layoutMetric(
             title: bestTitleLabel,
             value: bestValueLabel,
             leftX: leftX,
             y: cursorY
         )
-        cursorY -= GameConfig.characterHomeProfileMetricGap
+        cursorY -= UILayout.characterHomeProfileMetricGap
         layoutMetric(
             title: totalTitleLabel,
             value: totalValueLabel,
@@ -236,10 +236,10 @@ final class ProfileSummaryPanelNode: SKNode {
     ///   - leftX: 메트릭 텍스트 좌측 기준 X.
     ///   - contentWidth: 좌측 텍스트 열 폭(name/sub 라벨과 동일 기준).
     private func layoutMetricGroup(leftX: CGFloat, contentWidth: CGFloat) {
-        let padding = GameConfig.summaryMetricGroupPadding
-        let verticalPadding = GameConfig.summaryMetricGroupVerticalPadding
-        let titleHalf = GameConfig.characterHomePanelMetricFontSize / 2
-        let valueHalf = GameConfig.characterHomePanelValueFontSize / 2
+        let padding = UILayout.summaryMetricGroupPadding
+        let verticalPadding = UILayout.summaryMetricGroupVerticalPadding
+        let titleHalf = UILayout.characterHomePanelMetricFontSize / 2
+        let valueHalf = UILayout.characterHomePanelValueFontSize / 2
 
         // 박스 세로 범위: 첫 제목 위 ~ 마지막 값 아래 (세로 패딩 포함).
         let groupTopY = playTitleLabel.position.y + titleHalf + verticalPadding
@@ -254,8 +254,8 @@ final class ProfileSummaryPanelNode: SKNode {
                 width: groupWidth,
                 height: groupHeight
             ),
-            cornerWidth: GameConfig.summaryMetricGroupCornerRadius,
-            cornerHeight: GameConfig.summaryMetricGroupCornerRadius,
+            cornerWidth: UILayout.summaryMetricGroupCornerRadius,
+            cornerHeight: UILayout.summaryMetricGroupCornerRadius,
             transform: nil
         )
 
@@ -290,8 +290,8 @@ final class ProfileSummaryPanelNode: SKNode {
         title.position = CGPoint(x: leftX, y: y)
         value.position = CGPoint(
             x: leftX,
-            y: y - GameConfig.characterHomePanelMetricFontSize
-                - GameConfig.characterHomeAchievementBadgeGap
+            y: y - UILayout.characterHomePanelMetricFontSize
+                - UILayout.characterHomeAchievementBadgeGap
         )
     }
 
@@ -299,7 +299,7 @@ final class ProfileSummaryPanelNode: SKNode {
         label.setScale(1.0)
         let width = label.calculateAccumulatedFrame().width
         guard width > maxWidth, width > 0 else { return }
-        label.setScale(max(GameConfig.labelMinimumScale, maxWidth / width))
+        label.setScale(max(Typography.labelMinimumScale, maxWidth / width))
     }
 
     // MARK: - Focus
@@ -314,19 +314,19 @@ final class ProfileSummaryPanelNode: SKNode {
     }
 
     private func applyFocus(animated: Bool) {
-        alpha = isFocused ? 1.0 : GameConfig.characterHomeUnfocusedAlpha
+        alpha = isFocused ? 1.0 : UILayout.characterHomeUnfocusedAlpha
         background.strokeColor = isFocused
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        let targetScale = layoutScale * (isFocused ? GameConfig.characterHomeFocusedScale : 1.0)
-        removeAction(forKey: GameConfig.characterHomeSectionFocusActionKey)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        let targetScale = layoutScale * (isFocused ? UILayout.characterHomeFocusedScale : 1.0)
+        removeAction(forKey: UILayout.characterHomeSectionFocusActionKey)
         if animated {
             let action = SKAction.scale(
                 to: targetScale,
-                duration: GameConfig.characterHomeFocusAnimationDuration
+                duration: UILayout.characterHomeFocusAnimationDuration
             )
             action.timingMode = .easeInEaseOut
-            run(action, withKey: GameConfig.characterHomeSectionFocusActionKey)
+            run(action, withKey: UILayout.characterHomeSectionFocusActionKey)
         } else {
             setScale(targetScale)
         }

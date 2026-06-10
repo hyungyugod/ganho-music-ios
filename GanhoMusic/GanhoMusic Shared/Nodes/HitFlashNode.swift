@@ -23,7 +23,7 @@ final class HitFlashNode: SKSpriteNode, SelfDismissingNode {
         // BombFlashNode와 동형 패턴(Phase G 적용 완료).
         super.init(texture: nil, color: .ganhoPixelHitRed, size: .zero)
         name = "hitFlash"
-        zPosition = GameConfig.hitFlashZPosition
+        zPosition = ZOrder.hitFlashZPosition
         alpha = 0
         blendMode = .add
     }
@@ -40,9 +40,9 @@ final class HitFlashNode: SKSpriteNode, SelfDismissingNode {
     func flash(sceneSize: CGSize) {
         size = sceneSize
         position = .zero
-        let fadeIn = SKAction.fadeAlpha(to: GameConfig.hitFlashPeakAlpha,
-                                        duration: GameConfig.hitFlashFadeInDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.hitFlashFadeOutDuration)
+        let fadeIn = SKAction.fadeAlpha(to: FeelTuning.hitFlashPeakAlpha,
+                                        duration: FeelTuning.hitFlashFadeInDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.hitFlashFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([fadeIn, fadeOut, cleanup]))
     }

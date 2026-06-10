@@ -16,8 +16,8 @@ final class PendingCloudScoreRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.cloudPendingScoreUserDefaultsKey,
-         limit: Int = GameConfig.cloudPendingScoreLimit) {
+         key: String = StorageKeys.cloudPendingScoreUserDefaultsKey,
+         limit: Int = StorageKeys.cloudPendingScoreLimit) {
         self.defaults = defaults
         self.key = key
         self.limit = limit

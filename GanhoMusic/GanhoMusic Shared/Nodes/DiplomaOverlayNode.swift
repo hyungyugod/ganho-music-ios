@@ -76,7 +76,7 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     /// 본문 텍스트는 *Phase 7-4 시점 그대로* — Sprint 5는 시각만 추가, 본문 문자열 0건 변경.
     private init(characterName: String, graduatedAt: Date, sceneSize: CGSize) {
         self.background = SKSpriteNode(
-            color: UIColor.ganhoYellowF.withAlphaComponent(GameConfig.diplomaBackgroundAlpha),
+            color: UIColor.ganhoYellowF.withAlphaComponent(FeelTuning.diplomaBackgroundAlpha),
             size: sceneSize
         )
         self.titleEnLabel = SKLabelNode(text: "CERTIFICATE OF GRADUATION")
@@ -99,12 +99,12 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         self.dotsPattern = SKShapeNode()
         self.topLeftBorder = SKShapeNode()
         self.bottomRightBorder = SKShapeNode()
-        self.stamp = SKShapeNode(circleOfRadius: GameConfig.diplomaStampRadiusV2)
-        self.stampLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        self.stamp = SKShapeNode(circleOfRadius: FeelTuning.diplomaStampRadius)
+        self.stampLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
 
         super.init()
         name = "diplomaOverlay"
-        zPosition = GameConfig.diplomaZPosition
+        zPosition = ZOrder.diplomaZPosition
         // 자기 자신이 touchesBegan을 받기 위해 true 필수 — CutsceneOverlayNode 답습.
         isUserInteractionEnabled = true
         configureBackground()
@@ -113,11 +113,11 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         // 모든 라벨 fontName은 명조(GowunBatang-Regular)로 교체 — ttf 부재 시 시스템 fallback.
         for label in [titleEnLabel, issuerLabel, dateLabel, tapLabel] {
             label.fontColor = .ganhoDiplomaTextMuted
-            label.fontName = GameConfig.fontSerif
+            label.fontName = Typography.fontSerif
         }
         for label in [titleKoLabel, body1Label, body2Label] {
             label.fontColor = .ganhoDiplomaTextDeep
-            label.fontName = GameConfig.fontSerif
+            label.fontName = Typography.fontSerif
         }
         addChild(background)
         addChild(titleEnLabel)
@@ -161,7 +161,7 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         node.position = anchor
         parent.addChild(node)
         // fadeIn — 등장 보간. CutsceneOverlayNode 답습.
-        node.run(SKAction.fadeIn(withDuration: GameConfig.diplomaFadeInDuration))
+        node.run(SKAction.fadeIn(withDuration: FeelTuning.diplomaFadeInDuration))
     }
 
     // MARK: - Touch Trigger
@@ -180,7 +180,7 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         // 콜백 1회 캡처 후 nil 토글 — onDismiss 중복 호출 차단(2중 안전망).
         let callback = onDismiss
         onDismiss = nil
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.diplomaFadeOutDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.diplomaFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
         // notify는 self 미사용 — [weak self] 불필요. CutsceneOverlayNode 답습.
         let notify = SKAction.run { callback?() }
@@ -205,25 +205,25 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     /// Sprint 5 — 종이 카드 본체. ganhoDiplomaPaper 채움 + ganhoDiplomaBorder stroke(lineWidth=4) + -2° 회전.
     /// CGPath roundedRect로 cornerRadius=8 라운드.
     private func buildPaperCard() {
-        let halfW = GameConfig.diplomaPaperWidthV2 / 2
-        let halfH = GameConfig.diplomaPaperHeightV2 / 2
+        let halfW = FeelTuning.diplomaPaperWidth / 2
+        let halfH = FeelTuning.diplomaPaperHeight / 2
         paperCard.path = CGPath(
             roundedRect: CGRect(
                 x: -halfW,
                 y: -halfH,
-                width: GameConfig.diplomaPaperWidthV2,
-                height: GameConfig.diplomaPaperHeightV2
+                width: FeelTuning.diplomaPaperWidth,
+                height: FeelTuning.diplomaPaperHeight
             ),
-            cornerWidth: GameConfig.diplomaPaperCornerRadiusV2,
-            cornerHeight: GameConfig.diplomaPaperCornerRadiusV2,
+            cornerWidth: FeelTuning.diplomaPaperCornerRadius,
+            cornerHeight: FeelTuning.diplomaPaperCornerRadius,
             transform: nil
         )
         paperCard.fillColor = .ganhoDiplomaPaper
         paperCard.strokeColor = .ganhoDiplomaBorder
-        paperCard.lineWidth = GameConfig.diplomaPaperBorderLineWidthV2
+        paperCard.lineWidth = FeelTuning.diplomaPaperBorderLineWidth
         // mockup transform: rotate(-2deg) — degree → radian.
-        paperCard.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
-        paperCard.zPosition = GameConfig.diplomaPaperZPositionV2
+        paperCard.zRotation = FeelTuning.diplomaPaperRotationDegrees * .pi / 180
+        paperCard.zPosition = ZOrder.diplomaPaperZPosition
         addChild(paperCard)
     }
 
@@ -231,10 +231,10 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     /// 12pt 격자 × 520×320 → 약 1100개 도트가 한 path에 누적되어 SpriteKit 드로우콜 1회로 처리.
     /// 종이 카드와 동일 -2° 회전으로 통째로 함께 기울어짐.
     private func buildDotsPattern() {
-        let cardW = GameConfig.diplomaPaperWidthV2
-        let cardH = GameConfig.diplomaPaperHeightV2
-        let step = GameConfig.diplomaDotStepV2
-        let radius = GameConfig.diplomaDotRadiusV2
+        let cardW = FeelTuning.diplomaPaperWidth
+        let cardH = FeelTuning.diplomaPaperHeight
+        let step = FeelTuning.diplomaDotStep
+        let radius = FeelTuning.diplomaDotRadius
 
         let path = CGMutablePath()
         var x = -cardW / 2 + step
@@ -252,22 +252,22 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
             x += step
         }
         dotsPattern.path = path
-        dotsPattern.fillColor = UIColor(hex: GameConfig.diplomaDotHexV2)
-            .withAlphaComponent(GameConfig.diplomaDotAlphaV2)
+        dotsPattern.fillColor = UIColor(hex: Palette.diplomaDotHex)
+            .withAlphaComponent(FeelTuning.diplomaDotAlpha)
         dotsPattern.strokeColor = .clear
         dotsPattern.lineWidth = 0
-        dotsPattern.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
-        dotsPattern.zPosition = GameConfig.diplomaDotsZPositionV2
+        dotsPattern.zRotation = FeelTuning.diplomaPaperRotationDegrees * .pi / 180
+        dotsPattern.zPosition = ZOrder.diplomaDotsZPosition
         addChild(dotsPattern)
     }
 
     /// Sprint 5 — 좌상단·우하단 ㄱ자 코너 데코. 두 SKShapeNode 부착(각자 CGMutablePath addLines 2변).
     /// strokeColor=ganhoDiplomaBorder, lineWidth=3. 종이와 같은 -2° 회전.
     private func buildCornerDeco() {
-        let cornerSize = GameConfig.diplomaCornerDecoSizeV2
-        let inset = GameConfig.diplomaCornerDecoInsetV2
-        let halfW = GameConfig.diplomaPaperWidthV2 / 2
-        let halfH = GameConfig.diplomaPaperHeightV2 / 2
+        let cornerSize = FeelTuning.diplomaCornerDecoSize
+        let inset = FeelTuning.diplomaCornerDecoInset
+        let halfW = FeelTuning.diplomaPaperWidth / 2
+        let halfH = FeelTuning.diplomaPaperHeight / 2
 
         // 좌상단: ㄱ자 (왼쪽 변 ↓ + 위쪽 변 →) — paperCard 좌상단 모서리 안쪽 inset만큼 들어감.
         let tlPath = CGMutablePath()
@@ -279,9 +279,9 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         topLeftBorder.path = tlPath
         topLeftBorder.strokeColor = .ganhoDiplomaBorder
         topLeftBorder.fillColor = .clear
-        topLeftBorder.lineWidth = GameConfig.diplomaCornerDecoLineWidthV2
-        topLeftBorder.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
-        topLeftBorder.zPosition = GameConfig.diplomaCornerDecoZPositionV2
+        topLeftBorder.lineWidth = FeelTuning.diplomaCornerDecoLineWidth
+        topLeftBorder.zRotation = FeelTuning.diplomaPaperRotationDegrees * .pi / 180
+        topLeftBorder.zPosition = ZOrder.diplomaCornerDecoZPosition
         addChild(topLeftBorder)
 
         // 우하단: ㄴ자 (오른쪽 변 ↑ + 아래쪽 변 ←).
@@ -294,9 +294,9 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
         bottomRightBorder.path = brPath
         bottomRightBorder.strokeColor = .ganhoDiplomaBorder
         bottomRightBorder.fillColor = .clear
-        bottomRightBorder.lineWidth = GameConfig.diplomaCornerDecoLineWidthV2
-        bottomRightBorder.zRotation = GameConfig.diplomaPaperRotationDegreesV2 * .pi / 180
-        bottomRightBorder.zPosition = GameConfig.diplomaCornerDecoZPositionV2
+        bottomRightBorder.lineWidth = FeelTuning.diplomaCornerDecoLineWidth
+        bottomRightBorder.zRotation = FeelTuning.diplomaPaperRotationDegrees * .pi / 180
+        bottomRightBorder.zPosition = ZOrder.diplomaCornerDecoZPosition
         addChild(bottomRightBorder)
     }
 
@@ -305,18 +305,18 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     private func buildStamp() {
         stamp.strokeColor = .ganhoCoralShadow
         stamp.fillColor = UIColor.ganhoCoralLight
-            .withAlphaComponent(GameConfig.diplomaStampFillAlphaV2)
-        stamp.lineWidth = GameConfig.diplomaStampLineWidthV2
+            .withAlphaComponent(FeelTuning.diplomaStampFillAlpha)
+        stamp.lineWidth = FeelTuning.diplomaStampLineWidth
         stamp.position = CGPoint(
-            x: GameConfig.diplomaStampOffsetXV2,
-            y: GameConfig.diplomaStampOffsetYV2
+            x: FeelTuning.diplomaStampOffsetX,
+            y: FeelTuning.diplomaStampOffsetY
         )
-        stamp.zRotation = GameConfig.diplomaStampRotationDegreesV2 * .pi / 180
-        stamp.zPosition = GameConfig.diplomaStampZPositionV2
+        stamp.zRotation = FeelTuning.diplomaStampRotationDegrees * .pi / 180
+        stamp.zPosition = ZOrder.diplomaStampZPosition
         addChild(stamp)
 
-        stampLabel.text = GameConfig.diplomaStampLabelText
-        stampLabel.fontSize = GameConfig.diplomaStampLabelFontSizeV2
+        stampLabel.text = FeelTuning.diplomaStampLabelText
+        stampLabel.fontSize = FeelTuning.diplomaStampLabelFontSize
         stampLabel.fontColor = .ganhoCoralShadow
         stampLabel.numberOfLines = 0
         stampLabel.horizontalAlignmentMode = .center
@@ -332,35 +332,35 @@ final class DiplomaOverlayNode: SKNode, SelfDismissingNode {
     /// issuer/date는 같은 y에 좌측/우측 정렬 — 화면 가로 70% 폭의 양 끝.
     private func configureLabels(sceneSize: CGSize) {
         // 본문 폭의 절반 — issuer(우측)/date(좌측) 배치에 사용.
-        let halfBodyWidth = sceneSize.width * GameConfig.diplomaBodyWidthRatio / 2
+        let halfBodyWidth = sceneSize.width * FeelTuning.diplomaBodyWidthRatio / 2
         // 제목 영문 — 화면 위쪽 +150
-        titleEnLabel.fontSize = GameConfig.diplomaTitleEnFontSize
-        titleEnLabel.position = CGPoint(x: 0, y: GameConfig.diplomaTitleEnOffsetY)
+        titleEnLabel.fontSize = FeelTuning.diplomaTitleEnFontSize
+        titleEnLabel.position = CGPoint(x: 0, y: FeelTuning.diplomaTitleEnOffsetY)
         // 제목 한글 — 영문 아래 +110
-        titleKoLabel.fontSize = GameConfig.diplomaTitleKoFontSize
-        titleKoLabel.position = CGPoint(x: 0, y: GameConfig.diplomaTitleKoOffsetY)
+        titleKoLabel.fontSize = FeelTuning.diplomaTitleKoFontSize
+        titleKoLabel.position = CGPoint(x: 0, y: FeelTuning.diplomaTitleKoOffsetY)
         // 본문 1 — 화면 중앙 약간 위 +30, 자동 줄바꿈
-        body1Label.fontSize = GameConfig.diplomaBodyFontSize
-        body1Label.position = CGPoint(x: 0, y: GameConfig.diplomaBody1OffsetY)
+        body1Label.fontSize = FeelTuning.diplomaBodyFontSize
+        body1Label.position = CGPoint(x: 0, y: FeelTuning.diplomaBody1OffsetY)
         body1Label.numberOfLines = 0
-        body1Label.preferredMaxLayoutWidth = sceneSize.width * GameConfig.diplomaBodyWidthRatio
+        body1Label.preferredMaxLayoutWidth = sceneSize.width * FeelTuning.diplomaBodyWidthRatio
         // 본문 2 — 화면 중앙 약간 아래 -10, 자동 줄바꿈
-        body2Label.fontSize = GameConfig.diplomaBodyFontSize
-        body2Label.position = CGPoint(x: 0, y: GameConfig.diplomaBody2OffsetY)
+        body2Label.fontSize = FeelTuning.diplomaBodyFontSize
+        body2Label.position = CGPoint(x: 0, y: FeelTuning.diplomaBody2OffsetY)
         body2Label.numberOfLines = 0
-        body2Label.preferredMaxLayoutWidth = sceneSize.width * GameConfig.diplomaBodyWidthRatio
+        body2Label.preferredMaxLayoutWidth = sceneSize.width * FeelTuning.diplomaBodyWidthRatio
         // 발급자 — 우측 정렬, y -110
-        issuerLabel.fontSize = GameConfig.diplomaIssuerFontSize
+        issuerLabel.fontSize = FeelTuning.diplomaIssuerFontSize
         issuerLabel.horizontalAlignmentMode = .right
-        issuerLabel.position = CGPoint(x: +halfBodyWidth, y: GameConfig.diplomaIssuerOffsetY)
+        issuerLabel.position = CGPoint(x: +halfBodyWidth, y: FeelTuning.diplomaIssuerOffsetY)
         // 일시 — 좌측 정렬, y -110 (issuer와 같은 y, 좌우 분리)
-        dateLabel.fontSize = GameConfig.diplomaDateFontSize
+        dateLabel.fontSize = FeelTuning.diplomaDateFontSize
         dateLabel.horizontalAlignmentMode = .left
-        dateLabel.position = CGPoint(x: -halfBodyWidth, y: GameConfig.diplomaDateOffsetY)
+        dateLabel.position = CGPoint(x: -halfBodyWidth, y: FeelTuning.diplomaDateOffsetY)
         // TAP — 반투명(0.7) 부속 안내, y -160
-        tapLabel.fontSize = GameConfig.diplomaTapFontSize
-        tapLabel.alpha = GameConfig.diplomaTapLabelAlpha
-        tapLabel.position = CGPoint(x: 0, y: GameConfig.diplomaTapOffsetY)
+        tapLabel.fontSize = FeelTuning.diplomaTapFontSize
+        tapLabel.alpha = FeelTuning.diplomaTapLabelAlpha
+        tapLabel.position = CGPoint(x: 0, y: FeelTuning.diplomaTapOffsetY)
         // 가운데 정렬 라벨 5개 — issuer/date 제외 (좌우 분리 정렬 유지)
         for label in [titleEnLabel, titleKoLabel, body1Label, body2Label, tapLabel] {
             label.horizontalAlignmentMode = .center

@@ -12,10 +12,10 @@ final class AchievementStripNode: SKNode {
 
     // MARK: - Properties
     private let background = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let countLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let countLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let selectedBadge = SKShapeNode()
-    private let selectedBadgeLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let selectedBadgeLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     private var badgeNodes: [Difficulty: SKShapeNode] = [:]
     private var badgeLabels: [Difficulty: SKLabelNode] = [:]
     private var layoutScale: CGFloat = 1.0
@@ -24,7 +24,7 @@ final class AchievementStripNode: SKNode {
     // MARK: - Init
     override init() {
         super.init()
-        zPosition = GameConfig.characterHomePanelZPosition
+        zPosition = ZOrder.characterHomePanelZPosition
         setupPanel()
         setupLabels()
         setupDifficultyBadges()
@@ -36,9 +36,9 @@ final class AchievementStripNode: SKNode {
 
     // MARK: - Setup
     private func setupPanel() {
-        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        background.lineWidth = GameConfig.characterHomePanelLineWidth
+        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        background.lineWidth = UILayout.characterHomePanelLineWidth
         addChild(background)
 
         selectedBadge.strokeColor = .clear
@@ -47,22 +47,22 @@ final class AchievementStripNode: SKNode {
     }
 
     private func setupLabels() {
-        titleLabel.text = GameConfig.characterHomeAchievementTitleText
-        titleLabel.fontSize = GameConfig.characterHomePanelTitleFontSize
+        titleLabel.text = UILayout.characterHomeAchievementTitleText
+        titleLabel.fontSize = UILayout.characterHomePanelTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .left
         titleLabel.verticalAlignmentMode = .center
         titleLabel.zPosition = 2
         addChild(titleLabel)
 
-        countLabel.fontSize = GameConfig.characterHomePanelBodyFontSize
+        countLabel.fontSize = UILayout.characterHomePanelBodyFontSize
         countLabel.fontColor = .ganhoNavyMuted
         countLabel.horizontalAlignmentMode = .right
         countLabel.verticalAlignmentMode = .center
         countLabel.zPosition = 2
         addChild(countLabel)
 
-        selectedBadgeLabel.fontSize = GameConfig.characterHomePanelSmallFontSize
+        selectedBadgeLabel.fontSize = UILayout.characterHomePanelSmallFontSize
         selectedBadgeLabel.fontColor = .ganhoPaper
         selectedBadgeLabel.horizontalAlignmentMode = .center
         selectedBadgeLabel.verticalAlignmentMode = .center
@@ -73,10 +73,10 @@ final class AchievementStripNode: SKNode {
     private func setupDifficultyBadges() {
         for difficulty in Difficulty.allCases {
             let node = SKShapeNode()
-            node.lineWidth = GameConfig.characterHomePanelLineWidth
+            node.lineWidth = UILayout.characterHomePanelLineWidth
             node.zPosition = 1
-            let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-            label.fontSize = GameConfig.characterHomePanelSmallFontSize
+            let label = SKLabelNode(fontNamed: Typography.fontDisplay)
+            label.fontSize = UILayout.characterHomePanelSmallFontSize
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
             label.zPosition = 2
@@ -89,14 +89,14 @@ final class AchievementStripNode: SKNode {
 
     // MARK: - Update
     func update(snapshot: CharacterHomeSnapshot) {
-        countLabel.text = "\(GameConfig.characterHomeGraduationLabelText) \(snapshot.totalGraduationCount)/\(CharacterID.allCases.count)"
+        countLabel.text = "\(UILayout.characterHomeGraduationLabelText) \(snapshot.totalGraduationCount)/\(CharacterID.allCases.count)"
         if snapshot.isSelectedCharacterUnlocked {
             selectedBadge.fillColor = snapshot.isSelectedCharacterGraduated
                 ? .ganhoCoralPrimary
                 : .ganhoNavyMuted
             selectedBadgeLabel.text = snapshot.isSelectedCharacterGraduated
-                ? GameConfig.characterHomeSelectedGraduateText
-                : GameConfig.characterHomeSelectedLockedText
+                ? UILayout.characterHomeSelectedGraduateText
+                : UILayout.characterHomeSelectedLockedText
         } else {
             selectedBadge.fillColor = .ganhoNavyMuted
             selectedBadgeLabel.text = snapshot.selectedRequirementText
@@ -106,13 +106,13 @@ final class AchievementStripNode: SKNode {
             let record = snapshot.record(for: difficulty)
             let achieved = record?.isAchieved ?? false
             badgeNodes[difficulty]?.fillColor = achieved
-                ? difficulty.color.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-                : UIColor.ganhoNavyMuted.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+                ? difficulty.color.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+                : UIColor.ganhoNavyMuted.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
             badgeNodes[difficulty]?.strokeColor = achieved
                 ? difficulty.color
-                : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+                : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
             badgeLabels[difficulty]?.fontColor = achieved ? .ganhoNavyDeep : .ganhoNavyMuted
-            badgeLabels[difficulty]?.text = "\(difficulty.shortName) \(achieved ? GameConfig.characterHomeAchievedText : GameConfig.characterHomeLockedText)"
+            badgeLabels[difficulty]?.text = "\(difficulty.shortName) \(achieved ? UILayout.characterHomeAchievedText : UILayout.characterHomeLockedText)"
         }
     }
 
@@ -125,57 +125,57 @@ final class AchievementStripNode: SKNode {
                 width: size.width,
                 height: size.height
             ),
-            cornerWidth: GameConfig.characterHomePanelCornerRadius,
-            cornerHeight: GameConfig.characterHomePanelCornerRadius,
+            cornerWidth: UILayout.characterHomePanelCornerRadius,
+            cornerHeight: UILayout.characterHomePanelCornerRadius,
             transform: nil
         )
         selectedBadge.path = CGPath(
             roundedRect: CGRect(
-                x: -size.width / 2 + GameConfig.characterHomePanelHorizontalInset,
-                y: -GameConfig.characterHomeAchievementBadgeHeight / 2,
-                width: size.width - GameConfig.characterHomePanelHorizontalInset * 2,
-                height: GameConfig.characterHomeAchievementBadgeHeight
+                x: -size.width / 2 + UILayout.characterHomePanelHorizontalInset,
+                y: -UILayout.characterHomeAchievementBadgeHeight / 2,
+                width: size.width - UILayout.characterHomePanelHorizontalInset * 2,
+                height: UILayout.characterHomeAchievementBadgeHeight
             ),
-            cornerWidth: GameConfig.characterHomeAchievementBadgeHeight / 2,
-            cornerHeight: GameConfig.characterHomeAchievementBadgeHeight / 2,
+            cornerWidth: UILayout.characterHomeAchievementBadgeHeight / 2,
+            cornerHeight: UILayout.characterHomeAchievementBadgeHeight / 2,
             transform: nil
         )
 
-        let leftX = -size.width / 2 + GameConfig.characterHomePanelHorizontalInset
-        let rightX = size.width / 2 - GameConfig.characterHomePanelHorizontalInset
-        let topY = size.height / 2 - GameConfig.characterHomePanelVerticalInset
+        let leftX = -size.width / 2 + UILayout.characterHomePanelHorizontalInset
+        let rightX = size.width / 2 - UILayout.characterHomePanelHorizontalInset
+        let topY = size.height / 2 - UILayout.characterHomePanelVerticalInset
         titleLabel.position = CGPoint(x: leftX, y: topY)
         countLabel.position = CGPoint(x: rightX, y: topY)
 
         let badgeCenterY = topY
-            - GameConfig.characterHomePanelTitleFontSize
-            - GameConfig.characterHomeDetailPanelGap
+            - UILayout.characterHomePanelTitleFontSize
+            - UILayout.characterHomeDetailPanelGap
         selectedBadge.position = CGPoint(x: 0, y: badgeCenterY)
         selectedBadgeLabel.position = CGPoint(x: 0, y: badgeCenterY)
 
         let difficultyWidth = (
             size.width
-            - GameConfig.characterHomePanelHorizontalInset * 2
-            - GameConfig.characterHomeAchievementBadgeGap * CGFloat(Difficulty.allCases.count - 1)
+            - UILayout.characterHomePanelHorizontalInset * 2
+            - UILayout.characterHomeAchievementBadgeGap * CGFloat(Difficulty.allCases.count - 1)
         ) / CGFloat(Difficulty.allCases.count)
         let startX = leftX + difficultyWidth / 2
         let difficultyY = -size.height / 2
-            + GameConfig.characterHomePanelVerticalInset
-            + GameConfig.characterHomeAchievementBadgeHeight / 2
+            + UILayout.characterHomePanelVerticalInset
+            + UILayout.characterHomeAchievementBadgeHeight / 2
         for (index, difficulty) in Difficulty.allCases.enumerated() {
             badgeNodes[difficulty]?.path = CGPath(
                 roundedRect: CGRect(
                     x: -difficultyWidth / 2,
-                    y: -GameConfig.characterHomeAchievementBadgeHeight / 2,
+                    y: -UILayout.characterHomeAchievementBadgeHeight / 2,
                     width: difficultyWidth,
-                    height: GameConfig.characterHomeAchievementBadgeHeight
+                    height: UILayout.characterHomeAchievementBadgeHeight
                 ),
-                cornerWidth: GameConfig.characterHomeAchievementBadgeHeight / 2,
-                cornerHeight: GameConfig.characterHomeAchievementBadgeHeight / 2,
+                cornerWidth: UILayout.characterHomeAchievementBadgeHeight / 2,
+                cornerHeight: UILayout.characterHomeAchievementBadgeHeight / 2,
                 transform: nil
             )
             let x = startX + CGFloat(index) * (
-                difficultyWidth + GameConfig.characterHomeAchievementBadgeGap
+                difficultyWidth + UILayout.characterHomeAchievementBadgeGap
             )
             badgeNodes[difficulty]?.position = CGPoint(x: x, y: difficultyY)
             badgeLabels[difficulty]?.position = CGPoint(x: x, y: difficultyY)
@@ -194,19 +194,19 @@ final class AchievementStripNode: SKNode {
     }
 
     private func applyFocus(animated: Bool) {
-        alpha = isFocused ? 1.0 : GameConfig.characterHomeUnfocusedAlpha
+        alpha = isFocused ? 1.0 : UILayout.characterHomeUnfocusedAlpha
         background.strokeColor = isFocused
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        let targetScale = layoutScale * (isFocused ? GameConfig.characterHomeFocusedScale : 1.0)
-        removeAction(forKey: GameConfig.characterHomeSectionFocusActionKey)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        let targetScale = layoutScale * (isFocused ? UILayout.characterHomeFocusedScale : 1.0)
+        removeAction(forKey: UILayout.characterHomeSectionFocusActionKey)
         if animated {
             let action = SKAction.scale(
                 to: targetScale,
-                duration: GameConfig.characterHomeFocusAnimationDuration
+                duration: UILayout.characterHomeFocusAnimationDuration
             )
             action.timingMode = .easeInEaseOut
-            run(action, withKey: GameConfig.characterHomeSectionFocusActionKey)
+            run(action, withKey: UILayout.characterHomeSectionFocusActionKey)
         } else {
             setScale(targetScale)
         }

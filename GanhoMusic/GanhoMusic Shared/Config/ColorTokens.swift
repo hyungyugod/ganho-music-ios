@@ -16,13 +16,7 @@ extension UIColor {
     static let ganhoBgDeep = UIColor(named: "bgDeep")
         ?? UIColor(red: 0x1A / 255, green: 0x1B / 255, blue: 0x2E / 255, alpha: 1)
 
-    /// 배경 패턴, 그림자. HEX #2C2E4A. assets.md §1 16색 팔레트.
-    static let ganhoBgMid = UIColor(named: "bgMid")
-        ?? UIColor(red: 0x2C / 255, green: 0x2E / 255, blue: 0x4A / 255, alpha: 1)
 
-    /// 바닥 타일. HEX #494E78. assets.md §1 16색 팔레트.
-    static let ganhoBgLight = UIColor(named: "bgLight")
-        ?? UIColor(red: 0x49 / 255, green: 0x4E / 255, blue: 0x78 / 255, alpha: 1)
 
     // MARK: - Text / Player
     /// 외곽선. HEX #0F0F1A. assets.md §1 16색 팔레트.
@@ -43,9 +37,6 @@ extension UIColor {
         ?? UIColor(red: 0xF6 / 255, green: 0xA6 / 255, blue: 0xB2 / 255, alpha: 1)
 
     // MARK: - Enemy
-    /// 수간호사 가운. HEX #A4243B. assets.md §1.
-    static let ganhoCrimsonNurse = UIColor(named: "crimsonNurse")
-        ?? UIColor(red: 0xA4 / 255, green: 0x24 / 255, blue: 0x3B / 255, alpha: 1)
 
     /// 수간호사 강조 / 피격 플래시. HEX #D8315B. assets.md §1.
     /// Phase 2-6 hotfix 2 — enemy 본체 색으로 사용.
@@ -57,21 +48,12 @@ extension UIColor {
     static let ganhoYellowF = UIColor(named: "yellowF")
         ?? UIColor(red: 0xFF / 255, green: 0xD2 / 255, blue: 0x3F / 255, alpha: 1)
 
-    /// S 등급 강조 / 콤보 4× 이상. HEX #E0B872. assets.md §1 goldRank.
-    static let ganhoGoldRank = UIColor(named: "goldRank")
-        ?? UIColor(red: 0xE0 / 255, green: 0xB8 / 255, blue: 0x72 / 255, alpha: 1)
 
     /// 박자 강박 표시 / Shield 보유. HEX #3DA9FC. assets.md §1 cyanBeat.
     static let ganhoCyanBeat = UIColor(named: "cyanBeat")
         ?? UIColor(red: 0x3D / 255, green: 0xA9 / 255, blue: 0xFC / 255, alpha: 1)
 
-    /// 비활성 텍스트. HEX #6C6C7A. assets.md §1 dimGray.
-    static let ganhoDimGray = UIColor(named: "dimGray")
-        ?? UIColor(red: 0x6C / 255, green: 0x6C / 255, blue: 0x7A / 255, alpha: 1)
 
-    /// 그림자. HEX #000000 40% alpha. assets.md §1 softShadow 예외 토큰.
-    static let ganhoSoftShadow = UIColor(named: "softShadow")
-        ?? UIColor.black.withAlphaComponent(0.4)
 
     // MARK: - Pixel Palette (Phase 8-1)
     // 원본 web game (game.js L645-655 common 9키 + L657-692 charMap 4종)의 hex 값을
@@ -191,42 +173,18 @@ extension UIColor {
     /// 원본 hex 값 byte-equal — 디자인 단일 진실 원천 = style.css L3-46.
     /// Spring 비유: application.yml의 디자인 토큰을 Swift 상수로 옮긴 형태.
 
-    /// --bg #0f0e15 (어두운 매트 배경)
-    static let ganhoUIBg = UIColor(hex: "#0f0e15")
-    /// --bg-dark #09080f (더 깊은 검정)
-    static let ganhoUIBgDark = UIColor(hex: "#09080f")
     /// --bg-card rgba(23,21,30,0.82) — 카드 배경(반투명)
     static let ganhoUIBgCard = UIColor(hex: "#17151e").withAlphaComponent(0.82)
     /// --brand #c4847a (코럴, 메인 강조색)
     static let ganhoUIBrand = UIColor(hex: "#c4847a")
-    /// --brand-light #d4a49c (밝은 코럴, 텍스트 강조)
-    static let ganhoUIBrandLight = UIColor(hex: "#d4a49c")
     /// --brand-12 rgba(196,132,122,0.12) — 선택 카드 배경
     static let ganhoUIBrand12 = UIColor(hex: "#c4847a").withAlphaComponent(0.12)
-    /// --brand-20 rgba(196,132,122,0.20)
-    static let ganhoUIBrand20 = UIColor(hex: "#c4847a").withAlphaComponent(0.20)
-    /// --brand-40 rgba(196,132,122,0.40)
-    static let ganhoUIBrand40 = UIColor(hex: "#c4847a").withAlphaComponent(0.40)
-    /// --brand-60 rgba(196,132,122,0.60) — 선택 카드 보더
-    static let ganhoUIBrand60 = UIColor(hex: "#c4847a").withAlphaComponent(0.60)
-    /// --text #eeeeee (기본 텍스트)
-    static let ganhoUIText = UIColor(hex: "#eeeeee")
-    /// --text-muted #aaaaaa (보조 텍스트)
-    static let ganhoUITextMuted = UIColor(hex: "#aaaaaa")
-    /// --text-dim #555555 (희미한 텍스트)
-    static let ganhoUITextDim = UIColor(hex: "#555555")
     /// --border rgba(255,255,255,0.07) — 보더 라인
     static let ganhoUIBorder = UIColor.white.withAlphaComponent(0.07)
     /// game-overlay 배경 #09080f α=0.78 — 게임 영역 차단 반투명
     static let ganhoUIOverlayBg = UIColor(hex: "#09080f").withAlphaComponent(0.78)
 
     // MARK: - Toilet Bonus (Phase 9-6)
-    /// 변기 본체(흰색 도자기) — 픽셀 코드 'W'. assets.md §1 ganhoPaper 패밀리의 톤다운 변형.
-    static let ganhoToiletBowl = UIColor(hex: "#f4f0ee")
-    /// 변기 시트(좌석 림) — 픽셀 코드 's'. 본체(#f4f0ee)보다 어두운 회색.
-    static let ganhoToiletSeat = UIColor(hex: "#b8b3ad")
-    /// 변기 안 물(코럴 액센트) — 픽셀 코드 'C'. Phase 8-3 ganhoUIBrand(#c4847a) 패밀리의 액센트 변형.
-    static let ganhoToiletAccent = UIColor(hex: "#ff8a7a")
 
     // MARK: - Professor Palette (Phase 9-7)
     /// 이교수(ProfessorNode) 픽셀 팔레트 — 회색 머리 + 콧수염 + 검은 바지의 깐깐한 대학교수 톤.
@@ -250,8 +208,6 @@ extension UIColor {
     // MARK: - Accent (Phase 10-2 · 병동의 새벽 톤)
     /// 그라데이션 하단 + 제목 글로우 외곽. 시원하고 채도 높은 청록 — 새벽 톤.
     static let ganhoAccentTeal = UIColor(hex: "#5BD7CF")
-    /// 그라데이션 상단. 딥블루-틸 중간 톤 — 어두운 야간 병동의 깊이.
-    static let ganhoAccentTealDeep = UIColor(hex: "#1E3A4C")
     /// 음표 파티클 본체 + 선택 카드 링 글로우 + BEST/PLAYS 액센트. 밝고 따뜻한 살구색.
     static let ganhoAccentCoral = UIColor(hex: "#FFB59A")
 
@@ -261,10 +217,6 @@ extension UIColor {
 
     // 배경 그라데이션 (3-stop)
     static let ganhoBgWarmTop    = UIColor(hex: "#FFE5D0")  // 피치 (상단)
-    static let ganhoBgWarmMid    = UIColor(hex: "#FFC8B5")  // 코랄 (중간)
-    static let ganhoBgWarmBottom = UIColor(hex: "#DCC9E8")  // 라벤더 (하단)
-    static let ganhoBgAccent1    = UIColor(hex: "#FFD9B8")  // BG 액센트 (radial)
-    static let ganhoBgAccent2    = UIColor(hex: "#E5C8E8")  // BG 액센트 (radial)
 
     // Primary 액션 (코랄 패밀리)
     static let ganhoCoralPrimary = UIColor(hex: "#FF6B5B")  // 메인 CTA 색
@@ -282,8 +234,6 @@ extension UIColor {
     static let ganhoSkinTone     = UIColor(hex: "#FFE2C6")  // 캐릭터 피부 톤
 
     // 체크보드 (Game floor) — Sprint 3에서 GameScene이 끌어다 씀
-    static let ganhoFloorPeachA  = UIColor(hex: "#FFEFE0")  // 체크보드 밝은 칸
-    static let ganhoFloorPeachB  = UIColor(hex: "#FFDFC8")  // 체크보드 어두운 칸
 
     // MARK: - v2 Diploma Tokens (Sprint 5)
     // DESIGN_RENEWAL_REQUEST.md §4.5 + mockups/result-screen-v2.html VARIANT C.
@@ -338,10 +288,6 @@ extension UIColor {
     // 석조무사:
     /// 석조무사 본체 밝은 톤 — 회색 돌상. SPRINT_7_REQUEST.md §7.1 `#A0A0A8`.
     static let ganhoStoneGuardLight    = UIColor(hex: "#A0A0A8")
-    /// 석조무사 갑옷 짙은 톤 — 무채색 그라데이션의 깊이.
-    static let ganhoStoneGuardDark     = UIColor(hex: "#5A5670")
-    /// 석조무사 외곽선 — 따뜻한 회갈색. light 톤과 명확히 분리된 stroke 색.
-    static let ganhoStoneGuardOutline  = UIColor(hex: "#7A7570")
 
     // MARK: - Sprint 10 Phase J · Pixel HUD/Effect Palette (8색)
     //
@@ -372,18 +318,18 @@ extension UIColor {
     static let ganhoPixelTensionEdge   = UIColor(hex: "#FF3D2E")
 
     // MARK: - Design Sprint 1 Ingame Readability
-    static let ganhoIngameFloorA = UIColor(hex: GameConfig.ingameFloorAHex)
-    static let ganhoIngameFloorB = UIColor(hex: GameConfig.ingameFloorBHex)
-    static let ganhoIngameWallFill = UIColor(hex: GameConfig.ingameWallFillHex)
-    static let ganhoIngameWallHighlight = UIColor(hex: GameConfig.ingameWallHighlightHex)
-    static let ganhoIngameWallShadow = UIColor(hex: GameConfig.ingameWallShadowHex)
-    static let ganhoIngameDanger = UIColor(hex: GameConfig.ingameDangerHex)
-    static let ganhoIngameDangerDeep = UIColor(hex: GameConfig.ingameDangerDeepHex)
-    static let ganhoIngameReward = UIColor(hex: GameConfig.ingameRewardHex)
-    static let ganhoIngameRewardMint = UIColor(hex: GameConfig.ingameRewardMintHex)
-    static let ganhoIngameControlFill = UIColor(hex: GameConfig.ingameControlFillHex)
-    static let ganhoIngameControlPressed = UIColor(hex: GameConfig.ingameControlPressedHex)
-    static let ganhoIngameControlDisabled = UIColor(hex: GameConfig.ingameControlDisabledHex)
+    static let ganhoIngameFloorA = UIColor(hex: Palette.ingameFloorAHex)
+    static let ganhoIngameFloorB = UIColor(hex: Palette.ingameFloorBHex)
+    static let ganhoIngameWallFill = UIColor(hex: Palette.ingameWallFillHex)
+    static let ganhoIngameWallHighlight = UIColor(hex: Palette.ingameWallHighlightHex)
+    static let ganhoIngameWallShadow = UIColor(hex: Palette.ingameWallShadowHex)
+    static let ganhoIngameDanger = UIColor(hex: Palette.ingameDangerHex)
+    static let ganhoIngameDangerDeep = UIColor(hex: Palette.ingameDangerDeepHex)
+    static let ganhoIngameReward = UIColor(hex: Palette.ingameRewardHex)
+    static let ganhoIngameRewardMint = UIColor(hex: Palette.ingameRewardMintHex)
+    static let ganhoIngameControlFill = UIColor(hex: Palette.ingameControlFillHex)
+    static let ganhoIngameControlPressed = UIColor(hex: Palette.ingameControlPressedHex)
+    static let ganhoIngameControlDisabled = UIColor(hex: Palette.ingameControlDisabledHex)
 }
 
 // MARK: - UIColor Hex Init (Phase 8-1)

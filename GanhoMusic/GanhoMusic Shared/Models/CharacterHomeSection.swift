@@ -17,13 +17,13 @@ enum CharacterHomeSection: String, CaseIterable {
     var title: String {
         switch self {
         case .characterSelect:
-            return GameConfig.characterHomeMenuCharacterText
+            return UILayout.characterHomeMenuCharacterText
         case .profile:
-            return GameConfig.characterHomeMenuProfileText
+            return UILayout.characterHomeMenuProfileText
         case .achievements:
-            return GameConfig.characterHomeMenuAchievementsText
+            return UILayout.characterHomeMenuAchievementsText
         case .records:
-            return GameConfig.characterHomeMenuRecordsText
+            return UILayout.characterHomeMenuRecordsText
         }
     }
 }

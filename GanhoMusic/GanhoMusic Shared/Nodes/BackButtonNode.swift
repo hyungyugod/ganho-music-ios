@@ -35,28 +35,28 @@ final class BackButtonNode: SKNode {
     /// 크기는 PrimaryButtonNode보다 살짝 작음(backButton 상수) — 시각 위계 차별화.
     init(text: String) {
         let buttonSize = CGSize(
-            width: GameConfig.backButtonWidth,
-            height: GameConfig.backButtonHeight
+            width: UILayout.backButtonWidth,
+            height: UILayout.backButtonHeight
         )
         shadowShape = SKShapeNode(
             rectOf: buttonSize,
             cornerRadius: buttonSize.height / 2
         )
         shadowShape.fillColor = UIColor.ganhoCoralShadow
-            .withAlphaComponent(GameConfig.glassPillShadowAlpha)
+            .withAlphaComponent(UILayout.glassPillShadowAlpha)
         shadowShape.strokeColor = .clear
         shadowShape.lineWidth = 0
-        shadowShape.position = CGPoint(x: 0, y: GameConfig.glassPillShadowOffsetY)
+        shadowShape.position = CGPoint(x: 0, y: UILayout.glassPillShadowOffsetY)
         shadowShape.zPosition = -1
         background = SKShapeNode(
             rectOf: buttonSize,
             cornerRadius: buttonSize.height / 2
         )
         background.fillColor = UIColor.ganhoPaper
-            .withAlphaComponent(GameConfig.glassPillFillAlpha)
+            .withAlphaComponent(UILayout.glassPillFillAlpha)
         background.strokeColor = .ganhoCoralPrimary
-        background.lineWidth = GameConfig.glassPillBorderWidth
-        textLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        background.lineWidth = UILayout.glassPillBorderWidth
+        textLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
         super.init()
         name = "backButton"
         zPosition = 100
@@ -76,7 +76,7 @@ final class BackButtonNode: SKNode {
     /// 텍스트 라벨 스타일 — 캡슐 정중앙. navyDeep 톤으로 *보조 안내*임 강조.
     private func configureLabel(text: String) {
         textLabel.text = text
-        textLabel.fontSize = GameConfig.backButtonFontSize
+        textLabel.fontSize = UILayout.backButtonFontSize
         textLabel.fontColor = .ganhoNavyDeep
         textLabel.horizontalAlignmentMode = .center
         textLabel.verticalAlignmentMode = .center

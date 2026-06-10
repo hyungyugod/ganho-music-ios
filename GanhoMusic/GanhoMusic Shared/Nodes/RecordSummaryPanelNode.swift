@@ -12,7 +12,7 @@ final class RecordSummaryPanelNode: SKNode {
 
     // MARK: - Properties
     private let background = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     private var rowBackgrounds: [Difficulty: SKShapeNode] = [:]
     private var difficultyLabels: [Difficulty: SKLabelNode] = [:]
     private var bestLabels: [Difficulty: SKLabelNode] = [:]
@@ -24,7 +24,7 @@ final class RecordSummaryPanelNode: SKNode {
     // MARK: - Init
     override init() {
         super.init()
-        zPosition = GameConfig.characterHomePanelZPosition
+        zPosition = ZOrder.characterHomePanelZPosition
         setupPanel()
         setupRows()
     }
@@ -35,13 +35,13 @@ final class RecordSummaryPanelNode: SKNode {
 
     // MARK: - Setup
     private func setupPanel() {
-        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        background.lineWidth = GameConfig.characterHomePanelLineWidth
+        background.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+        background.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        background.lineWidth = UILayout.characterHomePanelLineWidth
         addChild(background)
 
-        titleLabel.text = GameConfig.characterHomeRecordTitleText
-        titleLabel.fontSize = GameConfig.characterHomePanelTitleFontSize
+        titleLabel.text = UILayout.characterHomeRecordTitleText
+        titleLabel.fontSize = UILayout.characterHomePanelTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .left
         titleLabel.verticalAlignmentMode = .center
@@ -52,25 +52,25 @@ final class RecordSummaryPanelNode: SKNode {
     private func setupRows() {
         for difficulty in Difficulty.allCases {
             let row = SKShapeNode()
-            row.lineWidth = GameConfig.characterHomePanelLineWidth
+            row.lineWidth = UILayout.characterHomePanelLineWidth
             row.zPosition = 1
             rowBackgrounds[difficulty] = row
             addChild(row)
 
-            let difficultyLabel = makeLabel(fontName: GameConfig.fontDisplay)
+            let difficultyLabel = makeLabel(fontName: Typography.fontDisplay)
             difficultyLabel.text = difficulty.displayName
             difficultyLabels[difficulty] = difficultyLabel
             addChild(difficultyLabel)
 
-            let bestLabel = makeLabel(fontName: GameConfig.fontNumeric)
+            let bestLabel = makeLabel(fontName: Typography.fontNumeric)
             bestLabels[difficulty] = bestLabel
             addChild(bestLabel)
 
-            let targetLabel = makeLabel(fontName: GameConfig.fontBody)
+            let targetLabel = makeLabel(fontName: Typography.fontBody)
             targetLabels[difficulty] = targetLabel
             addChild(targetLabel)
 
-            let statusLabel = makeLabel(fontName: GameConfig.fontDisplay)
+            let statusLabel = makeLabel(fontName: Typography.fontDisplay)
             statusLabel.horizontalAlignmentMode = .right
             statusLabels[difficulty] = statusLabel
             addChild(statusLabel)
@@ -79,7 +79,7 @@ final class RecordSummaryPanelNode: SKNode {
 
     private func makeLabel(fontName: String) -> SKLabelNode {
         let label = SKLabelNode(fontNamed: fontName)
-        label.fontSize = GameConfig.characterHomePanelBodyFontSize
+        label.fontSize = UILayout.characterHomePanelBodyFontSize
         label.fontColor = .ganhoNavyDeep
         label.horizontalAlignmentMode = .left
         label.verticalAlignmentMode = .center
@@ -96,19 +96,19 @@ final class RecordSummaryPanelNode: SKNode {
             let achieved = record?.isAchieved ?? false
 
             bestLabels[difficulty]?.text = bestScore > 0
-                ? "\(bestScore)\(GameConfig.characterHomePointSuffixText)"
-                : GameConfig.characterHomeNoRecordText
-            targetLabels[difficulty]?.text = "\(GameConfig.characterHomeTargetPrefixText) \(targetScore)\(GameConfig.characterHomePointSuffixText)"
+                ? "\(bestScore)\(UILayout.characterHomePointSuffixText)"
+                : UILayout.characterHomeNoRecordText
+            targetLabels[difficulty]?.text = "\(UILayout.characterHomeTargetPrefixText) \(targetScore)\(UILayout.characterHomePointSuffixText)"
             statusLabels[difficulty]?.text = achieved
-                ? GameConfig.characterHomeAchievedText
-                : GameConfig.characterHomeLockedText
+                ? UILayout.characterHomeAchievedText
+                : UILayout.characterHomeLockedText
             statusLabels[difficulty]?.fontColor = achieved ? .ganhoCoralPrimary : .ganhoNavyMuted
             rowBackgrounds[difficulty]?.fillColor = achieved
-                ? difficulty.color.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-                : UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+                ? difficulty.color.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+                : UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
             rowBackgrounds[difficulty]?.strokeColor = achieved
                 ? difficulty.color
-                : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+                : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
         }
     }
 
@@ -121,51 +121,51 @@ final class RecordSummaryPanelNode: SKNode {
                 width: size.width,
                 height: size.height
             ),
-            cornerWidth: GameConfig.characterHomePanelCornerRadius,
-            cornerHeight: GameConfig.characterHomePanelCornerRadius,
+            cornerWidth: UILayout.characterHomePanelCornerRadius,
+            cornerHeight: UILayout.characterHomePanelCornerRadius,
             transform: nil
         )
-        let leftX = -size.width / 2 + GameConfig.characterHomePanelHorizontalInset
-        let rightX = size.width / 2 - GameConfig.characterHomePanelHorizontalInset
-        let topY = size.height / 2 - GameConfig.characterHomePanelVerticalInset
+        let leftX = -size.width / 2 + UILayout.characterHomePanelHorizontalInset
+        let rightX = size.width / 2 - UILayout.characterHomePanelHorizontalInset
+        let topY = size.height / 2 - UILayout.characterHomePanelVerticalInset
         titleLabel.position = CGPoint(x: leftX, y: topY)
 
-        let rowWidth = size.width - GameConfig.characterHomePanelHorizontalInset * 2
+        let rowWidth = size.width - UILayout.characterHomePanelHorizontalInset * 2
         let firstRowY = topY
-            - GameConfig.characterHomePanelTitleFontSize
-            - GameConfig.characterHomeDetailPanelGap
-            - GameConfig.characterHomeRecordRowHeight / 2
+            - UILayout.characterHomePanelTitleFontSize
+            - UILayout.characterHomeDetailPanelGap
+            - UILayout.characterHomeRecordRowHeight / 2
         for (index, difficulty) in Difficulty.allCases.enumerated() {
             let y = firstRowY - CGFloat(index) * (
-                GameConfig.characterHomeRecordRowHeight + GameConfig.characterHomeAchievementBadgeGap
+                UILayout.characterHomeRecordRowHeight + UILayout.characterHomeAchievementBadgeGap
             )
             rowBackgrounds[difficulty]?.path = CGPath(
                 roundedRect: CGRect(
                     x: -rowWidth / 2,
-                    y: -GameConfig.characterHomeRecordRowHeight / 2,
+                    y: -UILayout.characterHomeRecordRowHeight / 2,
                     width: rowWidth,
-                    height: GameConfig.characterHomeRecordRowHeight
+                    height: UILayout.characterHomeRecordRowHeight
                 ),
-                cornerWidth: GameConfig.characterHomePanelCornerRadius / 2,
-                cornerHeight: GameConfig.characterHomePanelCornerRadius / 2,
+                cornerWidth: UILayout.characterHomePanelCornerRadius / 2,
+                cornerHeight: UILayout.characterHomePanelCornerRadius / 2,
                 transform: nil
             )
             rowBackgrounds[difficulty]?.position = CGPoint(x: 0, y: y)
             difficultyLabels[difficulty]?.position = CGPoint(
-                x: leftX + GameConfig.characterHomeAchievementBadgeGap,
-                y: y + GameConfig.characterHomePanelSmallFontSize
+                x: leftX + UILayout.characterHomeAchievementBadgeGap,
+                y: y + UILayout.characterHomePanelSmallFontSize
             )
             bestLabels[difficulty]?.position = CGPoint(
-                x: leftX + GameConfig.characterHomeAchievementBadgeGap,
-                y: y - GameConfig.characterHomePanelSmallFontSize
+                x: leftX + UILayout.characterHomeAchievementBadgeGap,
+                y: y - UILayout.characterHomePanelSmallFontSize
             )
             targetLabels[difficulty]?.position = CGPoint(
                 x: leftX + rowWidth / 2,
-                y: y - GameConfig.characterHomePanelSmallFontSize
+                y: y - UILayout.characterHomePanelSmallFontSize
             )
             statusLabels[difficulty]?.position = CGPoint(
-                x: rightX - GameConfig.characterHomeAchievementBadgeGap,
-                y: y + GameConfig.characterHomePanelSmallFontSize
+                x: rightX - UILayout.characterHomeAchievementBadgeGap,
+                y: y + UILayout.characterHomePanelSmallFontSize
             )
         }
     }
@@ -182,19 +182,19 @@ final class RecordSummaryPanelNode: SKNode {
     }
 
     private func applyFocus(animated: Bool) {
-        alpha = isFocused ? 1.0 : GameConfig.characterHomeUnfocusedAlpha
+        alpha = isFocused ? 1.0 : UILayout.characterHomeUnfocusedAlpha
         background.strokeColor = isFocused
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        let targetScale = layoutScale * (isFocused ? GameConfig.characterHomeFocusedScale : 1.0)
-        removeAction(forKey: GameConfig.characterHomeSectionFocusActionKey)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        let targetScale = layoutScale * (isFocused ? UILayout.characterHomeFocusedScale : 1.0)
+        removeAction(forKey: UILayout.characterHomeSectionFocusActionKey)
         if animated {
             let action = SKAction.scale(
                 to: targetScale,
-                duration: GameConfig.characterHomeFocusAnimationDuration
+                duration: UILayout.characterHomeFocusAnimationDuration
             )
             action.timingMode = .easeInEaseOut
-            run(action, withKey: GameConfig.characterHomeSectionFocusActionKey)
+            run(action, withKey: UILayout.characterHomeSectionFocusActionKey)
         } else {
             setScale(targetScale)
         }

@@ -97,7 +97,7 @@ enum PixelSpriteRenderer {
     /// 12×12 가변 매트릭스 → 단색 SKTexture. "1" 채움, 그 외 투명.
     /// fProjectileTexture / aItemTexture 공통 백엔드 — DRY.
     private static func matrixTexture(_ matrix: [String], color: UIColor) -> SKTexture {
-        let dim = GameConfig.fProjectileMatrixSize   // 12
+        let dim = GameplayTuning.fProjectileMatrixSize   // 12
         let size = CGSize(width: dim, height: dim)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in

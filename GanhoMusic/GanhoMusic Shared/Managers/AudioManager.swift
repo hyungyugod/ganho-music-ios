@@ -36,7 +36,7 @@ final class AudioManager {
         }
 
         /// Apple 내장 시스템 사운드 ID. 1000~1500 범위가 안전.
-        /// GameConfig로 분리하지 않는 이유: Apple 시스템 상수라는 외부 도메인 값이며,
+        /// Config로 분리하지 않는 이유: Apple 시스템 상수라는 외부 도메인 값이며,
         /// SFX 케이스와 1:1 매핑이므로 enum 내부에 두는 게 응집도 높음.
         var systemSoundID: SystemSoundID {
             switch self {

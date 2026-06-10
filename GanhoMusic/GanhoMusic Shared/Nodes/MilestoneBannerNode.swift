@@ -29,11 +29,11 @@ final class MilestoneBannerNode: SKNode, SelfDismissingNode {
     /// 사용자 실수 컴파일 타임 차단. ComboPopupNode / ToastLabelNode와 동일 패턴.
     private init(text: String) {
         // 인게임 픽셀 톤 일관 — ComboPopupNode와 동일 fontPixel(Menlo-Bold).
-        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        self.label = SKLabelNode(fontNamed: Typography.fontPixel)
         self.label.text = text
         super.init()
         name = "milestoneBanner"
-        zPosition = GameConfig.milestoneBannerZPosition
+        zPosition = ZOrder.milestoneBannerZPosition
         alpha = 0   // fadeIn 시작점 — 등장 시 부드럽게 떠오른다.
         configureLabel()
         addChild(label)
@@ -46,12 +46,12 @@ final class MilestoneBannerNode: SKNode, SelfDismissingNode {
     // MARK: - Spawn (static factory — 외부 유일 진입점)
     /// 인게임 상단 중앙에 안내 배너를 띄우는 자가 소멸 노드.
     /// - Parameters:
-    ///   - text: 표시 문구. 호출부에서 절반=`"\(남은개수)"+GameConfig.milestoneHalfSuffix` / 근접=`milestoneNearText` 전달.
+    ///   - text: 표시 문구. 호출부에서 절반=`"\(남은개수)"+FeelTuning.milestoneHalfSuffix` / 근접=`milestoneNearText` 전달.
     ///   - parent: 부착 부모. 호출부에서 `cameraNode` 전달 — (0,0)이 화면 중앙, +y가 위.
     static func spawn(text: String, parent: SKNode) {
         let node = MilestoneBannerNode(text: text)
         // cameraNode 자식 → 화면 중앙 기준 상단 1/4 부근. HUD 슬롯 행과 겹치지 않는 고정 양수.
-        node.position = CGPoint(x: 0, y: GameConfig.milestoneBannerOffsetY)
+        node.position = CGPoint(x: 0, y: FeelTuning.milestoneBannerOffsetY)
         parent.addChild(node)
         node.animate()
     }
@@ -60,9 +60,9 @@ final class MilestoneBannerNode: SKNode, SelfDismissingNode {
     /// 부모 addChild 직후 호출. fadeIn → hold → fadeOut → removeFromParent 시퀀스로 자가 제거.
     /// self 미사용 → [weak self] 캡처 불필요 (ComboPopupNode.animate() 패턴 답습).
     private func animate() {
-        let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.milestoneBannerFadeDuration)
-        let hold    = SKAction.wait(forDuration: GameConfig.milestoneBannerHoldDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.milestoneBannerFadeDuration)
+        let fadeIn  = SKAction.fadeIn(withDuration: FeelTuning.milestoneBannerFadeDuration)
+        let hold    = SKAction.wait(forDuration: FeelTuning.milestoneBannerHoldDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.milestoneBannerFadeDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([fadeIn, hold, fadeOut, cleanup]))
     }
@@ -71,7 +71,7 @@ final class MilestoneBannerNode: SKNode, SelfDismissingNode {
     /// 라벨 스타일 — HUD 옐로(격려/강조 톤), 중앙 정렬. cameraNode 자식 (0,0) = 화면 중앙.
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     private func configureLabel() {
-        label.fontSize = GameConfig.milestoneBannerFontSize
+        label.fontSize = FeelTuning.milestoneBannerFontSize
         // .ganhoPixelHudYellow — HUD 옐로와 동일 톤. *남은 거리* 안내를 HUD와 한 톤으로 묶는다.
         label.fontColor = .ganhoPixelHudYellow
         label.verticalAlignmentMode = .center

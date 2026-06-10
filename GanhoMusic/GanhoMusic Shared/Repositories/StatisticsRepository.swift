@@ -8,7 +8,7 @@
 import Foundation
 
 /// 누적 통계(playCount, totalScore)를 UserDefaults에 JSON Data로 영구 저장.
-/// 키 문자열은 GameConfig.statisticsUserDefaultsKey로 단일화.
+/// 키 문자열은 StorageKeys.statisticsUserDefaultsKey로 단일화.
 /// init에 defaults/key를 기본값 인자로 받아 DI를 허용.
 /// 단일 스레드(메인) 호출 가정 → 락/큐 없음.
 final class StatisticsRepository {
@@ -19,7 +19,7 @@ final class StatisticsRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.statisticsUserDefaultsKey) {
+         key: String = StorageKeys.statisticsUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }

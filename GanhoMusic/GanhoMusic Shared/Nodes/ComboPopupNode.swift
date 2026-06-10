@@ -26,18 +26,18 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     init(milestone: Int) {
         // Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold). 인게임 픽셀 톤.
         let text = Self.text(for: milestone)
-        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        self.label = SKLabelNode(fontNamed: Typography.fontPixel)
         self.label.text = text
         super.init()
         name = "comboPopup"
-        zPosition = GameConfig.comboPopupZPosition
+        zPosition = ZOrder.comboPopupZPosition
         let color = Self.color(for: milestone)
         configureLabel(color: color)
         // Sprint 3 — navy 외곽선 시뮬레이션: 4방향(±1pt) 자식 4개를 라벨 *뒤*(z=-1)에 배치.
         addOutline(text: text)
         addChild(label)
         // Sprint 3 — 살짝 비스듬한 회전 (-8°).
-        zRotation = GameConfig.comboPopupV2RotationDegrees * .pi / 180
+        zRotation = UILayout.comboPopupRotationDegrees * .pi / 180
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -48,14 +48,14 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     /// 부모(cameraNode)에 addChild 직후 호출. 짧은 beat pop 뒤 move + fade + scale 동시 진행 → 자가 제거.
     /// self 미사용 — [weak self] 캡처 불필요.
     func animate() {
-        let beatPop = SKAction.scale(to: GameConfig.comboPopupBeatPopScale,
-                                     duration: GameConfig.comboPopupBeatPopDuration)
+        let beatPop = SKAction.scale(to: FeelTuning.comboPopupBeatPopScale,
+                                     duration: FeelTuning.comboPopupBeatPopDuration)
         let moveUp  = SKAction.moveBy(x: 0,
-                                       y: GameConfig.comboPopupFlyUpDistance,
-                                       duration: GameConfig.comboPopupDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.comboPopupDuration)
-        let scaleUp = SKAction.scale(to: GameConfig.comboPopupEndScale,
-                                      duration: GameConfig.comboPopupDuration)
+                                       y: FeelTuning.comboPopupFlyUpDistance,
+                                       duration: FeelTuning.comboPopupDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.comboPopupDuration)
+        let scaleUp = SKAction.scale(to: FeelTuning.comboPopupEndScale,
+                                      duration: FeelTuning.comboPopupDuration)
         let group   = SKAction.group([moveUp, fadeOut, scaleUp])
         let cleanup = SKAction.removeFromParent()
         run(.sequence([beatPop, group, cleanup]))
@@ -65,7 +65,7 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     /// 라벨 스타일 — 마일스톤 색상, 중앙 정렬. cameraNode 자식 (0,0) = 화면 중앙.
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     private func configureLabel(color: UIColor) {
-        label.fontSize = GameConfig.comboPopupV2FontSize
+        label.fontSize = UILayout.comboPopupFontSize
         label.fontColor = color
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
@@ -76,7 +76,7 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
     /// Sprint 3 — navy 외곽선 4방향 시뮬레이션. 본 라벨 뒤(z=-1)에 navy 라벨 4개 ±1pt 오프셋.
     /// 4 라벨은 본 폰트/사이즈/정렬 동일, fontColor만 navy + position만 4방향.
     private func addOutline(text: String) {
-        let offset = GameConfig.comboPopupV2OutlineWidth
+        let offset = UILayout.comboPopupOutlineWidth
         let offsets: [CGPoint] = [
             CGPoint(x: -offset, y:  0),
             CGPoint(x: +offset, y:  0),
@@ -85,9 +85,9 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
         ]
         // Sprint 10 Phase J — outline fontDisplay → fontPixel, ganhoNavyDeep → ganhoPixelOutlineBlack.
         for off in offsets {
-            let outline = SKLabelNode(fontNamed: GameConfig.fontPixel)
+            let outline = SKLabelNode(fontNamed: Typography.fontPixel)
             outline.text = text
-            outline.fontSize = GameConfig.comboPopupV2FontSize
+            outline.fontSize = UILayout.comboPopupFontSize
             outline.fontColor = .ganhoPixelOutlineBlack
             outline.verticalAlignmentMode = .center
             outline.horizontalAlignmentMode = .center
@@ -99,11 +99,11 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
 
     private static func text(for milestone: Int) -> String {
         switch milestone {
-        case 3:  return GameConfig.comboPopupTextMilestone3
-        case 5:  return GameConfig.comboPopupTextMilestone5
-        case 7:  return GameConfig.comboPopupTextMilestone7
-        case 10: return GameConfig.comboPopupTextMilestone10
-        case 20: return GameConfig.comboPopupTextMilestone20
+        case 3:  return FeelTuning.comboPopupTextMilestone3
+        case 5:  return FeelTuning.comboPopupTextMilestone5
+        case 7:  return FeelTuning.comboPopupTextMilestone7
+        case 10: return FeelTuning.comboPopupTextMilestone10
+        case 20: return FeelTuning.comboPopupTextMilestone20
         default: return "x\(milestone)"
         }
     }

@@ -26,34 +26,34 @@ final class AccountMenuOverlayNode: SKNode {
     // MARK: - Properties
     private let dimNode = SKShapeNode()
     private let panelNode = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let bodyLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let bodyLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let appleButton = GlassPillNode(
-        text: GameConfig.authAppleButtonText,
+        text: UILayout.authAppleButtonText,
         size: CGSize(
-            width: GameConfig.accountMenuButtonWidth,
-            height: GameConfig.accountMenuButtonHeight
+            width: UILayout.accountMenuButtonWidth,
+            height: UILayout.accountMenuButtonHeight
         )
     )
     private let signOutButton = GlassPillNode(
-        text: GameConfig.accountMenuSignOutText,
+        text: UILayout.accountMenuSignOutText,
         size: CGSize(
-            width: GameConfig.accountMenuButtonWidth,
-            height: GameConfig.accountMenuButtonHeight
+            width: UILayout.accountMenuButtonWidth,
+            height: UILayout.accountMenuButtonHeight
         )
     )
     private let deleteButton = GlassPillNode(
-        text: GameConfig.accountMenuDeleteText,
+        text: UILayout.accountMenuDeleteText,
         size: CGSize(
-            width: GameConfig.accountMenuButtonWidth,
-            height: GameConfig.accountMenuButtonHeight
+            width: UILayout.accountMenuButtonWidth,
+            height: UILayout.accountMenuButtonHeight
         )
     )
     private let cancelButton = GlassPillNode(
-        text: GameConfig.accountMenuCancelText,
+        text: UILayout.accountMenuCancelText,
         size: CGSize(
-            width: GameConfig.accountMenuCancelButtonWidth,
-            height: GameConfig.accountMenuButtonHeight
+            width: UILayout.accountMenuCancelButtonWidth,
+            height: UILayout.accountMenuButtonHeight
         )
     )
     private var mode: AccountMenuOverlayMode
@@ -65,7 +65,7 @@ final class AccountMenuOverlayNode: SKNode {
         self.isAppleLinked = isAppleLinked
         super.init()
         name = "accountMenuOverlay"
-        zPosition = GameConfig.accountMenuOverlayZPosition
+        zPosition = ZOrder.accountMenuOverlayZPosition
         configureNodes()
         update(sceneSize: sceneSize, isAppleLinked: isAppleLinked, mode: mode)
     }
@@ -76,36 +76,36 @@ final class AccountMenuOverlayNode: SKNode {
 
     // MARK: - Configure
     private func configureNodes() {
-        dimNode.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.accountMenuDimAlpha)
+        dimNode.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.accountMenuDimAlpha)
         dimNode.strokeColor = .clear
         dimNode.lineWidth = 0
-        dimNode.zPosition = GameConfig.accountMenuDimZPosition
+        dimNode.zPosition = ZOrder.accountMenuDimZPosition
         addChild(dimNode)
 
-        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.accountMenuPanelFillAlpha)
-        panelNode.strokeColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.accountMenuPanelStrokeAlpha)
-        panelNode.lineWidth = GameConfig.accountMenuPanelLineWidth
-        panelNode.zPosition = GameConfig.accountMenuPanelZPosition
+        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.accountMenuPanelFillAlpha)
+        panelNode.strokeColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.accountMenuPanelStrokeAlpha)
+        panelNode.lineWidth = UILayout.accountMenuPanelLineWidth
+        panelNode.zPosition = ZOrder.accountMenuPanelZPosition
         addChild(panelNode)
 
-        titleLabel.fontSize = GameConfig.accountMenuTitleFontSize
+        titleLabel.fontSize = UILayout.accountMenuTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = GameConfig.accountMenuLabelZPosition
+        titleLabel.zPosition = ZOrder.accountMenuLabelZPosition
         addChild(titleLabel)
 
-        bodyLabel.fontSize = GameConfig.accountMenuBodyFontSize
+        bodyLabel.fontSize = UILayout.accountMenuBodyFontSize
         bodyLabel.fontColor = .ganhoNavyMuted
         bodyLabel.horizontalAlignmentMode = .center
         bodyLabel.verticalAlignmentMode = .center
         bodyLabel.numberOfLines = 0
-        bodyLabel.preferredMaxLayoutWidth = GameConfig.accountMenuBodyWidth
-        bodyLabel.zPosition = GameConfig.accountMenuLabelZPosition
+        bodyLabel.preferredMaxLayoutWidth = UILayout.accountMenuBodyWidth
+        bodyLabel.zPosition = ZOrder.accountMenuLabelZPosition
         addChild(bodyLabel)
 
         [appleButton, signOutButton, deleteButton, cancelButton].forEach { button in
-            button.zPosition = GameConfig.accountMenuButtonZPosition
+            button.zPosition = ZOrder.accountMenuButtonZPosition
             addChild(button)
         }
 
@@ -145,10 +145,10 @@ final class AccountMenuOverlayNode: SKNode {
     }
 
     private func updatePanelPath(sceneSize: CGSize) {
-        let panelWidth = sceneSize.width < GameConfig.compactNarrowWidth
-            ? GameConfig.accountMenuPanelCompactWidth
-            : GameConfig.accountMenuPanelWidth
-        let panelSize = CGSize(width: panelWidth, height: GameConfig.accountMenuPanelHeight)
+        let panelWidth = sceneSize.width < UILayout.compactNarrowWidth
+            ? UILayout.accountMenuPanelCompactWidth
+            : UILayout.accountMenuPanelWidth
+        let panelSize = CGSize(width: panelWidth, height: UILayout.accountMenuPanelHeight)
         let rect = CGRect(
             x: -panelSize.width / 2,
             y: -panelSize.height / 2,
@@ -157,8 +157,8 @@ final class AccountMenuOverlayNode: SKNode {
         )
         panelNode.path = CGPath(
             roundedRect: rect,
-            cornerWidth: GameConfig.accountMenuPanelCornerRadius,
-            cornerHeight: GameConfig.accountMenuPanelCornerRadius,
+            cornerWidth: UILayout.accountMenuPanelCornerRadius,
+            cornerHeight: UILayout.accountMenuPanelCornerRadius,
             transform: nil
         )
     }
@@ -166,28 +166,28 @@ final class AccountMenuOverlayNode: SKNode {
     private func updateText() {
         switch mode {
         case .menu:
-            titleLabel.text = GameConfig.accountMenuMenuTitleText
+            titleLabel.text = UILayout.accountMenuMenuTitleText
             bodyLabel.text = isAppleLinked
-                ? GameConfig.accountMenuLinkedBodyText
-                : GameConfig.accountMenuGuestBodyText
-            appleButton.setText(GameConfig.authAppleButtonText)
-            deleteButton.setText(GameConfig.accountMenuDeleteText)
+                ? UILayout.accountMenuLinkedBodyText
+                : UILayout.accountMenuGuestBodyText
+            appleButton.setText(UILayout.authAppleButtonText)
+            deleteButton.setText(UILayout.accountMenuDeleteText)
         case .confirmDelete:
-            titleLabel.text = GameConfig.accountMenuConfirmTitleText
-            bodyLabel.text = GameConfig.accountMenuConfirmBodyText
-            deleteButton.setText(GameConfig.accountMenuConfirmDeleteText)
+            titleLabel.text = UILayout.accountMenuConfirmTitleText
+            bodyLabel.text = UILayout.accountMenuConfirmBodyText
+            deleteButton.setText(UILayout.accountMenuConfirmDeleteText)
         case .busy:
-            titleLabel.text = GameConfig.accountMenuBusyTitleText
-            bodyLabel.text = GameConfig.accountMenuBusyBodyText
-            deleteButton.setText(GameConfig.accountMenuConfirmDeleteText)
+            titleLabel.text = UILayout.accountMenuBusyTitleText
+            bodyLabel.text = UILayout.accountMenuBusyBodyText
+            deleteButton.setText(UILayout.accountMenuConfirmDeleteText)
         }
-        signOutButton.setText(GameConfig.accountMenuSignOutText)
-        cancelButton.setText(GameConfig.accountMenuCancelText)
+        signOutButton.setText(UILayout.accountMenuSignOutText)
+        cancelButton.setText(UILayout.accountMenuCancelText)
     }
 
     private func layoutContent() {
-        titleLabel.position = CGPoint(x: 0, y: GameConfig.accountMenuTitleOffsetY)
-        bodyLabel.position = CGPoint(x: 0, y: GameConfig.accountMenuBodyOffsetY)
+        titleLabel.position = CGPoint(x: 0, y: UILayout.accountMenuTitleOffsetY)
+        bodyLabel.position = CGPoint(x: 0, y: UILayout.accountMenuBodyOffsetY)
 
         switch mode {
         case .menu:
@@ -196,8 +196,8 @@ final class AccountMenuOverlayNode: SKNode {
             layoutButtons(buttons)
         case .confirmDelete:
             let buttons = [
-                (node: deleteButton, width: GameConfig.accountMenuButtonWidth),
-                (node: cancelButton, width: GameConfig.accountMenuCancelButtonWidth)
+                (node: deleteButton, width: UILayout.accountMenuButtonWidth),
+                (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
             ]
             setButtonsHidden(buttonsToShow: buttons.map { $0.node })
             layoutButtons(buttons)
@@ -209,16 +209,16 @@ final class AccountMenuOverlayNode: SKNode {
     private func menuButtons() -> [(node: GlassPillNode, width: CGFloat)] {
         if isAppleLinked {
             return [
-                (node: signOutButton, width: GameConfig.accountMenuButtonWidth),
-                (node: deleteButton, width: GameConfig.accountMenuButtonWidth),
-                (node: cancelButton, width: GameConfig.accountMenuCancelButtonWidth)
+                (node: signOutButton, width: UILayout.accountMenuButtonWidth),
+                (node: deleteButton, width: UILayout.accountMenuButtonWidth),
+                (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
             ]
         }
 
         return [
-            (node: appleButton, width: GameConfig.accountMenuButtonWidth),
-            (node: deleteButton, width: GameConfig.accountMenuButtonWidth),
-            (node: cancelButton, width: GameConfig.accountMenuCancelButtonWidth)
+            (node: appleButton, width: UILayout.accountMenuButtonWidth),
+            (node: deleteButton, width: UILayout.accountMenuButtonWidth),
+            (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
         ]
     }
 
@@ -231,7 +231,7 @@ final class AccountMenuOverlayNode: SKNode {
 
     private func layoutButtons(_ buttons: [(node: GlassPillNode, width: CGFloat)]) {
         guard !buttons.isEmpty else { return }
-        let gapTotal = GameConfig.accountMenuButtonGap * CGFloat(max(0, buttons.count - 1))
+        let gapTotal = UILayout.accountMenuButtonGap * CGFloat(max(0, buttons.count - 1))
         let totalWidth = buttons.reduce(CGFloat.zero) { result, item in
             result + item.width
         } + gapTotal
@@ -240,9 +240,9 @@ final class AccountMenuOverlayNode: SKNode {
         for item in buttons {
             item.node.position = CGPoint(
                 x: currentX + item.width / 2,
-                y: GameConfig.accountMenuButtonOffsetY
+                y: UILayout.accountMenuButtonOffsetY
             )
-            currentX += item.width + GameConfig.accountMenuButtonGap
+            currentX += item.width + UILayout.accountMenuButtonGap
         }
     }
 

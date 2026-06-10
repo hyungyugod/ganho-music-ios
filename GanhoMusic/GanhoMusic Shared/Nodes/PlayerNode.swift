@@ -22,8 +22,9 @@ import SpriteKit
 /// Phase 8-1 — texture 모드 전환. physicsBody 크기는 *그대로* 16×20 — 게임 hitbox 회귀 0.
 ///             시각만 32×40pt로 확대(pixelSpriteScale=2) — 카메라 follow / 충돌 / 맵 경계 영향 0.
 /// Sprint 10 Phase A — 시각 단일 진실 원천을 *자식 SKSpriteNode 1개*(pixelSpriteChild)로 통일.
-///             본체 self는 투명 placeholder. CharacterFullBodyNode(SVG SKShapeNode) 부착 제거.
-final class PlayerNode: SKSpriteNode {
+///             본체 self는 투명 placeholder. (구 SVG 풀바디 자식 부착은 폐기 후 R0에서 파일 삭제.)
+/// R0 — 방향 산출·보행 상태 머신은 PixelCharacterAnimating 기본 구현 사용 (사본 제거).
+final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
 
     // MARK: - Properties
     /// 현재 이동 방향 (단위 벡터). 외부에서 set, 내부에서 read.
@@ -45,12 +46,12 @@ final class PlayerNode: SKSpriteNode {
     /// 이번 프레임에 실제 적용된 이동 속도. 픽셀 방향/걷기 애니메이션이 읽는다.
     private(set) var movementVelocity: CGVector = .zero
 
-    /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameConfig.playerBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
+    /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameplayTuning.playerBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
     /// update(deltaTime:)에서 speedMultiplier와 곱해져 최종 속도 산출.
-    var baseSpeedStart: CGFloat = GameConfig.playerBaseSpeed
+    var baseSpeedStart: CGFloat = GameplayTuning.playerBaseSpeed
     /// Phase 7-1 — 난이도별 끝 속도 (pt/s). 본 sprint는 *시작값만* 적용 — 미리 저장만(주의사항 7).
-    /// 다음 보강 sprint에서 진행률 보간식 도입 시 사용.
-    var baseSpeedEnd: CGFloat = GameConfig.playerBaseSpeed
+    /// R2에서 속도 곡선으로 활성화 (그랜드 리팩토링 v3 로드맵 — 삭제 금지).
+    var baseSpeedEnd: CGFloat = GameplayTuning.playerBaseSpeed
 
     /// Phase 9-5 — 무적 플래그. true면 ContactRouter 콜백(enemy/projectile) 본문에서 즉시 return.
     /// 정간호 돌진(0.26초)·이간호 텔레포트(0.5초)에서만 set/clear.
@@ -63,14 +64,17 @@ final class PlayerNode: SKSpriteNode {
     /// 외부 setter 차단 — set은 freeze(duration:) 메서드만 통과.
     private(set) var isFrozen: Bool = false
 
-    // MARK: - Pixel Sprite State (Phase 8-1)
-    /// 현재 픽셀 텍스처가 표현하는 방향. velocity 부호 변화 시 갱신 후 refreshTexture 호출.
-    /// 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음(자연 톤).
-    private var pixelDirection: PixelDirection = .down
+    // MARK: - Pixel Sprite State (Phase 8-1 / R0 — PixelCharacterAnimating 요구)
+    /// 현재 픽셀 텍스처가 표현하는 방향. 정지(.zero) 시 마지막 방향 유지 — 갑작스러운 down 복귀 없음.
+    var pixelDirection: PixelDirection = .down
     /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
-    private var pixelFrame: PixelFrame = .idle
-    /// step1↔step2 교차 누적 시간 (초). GameConfig.pixelWalkFrameInterval 도달 시 토글 + 0 리셋.
-    private var frameAccumulator: TimeInterval = 0
+    var pixelFrame: PixelFrame = .idle
+    /// step1↔step2 교차 누적 시간 (초). walkFrameInterval 도달 시 토글 + 0 리셋.
+    var frameAccumulator: TimeInterval = 0
+    /// 플레이어 전용 보행 주기 0.11 — 적/빌런(0.18)과 분리 (R0 행동 불변).
+    var walkFrameInterval: TimeInterval { GameplayTuning.playerWalkFrameInterval }
+    /// 정지→이동 첫 프레임 즉시 step1 토글 — Sprint 11 출발 지연 제거 시맨틱 보존.
+    var togglesToStepImmediately: Bool { true }
     /// 현재 픽셀 텍스처가 표현하는 캐릭터. apply(_ characterID:) 호출 시 갱신.
     /// init 직후 .kim — apply 호출 전에도 그래픽이 깨지지 않도록 graceful default.
     private var currentCharacterID: CharacterID = .kim
@@ -102,12 +106,12 @@ final class PlayerNode: SKSpriteNode {
         // Phase 8-1 — physicsBody 크기는 원래대로 16×20 (게임 로직 회귀 0).
         // 시각 크기는 pixelSpriteScale(2)배 — 32×40pt 화면 픽셀.
         let physicsSize = CGSize(
-            width:  GameConfig.playerWidth,
-            height: GameConfig.playerHeight
+            width:  GameplayTuning.playerWidth,
+            height: GameplayTuning.playerHeight
         )
         let visualSize = CGSize(
-            width:  GameConfig.playerWidth  * GameConfig.pixelSpriteScale,
-            height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
+            width:  GameplayTuning.playerWidth  * GameplayTuning.pixelSpriteScale,
+            height: GameplayTuning.playerHeight * GameplayTuning.pixelSpriteScale
         )
         // 초기 텍스처는 .kim의 down/idle. apply(_ characterID:)로 캐릭터 확정 시 갱신.
         // Sprint 10 Phase A — 본체 self.texture는 투명 placeholder 정책상 시각 영향 0이지만
@@ -165,10 +169,10 @@ final class PlayerNode: SKSpriteNode {
     /// 일관성을 위해 GameScene+Setup에서 character 먼저 → difficulty 나중 순서로 호출.
     /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
     func apply(_ difficulty: Difficulty) {
-        let start = GameConfig.playerSpeedStartByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
-        let end = GameConfig.playerSpeedEndByDifficulty[difficulty] ?? GameConfig.playerBaseSpeed
-        baseSpeedStart = start * GameConfig.playerSpeedRuntimeMultiplier
-        baseSpeedEnd = end * GameConfig.playerSpeedRuntimeMultiplier
+        let start = GameplayTuning.playerSpeedStartByDifficulty[difficulty] ?? GameplayTuning.playerBaseSpeed
+        let end = GameplayTuning.playerSpeedEndByDifficulty[difficulty] ?? GameplayTuning.playerBaseSpeed
+        baseSpeedStart = start * GameplayTuning.playerSpeedRuntimeMultiplier
+        baseSpeedEnd = end * GameplayTuning.playerSpeedRuntimeMultiplier
     }
 
     func updateNearMissWarning(closestProjectileDistance distance: CGFloat?,
@@ -188,11 +192,11 @@ final class PlayerNode: SKSpriteNode {
         let initialTexture = Self.cachedTexture(for: characterID, direction: .down)
         let child = SKSpriteNode(texture: initialTexture)
         child.name = "pixelSpriteChild"
-        child.zPosition = GameConfig.playerFaceChildZPosition  // 1 — 기존 상수 재사용
+        child.zPosition = ZOrder.playerFaceChildZPosition  // 1 — 기존 상수 재사용
         // 시각 크기 = 16×20(텍스처) × pixelSpriteScale(2) = 32×40pt → playerWidth×Height와 정합
         child.size = CGSize(
-            width:  GameConfig.playerWidth  * GameConfig.pixelSpriteScale,
-            height: GameConfig.playerHeight * GameConfig.pixelSpriteScale
+            width:  GameplayTuning.playerWidth  * GameplayTuning.pixelSpriteScale,
+            height: GameplayTuning.playerHeight * GameplayTuning.pixelSpriteScale
         )
         // filteringMode는 PixelSpriteRenderer가 이미 .nearest 세팅 → 별도 코드 불요.
         addChild(child)
@@ -306,8 +310,8 @@ final class PlayerNode: SKSpriteNode {
             return
         }
         let movementModeScale = isRunning
-            ? GameConfig.playerRunSpeedScale
-            : GameConfig.playerWalkSpeedScale
+            ? GameplayTuning.playerRunSpeedScale
+            : GameplayTuning.playerWalkSpeedScale
         let speed = baseSpeedStart * speedMultiplier * movementModeScale
         let velocity = CGVector(
             dx: currentDirection.dx * speed,
@@ -323,8 +327,8 @@ final class PlayerNode: SKSpriteNode {
             dy: velocity.dy * CGFloat(deltaTime)
         )
         let start = resolvedPositionAfterWallRecovery(from: position, preferredDelta: delta)
-        guard abs(delta.dx) >= GameConfig.dpadInputSnapEpsilon
-            || abs(delta.dy) >= GameConfig.dpadInputSnapEpsilon else {
+        guard abs(delta.dx) >= GameplayTuning.dpadInputSnapEpsilon
+            || abs(delta.dy) >= GameplayTuning.dpadInputSnapEpsilon else {
             position = start
             movementVelocity = .zero
             return
@@ -353,8 +357,8 @@ final class PlayerNode: SKSpriteNode {
             appliedDelta.dy = delta.dy
         }
 
-        let preferredRecoveryDelta = abs(appliedDelta.dx) >= GameConfig.dpadInputSnapEpsilon
-            || abs(appliedDelta.dy) >= GameConfig.dpadInputSnapEpsilon
+        let preferredRecoveryDelta = abs(appliedDelta.dx) >= GameplayTuning.dpadInputSnapEpsilon
+            || abs(appliedDelta.dy) >= GameplayTuning.dpadInputSnapEpsilon
             ? appliedDelta
             : delta
         let resolved = resolvedPositionAfterWallRecovery(
@@ -362,8 +366,8 @@ final class PlayerNode: SKSpriteNode {
             preferredDelta: preferredRecoveryDelta
         )
         position = resolved
-        if abs(appliedDelta.dx) < GameConfig.dpadInputSnapEpsilon
-            && abs(appliedDelta.dy) < GameConfig.dpadInputSnapEpsilon {
+        if abs(appliedDelta.dx) < GameplayTuning.dpadInputSnapEpsilon
+            && abs(appliedDelta.dy) < GameplayTuning.dpadInputSnapEpsilon {
             movementVelocity = resolvedVelocity(from: start, to: resolved, deltaTime: deltaTime)
         } else {
             movementVelocity = CGVector(
@@ -389,9 +393,9 @@ final class PlayerNode: SKSpriteNode {
     private func canMoveWithoutWorseningOverlap(from start: CGPoint,
                                                 to target: CGPoint) -> Bool {
         let startScore = overlapScore(at: start)
-        guard startScore > GameConfig.playerWallRecoveryScoreEpsilon else { return false }
+        guard startScore > GameplayTuning.playerWallRecoveryScoreEpsilon else { return false }
         let targetScore = overlapScore(at: target)
-        guard targetScore <= startScore + GameConfig.playerWallSlideOverlapTolerance else {
+        guard targetScore <= startScore + GameplayTuning.playerWallSlideOverlapTolerance else {
             return false
         }
         return doesMoveDeeperIntoWall(from: start, to: target) == false
@@ -402,9 +406,9 @@ final class PlayerNode: SKSpriteNode {
         guard wallRectProvider != nil else { return point }
         var resolved = point
 
-        for _ in 0..<GameConfig.playerWallRecoveryMaxIterations {
+        for _ in 0..<GameplayTuning.playerWallRecoveryMaxIterations {
             let currentScore = overlapScore(at: resolved)
-            guard currentScore > GameConfig.playerWallRecoveryScoreEpsilon else {
+            guard currentScore > GameplayTuning.playerWallRecoveryScoreEpsilon else {
                 return resolved
             }
 
@@ -444,7 +448,7 @@ final class PlayerNode: SKSpriteNode {
             ) {
                 let candidate = CGPoint(x: point.x + offset.dx, y: point.y + offset.dy)
                 let score = overlapScore(at: candidate)
-                guard score < currentScore - GameConfig.playerWallRecoveryScoreEpsilon else {
+                guard score < currentScore - GameplayTuning.playerWallRecoveryScoreEpsilon else {
                     continue
                 }
                 let tangentPenalty = recoveryTangentPenalty(
@@ -474,7 +478,7 @@ final class PlayerNode: SKSpriteNode {
     private func recoveryOffsets(queryRect: CGRect,
                                  wallRect: CGRect,
                                  preferredDelta: CGVector) -> [CGVector] {
-        let padding = GameConfig.playerWallRecoveryPadding
+        let padding = GameplayTuning.playerWallRecoveryPadding
         let moveLeft = wallRect.minX - queryRect.maxX - padding
         let moveRight = wallRect.maxX - queryRect.minX + padding
         let moveDown = wallRect.minY - queryRect.maxY - padding
@@ -493,12 +497,12 @@ final class PlayerNode: SKSpriteNode {
         ].sorted { lhs, rhs in
             let lhsDistance = recoveryDistance(lhs)
             let rhsDistance = recoveryDistance(rhs)
-            if abs(lhsDistance - rhsDistance) > GameConfig.playerWallRecoveryScoreEpsilon {
+            if abs(lhsDistance - rhsDistance) > GameplayTuning.playerWallRecoveryScoreEpsilon {
                 return lhsDistance < rhsDistance
             }
             let lhsPenalty = recoveryTangentPenalty(offset: lhs, preferredDelta: preferredDelta)
             let rhsPenalty = recoveryTangentPenalty(offset: rhs, preferredDelta: preferredDelta)
-            if abs(lhsPenalty - rhsPenalty) > GameConfig.playerWallRecoveryScoreEpsilon {
+            if abs(lhsPenalty - rhsPenalty) > GameplayTuning.playerWallRecoveryScoreEpsilon {
                 return lhsPenalty < rhsPenalty
             }
             return abs(lhs.dx) > abs(lhs.dy)
@@ -520,7 +524,7 @@ final class PlayerNode: SKSpriteNode {
         return wallRects(intersecting: queryRect).contains { wallRect in
             let startArea = intersectionArea(startRect, wallRect)
             let targetArea = intersectionArea(targetRect, wallRect)
-            return targetArea > startArea + GameConfig.playerWallRecoveryScoreEpsilon
+            return targetArea > startArea + GameplayTuning.playerWallRecoveryScoreEpsilon
         }
     }
 
@@ -530,16 +534,16 @@ final class PlayerNode: SKSpriteNode {
                                                bestScore: CGFloat,
                                                bestTangentPenalty: CGFloat,
                                                bestCorrectionDistance: CGFloat) -> Bool {
-        if score < bestScore - GameConfig.playerWallRecoveryScoreEpsilon {
+        if score < bestScore - GameplayTuning.playerWallRecoveryScoreEpsilon {
             return true
         }
-        guard abs(score - bestScore) <= GameConfig.playerWallRecoveryScoreEpsilon else {
+        guard abs(score - bestScore) <= GameplayTuning.playerWallRecoveryScoreEpsilon else {
             return false
         }
-        if tangentPenalty < bestTangentPenalty - GameConfig.playerWallRecoveryScoreEpsilon {
+        if tangentPenalty < bestTangentPenalty - GameplayTuning.playerWallRecoveryScoreEpsilon {
             return true
         }
-        guard abs(tangentPenalty - bestTangentPenalty) <= GameConfig.playerWallRecoveryScoreEpsilon else {
+        guard abs(tangentPenalty - bestTangentPenalty) <= GameplayTuning.playerWallRecoveryScoreEpsilon else {
             return false
         }
         return correctionDistance < bestCorrectionDistance
@@ -549,8 +553,8 @@ final class PlayerNode: SKSpriteNode {
                                         preferredDelta: CGVector) -> CGFloat {
         let preferredLength = recoveryDistance(preferredDelta)
         let offsetLength = recoveryDistance(offset)
-        guard preferredLength > GameConfig.dpadInputSnapEpsilon,
-              offsetLength > GameConfig.playerWallRecoveryScoreEpsilon else {
+        guard preferredLength > GameplayTuning.dpadInputSnapEpsilon,
+              offsetLength > GameplayTuning.playerWallRecoveryScoreEpsilon else {
             return 0
         }
         let dot = offset.dx * preferredDelta.dx + offset.dy * preferredDelta.dy
@@ -558,7 +562,7 @@ final class PlayerNode: SKSpriteNode {
     }
 
     private func clampedRecoveryOffset(_ offset: CGVector) -> CGVector {
-        let maxCorrection = GameConfig.playerWallRecoveryMaxCorrection
+        let maxCorrection = GameplayTuning.playerWallRecoveryMaxCorrection
         if abs(offset.dx) > maxCorrection {
             return CGVector(dx: offset.dx < 0 ? -maxCorrection : maxCorrection, dy: 0)
         }
@@ -595,14 +599,14 @@ final class PlayerNode: SKSpriteNode {
 
     private func wallQueryRect(centeredAt point: CGPoint) -> CGRect {
         let rect = CGRect(
-            x: point.x - GameConfig.playerWidth / 2,
-            y: point.y - GameConfig.playerHeight / 2,
-            width: GameConfig.playerWidth,
-            height: GameConfig.playerHeight
+            x: point.x - GameplayTuning.playerWidth / 2,
+            y: point.y - GameplayTuning.playerHeight / 2,
+            width: GameplayTuning.playerWidth,
+            height: GameplayTuning.playerHeight
         )
         return rect.insetBy(
-            dx: GameConfig.playerWallQueryInset,
-            dy: GameConfig.playerWallQueryInset
+            dx: GameplayTuning.playerWallQueryInset,
+            dy: GameplayTuning.playerWallQueryInset
         )
     }
 
@@ -621,8 +625,8 @@ final class PlayerNode: SKSpriteNode {
         if isInvulnerable { return }
         isFrozen = true
 
-        let half = GameConfig.frozenBlinkHalfPeriod
-        let fadeOut = SKAction.fadeAlpha(to: GameConfig.frozenBlinkMinAlpha, duration: half)
+        let half = GameplayTuning.frozenBlinkHalfPeriod
+        let fadeOut = SKAction.fadeAlpha(to: GameplayTuning.frozenBlinkMinAlpha, duration: half)
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
         let cycle = SKAction.sequence([fadeOut, fadeIn])
         // duration / (half * 2) 사이클 수 계산. max(1, ...) — duration < halfPeriod*2 극단 케이스에도 1회 깜빡임 보장.
@@ -633,78 +637,28 @@ final class PlayerNode: SKSpriteNode {
             self?.alpha = 1.0
             self?.physicsBody?.velocity = .zero
         }
-        run(.sequence([blink, restore]), withKey: GameConfig.playerFreezeActionKey)
+        run(.sequence([blink, restore]), withKey: GameplayTuning.playerFreezeActionKey)
     }
 
-    // MARK: - Update (Pixel Animation, Phase 8-1)
-    /// GameScene.update가 매 프레임 호출. PlayerNode가 자기 텍스처를 갱신.
-    /// velocity dx/dy 부호 + 절대값 비교로 4방향 산출. 정지 시 마지막 방향 유지.
-    /// 텍스처 재생성은 *방향이 실제로 바뀐 프레임에만* — 매 프레임 호출이라도 정지 시 비용 0.
-    /// Sprint 10 Phase A — D-Pad facing 콜백 누락 케이스 보조 안전망(SPEC OQ-B).
-    ///                     본체 self.texture뿐 아니라 자식 pixelSpriteChild.texture도 같이 갱신.
-    func updatePixelDirection(_ velocity: CGVector) {
-        let absDx = abs(velocity.dx)
-        let absDy = abs(velocity.dy)
-        // 거의 정지(임계값 0.1 미만) — 방향 유지(텍스처 재생성 없음).
-        // physics 엔진의 미세 잔존 velocity가 *흔들림*으로 보이지 않도록 임계값 가드.
-        guard absDx > 0.1 || absDy > 0.1 else { return }
-        let newDir: PixelDirection
-        if absDx > absDy {
-            newDir = velocity.dx >= 0 ? .right : .left
-        } else {
-            // SpriteKit 좌표계: +y는 위쪽 → dy > 0이면 up.
-            newDir = velocity.dy >= 0 ? .up : .down
-        }
-        if newDir != pixelDirection {
-            pixelDirection = newDir
-            refreshTexture()
-            // Sprint 10 Phase A — 본체뿐 아니라 자식도 같이 갱신(시각 단일 진실 원천).
-            pixelSpriteChild?.texture = Self.cachedTexture(
-                for: currentCharacterID,
-                direction: newDir
-            )
-        }
-    }
+    // MARK: - Pixel Animation Hooks (R0 — PixelCharacterAnimating)
+    // updatePixelDirection / tickWalkFrame 본문은 프로토콜 기본 구현이 단일 진실 원천.
+    // PlayerNode는 텍스처 반영 훅 2개만 구현 — 기존 시맨틱 byte-equal 보존:
+    //   · 방향 변경 프레임: 본체 refreshTexture(idle 캐시) + 자식에 idle 방향 텍스처 (순간적 idle 노출 보존)
+    //   · 보행 토글 프레임: walkTexture 캐시로 본체+자식 동기 (다리 교차가 화면에 보임 — Sprint 11)
 
-    /// GameScene.update가 매 프레임 호출. 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
-    /// 텍스처 재생성은 *변경 순간에만* — 매 프레임 호출이라도 변화 없으면 비용 0.
-    /// - Parameter isMoving: 외부에서 판단(velocity != .zero 등). 명시 인자로 받아 책임 분리.
-    /// Sprint 11 — 두 결함 동시 해소:
-    ///   (1) 첫 스텝 지연 — idle에서 시작하면 한 interval 대기 없이 즉시 step1로 토글(출발 버벅임 제거).
-    ///   (2) walk 프레임 미반영 — applyWalkFrameTexture()가 self뿐 아니라 자식 pixelSpriteChild에도
-    ///       step별 텍스처를 set해 인게임에서 다리 교차가 실제로 보이게 한다.
-    ///   주기는 플레이어 전용 playerWalkFrameInterval(0.11) 사용 — 적/빌런(0.18) 보행 톤 불변.
-    func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
-        guard isMoving else {
-            // 정지 — idle로 전환 (이미 idle이면 noop, 텍스처 재생성 없음).
-            if pixelFrame != .idle {
-                pixelFrame = .idle
-                frameAccumulator = 0
-                applyWalkFrameTexture()   // self + 자식 동기(idle 복귀)
-            }
-            return
-        }
-        // 정지→이동 첫 프레임: idle이면 한 interval 대기 없이 즉시 step1로 토글(출발 지연 제거).
-        if pixelFrame == .idle {
-            pixelFrame = .step1
-            frameAccumulator = 0
-            applyWalkFrameTexture()
-            return
-        }
-        // 이동 중 — 누적 시간이 임계(플레이어 전용) 도달 시 step1↔step2 토글.
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.playerWalkFrameInterval {
-            frameAccumulator = 0
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            applyWalkFrameTexture()
-        }
+    /// 방향이 바뀐 프레임 전용 훅 — 자식에 *idle 방향 텍스처*를 적용(기존 updatePixelDirection 시맨틱).
+    func applyDirectionChangeTexture() {
+        refreshTexture()
+        // Sprint 10 Phase A — 본체뿐 아니라 자식도 같이 갱신(시각 단일 진실 원천).
+        pixelSpriteChild?.texture = Self.cachedTexture(
+            for: currentCharacterID,
+            direction: pixelDirection
+        )
     }
 
     /// 현재 pixelDirection + pixelFrame 조합 텍스처를 본체(self)와 자식 pixelSpriteChild 양쪽에 set.
-    /// refreshTexture()가 self.texture(투명 placeholder)만 갱신하던 것과 달리, 시각 단일 진실 원천인
-    /// 자식까지 갱신해야 걷기 프레임이 화면에 실제로 보인다(Sprint 10 Phase A 누락 결함 해소).
     /// 텍스처는 walkTexture 정적 캐시에서 가져오므로 매 호출 재생성 없음 — 변화 없는 프레임은 노드가 noop 처리.
-    private func applyWalkFrameTexture() {
+    func applyPixelTexture() {
         let tex = Self.walkTexture(
             for: currentCharacterID,
             direction: pixelDirection,

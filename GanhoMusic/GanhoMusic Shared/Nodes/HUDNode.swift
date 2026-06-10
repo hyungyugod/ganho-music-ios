@@ -43,7 +43,7 @@ final class HUDNode: SKNode {
 
         // 가로 4 슬롯 중앙 정렬 — 슬롯 간격 80, 총 폭 240, 양옆 -120 / +120.
         // anchor (0,0) = 상단 중앙 (GameScene.layoutHUD가 (0, +halfH-margin)로 배치).
-        let spacing = GameConfig.hudSlotSpacing
+        let spacing = UILayout.hudSlotSpacing
         timeSlot.position  = CGPoint(x: -spacing * 1.5, y: 0)
         scoreSlot.position = CGPoint(x: -spacing * 0.5, y: 0)
         comboSlot.position = CGPoint(x: +spacing * 0.5, y: 0)
@@ -89,16 +89,16 @@ final class HUDNode: SKNode {
         // setWarn(fillColor 1줄 멱등)·setTimeBar(xScale 1줄)는 연속값이라 매 프레임 현행 유지 —
         // 버킷팅 시 시각 회귀 위험이 있어 SPEC 안전 기본값(현행 유지) 채택. 비용은 지오메트리 재빌드가 아님.
         // tensionWindow 이하 진입 시 코랄 경고 배경. 그 외엔 navy 기본.
-        let warn = remainingTime <= GameConfig.tensionWindow
+        let warn = remainingTime <= FeelTuning.tensionWindow
         timeSlot.setWarn(warn)
         // 진행바 xScale 비율 — 시작 1.0 → 0초 0.0.
-        let progress = CGFloat(remainingTime / GameConfig.gameDuration)
+        let progress = CGFloat(remainingTime / GameplayTuning.gameDuration)
         timeSlot.setTimeBar(progress: progress)
     }
 
     // MARK: - Style
     func applyReadableStyle() {
-        alpha = GameConfig.ingameHUDReadableAlpha
+        alpha = UILayout.ingameHUDReadableAlpha
     }
 
     // MARK: - Collect Feedback
@@ -108,16 +108,16 @@ final class HUDNode: SKNode {
         lastDisplayedCombo = combo
         comboSlot.setValueColor(colorForCombo(combo))
         comboSlot.pulseValue(
-            scale: GameConfig.hudComboPulseScale,
-            upDuration: GameConfig.hudComboPulseUpDuration,
-            downDuration: GameConfig.hudComboPulseDownDuration
+            scale: FeelTuning.hudComboPulseScale,
+            upDuration: FeelTuning.hudComboPulseUpDuration,
+            downDuration: FeelTuning.hudComboPulseDownDuration
         )
     }
 
     private func colorForCombo(_ combo: Int) -> UIColor {
-        if combo >= GameConfig.comboBonusThresholdHigh { return .ganhoPixelComboRed }
-        if combo >= GameConfig.comboBonusThresholdMid { return .ganhoPixelComboGold }
-        if combo >= GameConfig.comboBonusThreshold { return .ganhoPixelHudYellow }
+        if combo >= GameplayTuning.comboBonusThresholdHigh { return .ganhoPixelComboRed }
+        if combo >= GameplayTuning.comboBonusThresholdMid { return .ganhoPixelComboGold }
+        if combo >= GameplayTuning.comboBonusThreshold { return .ganhoPixelHudYellow }
         return .ganhoPixelHudWhite
     }
 
@@ -173,54 +173,54 @@ final class HUDSlotNode: SKNode {
     init(label: String, initialValue: String, showTimeBar: Bool = false) {
         // (1) 배경 알약 — navy 0.78. setWarn으로 코랄 교체 가능.
         let chipSize = CGSize(
-            width: GameConfig.hudSlotWidth,
-            height: GameConfig.hudSlotHeight
+            width: UILayout.hudSlotWidth,
+            height: UILayout.hudSlotHeight
         )
         shadowNode = SKShapeNode(
             rectOf: chipSize,
-            cornerRadius: GameConfig.hudSlotCornerRadius
+            cornerRadius: UILayout.hudSlotCornerRadius
         )
         backgroundChip = SKShapeNode(
             rectOf: chipSize,
-            cornerRadius: GameConfig.hudSlotCornerRadius
+            cornerRadius: UILayout.hudSlotCornerRadius
         )
         shadowNode.fillColor = UIColor.ganhoPixelOutlineBlack
-            .withAlphaComponent(GameConfig.hudSlotShadowAlpha)
+            .withAlphaComponent(UILayout.hudSlotShadowAlpha)
         shadowNode.strokeColor = .clear
         shadowNode.position = CGPoint(
-            x: GameConfig.hudSlotShadowOffsetX,
-            y: GameConfig.hudSlotShadowOffsetY
+            x: UILayout.hudSlotShadowOffsetX,
+            y: UILayout.hudSlotShadowOffsetY
         )
         shadowNode.zPosition = 98
         backgroundChip.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.hudSlotBgAlpha)
+            .withAlphaComponent(UILayout.hudSlotBgAlpha)
         backgroundChip.strokeColor = UIColor.ganhoPixelHudYellow
-            .withAlphaComponent(GameConfig.hudSlotStrokeAlpha)
-        backgroundChip.lineWidth = GameConfig.hudSlotStrokeWidth
+            .withAlphaComponent(UILayout.hudSlotStrokeAlpha)
+        backgroundChip.lineWidth = UILayout.hudSlotStrokeWidth
         backgroundChip.zPosition = 99
 
         // (2) 라벨/값 SKLabelNode. Sprint 10 Phase J — fontDisplay(Jua-Regular) → fontPixel(Menlo-Bold).
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        labelNode = SKLabelNode(fontNamed: Typography.fontPixel)
         labelNode.text = label
-        valueNode = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        valueNode = SKLabelNode(fontNamed: Typography.fontPixel)
         valueNode.text = initialValue
 
         // (3) 진행바 자식 — TIME 슬롯만. xScale 갱신을 위해 anchorPoint 좌측 정렬.
         if showTimeBar {
             let barSize = CGSize(
                 width: chipSize.width - 8,
-                height: GameConfig.hudTimeBarHeight
+                height: UILayout.hudTimeBarHeight
             )
             let bg = SKSpriteNode(color: .white, size: barSize)
-            bg.alpha = GameConfig.hudTimeBarBgAlpha
+            bg.alpha = UILayout.hudTimeBarBgAlpha
             bg.anchorPoint = CGPoint(x: 0, y: 0.5)
             // 알약 안 하단. -chipHeight/2 + bar 높이/2 + gap.
             bg.position = CGPoint(
                 x: -barSize.width / 2,
-                y: -chipSize.height / 2 + GameConfig.hudTimeBarHeight / 2 + GameConfig.hudTimeBarTopGap
+                y: -chipSize.height / 2 + UILayout.hudTimeBarHeight / 2 + UILayout.hudTimeBarTopGap
             )
             // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
-            bg.zPosition = GameConfig.hudLabelZPositionV4
+            bg.zPosition = ZOrder.hudLabelZPosition
             timeBarBg = bg
 
             let fill = SKSpriteNode(color: .white, size: barSize)
@@ -228,7 +228,7 @@ final class HUDSlotNode: SKNode {
             fill.anchorPoint = CGPoint(x: 0, y: 0.5)
             fill.position = bg.position
             // Sprint 8 Phase F — V4 zPos +1 (값 101 보존, fill이 bg 위).
-            fill.zPosition = GameConfig.hudLabelZPositionV4 + 1
+            fill.zPosition = ZOrder.hudLabelZPosition + 1
             // 시작 시 가득 찬 상태. setTimeBar(progress:)로 매 프레임 갱신.
             fill.xScale = 1.0
             timeBarFill = fill
@@ -241,27 +241,27 @@ final class HUDSlotNode: SKNode {
 
         // (4) 위쪽 라벨 — 10pt 픽셀 옐로. labelNode.position을 super.init 후 set.
         // Sprint 10 Phase J — ganhoMusicGold → ganhoPixelHudYellow swap.
-        labelNode.fontSize = GameConfig.hudSlotV2LabelFontSize
+        labelNode.fontSize = UILayout.hudSlotLabelFontSize
         labelNode.fontColor = .ganhoPixelHudYellow
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
-        labelNode.zPosition = GameConfig.hudLabelZPositionV4
+        labelNode.zPosition = ZOrder.hudLabelZPosition
         labelNode.position = CGPoint(
             x: 0,
-            y: GameConfig.hudSlotV2ValueFontSize / 2 + GameConfig.hudSlotInnerGap
+            y: UILayout.hudSlotValueFontSize / 2 + UILayout.hudSlotInnerGap
         )
 
         // (5) 아래쪽 값 — 18pt 픽셀 화이트(페이퍼 화이트 톤). Sprint 10 Phase J — .white → ganhoPixelHudWhite.
-        valueNode.fontSize = GameConfig.hudSlotV2ValueFontSize
+        valueNode.fontSize = UILayout.hudSlotValueFontSize
         valueNode.fontColor = .ganhoPixelHudWhite
         valueNode.horizontalAlignmentMode = .center
         valueNode.verticalAlignmentMode = .center
         // Sprint 8 Phase F — V4 zPos 명시화(값 100 보존).
-        valueNode.zPosition = GameConfig.hudLabelZPositionV4
+        valueNode.zPosition = ZOrder.hudLabelZPosition
         valueNode.position = CGPoint(
             x: 0,
-            y: -GameConfig.hudSlotV2LabelFontSize / 2 - GameConfig.hudSlotInnerGap
+            y: -UILayout.hudSlotLabelFontSize / 2 - UILayout.hudSlotInnerGap
         )
 
         // (6) 자식 부착 — 그림자(98) → 배경(99) → 진행바(100/101, TIME만) → 라벨/값(100).
@@ -295,11 +295,11 @@ final class HUDSlotNode: SKNode {
     }
 
     func pulseValue(scale: CGFloat, upDuration: TimeInterval, downDuration: TimeInterval) {
-        valueNode.removeAction(forKey: GameConfig.hudComboPulseActionKey)
+        valueNode.removeAction(forKey: FeelTuning.hudComboPulseActionKey)
         valueNode.setScale(1.0)
         let grow = SKAction.scale(to: scale, duration: upDuration)
         let shrink = SKAction.scale(to: 1.0, duration: downDuration)
-        valueNode.run(.sequence([grow, shrink]), withKey: GameConfig.hudComboPulseActionKey)
+        valueNode.run(.sequence([grow, shrink]), withKey: FeelTuning.hudComboPulseActionKey)
     }
 
     // MARK: - Sprint 3 v2 · Warn / TimeBar
@@ -309,11 +309,11 @@ final class HUDSlotNode: SKNode {
     /// (HUDNode는 인게임 전용 호출).
     func setWarn(_ on: Bool) {
         backgroundChip.fillColor = on
-            ? UIColor.ganhoPixelHudCoral.withAlphaComponent(GameConfig.hudSlotWarnBgAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.hudSlotBgAlpha)
+            ? UIColor.ganhoPixelHudCoral.withAlphaComponent(UILayout.hudSlotWarnBgAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.hudSlotBgAlpha)
         backgroundChip.strokeColor = on
             ? UIColor.ganhoPixelTensionEdge
-            : UIColor.ganhoPixelHudYellow.withAlphaComponent(GameConfig.hudSlotStrokeAlpha)
+            : UIColor.ganhoPixelHudYellow.withAlphaComponent(UILayout.hudSlotStrokeAlpha)
     }
 
     /// TIME 슬롯 진행바 갱신. progress 1.0 = 가득, 0.0 = 비움.
@@ -330,23 +330,23 @@ final class HUDSlotNode: SKNode {
         // Sprint 10 Phase J — toBase .white → ganhoPixelHudWhite swap. accent 색은 호출자 주입 그대로.
         let toAccent = SKAction.run { [weak self] in self?.valueNode.fontColor = color }
         let toBase = SKAction.run { [weak self] in self?.valueNode.fontColor = .ganhoPixelHudWhite }
-        let wait = SKAction.wait(forDuration: GameConfig.tensionBlinkHalfPeriod)
+        let wait = SKAction.wait(forDuration: FeelTuning.tensionBlinkHalfPeriod)
         let cycle = SKAction.sequence([toAccent, wait, toBase, wait])
-        valueNode.run(.repeatForever(cycle), withKey: GameConfig.tensionBlinkActionKey)
+        valueNode.run(.repeatForever(cycle), withKey: FeelTuning.tensionBlinkActionKey)
     }
 
     /// 깜빡임 액션 제거 + 색 즉시 복원 (잔상 0).
     /// removeAction은 키가 없어도 안전(noop).
     func stopBlink(restoreColor: UIColor) {
-        valueNode.removeAction(forKey: GameConfig.tensionBlinkActionKey)
+        valueNode.removeAction(forKey: FeelTuning.tensionBlinkActionKey)
         valueNode.fontColor = restoreColor
     }
 
     private func fitValueLabel() {
         valueNode.setScale(1.0)
-        let maxWidth = GameConfig.hudSlotWidth - GameConfig.hudSlotInnerGap * 2
+        let maxWidth = UILayout.hudSlotWidth - UILayout.hudSlotInnerGap * 2
         let width = valueNode.calculateAccumulatedFrame().width
         guard width > maxWidth, width > 0 else { return }
-        valueNode.setScale(max(GameConfig.labelMinimumScale, maxWidth / width))
+        valueNode.setScale(max(Typography.labelMinimumScale, maxWidth / width))
     }
 }

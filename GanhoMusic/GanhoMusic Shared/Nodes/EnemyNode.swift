@@ -23,7 +23,8 @@ import SpriteKit
 /// 수간호사 적 NPC. Sprint 10 Phase D부터 player 추적 폐기 → 4지점 사각 순환 패트롤.
 /// telegraphDuration(0.4초) 동안 머리 위 "!" 깜빡 후 burst 발사 — 매혹 시 F→A 변환.
 /// PlayerNode 패턴(2-2) 정확 일치 — dynamic body, gravity/friction/damping 0.
-final class EnemyNode: SKSpriteNode {
+/// R0 — 방향 산출·보행 상태 머신은 PixelCharacterAnimating 기본 구현 사용 (사본 제거).
+final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
 
     // MARK: - State (Phase 4-6 — Flee)
     /// Phase 4-6 — 도주 모드 플래그. Sprint 10 Phase D부터 update 본체에서 직접 분기 0
@@ -35,7 +36,7 @@ final class EnemyNode: SKSpriteNode {
     /// 난이도별 패트롤 4지점 (혹은 easy 2지점). apply에서 set. 빈 배열이면 정지.
     private var patrolWaypoints: [CGPoint] = []
     /// 난이도별 패트롤 속도 (pt/s). apply에서 set. default 80(easy).
-    private var patrolSpeed: CGFloat = GameConfig.nurseChiefPatrolSpeedDefault
+    private var patrolSpeed: CGFloat = GameplayTuning.nurseChiefPatrolSpeedDefault
     /// 현재 향하는 waypoint 인덱스. selectInitialWaypoint가 시작 인덱스를 결정.
     private var currentWaypointIndex: Int = 0
 
@@ -67,41 +68,41 @@ final class EnemyNode: SKSpriteNode {
     /// F/A obs 끝 속도 (pt/s). apply에서 set.
     var obsMaxSpeed: CGFloat = 220
     /// 난이도별 F 동시 최대 수. apply에서 set.
-    private var projectileMaxConcurrent: Int = GameConfig.projectileMaxConcurrent
+    private var projectileMaxConcurrent: Int = GameplayTuning.projectileMaxConcurrent
     /// hard 난이도에서 F가 벽 contact 없이 통과하는 정책.
     private var projectilePassesWalls: Bool = false
     /// F 자동 수명. hard 벽 통과 시 누적 방지에 사용한다.
-    private var projectileLifetime: TimeInterval = GameConfig.projectileLifetimeFallback
+    private var projectileLifetime: TimeInterval = GameplayTuning.projectileLifetimeFallback
     /// 다음 발사 간격 시작값 (초). apply에서 set. enterIdle이 lerp(start, end, t)로 계산.
     var fireIntervalStart: TimeInterval = 3.5
     /// 다음 발사 간격 끝값 (초). apply에서 set.
     var fireIntervalEnd: TimeInterval = 2.0
     /// 난이도별 위험 경고 표시량. 실제 발사 수치가 아니라 시각 정보량만 제어한다.
-    private var warningProfile = GameConfig.warningProfileFallback
+    private var warningProfile = GameplayTuning.warningProfileFallback
     /// 텔레그래프 시작 시점에 확정한 실제 발사 각도. 경고선과 발사 방향 정합에 사용.
     private var pendingShotAngles: [CGFloat] = []
     private var pendingShotBaseAngle: CGFloat?
     private let proximityWarning = EnemyProximityWarningNode(color: .ganhoIngameDanger)
-    private let charmAura = SKShapeNode(circleOfRadius: GameConfig.enemyDangerRingRadius)
+    private let charmAura = SKShapeNode(circleOfRadius: GameplayTuning.enemyDangerRingRadius)
     private let charmHeartEyes = SKNode()
     private var isCharmVisualActive = false
 
-    // MARK: - Pixel Sprite State (Phase 8-2 · 보존)
-    private var pixelDirection: PixelDirection = .down
-    private var pixelFrame: PixelFrame = .idle
-    private var frameAccumulator: TimeInterval = 0
+    // MARK: - Pixel Sprite State (Phase 8-2 · 보존 / R0 — PixelCharacterAnimating 요구)
+    var pixelDirection: PixelDirection = .down
+    var pixelFrame: PixelFrame = .idle
+    var frameAccumulator: TimeInterval = 0
 
     // MARK: - Init
     init() {
         let physicsSize = CGSize(
-            width:  GameConfig.enemyWidth,
-            height: GameConfig.enemyHeight
+            width:  GameplayTuning.enemyWidth,
+            height: GameplayTuning.enemyHeight
         )
         let visualSize = CGSize(
-            width:  GameConfig.enemyWidth  * GameConfig.pixelSpriteScale,
-            height: GameConfig.enemyHeight * GameConfig.pixelSpriteScale
+            width:  GameplayTuning.enemyWidth  * GameplayTuning.pixelSpriteScale,
+            height: GameplayTuning.enemyHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. refreshTexture()와 같은 캐시를 워밍 →
+        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
         // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
         let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
@@ -142,20 +143,20 @@ final class EnemyNode: SKSpriteNode {
     /// 모든 dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
     /// throwTimer는 fireIntervalStart로 초기화 — 첫 발사까지 충분한 학습 시간 제공.
     func apply(_ difficulty: Difficulty) {
-        patrolWaypoints   = GameConfig.nurseChiefWaypointsByDifficulty[difficulty] ?? []
-        patrolSpeed       = GameConfig.nurseChiefPatrolSpeedByDifficulty[difficulty]
-            ?? GameConfig.nurseChiefPatrolSpeedDefault
-        burstCount        = GameConfig.projectileBurstCountByDifficulty[difficulty] ?? 1
-        obsBaseSpeed      = GameConfig.obsBaseSpeedByDifficulty[difficulty] ?? 120
-        obsMaxSpeed       = GameConfig.obsMaxSpeedByDifficulty[difficulty] ?? 220
-        projectileMaxConcurrent = GameConfig.projectileMaxConcurrentByDifficulty[difficulty]
-            ?? GameConfig.projectileMaxConcurrent
-        projectilePassesWalls = GameConfig.projectilePassesWallsByDifficulty[difficulty] ?? false
-        projectileLifetime = GameConfig.projectileLifetimeByDifficulty[difficulty]
-            ?? GameConfig.projectileLifetimeFallback
-        fireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? 3.5
-        fireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty] ?? 2.0
-        warningProfile    = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
+        patrolWaypoints   = GameplayTuning.nurseChiefWaypointsByDifficulty[difficulty] ?? []
+        patrolSpeed       = GameplayTuning.nurseChiefPatrolSpeedByDifficulty[difficulty]
+            ?? GameplayTuning.nurseChiefPatrolSpeedDefault
+        burstCount        = GameplayTuning.projectileBurstCountByDifficulty[difficulty] ?? 1
+        obsBaseSpeed      = GameplayTuning.obsBaseSpeedByDifficulty[difficulty] ?? 120
+        obsMaxSpeed       = GameplayTuning.obsMaxSpeedByDifficulty[difficulty] ?? 220
+        projectileMaxConcurrent = GameplayTuning.projectileMaxConcurrentByDifficulty[difficulty]
+            ?? GameplayTuning.projectileMaxConcurrent
+        projectilePassesWalls = GameplayTuning.projectilePassesWallsByDifficulty[difficulty] ?? false
+        projectileLifetime = GameplayTuning.projectileLifetimeByDifficulty[difficulty]
+            ?? GameplayTuning.projectileLifetimeFallback
+        fireIntervalStart = GameplayTuning.projectileFireIntervalStartByDifficulty[difficulty] ?? 3.5
+        fireIntervalEnd   = GameplayTuning.projectileFireIntervalEndByDifficulty[difficulty] ?? 2.0
+        warningProfile    = GameplayTuning.warningProfileByDifficulty[difficulty] ?? GameplayTuning.warningProfileFallback
         throwTimer = fireIntervalStart
     }
 
@@ -188,12 +189,12 @@ final class EnemyNode: SKSpriteNode {
     /// isFleeing 다회 진입 가드(이미 도주 중이면 noop) 그대로 유지(OQ-7).
     func startFleeing(duration: TimeInterval, onEnd: @escaping () -> Void = {}) {
         if isFleeing { return }
-        let halfMapX = GameConfig.mapWidth / 2
-        let halfMapY = GameConfig.mapHeight / 2
+        let halfMapX = GameplayTuning.mapWidth / 2
+        let halfMapY = GameplayTuning.mapHeight / 2
         let inv = 1.0 / sqrt(2.0)
         let dirX: CGFloat = (position.x >= halfMapX ? 1 : -1) * inv
         let dirY: CGFloat = (position.y >= halfMapY ? 1 : -1) * inv
-        let fleeSpeed = GameConfig.enemyFleeSpeed
+        let fleeSpeed = GameplayTuning.enemyFleeSpeed
         let start = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.isFleeing = true
@@ -239,8 +240,8 @@ final class EnemyNode: SKSpriteNode {
         charmAura.zPosition = 24
         charmAura.alpha = 0
         charmAura.lineWidth = 2
-        charmAura.strokeColor = GameConfig.aItemColor.withAlphaComponent(0.88)
-        charmAura.fillColor = GameConfig.aItemColor.withAlphaComponent(0.12)
+        charmAura.strokeColor = Palette.aItemColor.withAlphaComponent(0.88)
+        charmAura.fillColor = Palette.aItemColor.withAlphaComponent(0.12)
         addChild(charmAura)
     }
 
@@ -250,13 +251,13 @@ final class EnemyNode: SKSpriteNode {
         charmHeartEyes.alpha = 0
         addChild(charmHeartEyes)
 
-        let eyeY = GameConfig.enemyHeight * GameConfig.pixelSpriteScale * 0.08
-        let eyeGap = GameConfig.enemyWidth * GameConfig.pixelSpriteScale * 0.18
+        let eyeY = GameplayTuning.enemyHeight * GameplayTuning.pixelSpriteScale * 0.08
+        let eyeGap = GameplayTuning.enemyWidth * GameplayTuning.pixelSpriteScale * 0.18
         for x in [-eyeGap, eyeGap] {
-            let heart = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let heart = SKLabelNode(fontNamed: Typography.fontDisplay)
             heart.text = "♥"
             heart.fontSize = 16
-            heart.fontColor = GameConfig.aItemColor
+            heart.fontColor = Palette.aItemColor
             heart.horizontalAlignmentMode = .center
             heart.verticalAlignmentMode = .center
             heart.position = CGPoint(x: x, y: eyeY)
@@ -352,21 +353,21 @@ final class EnemyNode: SKSpriteNode {
     }
 
     /// idle → telegraph 전이. EnemyTelegraphNode 부착 + 깜빡임 시작.
-    /// telegraphRemaining을 GameConfig 상수로 초기화 (0.4초).
+    /// telegraphRemaining을 GameplayTuning 상수로 초기화 (0.4초).
     private func enterTelegraph() {
         throwState = .telegraph
-        telegraphRemaining = GameConfig.nurseChiefTelegraphDuration
+        telegraphRemaining = GameplayTuning.nurseChiefTelegraphDuration
         let shotPlan = makeShotPlan()
         pendingShotBaseAngle = shotPlan.baseAngle
         pendingShotAngles = shotPlan.angles
         let node = EnemyTelegraphNode()
-        node.position = CGPoint(x: 0, y: GameConfig.nurseChiefTelegraphOffsetY)
+        node.position = CGPoint(x: 0, y: GameplayTuning.nurseChiefTelegraphOffsetY)
         addChild(node)
         telegraphNode = node
         node.attachWarningLines(
             angles: visibleWarningAngles(from: pendingShotAngles),
             profile: warningProfile,
-            originOffsetY: -GameConfig.nurseChiefTelegraphOffsetY
+            originOffsetY: -GameplayTuning.nurseChiefTelegraphOffsetY
         )
         node.startBlinking()
     }
@@ -400,7 +401,7 @@ final class EnemyNode: SKSpriteNode {
         let isCharmed = charmActiveProvider()
         let t = progressProvider()
         let speed = obsBaseSpeed + (obsMaxSpeed - obsBaseSpeed) * CGFloat(t)
-        let startOffset = GameConfig.nurseChiefFireStartOffset
+        let startOffset = GameplayTuning.nurseChiefFireStartOffset
         let spawnPoint = CGPoint(
             x: position.x + cos(shotPlan.baseAngle) * startOffset,
             y: position.y + sin(shotPlan.baseAngle) * startOffset
@@ -458,13 +459,13 @@ final class EnemyNode: SKSpriteNode {
         let magnitude = hypot(dx, dy)
         guard magnitude > 0 else { return (0, []) }
         let baseAngle = atan2(dy, dx)
-        let spreadStep = GameConfig.nurseChiefSpreadRadians
+        let spreadStep = GameplayTuning.nurseChiefSpreadRadians
         var angles: [CGFloat] = []
         for i in 0..<burstCount {
             let centerOffset = CGFloat(i) - CGFloat(burstCount - 1) / 2.0
             let angle = baseAngle + centerOffset * spreadStep
             let jitter = CGFloat.random(
-                in: -GameConfig.nurseChiefSpreadJitter ... GameConfig.nurseChiefSpreadJitter
+                in: -GameplayTuning.nurseChiefSpreadJitter ... GameplayTuning.nurseChiefSpreadJitter
             )
             angles.append(angle + jitter)
         }
@@ -485,47 +486,13 @@ final class EnemyNode: SKSpriteNode {
         fireF()
     }
 
-    // MARK: - Pixel Sprite (Phase 8-2 · 보존)
-    /// velocity 부호로 4방향 산출. 정지(임계값 미만) 시 마지막 방향 유지.
-    /// PlayerNode.updatePixelDirection과 정확히 동일 패턴.
-    private func updatePixelDirection(_ velocity: CGVector) {
-        let absDx = abs(velocity.dx)
-        let absDy = abs(velocity.dy)
-        guard absDx > 0.1 || absDy > 0.1 else { return }
-        let newDir: PixelDirection
-        if absDx > absDy {
-            newDir = velocity.dx >= 0 ? .right : .left
-        } else {
-            newDir = velocity.dy >= 0 ? .up : .down
-        }
-        if newDir != pixelDirection {
-            pixelDirection = newDir
-            refreshTexture()
-        }
-    }
+    // MARK: - Pixel Sprite (Phase 8-2 · 보존 / R0 — PixelCharacterAnimating)
+    // updatePixelDirection / tickWalkFrame 본문은 프로토콜 기본 구현이 단일 진실 원천.
+    // EnemyNode는 텍스처 반영 훅만 구현 — 즉시 step1 토글 없음(1 interval 대기)·간격 0.18 기본값 그대로.
 
-    /// 걷는 중일 때 step1↔step2 교차, 정지 시 idle.
-    private func tickWalkFrame(deltaTime: TimeInterval, isMoving: Bool) {
-        guard isMoving else {
-            if pixelFrame != .idle {
-                pixelFrame = .idle
-                frameAccumulator = 0
-                refreshTexture()
-            }
-            return
-        }
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
-            frameAccumulator = 0
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            refreshTexture()
-        }
-    }
-
-    /// 현재 방향/프레임 조합으로 텍스처 재생성.
-    /// 출시 전 최적화 — CGImage→SKTexture 매번 재렌더 폐기. (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
-    private func refreshTexture() {
+    func applyPixelTexture() {
         texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
@@ -551,8 +518,6 @@ final class EnemyNode: SKSpriteNode {
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F — 본문 삭제)
-    // setupVisualOverlay / attachHalo / attachChart / attachClip / applyVisualScaleV9 5개 메서드
-    // 본문 삭제. 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(헬로/차트/클립) 부착 정책 폐기.
-    // GameConfig.enemyVisualHaloWidth/Height/Alpha/ChartSize/ChartOffset/enemyVisualScaleV9 상수도
-    // 호출자 0건이 되었으나 본 Phase 변경 금지 우회 위해 GameConfig 본체 보존 — deprecate 주석 형태로 처리.
+    // 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(헬로/차트/클립) 부착 정책 폐기.
+    // R0 — 자연 deprecate 상태였던 enemyVisual* 전용 상수도 호출자 0건 확인 후 삭제 완료.
 }

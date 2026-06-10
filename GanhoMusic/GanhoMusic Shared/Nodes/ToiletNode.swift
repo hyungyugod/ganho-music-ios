@@ -19,7 +19,7 @@ final class ToiletNode: SKSpriteNode {
 
     // MARK: - Init
     init() {
-        let size = CGSize(width: GameConfig.toiletSize, height: GameConfig.toiletSize)
+        let size = CGSize(width: GameplayTuning.toiletSize, height: GameplayTuning.toiletSize)
         // Phase 9-6 — PixelSpriteRenderer 표준 16×20 텍스처. 상단 4행 transparent padding 포함.
         // SKSpriteNode size=16×16이면 vertical squish 0.8배 발생 — 픽셀 retro 톤에 자연 흡수.
         // (toiletData의 의미 영역은 행 4~15, 12행 = 변기 본체. padding은 16×20 정합용.)
@@ -29,7 +29,7 @@ final class ToiletNode: SKSpriteNode {
         )
         super.init(texture: texture, color: .clear, size: size)
         name = "toilet"
-        zPosition = GameConfig.toiletZPosition
+        zPosition = ZOrder.toiletZPosition
         addBonusRing()
 
         // PhysicsBody: static(isDynamic=false), 충돌 없음(collisionBitMask=0),
@@ -49,35 +49,35 @@ final class ToiletNode: SKSpriteNode {
 
     // MARK: - Lifetime
     /// 스폰 직후 1회 호출. toiletLifetime(8초) 후 fadeOut + removeFromParent.
-    /// GameConfig.toiletLifetimeActionKey로 부착 → 동일 키 재호출 시 SpriteKit이 이전 액션 자동 교체(자연 멱등).
+    /// UILayout.toiletLifetimeActionKey로 부착 → 동일 키 재호출 시 SpriteKit이 이전 액션 자동 교체(자연 멱등).
     /// 수집된 노드는 GameScene 콜백이 SKAction.removeFromParent() 호출 → parent==nil 이후 본 액션 도달 시 noop.
     /// SpriteKit의 removeFromParent SKAction은 parent==nil인 노드에 실행 시 안전 noop(공식 문서).
     func applyLifetime() {
-        let wait   = SKAction.wait(forDuration: GameConfig.toiletLifetime)
-        let fade   = SKAction.fadeOut(withDuration: GameConfig.toiletFadeOutDuration)
+        let wait   = SKAction.wait(forDuration: GameplayTuning.toiletLifetime)
+        let fade   = SKAction.fadeOut(withDuration: GameplayTuning.toiletFadeOutDuration)
         let remove = SKAction.removeFromParent()
-        run(.sequence([wait, fade, remove]), withKey: GameConfig.toiletLifetimeActionKey)
+        run(.sequence([wait, fade, remove]), withKey: UILayout.toiletLifetimeActionKey)
     }
 
     // MARK: - Readability
     private func addBonusRing() {
-        let ring = SKShapeNode(circleOfRadius: GameConfig.toiletBonusRingRadius)
+        let ring = SKShapeNode(circleOfRadius: UILayout.toiletBonusRingRadius)
         ring.strokeColor = .ganhoIngameRewardMint
-        ring.lineWidth = GameConfig.toiletBonusRingLineWidth
+        ring.lineWidth = UILayout.toiletBonusRingLineWidth
         ring.fillColor = UIColor.ganhoPixelHudWhite
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha)
         ring.zPosition = -1
         addChild(ring)
 
         let fadeDown = SKAction.fadeAlpha(
-            to: GameConfig.toiletBonusPulseAlpha,
-            duration: GameConfig.toiletBonusPulseHalfDuration
+            to: UILayout.toiletBonusPulseAlpha,
+            duration: UILayout.toiletBonusPulseHalfDuration
         )
         let fadeUp = SKAction.fadeAlpha(
             to: 1.0,
-            duration: GameConfig.toiletBonusPulseHalfDuration
+            duration: UILayout.toiletBonusPulseHalfDuration
         )
         ring.run(.repeatForever(.sequence([fadeDown, fadeUp])),
-                 withKey: GameConfig.toiletBonusPulseActionKey)
+                 withKey: UILayout.toiletBonusPulseActionKey)
     }
 }

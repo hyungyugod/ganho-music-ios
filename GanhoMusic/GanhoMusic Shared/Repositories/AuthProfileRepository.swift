@@ -16,7 +16,7 @@ final class AuthProfileRepository {
 
     // MARK: - Init
     init(defaults: UserDefaults = .standard,
-         key: String = GameConfig.authProfileUserDefaultsKey) {
+         key: String = StorageKeys.authProfileUserDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }

@@ -17,7 +17,7 @@ class GameScene: SKScene {
     var gameState: GameState = .waiting
     var lastUpdateTime: TimeInterval = 0
     let hud = HUDNode()                                         // Phase 2-4 — cameraNode 자식
-    var remainingTime: TimeInterval = GameConfig.gameDuration   // Phase 2-4 — 45초 카운트다운
+    var remainingTime: TimeInterval = GameplayTuning.gameDuration   // Phase 2-4 — 45초 카운트다운
 
     // 노드 트리
     let worldNode  = SKNode()
@@ -190,9 +190,9 @@ class GameScene: SKScene {
 
         // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
         if difficulty == .hard && !sergeantParkDebuted {
-            let elapsed = GameConfig.gameDuration - remainingTime
-            if elapsed >= GameConfig.sergeantParkDebutTimeV4
-                || scoreSystem.score >= GameConfig.sergeantParkDebutScoreV4 {
+            let elapsed = GameplayTuning.gameDuration - remainingTime
+            if elapsed >= GameplayTuning.sergeantParkDebutTime
+                || scoreSystem.score >= GameplayTuning.sergeantParkDebutScore {
                 sergeantParkDebuted = true
                 spawnSergeantPark()
             }
@@ -208,7 +208,7 @@ class GameScene: SKScene {
         // 카운트다운(.countdown) 중에는 위 `guard gameState == .playing`에서 이미 차단 →
         // BGM 미재생 상태와 시간 비교차 0. 카운트다운(2~3초) + 5초 윈도우는 시간상 *겹칠 일 0*.
         // 0 도달 분기는 위 early return에서 처리되므로 여기 진입 시 remainingTime > 0 보장.
-        if remainingTime <= GameConfig.tensionWindow {
+        if remainingTime <= FeelTuning.tensionWindow {
             // 첫 진입 1회 setup — HUD 깜빡임 시작. BGM rate는 아래 보간이 매 프레임 set.
             if !tensionStarted {
                 tensionStarted = true
@@ -221,9 +221,9 @@ class GameScene: SKScene {
             // 매 프레임 rate 보간: 1.0 + 0.15 × (5 - remainingTime) / 5.
             // TimeInterval(Double) → Float 캐스팅 — AVAudioPlayer.rate는 Float 타입.
             // AVAudioPlayer.rate setter는 idempotent → 매 프레임 호출 안전 (Apple 문서).
-            let progress = Float((GameConfig.tensionWindow - remainingTime) / GameConfig.tensionWindow)
+            let progress = Float((FeelTuning.tensionWindow - remainingTime) / FeelTuning.tensionWindow)
             let clamped = max(Float(0), min(Float(1), progress))
-            let rate = GameConfig.tensionRateBase + (GameConfig.tensionRateMax - GameConfig.tensionRateBase) * clamped
+            let rate = FeelTuning.tensionRateBase + (FeelTuning.tensionRateMax - FeelTuning.tensionRateBase) * clamped
             bgm.setRate(rate)
             // 매초 정수 변화 시 light 햅틱 (5→4, 4→3, 3→2, 2→1 = 4회).
             // HUD timeLabel이 보여주는 ceil 식과 동일 — *눈에 보이는 숫자가 바뀐 순간* 발화.
@@ -271,7 +271,7 @@ class GameScene: SKScene {
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
 
         // 3) 카메라 follow — runtime compact 맵(32×20, 800×500pt) 가장자리 클램프 적용.
-        //    무클램프 시 화면 밖 빈 영역 노출 위험이 있어 GameConfig.mapWidth/mapHeight 기준으로 자동 적응.
+        //    무클램프 시 화면 밖 빈 영역 노출 위험이 있어 GameplayTuning.mapWidth/mapHeight 기준으로 자동 적응.
         updateCameraFollow()
 
         // 4) Sprint 10 Phase D — 수간호사 패트롤 + 텔레그래프 상태 머신.
@@ -302,7 +302,7 @@ class GameScene: SKScene {
         // ScoreSystem 시그니처 미변경(옵션 B 폴링) — 6-10 환호 폴링과 같은 패턴.
         let currentCombo = scoreSystem.combo
         maxComboThisRun = max(maxComboThisRun, currentCombo)
-        if lastComboValue >= GameConfig.comboBreakThreshold, currentCombo == 0 {
+        if lastComboValue >= FeelTuning.comboBreakThreshold, currentCombo == 0 {
             triggerComboBreak(brokenAt: lastComboValue)
         }
         lastComboValue = currentCombo
@@ -317,8 +317,8 @@ class GameScene: SKScene {
     /// 각 마일스톤은 멱등 Bool로 한 판 1회만 spawn(가드 통과 시에만 addChild → 매 프레임 생성 0).
     /// A/B는 독립 `if`라 같은 프레임 동시 충족 시에도 둘 다 안전하게 발화(겹쳐도 자가 소멸).
     private func updateScoreMilestoneBanners() {
-        let target = GameConfig.targetScoreByDifficulty[difficulty]
-            ?? GameConfig.targetScoreByDifficultyFallback
+        let target = GameplayTuning.targetScoreByDifficulty[difficulty]
+            ?? GameplayTuning.targetScoreByDifficultyFallback
         let score = scoreSystem.score
         // A(절반): ceil(target/2). target ≥ 40이라 항상 절반 < (target-10) → A가 먼저.
         let halfThreshold = Int((Double(target) / 2.0).rounded(.up))
@@ -327,13 +327,13 @@ class GameScene: SKScene {
             // 발화 시점 실제 남은 개수. 점수는 비연속 증가(+1~+4)라 발화 시 score>=halfThreshold →
             // remaining은 절반 근처 양수. max(0,...)으로 음수 방어(이론상 미발생이나 안전).
             let remaining = max(0, target - score)
-            let text = "\(remaining)" + GameConfig.milestoneHalfSuffix
+            let text = "\(remaining)" + FeelTuning.milestoneHalfSuffix
             MilestoneBannerNode.spawn(text: text, parent: cameraNode)
         }
         // B(10점 남음): target - milestoneNearTargetRemaining.
-        if !nearTargetMilestoneShown, score >= target - GameConfig.milestoneNearTargetRemaining {
+        if !nearTargetMilestoneShown, score >= target - FeelTuning.milestoneNearTargetRemaining {
             nearTargetMilestoneShown = true
-            MilestoneBannerNode.spawn(text: GameConfig.milestoneNearText, parent: cameraNode)
+            MilestoneBannerNode.spawn(text: FeelTuning.milestoneNearText, parent: cameraNode)
         }
     }
 

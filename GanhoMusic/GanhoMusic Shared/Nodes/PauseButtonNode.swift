@@ -26,16 +26,16 @@ final class PauseButtonNode: SKNode {
     // MARK: - Init
     override init() {
         let size = CGSize(
-            width: GameConfig.pauseButtonSize,
-            height: GameConfig.pauseButtonSize
+            width: UILayout.pauseButtonSize,
+            height: UILayout.pauseButtonSize
         )
         background = SKShapeNode(
             rectOf: size,
-            cornerRadius: GameConfig.pauseButtonCornerRadius
+            cornerRadius: UILayout.pauseButtonCornerRadius
         )
         let barSize = CGSize(
-            width: GameConfig.pauseButtonBarWidth,
-            height: GameConfig.pauseButtonBarHeight
+            width: UILayout.pauseButtonBarWidth,
+            height: UILayout.pauseButtonBarHeight
         )
         bar1 = SKSpriteNode(color: .white, size: barSize)
         bar2 = SKSpriteNode(color: .white, size: barSize)
@@ -45,12 +45,12 @@ final class PauseButtonNode: SKNode {
 
         // 배경 — navy 알약. strokeColor = clear.
         background.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.pauseButtonBgAlpha)
+            .withAlphaComponent(UILayout.pauseButtonBgAlpha)
         background.strokeColor = .clear
         addChild(background)
 
         // 두 막대 — 중심 0 기준 좌/우 분리.
-        let barOffset = (GameConfig.pauseButtonBarWidth + GameConfig.pauseButtonBarGap) / 2
+        let barOffset = (UILayout.pauseButtonBarWidth + UILayout.pauseButtonBarGap) / 2
         bar1.position = CGPoint(x: -barOffset, y: 0)
         bar2.position = CGPoint(x: +barOffset, y: 0)
         addChild(bar1)

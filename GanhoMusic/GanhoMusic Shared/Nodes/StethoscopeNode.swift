@@ -29,9 +29,9 @@ final class StethoscopeNode: SKSpriteNode {
     init() {
         // Sprint 10 Phase E — 원본 game.js drawStethoscope (L2922~L2960) 14×8 픽셀 텍스처.
         // size 18×18 → 28×16 (원본 14×8 × SCALE 2). 가로 넓고 세로 좁은 청진기 원본 비율.
-        let size = CGSize(width: GameConfig.stethoscopeWidth, height: GameConfig.stethoscopeHeight)
+        let size = CGSize(width: GameplayTuning.stethoscopeWidth, height: GameplayTuning.stethoscopeHeight)
         let texture = PixelSpriteRenderer.stethoscopeTexture()
-        haloNode = SKShapeNode(circleOfRadius: GameConfig.stethoscopeReadableHaloRadius)
+        haloNode = SKShapeNode(circleOfRadius: UILayout.stethoscopeReadableHaloRadius)
         highlightNode = SKShapeNode(rectOf: size)
         super.init(texture: texture, color: .clear, size: size)
         name = "stethoscope"
@@ -52,7 +52,7 @@ final class StethoscopeNode: SKSpriteNode {
 
         // 시각 회전 — 위협 시그널 강조. allowsRotation=false라 충돌 박스는 정지 상태 유지.
         // repeatForever — endGame 시 removeFromParent로 자연 종료.
-        run(.repeatForever(.rotate(byAngle: .pi * 2, duration: GameConfig.stethoscopeRotationDuration)))
+        run(.repeatForever(.rotate(byAngle: .pi * 2, duration: GameplayTuning.stethoscopeRotationDuration)))
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -62,15 +62,15 @@ final class StethoscopeNode: SKSpriteNode {
     // MARK: - Readability
     private func addReadableWarning() {
         haloNode.strokeColor = UIColor.ganhoIngameDanger
-            .withAlphaComponent(GameConfig.stethoscopeReadableHaloAlpha)
-        haloNode.lineWidth = GameConfig.ingameObjectHaloLineWidth
+            .withAlphaComponent(UILayout.stethoscopeReadableHaloAlpha)
+        haloNode.lineWidth = UILayout.ingameObjectHaloLineWidth
         haloNode.fillColor = UIColor.ganhoIngameDangerDeep
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha * GameConfig.ingameHalfAlphaMultiplier)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha * UILayout.ingameHalfAlphaMultiplier)
         haloNode.zPosition = -1
         addChild(haloNode)
 
         highlightNode.strokeColor = .ganhoPixelHudYellow
-        highlightNode.lineWidth = GameConfig.ingameObjectHaloLineWidth
+        highlightNode.lineWidth = UILayout.ingameObjectHaloLineWidth
         highlightNode.fillColor = .clear
         highlightNode.zPosition = 1
         addChild(highlightNode)
@@ -87,25 +87,25 @@ final class StethoscopeNode: SKSpriteNode {
     private func startNearMissPulseIfNeeded() {
         guard !isNearMissPulsing else { return }
         isNearMissPulsing = true
-        let haloGrow = SKAction.scale(to: GameConfig.stethoscopeNearMissPulseScale,
-                                      duration: GameConfig.stethoscopeNearMissPulseHalfDuration)
+        let haloGrow = SKAction.scale(to: GameplayTuning.stethoscopeNearMissPulseScale,
+                                      duration: GameplayTuning.stethoscopeNearMissPulseHalfDuration)
         let haloShrink = SKAction.scale(to: 1.0,
-                                        duration: GameConfig.stethoscopeNearMissPulseHalfDuration)
-        let highlightGrow = SKAction.scale(to: GameConfig.stethoscopeNearMissPulseScale,
-                                           duration: GameConfig.stethoscopeNearMissPulseHalfDuration)
+                                        duration: GameplayTuning.stethoscopeNearMissPulseHalfDuration)
+        let highlightGrow = SKAction.scale(to: GameplayTuning.stethoscopeNearMissPulseScale,
+                                           duration: GameplayTuning.stethoscopeNearMissPulseHalfDuration)
         let highlightShrink = SKAction.scale(to: 1.0,
-                                             duration: GameConfig.stethoscopeNearMissPulseHalfDuration)
+                                             duration: GameplayTuning.stethoscopeNearMissPulseHalfDuration)
         haloNode.run(.repeatForever(.sequence([haloGrow, haloShrink])),
-                     withKey: GameConfig.stethoscopeNearMissPulseActionKey)
+                     withKey: GameplayTuning.stethoscopeNearMissPulseActionKey)
         highlightNode.run(.repeatForever(.sequence([highlightGrow, highlightShrink])),
-                          withKey: GameConfig.stethoscopeNearMissPulseActionKey)
+                          withKey: GameplayTuning.stethoscopeNearMissPulseActionKey)
     }
 
     private func stopNearMissPulse() {
         guard isNearMissPulsing else { return }
         isNearMissPulsing = false
-        haloNode.removeAction(forKey: GameConfig.stethoscopeNearMissPulseActionKey)
-        highlightNode.removeAction(forKey: GameConfig.stethoscopeNearMissPulseActionKey)
+        haloNode.removeAction(forKey: GameplayTuning.stethoscopeNearMissPulseActionKey)
+        highlightNode.removeAction(forKey: GameplayTuning.stethoscopeNearMissPulseActionKey)
         haloNode.setScale(1.0)
         highlightNode.setScale(1.0)
     }

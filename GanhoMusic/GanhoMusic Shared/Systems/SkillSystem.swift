@@ -165,39 +165,39 @@ final class SkillSystem {
         // 시작/끝 좌표 계산.
         let start = player.position
         let rawEnd = CGPoint(
-            x: start.x + direction.dx * GameConfig.dashClimbDistance,
-            y: start.y + direction.dy * GameConfig.dashClimbDistance
+            x: start.x + direction.dx * GameplayTuning.dashClimbDistance,
+            y: start.y + direction.dy * GameplayTuning.dashClimbDistance
         )
         // landing 계산 *직전* corridor breakable 벽 파괴 — physicsBody nil → containsWall이
         // 그 셀을 더 이상 벽으로 안 봄 → dashLandingTarget이 부서진 틈을 자연 관통.
         breakWallsInCorridor(from: start, to: rawEnd,
-                             halfWidth: GameConfig.dashClimbWallBreakHalfWidth)
+                             halfWidth: GameplayTuning.dashClimbWallBreakHalfWidth)
         let end = dashLandingTarget(from: start, rawEnd: rawEnd)
 
         clearProjectilesInCorridor(
             from: start,
             to: end,
-            halfWidth: GameConfig.dashClimbProjectileClearHalfWidth
+            halfWidth: GameplayTuning.dashClimbProjectileClearHalfWidth
         )
         // (점수) 돌진 경로 corridor 안 음표 흡수 — F 제거보다 약간 넓은 폭으로 "지나가며 빨아들임".
         pullCollectiblesInCorridor(from: start, to: end,
-                                   halfWidth: GameConfig.dashClimbCollectHalfWidth,
+                                   halfWidth: GameplayTuning.dashClimbCollectHalfWidth,
                                    color: .ganhoBloodAccent)
         // (생존) 착지 주변 F 원형 정화 — corridor 밖까지.
-        clearProjectiles(near: end, radius: GameConfig.dashClimbLandingPurgeRadius)
+        clearProjectiles(near: end, radius: GameplayTuning.dashClimbLandingPurgeRadius)
         spawnSkillTrail(from: start, to: end, color: .ganhoBloodAccent, parent: scene.worldNode)
 
         // 무적 + 이동.
         player.currentDirection = .zero
         player.physicsBody?.velocity = .zero
         player.isInvulnerable = true
-        player.removeAction(forKey: GameConfig.dashClimbActionKey)
-        let move = SKAction.move(to: end, duration: GameConfig.dashClimbDuration)
+        player.removeAction(forKey: GameplayTuning.dashClimbActionKey)
+        let move = SKAction.move(to: end, duration: GameplayTuning.dashClimbDuration)
         let impact = SKAction.run { [weak self] in
             guard let self = self, let scene = self.scene else { return }
             self.spawnSkillRing(
                 at: end,
-                radius: GameConfig.dashClimbImpactRadius,
+                radius: GameplayTuning.dashClimbImpactRadius,
                 color: .ganhoBloodAccent,
                 parent: scene.worldNode
             )
@@ -205,13 +205,13 @@ final class SkillSystem {
             scene.haptics.heavy()                              // 타격감: 헤비 햅틱
         }
         // (생존) 무적 연장: 착지 후 바로 끄지 않고 dashClimbLandingInvulnerableExtra초 더 유지 후 해제.
-        let extendInvuln = SKAction.wait(forDuration: GameConfig.dashClimbLandingInvulnerableExtra)
+        let extendInvuln = SKAction.wait(forDuration: GameplayTuning.dashClimbLandingInvulnerableExtra)
         let endAction = SKAction.run { [weak player] in
             player?.isInvulnerable = false
             player?.physicsBody?.velocity = .zero
         }
         player.run(.sequence([move, impact, extendInvuln, endAction]),
-                   withKey: GameConfig.dashClimbActionKey)
+                   withKey: GameplayTuning.dashClimbActionKey)
     }
 
     /// DPad → lastDirection → 기본 우측 순서로 방향 벡터 결정.
@@ -231,7 +231,7 @@ final class SkillSystem {
 
     private func normalizedDirection(_ vector: CGVector) -> CGVector? {
         let length = hypot(vector.dx, vector.dy)
-        guard length >= GameConfig.dpadInputSnapEpsilon else { return nil }
+        guard length >= GameplayTuning.dpadInputSnapEpsilon else { return nil }
         return CGVector(dx: vector.dx / length, dy: vector.dy / length)
     }
 
@@ -245,7 +245,7 @@ final class SkillSystem {
         guard let world = scene?.worldNode else { return }
         let limitSquared = halfWidth * halfWidth
         // 재귀 검색("//") — WallTileNode가 worldNode 직속이 아니라 MapNode 자식이므로 후손까지 탐색.
-        world.enumerateChildNodes(withName: "//" + GameConfig.breakableWallName) { [weak self] node, _ in
+        world.enumerateChildNodes(withName: "//" + GameplayTuning.breakableWallName) { [weak self] node, _ in
             guard let self = self else { return }
             // MapNode 로컬 좌표 → world 좌표 변환 후 선분 거리 판정.
             let nodeWorldPos = node.parent?.convert(node.position, to: world) ?? node.position
@@ -260,7 +260,7 @@ final class SkillSystem {
             // 2) 시각 fadeOut 후 제거 — physics 콜백 밖이라 안전.
             node.removeAllActions()
             node.run(.sequence([
-                .fadeOut(withDuration: GameConfig.dashClimbWallBreakFadeDuration),
+                .fadeOut(withDuration: GameplayTuning.dashClimbWallBreakFadeDuration),
                 .removeFromParent()
             ]))
         }
@@ -274,7 +274,7 @@ final class SkillSystem {
         guard let scene = scene else { return }
         let world = scene.worldNode
         let center = scene.player.position
-        let radius = GameConfig.bookClubRallyRadius
+        let radius = GameplayTuning.bookClubRallyRadius
 
         // (생존) 같은 반경 F 일괄 정화 — "안전지대 폭발".
         clearProjectiles(near: center, radius: radius)
@@ -282,7 +282,7 @@ final class SkillSystem {
         // (타격감) 2겹 충격파 링 — 바깥 1겹 + 안쪽 1겹(반경/색 살짝 다르게).
         spawnSkillRing(at: center, radius: radius, color: .ganhoMint, parent: world)
         spawnSkillRing(at: center,
-                       radius: radius * GameConfig.bookClubRallyOuterRingRatio,
+                       radius: radius * GameplayTuning.bookClubRallyOuterRingRatio,
                        color: .ganhoCyanBeat,
                        parent: world)
         scene.haptics.heavy()
@@ -300,7 +300,7 @@ final class SkillSystem {
     private func pullCollectible(for targetNode: SKNode,
                                 from startPosition: CGPoint,
                                 scene: GameScene) -> SKAction {
-        let duration = GameConfig.bookClubRallyMoveDuration
+        let duration = GameplayTuning.bookClubRallyMoveDuration
         guard duration > 0 else {
             return SKAction.run { [weak scene, weak targetNode] in
                 guard let scene = scene, let targetNode = targetNode else { return }
@@ -343,11 +343,11 @@ final class SkillSystem {
             let dy = node.position.y - center.y
             // 거리^2 비교 — sqrt 회피(성능).
             guard dx * dx + dy * dy < radiusSquared else { return }
-            node.removeAction(forKey: GameConfig.noteBobActionKey)
+            node.removeAction(forKey: UILayout.noteBobActionKey)
             let start = node.position
             self.spawnSkillSparkle(at: start, color: color, parent: world)
             node.run(self.pullCollectible(for: node, from: start, scene: scene),
-                     withKey: GameConfig.bookClubRallyPullActionKey)
+                     withKey: GameplayTuning.bookClubRallyPullActionKey)
         }
         guard includeAItems else { return }
         world.enumerateChildNodes(withName: "aItem") { [weak self] node, _ in
@@ -360,7 +360,7 @@ final class SkillSystem {
             let start = node.position
             self.spawnSkillSparkle(at: start, color: color, parent: world)
             node.run(self.pullCollectible(for: node, from: start, scene: scene),
-                     withKey: GameConfig.bookClubRallyPullActionKey)
+                     withKey: GameplayTuning.bookClubRallyPullActionKey)
         }
     }
 
@@ -382,11 +382,11 @@ final class SkillSystem {
                 end: end
             )
             guard distanceSquared <= limitSquared else { return }
-            node.removeAction(forKey: GameConfig.noteBobActionKey)
+            node.removeAction(forKey: UILayout.noteBobActionKey)
             let startPosition = node.position
             self.spawnSkillSparkle(at: startPosition, color: color, parent: world)
             node.run(self.pullCollectible(for: node, from: startPosition, scene: scene),
-                     withKey: GameConfig.bookClubRallyPullActionKey)
+                     withKey: GameplayTuning.bookClubRallyPullActionKey)
         }
     }
 
@@ -397,7 +397,7 @@ final class SkillSystem {
         guard let scene = scene else { return }
         let world = scene.worldNode
         // ── 기존 게임성 100% 유지 (절대 변경 금지) ──
-        ToastLabelNode.spawn(text: GameConfig.charmStudentToastText,
+        ToastLabelNode.spawn(text: GameplayTuning.charmStudentToastText,
                              at: scene.enemy.position,
                              parent: world)
         world.enumerateChildNodes(withName: "projectile") { node, _ in
@@ -409,11 +409,11 @@ final class SkillSystem {
         // 매혹 테마색은 코랄·피치 톤. ColorTokens에 ganhoPeachAccent 미존재 → 실재 토큰 ganhoCoralPrimary 사용.
         let center = scene.player.position
         spawnSkillRing(at: center,
-                       radius: GameConfig.charmStudentRingRadius,
+                       radius: GameplayTuning.charmStudentRingRadius,
                        color: .ganhoCoralPrimary,
                        parent: world)
         spawnSkillRing(at: center,
-                       radius: GameConfig.charmStudentRingRadius * GameConfig.charmStudentOuterRingRatio,
+                       radius: GameplayTuning.charmStudentRingRadius * GameplayTuning.charmStudentOuterRingRatio,
                        color: .ganhoCoralPrimary,
                        parent: world)                              // 하트펄스 톤 2겹
         scene.cameraNode.run(CameraShakeAction.make())             // 화면 전체 진동
@@ -432,68 +432,68 @@ final class SkillSystem {
 
         spawnSkillRing(
             at: start,
-            radius: GameConfig.taiwanTripDepartureRingRadius,
+            radius: GameplayTuning.taiwanTripDepartureRingRadius,
             color: .ganhoCyanBeat,
             parent: scene.worldNode
         )
         // (생존) 출발 지점 F도 제거 — 텔레포트 전 발밑 정리.
-        clearProjectiles(near: start, radius: GameConfig.taiwanTripDeparturePurgeRadius)
+        clearProjectiles(near: start, radius: GameplayTuning.taiwanTripDeparturePurgeRadius)
 
         // 즉시 위치 이동.
         player.position = targetPosition
 
         spawnSkillRing(
             at: targetPosition,
-            radius: GameConfig.taiwanTripLandingPurgeRadius,
+            radius: GameplayTuning.taiwanTripLandingPurgeRadius,
             color: .ganhoCyanBeat,
             parent: scene.worldNode
         )
         // (점수) 착지 주변 음표 흡수.
         pullCollectibles(near: targetPosition,
-                         radius: GameConfig.taiwanTripCollectRadius,
+                         radius: GameplayTuning.taiwanTripCollectRadius,
                          includeAItems: false,
                          color: .ganhoCyanBeat)
-        clearProjectiles(near: targetPosition, radius: GameConfig.taiwanTripLandingPurgeRadius)
+        clearProjectiles(near: targetPosition, radius: GameplayTuning.taiwanTripLandingPurgeRadius)
         scene.cameraNode.run(CameraShakeAction.make())   // 기존 유지
         scene.haptics.heavy()                              // 타격감 추가
 
         // 무적 + 깜빡임. 동시에 set/clear.
         player.isInvulnerable = true
-        player.removeAction(forKey: GameConfig.taiwanTripBlinkActionKey)
-        player.removeAction(forKey: GameConfig.taiwanTripInvulnerableActionKey)
+        player.removeAction(forKey: GameplayTuning.taiwanTripBlinkActionKey)
+        player.removeAction(forKey: GameplayTuning.taiwanTripInvulnerableActionKey)
         applyTaiwanTripBlink(to: player)
     }
 
     /// 텔레포트 후보가 맵 안 + 벽 미겹침인지 검사.
     /// 맵 경계: 외곽 벽 안쪽 1tile 여유. 벽 검사: physicsWorld.body(at:) 사용.
     private func isValidTeleportTarget(_ point: CGPoint) -> Bool {
-        let margin = GameConfig.tileSize
-        guard point.x >= margin, point.x <= GameConfig.mapWidth - margin else { return false }
-        guard point.y >= margin, point.y <= GameConfig.mapHeight - margin else { return false }
+        let margin = GameplayTuning.tileSize
+        guard point.x >= margin, point.x <= GameplayTuning.mapWidth - margin else { return false }
+        guard point.y >= margin, point.y <= GameplayTuning.mapHeight - margin else { return false }
         return isValidPlayerTarget(point)
     }
 
     private func clampedToMap(_ point: CGPoint) -> CGPoint {
-        let margin = GameConfig.tileSize
+        let margin = GameplayTuning.tileSize
         return CGPoint(
-            x: min(max(point.x, margin), GameConfig.mapWidth - margin),
-            y: min(max(point.y, margin), GameConfig.mapHeight - margin)
+            x: min(max(point.x, margin), GameplayTuning.mapWidth - margin),
+            y: min(max(point.y, margin), GameplayTuning.mapHeight - margin)
         )
     }
 
     private func taiwanTripTarget(from start: CGPoint) -> CGPoint {
-        let margin = GameConfig.tileSize
-        let center = CGPoint(x: GameConfig.mapWidth / 2, y: GameConfig.mapHeight / 2)
+        let margin = GameplayTuning.tileSize
+        let center = CGPoint(x: GameplayTuning.mapWidth / 2, y: GameplayTuning.mapHeight / 2)
         let oppositeCorner = CGPoint(
-            x: start.x < center.x ? GameConfig.mapWidth - margin : margin,
-            y: start.y < center.y ? GameConfig.mapHeight - margin : margin
+            x: start.x < center.x ? GameplayTuning.mapWidth - margin : margin,
+            y: start.y < center.y ? GameplayTuning.mapHeight - margin : margin
         )
         if isValidTeleportTarget(oppositeCorner) {
             return oppositeCorner
         }
 
-        let step = GameConfig.tileSize
-        let maxRing = GameConfig.taiwanTripFallbackSearchRings
+        let step = GameplayTuning.tileSize
+        let maxRing = GameplayTuning.taiwanTripFallbackSearchRings
         var best: CGPoint?
         var bestDistanceToCorner = CGFloat.greatestFiniteMagnitude
         for ring in 1...maxRing {
@@ -531,7 +531,7 @@ final class SkillSystem {
             return end
         }
 
-        let steps = max(1, GameConfig.dashClimbLandingSearchSteps)
+        let steps = max(1, GameplayTuning.dashClimbLandingSearchSteps)
         for step in 1...steps {
             let t = 1 - CGFloat(step) / CGFloat(steps)
             let candidate = CGPoint(
@@ -547,23 +547,23 @@ final class SkillSystem {
 
     private func isValidPlayerTarget(_ point: CGPoint) -> Bool {
         guard let scene = scene else { return true }
-        let halfWidth = GameConfig.playerWidth / 2
-        let halfHeight = GameConfig.playerHeight / 2
-        guard point.x >= halfWidth, point.x <= GameConfig.mapWidth - halfWidth else { return false }
-        guard point.y >= halfHeight, point.y <= GameConfig.mapHeight - halfHeight else { return false }
+        let halfWidth = GameplayTuning.playerWidth / 2
+        let halfHeight = GameplayTuning.playerHeight / 2
+        guard point.x >= halfWidth, point.x <= GameplayTuning.mapWidth - halfWidth else { return false }
+        guard point.y >= halfHeight, point.y <= GameplayTuning.mapHeight - halfHeight else { return false }
         return scene.containsWall(in: playerWallQueryRect(centeredAt: point)) == false
     }
 
     private func playerWallQueryRect(centeredAt point: CGPoint) -> CGRect {
         let rect = CGRect(
-            x: point.x - GameConfig.playerWidth / 2,
-            y: point.y - GameConfig.playerHeight / 2,
-            width: GameConfig.playerWidth,
-            height: GameConfig.playerHeight
+            x: point.x - GameplayTuning.playerWidth / 2,
+            y: point.y - GameplayTuning.playerHeight / 2,
+            width: GameplayTuning.playerWidth,
+            height: GameplayTuning.playerHeight
         )
         return rect.insetBy(
-            dx: GameConfig.playerWallQueryInset,
-            dy: GameConfig.playerWallQueryInset
+            dx: GameplayTuning.playerWallQueryInset,
+            dy: GameplayTuning.playerWallQueryInset
         )
     }
 
@@ -598,7 +598,7 @@ final class SkillSystem {
         node.physicsBody?.velocity = .zero
         node.removeAllActions()
         node.run(.sequence([
-            .fadeOut(withDuration: GameConfig.skillEffectFadeDuration),
+            .fadeOut(withDuration: FeelTuning.skillEffectFadeDuration),
             .removeFromParent()
         ]))
     }
@@ -611,7 +611,7 @@ final class SkillSystem {
         let wx = point.x - start.x
         let wy = point.y - start.y
         let lengthSquared = vx * vx + vy * vy
-        guard lengthSquared >= GameConfig.dpadInputSnapEpsilon else {
+        guard lengthSquared >= GameplayTuning.dpadInputSnapEpsilon else {
             return wx * wx + wy * wy
         }
         let rawT = (wx * vx + wy * vy) / lengthSquared
@@ -629,13 +629,13 @@ final class SkillSystem {
         path.addLine(to: end)
         let trail = SKShapeNode(path: path)
         trail.name = "skillTrail"
-        trail.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
-        trail.lineWidth = GameConfig.skillEffectLineWidth
+        trail.strokeColor = color.withAlphaComponent(FeelTuning.skillEffectStrokeAlpha)
+        trail.lineWidth = FeelTuning.skillEffectLineWidth
         trail.fillColor = .clear
-        trail.zPosition = GameConfig.skillEffectZPosition
+        trail.zPosition = ZOrder.skillEffectZPosition
         parent.addChild(trail)
         trail.run(.sequence([
-            .fadeOut(withDuration: GameConfig.skillEffectFadeDuration),
+            .fadeOut(withDuration: FeelTuning.skillEffectFadeDuration),
             .removeFromParent()
         ]))
     }
@@ -647,65 +647,65 @@ final class SkillSystem {
         let ring = SKShapeNode(circleOfRadius: radius)
         ring.name = "skillRing"
         ring.position = position
-        ring.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
-        ring.fillColor = color.withAlphaComponent(GameConfig.skillEffectFillAlpha)
-        ring.lineWidth = GameConfig.skillEffectRingLineWidth
-        ring.zPosition = GameConfig.skillEffectZPosition
-        ring.setScale(GameConfig.skillEffectRingStartScale)
+        ring.strokeColor = color.withAlphaComponent(FeelTuning.skillEffectStrokeAlpha)
+        ring.fillColor = color.withAlphaComponent(FeelTuning.skillEffectFillAlpha)
+        ring.lineWidth = FeelTuning.skillEffectRingLineWidth
+        ring.zPosition = ZOrder.skillEffectZPosition
+        ring.setScale(FeelTuning.skillEffectRingStartScale)
         parent.addChild(ring)
         ring.run(.sequence([
             .group([
-                .scale(to: GameConfig.skillEffectRingEndScale,
-                       duration: GameConfig.skillEffectFadeDuration),
-                .fadeOut(withDuration: GameConfig.skillEffectFadeDuration)
+                .scale(to: FeelTuning.skillEffectRingEndScale,
+                       duration: FeelTuning.skillEffectFadeDuration),
+                .fadeOut(withDuration: FeelTuning.skillEffectFadeDuration)
             ]),
             .removeFromParent()
         ]))
     }
 
     private func spawnSkillSparkle(at position: CGPoint, color: UIColor, parent: SKNode) {
-        let sparkle = SKShapeNode(circleOfRadius: GameConfig.skillSparkleRadius)
+        let sparkle = SKShapeNode(circleOfRadius: FeelTuning.skillSparkleRadius)
         sparkle.name = "skillSparkle"
         sparkle.position = position
-        sparkle.strokeColor = color.withAlphaComponent(GameConfig.skillEffectStrokeAlpha)
+        sparkle.strokeColor = color.withAlphaComponent(FeelTuning.skillEffectStrokeAlpha)
         sparkle.fillColor = .clear
-        sparkle.lineWidth = GameConfig.skillSparkleLineWidth
-        sparkle.zPosition = GameConfig.skillEffectZPosition
+        sparkle.lineWidth = FeelTuning.skillSparkleLineWidth
+        sparkle.zPosition = ZOrder.skillEffectZPosition
         parent.addChild(sparkle)
 
         let angle = CGFloat.random(in: 0...(CGFloat.pi * 2))
-        let distance = GameConfig.skillSparkleTravelDistance
+        let distance = FeelTuning.skillSparkleTravelDistance
         let move = SKAction.moveBy(
             x: cos(angle) * distance,
             y: sin(angle) * distance,
-            duration: GameConfig.skillSparkleDuration
+            duration: FeelTuning.skillSparkleDuration
         )
         sparkle.run(.sequence([
             .group([
                 move,
-                .fadeOut(withDuration: GameConfig.skillSparkleDuration)
+                .fadeOut(withDuration: FeelTuning.skillSparkleDuration)
             ]),
             .removeFromParent()
-        ]), withKey: GameConfig.bookClubRallySparkleActionKey)
+        ]), withKey: GameplayTuning.bookClubRallySparkleActionKey)
     }
 
     private func applyTaiwanTripBlink(to player: PlayerNode) {
         // 깜빡임 액션: alpha 1.0 ↔ taiwanTripFlashAlpha 반복.
-        let half = GameConfig.taiwanTripFlashHalfPeriod
-        let fadeOut = SKAction.fadeAlpha(to: GameConfig.taiwanTripFlashAlpha, duration: half)
+        let half = GameplayTuning.taiwanTripFlashHalfPeriod
+        let fadeOut = SKAction.fadeAlpha(to: GameplayTuning.taiwanTripFlashAlpha, duration: half)
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: half)
         let cycle = SKAction.sequence([fadeOut, fadeIn])
         // V2 무적/깜빡임 길이(1.6초). PlayerSkill.duration(.taiwanTrip)도 같은 상수를 참조 — 종료 정합.
-        let totalDuration = GameConfig.taiwanTripInvulnerableDurationV2
-        player.run(SKAction.repeatForever(cycle), withKey: GameConfig.taiwanTripBlinkActionKey)
+        let totalDuration = GameplayTuning.taiwanTripInvulnerableDuration
+        player.run(SKAction.repeatForever(cycle), withKey: GameplayTuning.taiwanTripBlinkActionKey)
         let restore = SKAction.run { [weak player] in
-            player?.removeAction(forKey: GameConfig.taiwanTripBlinkActionKey)
+            player?.removeAction(forKey: GameplayTuning.taiwanTripBlinkActionKey)
             player?.isInvulnerable = false
             player?.alpha = 1.0
         }
         player.run(.sequence([
             .wait(forDuration: totalDuration),
             restore
-        ]), withKey: GameConfig.taiwanTripInvulnerableActionKey)
+        ]), withKey: GameplayTuning.taiwanTripInvulnerableActionKey)
     }
 }

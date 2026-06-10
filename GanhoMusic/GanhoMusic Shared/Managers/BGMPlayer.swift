@@ -36,7 +36,7 @@ final class BGMPlayer {
     /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
     /// 실패는 전부 graceful (try?) — 어떤 단계가 실패해도 6-3 .ambient 정책이 살아 회귀 0.
     init() {
-        guard GameConfig.isBGMEnabled else { return }
+        guard FeelTuning.isBGMEnabled else { return }
 
         // 1) Bundle 음원 탐색. 없으면 player = nil로 끝 — 카테고리 변경 안 함.
         guard let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") else { return }
@@ -105,7 +105,7 @@ final class BGMPlayer {
 
     // MARK: - Control
     /// player가 있고 재생 중이 아니면 페이드 인으로 시작. 이미 재생 중이면 noop(중복 호출 안전).
-    /// Phase 6-5 — volume 0에서 시작해 GameConfig.bgmFadeInDuration(1.5s)에 걸쳐 1.0까지 보간.
+    /// Phase 6-5 — volume 0에서 시작해 FeelTuning.bgmFadeInDuration(1.5s)에 걸쳐 1.0까지 보간.
     func play() {
         guard let player = player else { return }
         if player.isPlaying { return }              // 6-4 중복 재생 가드 유지
@@ -120,23 +120,23 @@ final class BGMPlayer {
         // setVolume(_:fadeDuration:)은 비동기로 시스템이 처리 (Spring @Async와 동일 발상).
         player.volume = 0
         player.play()
-        player.setVolume(1.0, fadeDuration: GameConfig.bgmFadeInDuration)
+        player.setVolume(1.0, fadeDuration: FeelTuning.bgmFadeInDuration)
     }
 
     /// 페이드 아웃으로 정지. 페이드 완료 후 실제 player.stop() 호출. 멱등(중복 호출 안전).
-    /// Phase 6-5 — GameConfig.bgmFadeOutDuration(1.0s)에 걸쳐 현재 volume → 0 보간 후 stop.
+    /// Phase 6-5 — FeelTuning.bgmFadeOutDuration(1.0s)에 걸쳐 현재 volume → 0 보간 후 stop.
     func stop() {
         guard let player = player else { return }
         if isFadingOut { return }                   // 페이드 아웃 중 중복 stop 차단 (멱등)
         isFadingOut = true
 
         // 1) 시스템에게 페이드 아웃 위임 (비동기 보간).
-        player.setVolume(0, fadeDuration: GameConfig.bgmFadeOutDuration)
+        player.setVolume(0, fadeDuration: FeelTuning.bgmFadeOutDuration)
 
         // 2) 페이드 완료 *후* 실제 stop. weak self 캡처로 인스턴스 해제 시 안전.
         //    SKAction 사용 불가(BGMPlayer는 SKNode 아님), Timer 금지 → 취소 가능한 Task.
         let fadeOutNanoseconds = UInt64(
-            GameConfig.bgmFadeOutDuration * Double(GameConfig.nanosecondsPerSecond)
+            FeelTuning.bgmFadeOutDuration * Double(StorageKeys.nanosecondsPerSecond)
         )
         stopTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: fadeOutNanoseconds)

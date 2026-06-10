@@ -37,17 +37,17 @@ final class SkillButtonNode: SKNode {
     // MARK: - Init
     override init() {
         // Sprint 3 — v2 디자인 시스템 36pt 반지름 코랄 원.
-        backgroundNode = SKShapeNode(circleOfRadius: GameConfig.skillButtonV2Radius)
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        backgroundNode = SKShapeNode(circleOfRadius: UILayout.skillButtonVisualRadius)
+        labelNode = SKLabelNode(fontNamed: Typography.fontDisplay)
         labelNode.text = "SKILL"
         // "B" 키 칩 — 우상단. 본체와 같이 회전/scale 영향 받음(자식이므로 자연).
-        keyLabelChip = DarkContextChipNode(label: GameConfig.skillButtonKeyText)
+        keyLabelChip = DarkContextChipNode(label: UILayout.skillButtonKeyText)
         super.init()
 
         // 배경 원 — 코랄 fill + 흰 α 0.8 stroke. v2 톤.
         backgroundNode.fillColor = .ganhoCoralPrimary
         backgroundNode.strokeColor = UIColor.white.withAlphaComponent(0.8)
-        backgroundNode.lineWidth = GameConfig.skillButtonV2StrokeWidth
+        backgroundNode.lineWidth = UILayout.skillButtonStrokeWidth
         backgroundNode.position = .zero
         backgroundNode.zPosition = 100
 
@@ -61,8 +61,8 @@ final class SkillButtonNode: SKNode {
 
         // "B" 키 칩 — 우상단. 본체로부터 (+offset, +offset) 위치.
         keyLabelChip.position = CGPoint(
-            x: +GameConfig.skillButtonV2KeyLabelOffset,
-            y: +GameConfig.skillButtonV2KeyLabelOffset
+            x: +UILayout.skillButtonKeyLabelOffset,
+            y: +UILayout.skillButtonKeyLabelOffset
         )
         keyLabelChip.zPosition = 102
 
@@ -75,7 +75,7 @@ final class SkillButtonNode: SKNode {
         // labelNode는 isUserInteractionEnabled = false default → hit-test 영향 0.
         labelNode.isHidden = true
 
-        alpha = GameConfig.skillButtonActiveAlpha
+        alpha = GameplayTuning.skillButtonActiveAlpha
         isUserInteractionEnabled = true   // SKNode는 default false — 명시 필수.
     }
 
@@ -95,7 +95,7 @@ final class SkillButtonNode: SKNode {
         nameTagChip?.removeFromParent()
         let chipLabel = skill.displayName
         let chip = DarkContextChipNode(label: chipLabel)
-        chip.position = CGPoint(x: 0, y: GameConfig.skillButtonNameChipOffsetY)
+        chip.position = CGPoint(x: 0, y: UILayout.skillButtonNameChipOffsetY)
         chip.zPosition = 102
         // Sprint 8 Phase F — 본체 아래 스킬 이름 칩 시각 차단. HUDSkillSlotNode가 단일 진실 원천.
         // 노드 트리 보존(addChild 유지) + isHidden=true로 시각만 차단.
@@ -109,11 +109,11 @@ final class SkillButtonNode: SKNode {
     /// 김간호 모드 진입 시 false. 일반 캐릭터는 항상 true.
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
-        alpha = enabled ? GameConfig.skillButtonActiveAlpha : GameConfig.skillButtonInactiveAlpha
+        alpha = enabled ? GameplayTuning.skillButtonActiveAlpha : GameplayTuning.skillButtonInactiveAlpha
         backgroundNode.fillColor = enabled ? .ganhoCoralPrimary : .ganhoIngameControlDisabled
         backgroundNode.strokeColor = enabled
             ? UIColor.ganhoPixelHudYellow
-            : UIColor.ganhoPixelHudWhite.withAlphaComponent(GameConfig.skillButtonInactiveStrokeAlpha)
+            : UIColor.ganhoPixelHudWhite.withAlphaComponent(UILayout.skillButtonInactiveStrokeAlpha)
         labelNode.fontColor = enabled ? .ganhoPixelHudWhite : .ganhoPixelHudWhite.withAlphaComponent(0.5)
         isUserInteractionEnabled = enabled
     }

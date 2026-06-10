@@ -31,27 +31,27 @@ final class DarkContextChipNode: SKNode {
     ///   - badge: 옵션 뱃지 텍스트(코랄 알약 안 흰색). nil이면 미생성.
     init(label: String, badge: String? = nil) {
         // (1) 본 라벨 먼저 생성 — 라벨 frame.width로 칩 총 폭 계산.
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        labelNode = SKLabelNode(fontNamed: Typography.fontDisplay)
         labelNode.text = label
-        labelNode.fontSize = GameConfig.darkContextChipLabelFontSize
+        labelNode.fontSize = UILayout.darkContextChipLabelFontSize
         labelNode.fontColor = .ganhoMusicGold
         labelNode.horizontalAlignmentMode = .left
         labelNode.verticalAlignmentMode = .center
 
         // (2) 옵션 뱃지 생성. badge가 있을 때만 SKShapeNode + SKLabelNode 페어를 만든다.
         let labelWidth = labelNode.frame.width
-        let chipHeight = GameConfig.darkContextChipHeight
-        let badgeHeight = chipHeight - GameConfig.darkContextChipBadgeVerticalInset
+        let chipHeight = UILayout.darkContextChipHeight
+        let badgeHeight = chipHeight - UILayout.darkContextChipBadgeVerticalInset
 
         if let badgeText = badge {
-            let bLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let bLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
             bLabel.text = badgeText
-            bLabel.fontSize = GameConfig.darkContextChipBadgeFontSize
+            bLabel.fontSize = UILayout.darkContextChipBadgeFontSize
             bLabel.fontColor = .white
             bLabel.horizontalAlignmentMode = .center
             bLabel.verticalAlignmentMode = .center
             let bgSize = CGSize(
-                width: bLabel.frame.width + GameConfig.darkContextChipBadgeHorizontalPadding,
+                width: bLabel.frame.width + UILayout.darkContextChipBadgeHorizontalPadding,
                 height: badgeHeight
             )
             let bShape = SKShapeNode(
@@ -69,9 +69,9 @@ final class DarkContextChipNode: SKNode {
 
         // (3) 칩 총 폭 산출 — 좌패딩 + 라벨 + (간격 + 뱃지)? + 우패딩.
         let badgeWidth = badgeNode?.frame.width ?? 0
-        let totalWidth = GameConfig.darkContextChipHorizontalPadding * 2
+        let totalWidth = UILayout.darkContextChipHorizontalPadding * 2
             + labelWidth
-            + (badgeNode != nil ? GameConfig.darkContextChipBadgeSpacing + badgeWidth : 0)
+            + (badgeNode != nil ? UILayout.darkContextChipBadgeSpacing + badgeWidth : 0)
         let bgSize = CGSize(
             width: totalWidth,
             height: chipHeight
@@ -81,7 +81,7 @@ final class DarkContextChipNode: SKNode {
             cornerRadius: bgSize.height / 2
         )
         background.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.darkContextChipBgAlpha)
+            .withAlphaComponent(UILayout.darkContextChipBgAlpha)
         background.strokeColor = .clear
 
         super.init()
@@ -91,13 +91,13 @@ final class DarkContextChipNode: SKNode {
         // (4) 자식 부착. background → labelNode → (옵션) badgeNode/badgeLabel.
         addChild(background)
         labelNode.position = CGPoint(
-            x: -bgSize.width / 2 + GameConfig.darkContextChipHorizontalPadding,
+            x: -bgSize.width / 2 + UILayout.darkContextChipHorizontalPadding,
             y: 0
         )
         addChild(labelNode)
         if let bShape = badgeNode, let bLabel = badgeLabel {
             let badgeCenterX = bgSize.width / 2
-                - GameConfig.darkContextChipHorizontalPadding
+                - UILayout.darkContextChipHorizontalPadding
                 - badgeWidth / 2
             bShape.position = CGPoint(x: badgeCenterX, y: 0)
             bLabel.position = CGPoint(x: badgeCenterX, y: 0)

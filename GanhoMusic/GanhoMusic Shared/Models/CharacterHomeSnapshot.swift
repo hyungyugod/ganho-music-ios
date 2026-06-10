@@ -63,12 +63,12 @@ struct CharacterHomeSnapshot {
 
     var accountStatusText: String {
         if isAppleLinked {
-            return GameConfig.authLinkedStatusText
+            return UILayout.authLinkedStatusText
         }
         if isAnonymous {
-            return GameConfig.authGuestStatusText
+            return UILayout.authGuestStatusText
         }
-        return GameConfig.authLocalFallbackStatusText
+        return UILayout.authLocalFallbackStatusText
     }
 
     var profileNameText: String {
@@ -76,31 +76,31 @@ struct CharacterHomeSnapshot {
             return name
         }
         if isAppleLinked {
-            return GameConfig.characterHomeAppleFallbackNameText
+            return UILayout.characterHomeAppleFallbackNameText
         }
         if isAnonymous {
-            return GameConfig.characterHomeGuestNameText
+            return UILayout.characterHomeGuestNameText
         }
-        return GameConfig.characterHomeLocalNameText
+        return UILayout.characterHomeLocalNameText
     }
 
     var profileSubText: String {
         if isAppleLinked {
-            return GameConfig.characterHomeAppleProfileSubText
+            return UILayout.characterHomeAppleProfileSubText
         }
         if isAnonymous {
-            return GameConfig.characterHomeGuestProfileSubText
+            return UILayout.characterHomeGuestProfileSubText
         }
-        return GameConfig.characterHomeLocalProfileSubText
+        return UILayout.characterHomeLocalProfileSubText
     }
 
     var profileDetailIdentityText: String {
         var lines: [String] = []
         if let nickname = trimmedNonEmpty(authProfile?.nickname) {
-            lines.append("\(GameConfig.profileDetailNicknamePrefixText) \(nickname)")
+            lines.append("\(UILayout.profileDetailNicknamePrefixText) \(nickname)")
         }
         if let displayName = trimmedNonEmpty(authProfile?.displayName) {
-            lines.append("\(GameConfig.profileDetailDisplayNamePrefixText) \(displayName)")
+            lines.append("\(UILayout.profileDetailDisplayNamePrefixText) \(displayName)")
         }
         if lines.isEmpty {
             lines.append(profileNameText)

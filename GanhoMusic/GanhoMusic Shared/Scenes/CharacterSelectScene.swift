@@ -15,7 +15,7 @@ final class CharacterSelectScene: BaseMenuScene {
     private var isTransitioning = false
     private var activeSection: CharacterHomeSection = .characterSelect
     private var selectedCharacterID: CharacterID = .kim
-    private var currentIndex: Int = GameConfig.characterHomeDefaultIndex
+    private var currentIndex: Int = UILayout.characterHomeDefaultIndex
     private let characters: [CharacterID] = CharacterID.allCases
 
     private let authProfileRepo = AuthProfileRepository()
@@ -45,8 +45,8 @@ final class CharacterSelectScene: BaseMenuScene {
         return unlockStates[selectedCharacterID]?.isUnlocked ?? false
     }
 
-    private let headerLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let headerLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let headerSubLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let accentLine = AccentLineNode()
     private var backPill: GlassPillNode?
 
@@ -54,14 +54,14 @@ final class CharacterSelectScene: BaseMenuScene {
     private let stagePanel = SKShapeNode()
     private let stageShadow = SKShapeNode()
     private var portraitNode: CharacterPortraitNode?
-    private let characterNameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let characterSkillLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let characterNameLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let characterSkillLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let speedChip = SKShapeNode()
-    private let speedChipLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let speedChipLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     private let homeMenu = CharacterHomeMenuNode()
     private let achievementStrip = AchievementStripNode()
     private let recordPanel = RecordSummaryPanelNode()
-    private let startButton = PrimaryButtonNode(text: GameConfig.characterHomeStartButtonText)
+    private let startButton = PrimaryButtonNode(text: UILayout.characterHomeStartButtonText)
 
     private var railButtons: [CharacterID: SKShapeNode] = [:]
     private var railLabels: [CharacterID: SKLabelNode] = [:]
@@ -98,7 +98,7 @@ final class CharacterSelectScene: BaseMenuScene {
         configureScopedRepositories()
         selectedCharacterID = correctedSavedCharacter(preferenceRepo.current)
         currentIndex = characters.firstIndex(of: selectedCharacterID)
-            ?? GameConfig.characterHomeDefaultIndex
+            ?? UILayout.characterHomeDefaultIndex
         homeSnapshot = makeHomeSnapshot(for: selectedCharacterID)
 
         setupHeader()
@@ -153,36 +153,36 @@ final class CharacterSelectScene: BaseMenuScene {
 
     // MARK: - Setup
     private func setupHeader() {
-        headerLabel.text = GameConfig.characterHomeHeaderText
-        headerLabel.fontSize = GameConfig.characterHomeHeaderFontSize
+        headerLabel.text = UILayout.characterHomeHeaderText
+        headerLabel.fontSize = UILayout.characterHomeHeaderFontSize
         headerLabel.fontColor = .ganhoNavyDeep
         headerLabel.horizontalAlignmentMode = .left
         headerLabel.verticalAlignmentMode = .center
-        headerLabel.zPosition = GameConfig.characterHomeButtonZPosition
+        headerLabel.zPosition = ZOrder.characterHomeButtonZPosition
         addChild(headerLabel)
 
-        headerSubLabel.text = GameConfig.characterHomeHeaderSubText
-        headerSubLabel.fontSize = GameConfig.characterHomeHeaderSubFontSize
+        headerSubLabel.text = UILayout.characterHomeHeaderSubText
+        headerSubLabel.fontSize = UILayout.characterHomeHeaderSubFontSize
         headerSubLabel.fontColor = .ganhoNavyMuted
         headerSubLabel.horizontalAlignmentMode = .left
         headerSubLabel.verticalAlignmentMode = .center
-        headerSubLabel.zPosition = GameConfig.characterHomeButtonZPosition
+        headerSubLabel.zPosition = ZOrder.characterHomeButtonZPosition
         addChild(headerSubLabel)
 
-        accentLine.zPosition = GameConfig.characterHomeButtonZPosition
+        accentLine.zPosition = ZOrder.characterHomeButtonZPosition
         addChild(accentLine)
     }
 
     private func setupTopBar() {
         let back = GlassPillNode(
-            text: GameConfig.characterHomeBackButtonText,
+            text: UILayout.characterHomeBackButtonText,
             size: CGSize(
-                width: GameConfig.characterHomeBackButtonWidth,
-                height: GameConfig.characterHomeMenuButtonHeight
+                width: UILayout.characterHomeBackButtonWidth,
+                height: UILayout.characterHomeMenuButtonHeight
             )
         )
         back.applyCharacterHomeMenuStyle()
-        back.zPosition = GameConfig.characterHomeButtonZPosition
+        back.zPosition = ZOrder.characterHomeButtonZPosition
         backPill = back
         addChild(back)
     }
@@ -192,56 +192,56 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func setupCharacterStage() {
-        stageShadow.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomeStageShadowAlpha)
+        stageShadow.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomeStageShadowAlpha)
         stageShadow.strokeColor = .clear
         stageShadow.lineWidth = 0
-        stageShadow.zPosition = GameConfig.characterHomePanelZPosition - 1
+        stageShadow.zPosition = ZOrder.characterHomePanelZPosition - 1
         addChild(stageShadow)
 
-        stagePanel.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-        stagePanel.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-        stagePanel.lineWidth = GameConfig.characterHomePanelLineWidth
-        stagePanel.zPosition = GameConfig.characterHomePanelZPosition
+        stagePanel.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+        stagePanel.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+        stagePanel.lineWidth = UILayout.characterHomePanelLineWidth
+        stagePanel.zPosition = ZOrder.characterHomePanelZPosition
         addChild(stagePanel)
 
         let portrait = CharacterPortraitNode(
             characterID: selectedCharacterID,
             maxSize: CGSize(
-                width: GameConfig.characterHomePortraitMaxWidth,
-                height: GameConfig.characterHomePortraitMaxHeight
+                width: UILayout.characterHomePortraitMaxWidth,
+                height: UILayout.characterHomePortraitMaxHeight
             )
         )
-        portrait.zPosition = GameConfig.characterHomeCharacterZPosition
+        portrait.zPosition = ZOrder.characterHomeCharacterZPosition
         portraitNode = portrait
         addChild(portrait)
 
-        characterNameLabel.fontSize = GameConfig.characterHomeStageNameFontSize
+        characterNameLabel.fontSize = UILayout.characterHomeStageNameFontSize
         characterNameLabel.fontColor = .ganhoNavyDeep
         characterNameLabel.horizontalAlignmentMode = .left
         characterNameLabel.verticalAlignmentMode = .center
-        characterNameLabel.zPosition = GameConfig.characterHomeCharacterZPosition + 2
+        characterNameLabel.zPosition = ZOrder.characterHomeCharacterZPosition + 2
         addChild(characterNameLabel)
 
-        characterSkillLabel.fontSize = GameConfig.characterHomeStageSkillFontSize
+        characterSkillLabel.fontSize = UILayout.characterHomeStageSkillFontSize
         characterSkillLabel.fontColor = .ganhoNavyMuted
         characterSkillLabel.horizontalAlignmentMode = .left
         characterSkillLabel.verticalAlignmentMode = .top
         characterSkillLabel.numberOfLines = 0
-        characterSkillLabel.preferredMaxLayoutWidth = GameConfig.characterHomeStageInfoMaxWidth
-        characterSkillLabel.zPosition = GameConfig.characterHomeCharacterZPosition + 2
+        characterSkillLabel.preferredMaxLayoutWidth = UILayout.characterHomeStageInfoMaxWidth
+        characterSkillLabel.zPosition = ZOrder.characterHomeCharacterZPosition + 2
         addChild(characterSkillLabel)
 
-        speedChip.fillColor = UIColor.ganhoScrubMint.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+        speedChip.fillColor = UIColor.ganhoScrubMint.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
         speedChip.strokeColor = .ganhoDifficultyEasyDeep
-        speedChip.lineWidth = GameConfig.characterHomePanelLineWidth
-        speedChip.zPosition = GameConfig.characterHomeCharacterZPosition + 1
+        speedChip.lineWidth = UILayout.characterHomePanelLineWidth
+        speedChip.zPosition = ZOrder.characterHomeCharacterZPosition + 1
         addChild(speedChip)
 
-        speedChipLabel.fontSize = GameConfig.characterHomeStageSpeedFontSize
+        speedChipLabel.fontSize = UILayout.characterHomeStageSpeedFontSize
         speedChipLabel.fontColor = .ganhoNavyDeep
         speedChipLabel.horizontalAlignmentMode = .center
         speedChipLabel.verticalAlignmentMode = .center
-        speedChipLabel.zPosition = GameConfig.characterHomeCharacterZPosition + 2
+        speedChipLabel.zPosition = ZOrder.characterHomeCharacterZPosition + 2
         addChild(speedChipLabel)
 
         setupArrowChips()
@@ -249,18 +249,18 @@ final class CharacterSelectScene: BaseMenuScene {
 
     private func setupArrowChips() {
         let arrowSize = CGSize(
-            width: GameConfig.characterHomeArrowPillWidth,
-            height: GameConfig.characterHomeMenuButtonHeight
+            width: UILayout.characterHomeArrowPillWidth,
+            height: UILayout.characterHomeMenuButtonHeight
         )
-        let left = GlassPillNode(text: GameConfig.characterHomeLeftArrowText, size: arrowSize)
+        let left = GlassPillNode(text: UILayout.characterHomeLeftArrowText, size: arrowSize)
         left.applyCharacterHomeMenuStyle()
-        left.zPosition = GameConfig.characterHomeButtonZPosition
+        left.zPosition = ZOrder.characterHomeButtonZPosition
         leftArrowChip = left
         addChild(left)
 
-        let right = GlassPillNode(text: GameConfig.characterHomeRightArrowText, size: arrowSize)
+        let right = GlassPillNode(text: UILayout.characterHomeRightArrowText, size: arrowSize)
         right.applyCharacterHomeMenuStyle()
-        right.zPosition = GameConfig.characterHomeButtonZPosition
+        right.zPosition = ZOrder.characterHomeButtonZPosition
         rightArrowChip = right
         addChild(right)
     }
@@ -278,35 +278,35 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func setupStartButton() {
-        startButton.zPosition = GameConfig.characterHomeButtonZPosition
+        startButton.zPosition = ZOrder.characterHomeButtonZPosition
         addChild(startButton)
     }
 
     private func setupCharacterRail() {
         for id in characters {
             let size = CGSize(
-                width: GameConfig.characterHomeRailButtonSize,
-                height: GameConfig.characterHomeRailButtonSize
+                width: UILayout.characterHomeRailButtonSize,
+                height: UILayout.characterHomeRailButtonSize
             )
             let button = SKShapeNode(
                 rectOf: size,
-                cornerRadius: GameConfig.characterHomePanelCornerRadius / 2
+                cornerRadius: UILayout.characterHomePanelCornerRadius / 2
             )
-            button.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
-            button.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
-            button.lineWidth = GameConfig.characterHomePanelLineWidth
-            button.zPosition = GameConfig.characterHomeButtonZPosition - 1
+            button.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
+            button.strokeColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
+            button.lineWidth = UILayout.characterHomePanelLineWidth
+            button.zPosition = ZOrder.characterHomeButtonZPosition - 1
             button.name = "characterHomeRail_\(id.rawValue)"
             railButtons[id] = button
             addChild(button)
 
-            let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let label = SKLabelNode(fontNamed: Typography.fontDisplay)
             label.text = id.displayName
-            label.fontSize = GameConfig.characterHomeRailFontSize
+            label.fontSize = UILayout.characterHomeRailFontSize
             label.fontColor = .ganhoNavyDeep
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
-            label.zPosition = GameConfig.characterHomeButtonZPosition
+            label.zPosition = ZOrder.characterHomeButtonZPosition
             railLabels[id] = label
             addChild(label)
         }
@@ -314,8 +314,8 @@ final class CharacterSelectScene: BaseMenuScene {
 
     // MARK: - Layout
     private var usesBottomMenu: Bool {
-        return size.width < GameConfig.characterHomeBottomMenuWidthThreshold
-            || size.height < GameConfig.characterHomeCompactHeightThreshold
+        return size.width < UILayout.characterHomeBottomMenuWidthThreshold
+            || size.height < UILayout.characterHomeCompactHeightThreshold
     }
 
     private func homeLayoutScale() -> CGFloat {
@@ -323,11 +323,11 @@ final class CharacterSelectScene: BaseMenuScene {
         if profile == .padLandscape {
             return profile.menuScale
         }
-        if size.height < GameConfig.characterHomeCompactHeightThreshold {
-            return GameConfig.characterHomeCompactScale
+        if size.height < UILayout.characterHomeCompactHeightThreshold {
+            return UILayout.characterHomeCompactScale
         }
         if usesBottomMenu {
-            return GameConfig.characterHomeBottomMenuScale
+            return UILayout.characterHomeBottomMenuScale
         }
         return profile.menuScale
     }
@@ -351,46 +351,46 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func layoutTopBar(safe: UIEdgeInsets, scale: CGFloat) {
-        let y = frame.maxY - safe.top - GameConfig.characterHomeTopBarInsetY * scale
+        let y = frame.maxY - safe.top - UILayout.characterHomeTopBarInsetY * scale
         backPill?.setScale(scale)
         backPill?.position = CGPoint(
             x: frame.minX + safe.left
-                + GameConfig.characterHomeTopBarInsetX * scale
-                + GameConfig.characterHomeBackButtonWidth * scale / 2,
+                + UILayout.characterHomeTopBarInsetX * scale
+                + UILayout.characterHomeBackButtonWidth * scale / 2,
             y: y
         )
 
         let headerX = frame.minX + safe.left
-            + GameConfig.characterHomeTopBarInsetX * scale
-            + GameConfig.characterHomeBackButtonWidth * scale
-            + GameConfig.characterHomeHeaderLeftGap * scale
+            + UILayout.characterHomeTopBarInsetX * scale
+            + UILayout.characterHomeBackButtonWidth * scale
+            + UILayout.characterHomeHeaderLeftGap * scale
         headerLabel.setScale(scale)
         headerSubLabel.setScale(scale)
         accentLine.setScale(scale)
         headerLabel.position = CGPoint(x: headerX, y: y)
         headerSubLabel.position = CGPoint(
             x: headerX,
-            y: y + GameConfig.characterHomeHeaderSubOffsetY * scale
+            y: y + UILayout.characterHomeHeaderSubOffsetY * scale
         )
         accentLine.position = CGPoint(
-            x: headerX + GameConfig.accentLineWidth * scale / 2,
-            y: y + GameConfig.characterHomeAccentLineOffsetY * scale
+            x: headerX + UILayout.accentLineWidth * scale / 2,
+            y: y + UILayout.characterHomeAccentLineOffsetY * scale
         )
     }
 
     private func layoutProfileSummary(safe: UIEdgeInsets, scale: CGFloat) {
         let panelSize = CGSize(
-            width: GameConfig.characterHomeProfilePanelWidth,
-            height: GameConfig.characterHomeProfilePanelHeight
+            width: UILayout.characterHomeProfilePanelWidth,
+            height: UILayout.characterHomeProfilePanelHeight
         )
         profileSummary.layout(size: panelSize)
         profileSummary.setLayoutScale(scale)
         profileSummary.position = CGPoint(
             x: frame.minX + safe.left
-                + GameConfig.characterHomeProfilePanelLeftInset * scale
+                + UILayout.characterHomeProfilePanelLeftInset * scale
                 + panelSize.width * scale / 2,
             y: frame.maxY - safe.top
-                - GameConfig.characterHomeProfilePanelTopInset * scale
+                - UILayout.characterHomeProfilePanelTopInset * scale
                 - panelSize.height * scale / 2
         )
     }
@@ -399,7 +399,7 @@ final class CharacterSelectScene: BaseMenuScene {
                                       scale: CGFloat,
                                       bottomMode: Bool) {
         let stageSize = resolvedCharacterStageSize(safe: safe, scale: scale, bottomMode: bottomMode)
-        let stageContentRatio = min(1, stageSize.width / GameConfig.characterHomeStageWidth)
+        let stageContentRatio = min(1, stageSize.width / UILayout.characterHomeStageWidth)
         let contentScale = scale * stageContentRatio
         stagePanel.path = CGPath(
             roundedRect: CGRect(
@@ -408,18 +408,18 @@ final class CharacterSelectScene: BaseMenuScene {
                 width: stageSize.width,
                 height: stageSize.height
             ),
-            cornerWidth: GameConfig.characterHomePanelCornerRadius,
-            cornerHeight: GameConfig.characterHomePanelCornerRadius,
+            cornerWidth: UILayout.characterHomePanelCornerRadius,
+            cornerHeight: UILayout.characterHomePanelCornerRadius,
             transform: nil
         )
         stagePanel.setScale(scale)
 
         stageShadow.path = CGPath(
             ellipseIn: CGRect(
-                x: -GameConfig.characterHomeStageShadowWidth / 2,
-                y: -GameConfig.characterHomeStageShadowHeight / 2,
-                width: GameConfig.characterHomeStageShadowWidth,
-                height: GameConfig.characterHomeStageShadowHeight
+                x: -UILayout.characterHomeStageShadowWidth / 2,
+                y: -UILayout.characterHomeStageShadowHeight / 2,
+                width: UILayout.characterHomeStageShadowWidth,
+                height: UILayout.characterHomeStageShadowHeight
             ),
             transform: nil
         )
@@ -427,12 +427,12 @@ final class CharacterSelectScene: BaseMenuScene {
 
         let preferredCenterX = frame.midX + (
             bottomMode
-                ? GameConfig.characterHomeCompactStageCenterOffsetX
-                : GameConfig.characterHomeStageCenterOffsetX
+                ? UILayout.characterHomeCompactStageCenterOffsetX
+                : UILayout.characterHomeStageCenterOffsetX
         ) * scale
         let centerYRatio = bottomMode
-            ? GameConfig.characterHomeCompactStageCenterYRatio
-            : GameConfig.characterHomeStageCenterYRatio
+            ? UILayout.characterHomeCompactStageCenterYRatio
+            : UILayout.characterHomeStageCenterYRatio
         let centerX = resolvedCharacterStageCenterX(
             preferredCenterX: preferredCenterX,
             stageWidth: stageSize.width,
@@ -451,57 +451,57 @@ final class CharacterSelectScene: BaseMenuScene {
         stagePanel.position = center
         stageShadow.position = CGPoint(
             x: center.x,
-            y: characterStageFrame.minY + GameConfig.characterHomeStageShadowHeight * contentScale / 2
+            y: characterStageFrame.minY + UILayout.characterHomeStageShadowHeight * contentScale / 2
         )
 
         portraitNode?.setMaxSize(
             CGSize(
-                width: GameConfig.characterHomePortraitMaxWidth,
-                height: GameConfig.characterHomePortraitMaxHeight
+                width: UILayout.characterHomePortraitMaxWidth,
+                height: UILayout.characterHomePortraitMaxHeight
             )
         )
         portraitNode?.setScale(contentScale)
-        let portraitX = center.x - GameConfig.characterHomePortraitColumnOffsetX * contentScale
-        let infoX = center.x + GameConfig.characterHomeInfoColumnOffsetX * contentScale
+        let portraitX = center.x - UILayout.characterHomePortraitColumnOffsetX * contentScale
+        let infoX = center.x + UILayout.characterHomeInfoColumnOffsetX * contentScale
         portraitNode?.position = CGPoint(
             x: portraitX,
-            y: characterStageFrame.minY + GameConfig.characterHomePortraitBottomInset * contentScale
+            y: characterStageFrame.minY + UILayout.characterHomePortraitBottomInset * contentScale
         )
 
         characterNameLabel.setScale(contentScale)
         characterSkillLabel.setScale(contentScale)
-        characterSkillLabel.preferredMaxLayoutWidth = GameConfig.characterHomeStageInfoMaxWidth
+        characterSkillLabel.preferredMaxLayoutWidth = UILayout.characterHomeStageInfoMaxWidth
         speedChip.setScale(contentScale)
         speedChipLabel.setScale(contentScale)
         characterNameLabel.position = CGPoint(
             x: infoX,
-            y: center.y + GameConfig.characterHomeInfoNameOffsetY * contentScale
+            y: center.y + UILayout.characterHomeInfoNameOffsetY * contentScale
         )
         characterSkillLabel.position = CGPoint(
             x: infoX,
-            y: center.y + GameConfig.characterHomeInfoSkillOffsetY * contentScale
+            y: center.y + UILayout.characterHomeInfoSkillOffsetY * contentScale
         )
         speedChip.path = CGPath(
             roundedRect: CGRect(
-                x: -GameConfig.characterHomeStageSpeedChipWidth / 2,
-                y: -GameConfig.characterHomeStageSpeedChipHeight / 2,
-                width: GameConfig.characterHomeStageSpeedChipWidth,
-                height: GameConfig.characterHomeStageSpeedChipHeight
+                x: -UILayout.characterHomeStageSpeedChipWidth / 2,
+                y: -UILayout.characterHomeStageSpeedChipHeight / 2,
+                width: UILayout.characterHomeStageSpeedChipWidth,
+                height: UILayout.characterHomeStageSpeedChipHeight
             ),
-            cornerWidth: GameConfig.characterHomeStageSpeedChipHeight / 2,
-            cornerHeight: GameConfig.characterHomeStageSpeedChipHeight / 2,
+            cornerWidth: UILayout.characterHomeStageSpeedChipHeight / 2,
+            cornerHeight: UILayout.characterHomeStageSpeedChipHeight / 2,
             transform: nil
         )
         speedChip.position = CGPoint(
-            x: infoX + GameConfig.characterHomeStageSpeedChipWidth * contentScale / 2,
-            y: center.y + GameConfig.characterHomeInfoSpeedOffsetY * contentScale
+            x: infoX + UILayout.characterHomeStageSpeedChipWidth * contentScale / 2,
+            y: center.y + UILayout.characterHomeInfoSpeedOffsetY * contentScale
         )
         speedChipLabel.position = speedChip.position
 
         leftArrowChip?.setScale(scale)
         rightArrowChip?.setScale(scale)
-        let buttonHalf = GameConfig.characterHomeArrowPillWidth * scale / 2
-        let arrowGap = GameConfig.characterHomeArrowOutsideGap * scale
+        let buttonHalf = UILayout.characterHomeArrowPillWidth * scale / 2
+        let arrowGap = UILayout.characterHomeArrowOutsideGap * scale
         leftArrowChip?.position = CGPoint(
             x: max(
                 frame.minX + safe.left + buttonHalf,
@@ -523,11 +523,11 @@ final class CharacterSelectScene: BaseMenuScene {
                                             bottomMode: Bool) -> CGSize {
         let bounds = characterStageHorizontalBounds(safe: safe, scale: scale, bottomMode: bottomMode)
         let availableWidth = max(0, bounds.maxX - bounds.minX)
-        let desiredWidth = GameConfig.characterHomeStageWidth * scale
+        let desiredWidth = UILayout.characterHomeStageWidth * scale
         let resolvedWidth = min(desiredWidth, availableWidth)
         return CGSize(
             width: resolvedWidth / scale,
-            height: GameConfig.characterHomeStageHeight
+            height: UILayout.characterHomeStageHeight
         )
     }
 
@@ -549,29 +549,29 @@ final class CharacterSelectScene: BaseMenuScene {
                                                 bottomMode: Bool) -> (minX: CGFloat, maxX: CGFloat) {
         let profileRight = frame.minX
             + safe.left
-            + GameConfig.characterHomeProfilePanelLeftInset * scale
-            + GameConfig.characterHomeProfilePanelWidth * scale
+            + UILayout.characterHomeProfilePanelLeftInset * scale
+            + UILayout.characterHomeProfilePanelWidth * scale
         let detailLeft: CGFloat
         if bottomMode {
             detailLeft = frame.maxX
                 - safe.right
-                - GameConfig.characterHomeMenuRightInset * scale
-                - GameConfig.characterHomeDetailPanelWidth * scale
+                - UILayout.characterHomeMenuRightInset * scale
+                - UILayout.characterHomeDetailPanelWidth * scale
         } else {
             detailLeft = frame.maxX
                 - safe.right
-                - GameConfig.characterHomeMenuRightInset * scale
-                - GameConfig.characterHomeMenuButtonWidth * scale
-                - GameConfig.characterHomeDetailPanelGap * scale
-                - GameConfig.characterHomeDetailPanelWidth * scale
+                - UILayout.characterHomeMenuRightInset * scale
+                - UILayout.characterHomeMenuButtonWidth * scale
+                - UILayout.characterHomeDetailPanelGap * scale
+                - UILayout.characterHomeDetailPanelWidth * scale
         }
-        let inset = GameConfig.characterHomeDetailPanelGap * scale
+        let inset = UILayout.characterHomeDetailPanelGap * scale
         let minX = profileRight + inset
         let maxX = detailLeft - inset
         guard maxX > minX else {
             return (
-                frame.minX + safe.left + GameConfig.characterHomePanelHorizontalInset * scale,
-                frame.maxX - safe.right - GameConfig.characterHomePanelHorizontalInset * scale
+                frame.minX + safe.left + UILayout.characterHomePanelHorizontalInset * scale,
+                frame.maxX - safe.right - UILayout.characterHomePanelHorizontalInset * scale
             )
         }
         return (minX, maxX)
@@ -584,27 +584,27 @@ final class CharacterSelectScene: BaseMenuScene {
             homeMenu.position = CGPoint(
                 x: frame.midX,
                 y: frame.minY + safe.bottom
-                    + GameConfig.characterHomeMenuBottomInset * scale
-                    + GameConfig.characterHomeMenuButtonHeight * scale / 2
+                    + UILayout.characterHomeMenuBottomInset * scale
+                    + UILayout.characterHomeMenuButtonHeight * scale / 2
             )
         } else {
             homeMenu.position = CGPoint(
                 x: frame.maxX - safe.right
-                    - GameConfig.characterHomeMenuRightInset * scale
-                    - GameConfig.characterHomeMenuButtonWidth * scale / 2,
-                y: frame.midY + GameConfig.characterHomeMenuCenterYOffset * scale
+                    - UILayout.characterHomeMenuRightInset * scale
+                    - UILayout.characterHomeMenuButtonWidth * scale / 2,
+                y: frame.midY + UILayout.characterHomeMenuCenterYOffset * scale
             )
         }
     }
 
     private func layoutDetailPanels(safe: UIEdgeInsets, scale: CGFloat, bottomMode: Bool) {
         let achievementSize = CGSize(
-            width: GameConfig.characterHomeDetailPanelWidth,
-            height: GameConfig.characterHomeAchievementPanelHeight
+            width: UILayout.characterHomeDetailPanelWidth,
+            height: UILayout.characterHomeAchievementPanelHeight
         )
         let recordSize = CGSize(
-            width: GameConfig.characterHomeDetailPanelWidth,
-            height: GameConfig.characterHomeDetailPanelHeight
+            width: UILayout.characterHomeDetailPanelWidth,
+            height: UILayout.characterHomeDetailPanelHeight
         )
         achievementStrip.layout(size: achievementSize)
         achievementStrip.setLayoutScale(scale)
@@ -614,21 +614,21 @@ final class CharacterSelectScene: BaseMenuScene {
         let detailX: CGFloat
         if bottomMode {
             detailX = frame.maxX - safe.right
-                - GameConfig.characterHomeMenuRightInset * scale
-                - GameConfig.characterHomeDetailPanelWidth * scale / 2
+                - UILayout.characterHomeMenuRightInset * scale
+                - UILayout.characterHomeDetailPanelWidth * scale / 2
         } else {
             detailX = frame.maxX - safe.right
-                - GameConfig.characterHomeMenuRightInset * scale
-                - GameConfig.characterHomeMenuButtonWidth * scale
-                - GameConfig.characterHomeDetailPanelGap * scale
-                - GameConfig.characterHomeDetailPanelWidth * scale / 2
+                - UILayout.characterHomeMenuRightInset * scale
+                - UILayout.characterHomeMenuButtonWidth * scale
+                - UILayout.characterHomeDetailPanelGap * scale
+                - UILayout.characterHomeDetailPanelWidth * scale / 2
         }
 
-        let gap = GameConfig.characterHomeDetailPanelGap * scale
-        let achievementHalfHeight = GameConfig.characterHomeAchievementPanelHeight * scale / 2
-        let recordHalfHeight = GameConfig.characterHomeDetailPanelHeight * scale / 2
+        let gap = UILayout.characterHomeDetailPanelGap * scale
+        let achievementHalfHeight = UILayout.characterHomeAchievementPanelHeight * scale / 2
+        let recordHalfHeight = UILayout.characterHomeDetailPanelHeight * scale / 2
         let topAchievementY = frame.maxY - safe.top
-            - GameConfig.characterHomeProfilePanelTopInset * scale
+            - UILayout.characterHomeProfilePanelTopInset * scale
             - achievementHalfHeight
         var achievementY = topAchievementY
         var recordY = achievementY
@@ -638,8 +638,8 @@ final class CharacterSelectScene: BaseMenuScene {
 
         if bottomMode {
             let reservedTopY = startButton.position.y
-                + GameConfig.primaryButtonHeight * scale / 2
-                + GameConfig.characterHomeBottomReservedAreaGap * scale
+                + UILayout.primaryButtonHeight * scale / 2
+                + UILayout.characterHomeBottomReservedAreaGap * scale
             let minimumRecordY = reservedTopY + recordHalfHeight
             if recordY < minimumRecordY {
                 recordY = minimumRecordY
@@ -674,18 +674,18 @@ final class CharacterSelectScene: BaseMenuScene {
         let y: CGFloat
         if bottomMode {
             x = frame.maxX - safe.right
-                - GameConfig.characterHomeMenuRightInset * scale
-                - GameConfig.primaryButtonWidth * scale / 2
+                - UILayout.characterHomeMenuRightInset * scale
+                - UILayout.primaryButtonWidth * scale / 2
             y = homeMenu.position.y
-                + GameConfig.characterHomeMenuButtonHeight * scale / 2
-                + GameConfig.characterHomeBottomStartButtonAboveMenu * scale
-                + GameConfig.primaryButtonHeight * scale / 2
+                + UILayout.characterHomeMenuButtonHeight * scale / 2
+                + UILayout.characterHomeBottomStartButtonAboveMenu * scale
+                + UILayout.primaryButtonHeight * scale / 2
         } else {
             let detailX = recordPanel.position.x
             x = detailX
             y = frame.minY + safe.bottom
-                + GameConfig.characterHomeStartButtonBottomInset * scale
-                + GameConfig.primaryButtonHeight * scale / 2
+                + UILayout.characterHomeStartButtonBottomInset * scale
+                + UILayout.primaryButtonHeight * scale / 2
         }
         startButton.position = CGPoint(x: x, y: y)
     }
@@ -693,17 +693,17 @@ final class CharacterSelectScene: BaseMenuScene {
     private func layoutCharacterRail(animated: Bool, scale: CGFloat) {
         railLayoutScale = scale
         let count = CGFloat(characters.count)
-        let totalWidth = GameConfig.characterHomeRailButtonSize * count
-            + GameConfig.characterHomeRailGap * max(0, count - 1)
+        let totalWidth = UILayout.characterHomeRailButtonSize * count
+            + UILayout.characterHomeRailGap * max(0, count - 1)
         let startX = characterStageFrame.midX - totalWidth * scale / 2
-            + GameConfig.characterHomeRailButtonSize * scale / 2
+            + UILayout.characterHomeRailButtonSize * scale / 2
         let y = characterStageFrame.minY
-            + GameConfig.characterHomeRailBottomInset * scale
-            + GameConfig.characterHomeRailButtonSize * scale / 2
+            + UILayout.characterHomeRailBottomInset * scale
+            + UILayout.characterHomeRailButtonSize * scale / 2
 
         for (index, id) in characters.enumerated() {
             let x = startX + CGFloat(index) * (
-                GameConfig.characterHomeRailButtonSize + GameConfig.characterHomeRailGap
+                UILayout.characterHomeRailButtonSize + UILayout.characterHomeRailGap
             ) * scale
             railLabels[id]?.setScale(scale)
             railButtons[id]?.position = CGPoint(x: x, y: y)
@@ -797,7 +797,7 @@ final class CharacterSelectScene: BaseMenuScene {
                 if !self.isSelectedCharacterUnlocked {
                     self.selectedCharacterID = self.correctedSavedCharacter(self.selectedCharacterID)
                     self.currentIndex = self.characters.firstIndex(of: self.selectedCharacterID)
-                        ?? GameConfig.characterHomeDefaultIndex
+                        ?? UILayout.characterHomeDefaultIndex
                 } else {
                     self.preferenceRepo.save(self.selectedCharacterID)
                 }
@@ -855,17 +855,17 @@ final class CharacterSelectScene: BaseMenuScene {
         )
         characterNameLabel.text = unlockState.isUnlocked
             ? selectedCharacterID.displayName
-            : "\(selectedCharacterID.displayName) · \(GameConfig.characterHomeLockedText)"
+            : "\(selectedCharacterID.displayName) · \(UILayout.characterHomeLockedText)"
         characterSkillLabel.text = unlockState.isUnlocked
             ? skillText(for: selectedCharacterID)
             : unlockState.requirementText
         speedChipLabel.text = [
-            GameConfig.characterHomeSpeedPrefixText,
-            "\(GameConfig.characterHomeMultiplierSeparatorText)\(formatted(selectedCharacterID.playerSpeedMultiplier))"
-        ].joined(separator: GameConfig.characterHomeTextJoinSeparator)
+            UILayout.characterHomeSpeedPrefixText,
+            "\(UILayout.characterHomeMultiplierSeparatorText)\(formatted(selectedCharacterID.playerSpeedMultiplier))"
+        ].joined(separator: UILayout.characterHomeTextJoinSeparator)
         startButton.alpha = unlockState.isUnlocked
             ? 1.0
-            : GameConfig.characterHomeLockedStartButtonAlpha
+            : UILayout.characterHomeLockedStartButtonAlpha
         profileSummary.update(
             snapshot: homeSnapshot,
             avatar: profileAvatarSnapshot,
@@ -893,16 +893,16 @@ final class CharacterSelectScene: BaseMenuScene {
     private func applyStageFocus() {
         let focused = activeSection == .characterSelect
         stagePanel.strokeColor = focused
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.characterHomePanelFocusedStrokeAlpha)
-            : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.characterHomePanelFocusedStrokeAlpha)
+            : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
         stagePanel.lineWidth = focused
-            ? GameConfig.characterHomePanelLineWidth * GameConfig.characterHomeFocusedScale
-            : GameConfig.characterHomePanelLineWidth
+            ? UILayout.characterHomePanelLineWidth * UILayout.characterHomeFocusedScale
+            : UILayout.characterHomePanelLineWidth
     }
 
     private func selectCharacter(at index: Int, animated: Bool) {
         let clamped = max(
-            GameConfig.characterHomeDefaultIndex,
+            UILayout.characterHomeDefaultIndex,
             min(characters.count - 1, index)
         )
         guard clamped != currentIndex else { return }
@@ -919,7 +919,7 @@ final class CharacterSelectScene: BaseMenuScene {
     private func updateCharacterRail(animated: Bool) {
         let sectionAlpha = activeSection == .characterSelect
             ? 1.0
-            : GameConfig.characterHomeUnfocusedAlpha
+            : UILayout.characterHomeUnfocusedAlpha
         for id in characters {
             let selected = id == selectedCharacterID
             let locked = unlockStates[id]?.isUnlocked == false
@@ -928,7 +928,7 @@ final class CharacterSelectScene: BaseMenuScene {
                 : railFillColor(isLocked: locked)
             railButtons[id]?.strokeColor = selected
                 ? .ganhoCoralShadow
-                : UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+                : UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
             railLabels[id]?.fontColor = selected
                 ? .ganhoPaper
                 : (locked ? .ganhoNavyMuted : .ganhoNavyDeep)
@@ -937,62 +937,62 @@ final class CharacterSelectScene: BaseMenuScene {
                 : railAlpha(isLocked: locked, sectionAlpha: sectionAlpha)
             railLabels[id]?.alpha = railButtons[id]?.alpha ?? sectionAlpha
             guard let button = railButtons[id] else { continue }
-            button.removeAction(forKey: GameConfig.characterHomeRailFocusActionKey)
+            button.removeAction(forKey: UILayout.characterHomeRailFocusActionKey)
             let targetScale = railLayoutScale
-                * (selected ? GameConfig.characterHomeRailSelectedScale : 1.0)
+                * (selected ? UILayout.characterHomeRailSelectedScale : 1.0)
             if animated {
                 let action = SKAction.scale(
                     to: targetScale,
-                    duration: GameConfig.characterHomeFocusAnimationDuration
+                    duration: UILayout.characterHomeFocusAnimationDuration
                 )
                 action.timingMode = .easeInEaseOut
-                button.run(action, withKey: GameConfig.characterHomeRailFocusActionKey)
+                button.run(action, withKey: UILayout.characterHomeRailFocusActionKey)
             } else {
                 button.setScale(targetScale)
             }
         }
-        leftArrowChip?.isHidden = currentIndex <= GameConfig.characterHomeDefaultIndex
+        leftArrowChip?.isHidden = currentIndex <= UILayout.characterHomeDefaultIndex
         rightArrowChip?.isHidden = currentIndex >= characters.count - 1
     }
 
     private func railFillColor(isLocked: Bool) -> UIColor {
         if isLocked {
-            return UIColor.ganhoNavyMuted.withAlphaComponent(GameConfig.characterHomePanelStrokeAlpha)
+            return UIColor.ganhoNavyMuted.withAlphaComponent(UILayout.characterHomePanelStrokeAlpha)
         }
-        return UIColor.ganhoPaper.withAlphaComponent(GameConfig.characterHomePanelFillAlpha)
+        return UIColor.ganhoPaper.withAlphaComponent(UILayout.characterHomePanelFillAlpha)
     }
 
     private func railAlpha(isLocked: Bool, sectionAlpha: CGFloat) -> CGFloat {
         let baseAlpha = isLocked
-            ? GameConfig.characterHomeLockedPortraitAlpha
-            : GameConfig.characterHomeRailDeselectedAlpha
+            ? UILayout.characterHomeLockedPortraitAlpha
+            : UILayout.characterHomeRailDeselectedAlpha
         return baseAlpha * sectionAlpha
     }
 
     private func skillText(for characterID: CharacterID) -> String {
         if characterID.skill == .none {
             return [
-                GameConfig.characterHomeSkillPrefixText,
-                GameConfig.characterHomeSkillSeparatorText,
-                GameConfig.characterHomeSkillNoneText
-            ].joined(separator: GameConfig.characterHomeTextJoinSeparator)
+                UILayout.characterHomeSkillPrefixText,
+                UILayout.characterHomeSkillSeparatorText,
+                UILayout.characterHomeSkillNoneText
+            ].joined(separator: UILayout.characterHomeTextJoinSeparator)
         }
         return [
-            GameConfig.characterHomeSkillPrefixText,
-            GameConfig.characterHomeSkillSeparatorText,
+            UILayout.characterHomeSkillPrefixText,
+            UILayout.characterHomeSkillSeparatorText,
             characterID.skill.displayName
-        ].joined(separator: GameConfig.characterHomeTextJoinSeparator)
+        ].joined(separator: UILayout.characterHomeTextJoinSeparator)
     }
 
     /// 속도 배율은 한 자리 표시가 가능한 값이면 한 자리, 아니면 두 자리로 표시한다.
     private func formatted(_ value: CGFloat) -> String {
         let rounded1 = (
-            value * GameConfig.characterHomeSingleDecimalScale
-        ).rounded() / GameConfig.characterHomeSingleDecimalScale
-        if abs(value - rounded1) < GameConfig.characterHomeSpeedFormatEpsilon {
-            return String(format: GameConfig.characterHomeSingleDecimalFormat, Double(value))
+            value * UILayout.characterHomeSingleDecimalScale
+        ).rounded() / UILayout.characterHomeSingleDecimalScale
+        if abs(value - rounded1) < UILayout.characterHomeSpeedFormatEpsilon {
+            return String(format: UILayout.characterHomeSingleDecimalFormat, Double(value))
         }
-        return String(format: GameConfig.characterHomeDoubleDecimalFormat, Double(value))
+        return String(format: UILayout.characterHomeDoubleDecimalFormat, Double(value))
     }
 
     // MARK: - Touch
@@ -1141,11 +1141,11 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func requestProfilePhotoPicker() {
-        showAccountFeedback(GameConfig.profileDetailPhotoPickerRequestText)
+        showAccountFeedback(UILayout.profileDetailPhotoPickerRequestText)
         NotificationCenter.default.post(
             name: .ganhoProfilePhotoPickerRequested,
             object: nil,
-            userInfo: [GameConfig.profileAvatarScopeUserInfoKey: accountScope]
+            userInfo: [UILayout.profileAvatarScopeUserInfoKey: accountScope]
         )
     }
 
@@ -1161,7 +1161,7 @@ final class CharacterSelectScene: BaseMenuScene {
     }
 
     private func handleProfileAvatarDidChange(_ notification: Notification) {
-        if let changedScope = notification.userInfo?[GameConfig.profileAvatarScopeUserInfoKey] as? AccountProgressScope,
+        if let changedScope = notification.userInfo?[UILayout.profileAvatarScopeUserInfoKey] as? AccountProgressScope,
            changedScope.storageSuffix != accountScope.storageSuffix {
             return
         }
@@ -1186,10 +1186,10 @@ final class CharacterSelectScene: BaseMenuScene {
         refreshAfterAccountChange()
         if result.didSave {
             didShowInitialNicknamePrompt = true
-            showAccountFeedback(GameConfig.profileNameEditSavedText)
+            showAccountFeedback(UILayout.profileNameEditSavedText)
             showProfileDetailOverlay(mode: .detail)
         } else {
-            showAccountFeedback(GameConfig.profileNameEditFailedText)
+            showAccountFeedback(UILayout.profileNameEditFailedText)
             if result.wasNicknameRequired || homeSnapshot.authProfile?.needsNicknameSetup == true {
                 showProfileDetailOverlay(mode: .nicknamePrompt)
             }
@@ -1253,7 +1253,7 @@ final class CharacterSelectScene: BaseMenuScene {
     private func handleAccountAppleLinkTap() {
         guard !isAccountRequestInFlight else { return }
         guard let window = view?.window else {
-            showAccountFeedback(GameConfig.authActionFailedText)
+            showAccountFeedback(UILayout.authActionFailedText)
             return
         }
 
@@ -1270,7 +1270,7 @@ final class CharacterSelectScene: BaseMenuScene {
                 case .success:
                     self.refreshAfterAccountChange(migratingFrom: previousScope)
                     self.hideAccountMenuOverlay()
-                    self.showAccountFeedback(GameConfig.authLinkedStatusText)
+                    self.showAccountFeedback(UILayout.authLinkedStatusText)
                     self.showInitialProfilePromptIfNeeded()
                     self.syncCloudProgressIfNeeded()
                     Task {
@@ -1278,7 +1278,7 @@ final class CharacterSelectScene: BaseMenuScene {
                     }
                 case .cancelled:
                     self.showAccountMenuOverlay(mode: .menu)
-                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                    self.showAccountFeedback(UILayout.authActionCancelledText)
                 case .failure(let error):
                     self.showAccountMenuOverlay(mode: .menu)
                     self.showAccountFeedback(self.appleFailureStatusText(for: error))
@@ -1302,10 +1302,10 @@ final class CharacterSelectScene: BaseMenuScene {
                     self.transitionToStart(openLoginChoiceOnEntry: true)
                 case .cancelled:
                     self.showAccountMenuOverlay(mode: .menu)
-                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                    self.showAccountFeedback(UILayout.authActionCancelledText)
                 case .failure:
                     self.showAccountMenuOverlay(mode: .menu)
-                    self.showAccountFeedback(GameConfig.authActionFailedText)
+                    self.showAccountFeedback(UILayout.authActionFailedText)
                 }
             }
         }
@@ -1314,7 +1314,7 @@ final class CharacterSelectScene: BaseMenuScene {
     private func handleAccountDeleteTap() {
         guard !isAccountRequestInFlight else { return }
         guard let window = view?.window else {
-            showAccountFeedback(GameConfig.authActionFailedText)
+            showAccountFeedback(UILayout.authActionFailedText)
             return
         }
 
@@ -1331,10 +1331,10 @@ final class CharacterSelectScene: BaseMenuScene {
                     self.transitionToStart(openLoginChoiceOnEntry: true)
                 case .cancelled:
                     self.showAccountMenuOverlay(mode: .menu)
-                    self.showAccountFeedback(GameConfig.authActionCancelledText)
+                    self.showAccountFeedback(UILayout.authActionCancelledText)
                 case .failure:
                     self.showAccountMenuOverlay(mode: .menu)
-                    self.showAccountFeedback(GameConfig.authActionFailedText)
+                    self.showAccountFeedback(UILayout.authActionFailedText)
                 }
             }
         }
@@ -1350,7 +1350,7 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         selectedCharacterID = correctedSavedCharacter(previousSelection)
         currentIndex = characters.firstIndex(of: selectedCharacterID)
-            ?? GameConfig.characterHomeDefaultIndex
+            ?? UILayout.characterHomeDefaultIndex
         homeSnapshot = makeHomeSnapshot(for: selectedCharacterID)
         layoutHome(animated: false)
         refreshHomeContent(animated: true)
@@ -1376,27 +1376,27 @@ final class CharacterSelectScene: BaseMenuScene {
     private func appleFailureStatusText(for error: AuthError?) -> String {
         switch error {
         case .some(.appleAuthorizationTimedOut):
-            return GameConfig.loginChoiceAppleTimeoutText
+            return UILayout.loginChoiceAppleTimeoutText
         case .some(.appleConfigurationFailed):
-            return GameConfig.loginChoiceAppleConfigurationText
+            return UILayout.loginChoiceAppleConfigurationText
         case .some(.appleCredentialRejected):
-            return GameConfig.loginChoiceAppleCredentialText
+            return UILayout.loginChoiceAppleCredentialText
         default:
-            return GameConfig.authActionFailedText
+            return UILayout.authActionFailedText
         }
     }
 
     private func showAccountFeedback(_ text: String) {
         let originalText = headerSubLabel.text
         headerSubLabel.text = text
-        headerSubLabel.removeAction(forKey: GameConfig.authStatusMessageActionKey)
-        let wait = SKAction.wait(forDuration: GameConfig.authStatusMessageDuration)
+        headerSubLabel.removeAction(forKey: UILayout.authStatusMessageActionKey)
+        let wait = SKAction.wait(forDuration: UILayout.authStatusMessageDuration)
         let restore = SKAction.run { [weak self] in
             self?.headerSubLabel.text = originalText
         }
         headerSubLabel.run(
             SKAction.sequence([wait, restore]),
-            withKey: GameConfig.authStatusMessageActionKey
+            withKey: UILayout.authStatusMessageActionKey
         )
     }
 
@@ -1406,10 +1406,10 @@ final class CharacterSelectScene: BaseMenuScene {
         guard let touch = touches.first else { return }
 
         let dx = touch.location(in: self).x - swipeStartX
-        if dx > GameConfig.characterHomeSwipeThreshold {
+        if dx > UILayout.characterHomeSwipeThreshold {
             didSwipeInCurrentTouch = true
             selectCharacter(at: currentIndex - 1, animated: true)
-        } else if dx < -GameConfig.characterHomeSwipeThreshold {
+        } else if dx < -UILayout.characterHomeSwipeThreshold {
             didSwipeInCurrentTouch = true
             selectCharacter(at: currentIndex + 1, animated: true)
         }
@@ -1446,7 +1446,7 @@ final class CharacterSelectScene: BaseMenuScene {
 
     private func handleRoughCharacterSideTap(at location: CGPoint) -> Bool {
         guard characterStageFrame.contains(location) else { return false }
-        let zoneWidth = characterStageFrame.width * GameConfig.characterHomeRoughTapZoneRatio
+        let zoneWidth = characterStageFrame.width * UILayout.characterHomeRoughTapZoneRatio
         let leftZone = CGRect(
             x: characterStageFrame.minX,
             y: characterStageFrame.minY,
@@ -1477,7 +1477,7 @@ final class CharacterSelectScene: BaseMenuScene {
         guard let view = self.view else { return }
         isTransitioning = true
         let scene = StartScene.newStartScene(openLoginChoiceOnEntry: openLoginChoiceOnEntry)
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(scene, transition: fade)
     }
 
@@ -1489,7 +1489,7 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         isTransitioning = true
         preferenceRepo.save(selectedCharacterID)
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         switch selectedCharacterID {
         case .kim:
             let scene = DifficultySelectScene.newDifficultySelectScene(
@@ -1507,14 +1507,14 @@ final class CharacterSelectScene: BaseMenuScene {
     private func showLockedStartFeedback() {
         let originalText = characterSkillLabel.text
         let requirement = unlockStates[selectedCharacterID]?.requirementText
-            ?? GameConfig.characterHomeLockedStartFeedbackText
-        characterSkillLabel.text = "\(GameConfig.characterHomeLockedStartFeedbackText) · \(requirement)"
+            ?? UILayout.characterHomeLockedStartFeedbackText
+        characterSkillLabel.text = "\(UILayout.characterHomeLockedStartFeedbackText) · \(requirement)"
 
         stagePanel.removeAction(forKey: "lockedStartFeedback")
-        let wait = SKAction.wait(forDuration: GameConfig.characterHomeLockedFeedbackDuration)
+        let wait = SKAction.wait(forDuration: UILayout.characterHomeLockedFeedbackDuration)
         let restore = SKAction.run { [weak self] in
             guard let self = self else { return }
-            if self.characterSkillLabel.text?.contains(GameConfig.characterHomeLockedStartFeedbackText) == true {
+            if self.characterSkillLabel.text?.contains(UILayout.characterHomeLockedStartFeedbackText) == true {
                 self.characterSkillLabel.text = originalText
             }
         }

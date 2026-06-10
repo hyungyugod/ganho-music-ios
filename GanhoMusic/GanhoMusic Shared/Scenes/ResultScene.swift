@@ -18,16 +18,16 @@ private enum GoalJudgement {
 
     static func make(score: Int, target: Int) -> GoalJudgement {
         if score >= target { return .achieved }
-        let nearScore = Int(Double(target) * GameConfig.goalNearRatio)
+        let nearScore = Int(Double(target) * GameplayTuning.goalNearRatio)
         if score >= nearScore { return .near }
         return .retry
     }
 
     var title: String {
         switch self {
-        case .achieved: return GameConfig.resultGoalAchievedTitle
-        case .near:     return GameConfig.resultGoalNearTitle
-        case .retry:    return GameConfig.resultGoalRetryTitle
+        case .achieved: return UILayout.resultGoalAchievedTitle
+        case .near:     return UILayout.resultGoalNearTitle
+        case .retry:    return UILayout.resultGoalRetryTitle
         }
     }
 
@@ -59,8 +59,6 @@ private struct ResultLayoutMetrics {
     let rightColumnX: CGFloat
     let topY: CGFloat
     let scoreY: CGFloat
-    /// 점수 아래 캡션(scoreSubLabel) 전용 y. 하단 stat 클램프를 포함한 기존 산식 그대로 보존.
-    let bestPillY: CGFloat
     /// V12 — BEST pill 우상단 전용 중심 x. rightColumnX에서 우측으로 보정 — 점수 컬럼과 구조적 분리.
     let bestPillX: CGFloat
     /// V12 — BEST pill 우상단 전용 중심 y. topY 바로 아래(헤더 행) — 점수(scoreY)와 겹칠 수 없음.
@@ -89,10 +87,10 @@ final class ResultScene: SKScene {
     private let isNewBest: Bool
     /// Phase 3-5 — init 주입된 누적 통계(이번 판 반영 후 값). 불변.
     private let stats: GameStats
-    /// Phase 5-7 — init 주입된 캐릭터 한국어 이름. 불변. characterLabel.text 합성에만 사용.
+    /// Phase 5-7 — init 주입된 캐릭터 한국어 이름. 불변. headerChip 라벨 합성에 사용.
     /// String만 받음 — CharacterID enum 결합도 차단(HUDNode 5-4와 동형).
     private let characterName: String
-    /// Phase 7-1 — init 주입된 난이도. 불변. difficultyLabel.text 합성에만 사용.
+    /// Phase 7-1 — init 주입된 난이도. 불변. headerChip 라벨 합성에 사용.
     /// String이 아닌 Difficulty enum을 직접 받음 — displayName 매핑이 단일 진실 원천(Difficulty enum).
     private let difficulty: Difficulty
     /// Phase 7-4 — 이번 판에서 *최초* 졸업이 성사됐는지(GraduationRepository.record 반환값).
@@ -103,25 +101,13 @@ final class ResultScene: SKScene {
     /// StartScene 복귀 중복 진입 가드.
     private var isTransitioning = false
 
-    // 기존 라벨 6개(Phase 3-3 ~ Phase 7-1) — Sprint 5에서도 *생성*하되 일부는 alpha=0으로 비활성화.
+    // live 라벨 2개 — R0에서 좀비(alpha=0 차단) 라벨 7종 삭제, titleLabel·scoreLabel만 생존.
     private let titleLabel  = SKLabelNode(text: "GAME OVER")
     private let scoreLabel  = SKLabelNode(text: "♪ 0")
-    private let bestLabel   = SKLabelNode(text: "BEST 🏆 0")
-    private let statsLabel  = SKLabelNode(text: "PLAYS 0  /  TOTAL 0")
-    /// Phase 5-7 — title(+80) 위쪽에 표시되는 캐릭터 라벨. Sprint 5에서 alpha=0(headerChip이 대체).
-    private let characterLabel = SKLabelNode(text: "")
-    /// Phase 7-1 — characterLabel(+115) 위쪽에 표시되는 난이도 라벨. Sprint 5에서 alpha=0(headerChip이 대체).
-    private let difficultyLabel = SKLabelNode(text: "")
-    private let promptLabel = SKLabelNode(text: "TAP TO RETURN")
     /// Phase 6-15 — 신기록 시 화면 정중앙에 등장할 수 있는 황금 보상 라벨.
     /// BEST/NEW BEST 문구는 bestPill 한 곳만 담당하므로 중앙 라벨은 별도 축하 문구만 사용한다.
     private let newBestLabel = SKLabelNode(text: "기록 갱신!")
 
-    // Sprint 5 신규 자식 노드
-    /// 부제 라벨. 분기 A: "수고했어요! 한 번 더 해볼까요?" / 분기 B: "최고 기록을 갱신했어요!"
-    private let subtitleLabel = SKLabelNode(text: "")
-    /// 점수 부제. 분기 A: "SCORE" / 분기 B: "NEW SCORE"
-    private let scoreSubLabel = SKLabelNode(text: "SCORE")
     /// Sprint 2 — 목표 달성/근접/재도전 판정 라벨.
     private let goalJudgementLabel = SKLabelNode(text: "")
     /// Sprint 2 — 이번 판 점수와 난이도 요약 라벨.
@@ -151,8 +137,7 @@ final class ResultScene: SKScene {
     private var scoreboardButton: GlassPillNode?
     /// Sprint 1 — 명시적인 메인 복귀 버튼. 빈 공간 탭은 noop이다.
     private var mainButton: GlassPillNode?
-    /// Sprint 7 Phase D — bestLabel 시각 대체 GlassPill. scoreLabel 우측 +120pt 위치.
-    /// bestLabel은 `.alpha = 0`으로 시각 차단(노드 트리 보존) + bestPill이 시각 담당.
+    /// Sprint 7 Phase D — BEST 표시 GlassPill. 카드 우상단 위치 (V12).
     /// 옵셔널 — didMove 전엔 nil.
     private var bestPill: GlassPillNode?
     /// Sprint 4 — 공유 시트 중복 표시 방지. 시트 닫힘 completion에서만 해제한다.
@@ -163,8 +148,6 @@ final class ResultScene: SKScene {
     private var headerChip: DarkContextChipNode?
     /// AccentLine 카드 상단 액센트.
     private let accentLine = AccentLineNode()
-    /// 이전 gradient 참조. 톤다운 sprint에서는 단색 배경만 사용하므로 nil 유지.
-    private var gradientBg: GradientBackgroundNode?
     private var overlayBackground: SKSpriteNode?
     private var overlayPanel: SKShapeNode?
 
@@ -254,9 +237,7 @@ final class ResultScene: SKScene {
     // MARK: - Setup
 
     private func setupSolidBackground() {
-        gradientBg?.removeFromParent()
-        gradientBg = nil
-        backgroundColor = GameConfig.menuSolidBackgroundColor
+        backgroundColor = Palette.menuSolidBackgroundColor
     }
 
     private func rebuildSolidBackground() {
@@ -280,7 +261,7 @@ final class ResultScene: SKScene {
         let panelSize = resultPanelSize()
         let panel = SKShapeNode(
             rectOf: panelSize,
-            cornerRadius: GameConfig.resultCardCornerRadiusV2
+            cornerRadius: UILayout.resultCardCornerRadius
         )
         panel.fillColor = UIColor.white.withAlphaComponent(0.88)
         panel.strokeColor = .clear
@@ -294,7 +275,6 @@ final class ResultScene: SKScene {
 
     private func setupLabels() {
         configureLegacyLabels()
-        hideReplacedLegacyLabels()
         configurePrimaryResultLabels()
         applyResultDataTexts()
         addLegacyLabels()
@@ -310,48 +290,16 @@ final class ResultScene: SKScene {
     }
 
     private func configureLegacyLabels() {
-        // Phase 3-3 ~ Phase 8-4 — 기존 6개 라벨 *부착 자체*는 유지(노드 트리 구조 보존).
-        // Sprint 5: 일부 라벨은 alpha=0 비활성, 일부는 v2 토큰으로 시각 교체.
-        configureLabel(titleLabel,      fontSize: GameConfig.resultTitleFontSize)
-        configureLabel(scoreLabel,      fontSize: GameConfig.resultScoreFontSize)
-        configureLabel(bestLabel,       fontSize: GameConfig.resultBestFontSize)
-        configureLabel(statsLabel,      fontSize: GameConfig.resultStatsFontSize)
-        configureLabel(characterLabel,  fontSize: GameConfig.resultCharacterFontSize)
-        configureLabel(difficultyLabel, fontSize: GameConfig.resultDifficultyFontSize)
-        configureLabel(promptLabel,     fontSize: GameConfig.resultPromptFontSize)
-    }
-
-    private func hideReplacedLegacyLabels() {
-        // Sprint 5 — characterLabel·difficultyLabel·statsLabel·promptLabel은 *headerChip + stat group + 카드 톤*이 대체.
-        // alpha=0으로 자식 트리 구조는 유지(addChild 후속 보존), 시각만 차단.
-        characterLabel.alpha = 0
-        difficultyLabel.alpha = 0
-        statsLabel.alpha = 0
-        promptLabel.alpha = 0
-        statsLabel.isHidden = true
-        promptLabel.isHidden = true
-
-        // Sprint 7 Phase D — bestLabel은 bestPill이 시각 대체. hidden으로 중복 BEST 노출을 차단한다.
-        bestLabel.alpha = 0
-        bestLabel.isHidden = true
+        // R0 — live 라벨 2개(titleLabel·scoreLabel)만 구성. 좀비 5종(best/stats/character/difficulty/prompt) 삭제.
+        configureLabel(titleLabel, fontSize: UILayout.resultTitleFontSize)
+        configureLabel(scoreLabel, fontSize: UILayout.resultScoreFontSize)
     }
 
     private func configurePrimaryResultLabels() {
-        // 분기별 시각 토큰 — titleLabel / scoreLabel / bestLabel은 분기 결과 *덮어쓰기* 한 줄로 정리.
+        // 분기별 시각 토큰 — titleLabel / scoreLabel은 분기 결과 *덮어쓰기* 한 줄로 정리.
         configureTitleLabelV2()
         configureScoreLabelV2()
-        configureBestLabelV2()
-        configureScoreSubLabelV2()
-        configureSubtitleLabelV2()
         configureGoalLabels()
-        // Sprint 10.6 — "수고했어요"/"실습 종료" 중복 타이틀 정리. subtitleLabel을 alpha=0으로 시각 차단.
-        // configureSubtitleLabelV2() 내부 configureLabelV2가 alpha=1 강제 세팅하므로 *호출 뒤* 위치 필수.
-        // 노드 트리·텍스트·좌표 보존 — 기존 5개 라벨(characterLabel 등)과 동형 패턴.
-        subtitleLabel.alpha = 0
-        // Sprint V6 — "SCORE"/"NEW SCORE" 캡션(scoreSubLabel)은 ♪ 아이콘 + 큰 점수 + BEST pill로 이미 전달.
-        // 중복 인상 제거 위해 alpha=0 시각 차단. configureScoreSubLabelV2() 내부 configureLabelV2가 alpha=1
-        // 강제 세팅하므로 *호출 뒤* 위치 필수. 노드 트리·configure·position 갱신 보존(subtitleLabel과 동형 패턴).
-        scoreSubLabel.alpha = 0
         configureDivider()
     }
 
@@ -360,25 +308,16 @@ final class ResultScene: SKScene {
         // Sprint 7 Phase D — scoreLabel은 *숫자만*. ♪는 scoreNoteIconLabel(24pt)이 좌측에서 담당.
         // configureScoreLabelV2()에서 "♪ \(finalScore)"로 세팅했지만 V3에서는 *숫자만* 덮어쓴다.
         scoreLabel.text = "\(finalScore)"
-        bestLabel.text = isNewBest ? "★ NEW BEST! ★" : "🏆 BEST \(bestScore)"
-        statsLabel.text = "PLAYS \(stats.playCount)  /  TOTAL \(stats.totalScore)"
-        characterLabel.text = "🎮 \(characterName)"
-        difficultyLabel.text = "난이도: \(difficulty.displayName)"
     }
 
     private func addLegacyLabels() {
-        // 자식 부착 — *Phase 8-4 시점 6 라벨 부착 순서 유지*. 신규 자식은 그 뒤에 추가.
+        // 자식 부착 — live 라벨 2개만. 신규 자식은 그 뒤에 추가.
         addChild(titleLabel)
         addChild(scoreLabel)
-        addChild(bestLabel)
-        addChild(statsLabel)
-        addChild(characterLabel)
-        addChild(difficultyLabel)
-        addChild(promptLabel)
     }
 
     private func addResultChromeNodes() {
-        // Sprint 5 신규 자식 부착 — headerChip + AccentLine + 부제 + 스코어 부제 + divider + stat 4라벨 + 버튼 2개.
+        // Sprint 5 신규 자식 부착 — headerChip + AccentLine + 목표 라벨 + divider + stat 4라벨 + 버튼 2개.
         accentLine.zPosition = 5
         addChild(accentLine)
 
@@ -390,8 +329,6 @@ final class ResultScene: SKScene {
         headerChip = chip
         addChild(chip)
 
-        addChild(subtitleLabel)
-        addChild(scoreSubLabel)
         addChild(goalJudgementLabel)
         addChild(goalSummaryLabel)
         addChild(nextGoalLabel)
@@ -420,7 +357,7 @@ final class ResultScene: SKScene {
         label.fontColor = .ganhoPaper
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
-        label.alpha = GameConfig.hudAlpha
+        label.alpha = UILayout.hudAlpha
     }
 
     /// Sprint 5 — v2 라벨 공통 스타일 헬퍼. fontName/fontSize/fontColor/alignment 동시 적용.
@@ -455,8 +392,8 @@ final class ResultScene: SKScene {
         configureLabelV2(
             titleLabel,
             text: titleText,
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultTitleFontSizeV2,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.resultCardTitleFontSize,
             fontColor: titleColor
         )
     }
@@ -467,48 +404,9 @@ final class ResultScene: SKScene {
         configureLabelV2(
             scoreLabel,
             text: "♪ \(finalScore)",
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultScoreNumFontSizeV2,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.resultScoreNumFontSize,
             fontColor: color
-        )
-    }
-
-    /// Sprint 5 — bestLabel v2 토큰. 폰트 13 골드 톤. revealNewBest에서 깜빡임 시작(분기 B 시).
-    private func configureBestLabelV2() {
-        configureLabelV2(
-            bestLabel,
-            text: isNewBest ? "★ NEW BEST! ★" : "🏆 BEST \(bestScore)",
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultBestFontSizeV2,
-            fontColor: .ganhoMusicGold
-        )
-    }
-
-    /// Sprint 5 — scoreSubLabel v2 토큰. 분기 A("SCORE") / B("NEW SCORE") navyMuted.
-    /// Sprint 10.6 — BEST pill과 시각 동급 인상 제거 위해 alpha 0.55 톤다운(점수 라벨의 보조 캡션).
-    private func configureScoreSubLabelV2() {
-        configureLabelV2(
-            scoreSubLabel,
-            text: isNewBest ? "NEW SCORE" : "SCORE",
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultStatTitleFontSizeV2,
-            fontColor: .ganhoNavyMuted
-        )
-        // configureLabelV2가 alpha=1 강제 세팅 후 *뒤*에 톤다운 — 단일 진실 원천.
-        scoreSubLabel.alpha = GameConfig.resultScoreSubAlphaV10
-    }
-
-    /// Sprint 5 — subtitleLabel v2 토큰. 분기 A("수고했어요! 한 번 더 해볼까요?") / B("최고 기록을 갱신했어요!").
-    private func configureSubtitleLabelV2() {
-        let subtitle = isNewBest
-            ? "최고 기록을 갱신했어요!"
-            : "수고했어요! 한 번 더 해볼까요?"
-        configureLabelV2(
-            subtitleLabel,
-            text: subtitle,
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultSubtitleFontSizeV2,
-            fontColor: .ganhoNavyMuted
         )
     }
 
@@ -520,22 +418,22 @@ final class ResultScene: SKScene {
         configureLabelV2(
             goalJudgementLabel,
             text: content.verdictText,
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultVerdictFontSize,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.resultVerdictFontSize,
             fontColor: content.verdictColor
         )
         configureLabelV2(
             goalSummaryLabel,
             text: content.summaryText,
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultGoalSummaryFontSize,
+            fontName: Typography.fontBody,
+            fontSize: UILayout.resultGoalSummaryFontSize,
             fontColor: .ganhoNavyMuted
         )
         configureLabelV2(
             nextGoalLabel,
             text: content.nextText,
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultGoalSummaryFontSize,
+            fontName: Typography.fontBody,
+            fontSize: UILayout.resultGoalSummaryFontSize,
             fontColor: .ganhoNavyMuted
         )
     }
@@ -546,43 +444,43 @@ final class ResultScene: SKScene {
         let isSuccess = finalScore >= target
         let gap = max(0, target - finalScore)
         let verdictText = isSuccess
-            ? GameConfig.resultVerdictSuccessText
-            : GameConfig.resultVerdictFailureText
+            ? UILayout.resultVerdictSuccessText
+            : UILayout.resultVerdictFailureText
         let verdictColor: UIColor = isSuccess
             ? .ganhoMusicGold
             : .ganhoCoralPrimary
         // 성공=격려 문구 / 실패=부족 점수 안내.
         let nextText = isSuccess
-            ? GameConfig.resultVerdictSuccessSubText
+            ? UILayout.resultVerdictSuccessSubText
             : makeFailureGapText(gap: gap)
         return GoalLabelContent(
             verdictText: verdictText,
             verdictColor: verdictColor,
             isSuccess: isSuccess,
-            summaryText: "\(GameConfig.resultGoalRoundPrefix) \(finalScore)\(GameConfig.resultGoalPointSuffix) · \(GameConfig.resultGoalTargetPrefix) \(target)\(GameConfig.resultGoalPointSuffix)",
+            summaryText: "\(UILayout.resultGoalRoundPrefix) \(finalScore)\(UILayout.resultGoalPointSuffix) · \(UILayout.resultGoalTargetPrefix) \(target)\(UILayout.resultGoalPointSuffix)",
             nextText: nextText
         )
     }
 
     /// 실패 시 부족 점수 안내 — "{gap}점 더 모아야 해요". gap 0(이론상 성공)일 땐 isSuccess 분기로 호출되지 않는다.
     private func makeFailureGapText(gap: Int) -> String {
-        return "\(gap)\(GameConfig.resultGoalPointSuffix)\(GameConfig.resultVerdictFailureGapSuffix)"
+        return "\(gap)\(UILayout.resultGoalPointSuffix)\(UILayout.resultVerdictFailureGapSuffix)"
     }
 
     /// 다음 목표까지 남은 점수 안내(기존 의미 보존 — verdict 경로와 분리). 회귀 방지를 위해 그대로 둔다.
     private func makeNextGoalText(gap: Int) -> String {
         if gap == 0 {
-            return GameConfig.resultGoalNextComboText
+            return UILayout.resultGoalNextComboText
         }
-        return "\(GameConfig.resultGoalGapPrefix) \(gap)\(GameConfig.resultGoalPointSuffix)"
+        return "\(UILayout.resultGoalGapPrefix) \(gap)\(UILayout.resultGoalPointSuffix)"
     }
 
     /// divider — 가로 선 SKShapeNode. 카드 폭 60% navyDeep α=0.18.
     private func configureDivider() {
         let scale = resultCompactScale()
         let dividerWidth = min(
-            GameConfig.resultWideGoalDividerWidthV7 * scale,
-            resultPanelSize().width * GameConfig.resultDividerWidthRatioV2
+            UILayout.resultWideGoalDividerWidth * scale,
+            resultPanelSize().width * UILayout.resultDividerWidthRatio
         )
         let dividerHeight: CGFloat = 1
         divider.path = CGPath(
@@ -606,40 +504,40 @@ final class ResultScene: SKScene {
         configureLabelV2(
             playsValueLabel,
             text: "\(stats.playCount)",
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultStatValueFontSizeV2,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.resultStatValueFontSize,
             fontColor: .ganhoNavyDeep
         )
         configureLabelV2(
             playsTitleLabel,
             text: "PLAYS",
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultStatTitleFontSizeV2,
+            fontName: Typography.fontBody,
+            fontSize: UILayout.resultStatTitleFontSize,
             fontColor: .ganhoNavyMuted
         )
         configureLabelV2(
             totalValueLabel,
             text: "\(stats.totalScore)",
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.resultStatValueFontSizeV2,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.resultStatValueFontSize,
             fontColor: .ganhoNavyDeep
         )
         configureLabelV2(
             totalTitleLabel,
             text: "TOTAL",
-            fontName: GameConfig.fontBody,
-            fontSize: GameConfig.resultStatTitleFontSizeV2,
+            fontName: Typography.fontBody,
+            fontSize: UILayout.resultStatTitleFontSize,
             fontColor: .ganhoNavyMuted
         )
         // Sprint V6 — PLAYS/TOTAL 4라벨 alpha 회복(V10 0.45 → V6 0.75). "조용한 보조" → "명료한 보조" 위계.
         // configureLabelV2가 alpha=1 강제 세팅 후 *뒤*에 약화 — 단일 진실 원천.
         // divider alpha는 V10(0.7) 유지 — stat 라벨과 시각 가중치 분리.
         // V10 토큰(resultStatAlphaV10=0.45 / resultDividerAlphaV10=0.7)은 *값 byte-identical 보존*.
-        playsValueLabel.alpha = GameConfig.resultStatAlphaV6
-        playsTitleLabel.alpha = GameConfig.resultStatAlphaV6
-        totalValueLabel.alpha = GameConfig.resultStatAlphaV6
-        totalTitleLabel.alpha = GameConfig.resultStatAlphaV6
-        divider.alpha = GameConfig.resultDividerAlphaV10
+        playsValueLabel.alpha = UILayout.resultStatAlpha
+        playsTitleLabel.alpha = UILayout.resultStatAlpha
+        totalValueLabel.alpha = UILayout.resultStatAlpha
+        totalTitleLabel.alpha = UILayout.resultStatAlpha
+        divider.alpha = UILayout.resultDividerAlpha
         addChild(playsValueLabel)
         addChild(playsTitleLabel)
         addChild(totalValueLabel)
@@ -653,8 +551,8 @@ final class ResultScene: SKScene {
         let share = GlassPillNode(
             text: shareText,
             size: CGSize(
-                width: GameConfig.resultShareButtonWidthV2,
-                height: GameConfig.resultShareButtonHeightV2
+                width: UILayout.resultShareButtonWidth,
+                height: UILayout.resultShareButtonHeight
             )
         )
         share.zPosition = 10
@@ -672,8 +570,8 @@ final class ResultScene: SKScene {
     /// V3 — scoreLabel 좌측에 분리된 ♪ 24pt 아이콘. fontColor는 분기 A 코랄 / 분기 B 골드(scoreLabel과 톤 동기화).
     /// 라벨 자체 위치는 layoutLabels()에서 scoreLabel.position + offset으로 계산.
     private func setupScoreNoteIcon() {
-        scoreNoteIconLabel.fontName = GameConfig.fontDisplay
-        scoreNoteIconLabel.fontSize = GameConfig.resultScoreNoteIconFontSizeV3
+        scoreNoteIconLabel.fontName = Typography.fontDisplay
+        scoreNoteIconLabel.fontSize = UILayout.resultScoreNoteIconFontSize
         scoreNoteIconLabel.fontColor = isNewBest ? .ganhoMusicGold : .ganhoCoralPrimary
         scoreNoteIconLabel.horizontalAlignmentMode = .center
         scoreNoteIconLabel.verticalAlignmentMode = .center
@@ -682,20 +580,20 @@ final class ResultScene: SKScene {
         addChild(scoreNoteIconLabel)
     }
 
-    /// V3 — bestLabel 시각 대체 GlassPill. 점수 우측 +120pt 위치에 nestled.
+    /// V3 — BEST 표시 GlassPill. 카드 우상단에 nestled.
     /// 텍스트는 분기 A("🏆 BEST 24") / 분기 B("★ NEW BEST!"). GlassPill 자체 fontColor는 navyDeep(기본) 유지.
     private func setupBestPill() {
         let text: String
         if isNewBest {
-            text = GameConfig.resultBestPillTextNewV3
+            text = UILayout.resultBestPillTextNew
         } else {
-            text = "\(GameConfig.resultBestPillTextNormalV3) \(bestScore)"
+            text = "\(UILayout.resultBestPillTextNormal) \(bestScore)"
         }
         let pill = GlassPillNode(
             text: text,
             size: CGSize(
-                width: GameConfig.resultBestPillWidthV3,
-                height: GameConfig.resultBestPillHeightV3
+                width: UILayout.resultBestPillWidth,
+                height: UILayout.resultBestPillHeight
             )
         )
         pill.zPosition = 11
@@ -708,10 +606,10 @@ final class ResultScene: SKScene {
     /// touchesBegan에서 contains(location) hit-test.
     private func setupScoreboardButton() {
         let pill = GlassPillNode(
-            text: GameConfig.resultScoreboardButtonText,
+            text: UILayout.resultScoreboardButtonText,
             size: CGSize(
-                width: GameConfig.resultScoreboardButtonWidthV3,
-                height: GameConfig.resultShareButtonHeightV2
+                width: UILayout.resultScoreboardButtonWidth,
+                height: UILayout.resultShareButtonHeight
             )
         )
         pill.zPosition = 10
@@ -722,10 +620,10 @@ final class ResultScene: SKScene {
 
     private func setupMainButton() {
         let pill = GlassPillNode(
-            text: GameConfig.resultMainButtonText,
+            text: UILayout.resultMainButtonText,
             size: CGSize(
-                width: GameConfig.resultMainButtonWidth,
-                height: GameConfig.resultShareButtonHeightV2
+                width: UILayout.resultMainButtonWidth,
+                height: UILayout.resultShareButtonHeight
             )
         )
         pill.zPosition = 10
@@ -759,47 +657,27 @@ final class ResultScene: SKScene {
                 width: panelSize.width,
                 height: panelSize.height
             ),
-            cornerWidth: GameConfig.resultCardCornerRadiusV2,
-            cornerHeight: GameConfig.resultCardCornerRadiusV2,
+            cornerWidth: UILayout.resultCardCornerRadius,
+            cornerHeight: UILayout.resultCardCornerRadius,
             transform: nil
         )
         overlayPanel?.position = resultPanelCenter(panelHeight: panelSize.height)
     }
 
     private func layoutLegacyLabels() {
-        // 기존 라벨 위치(레거시) — alpha=0이어도 노드 트리 보존.
+        // live 라벨 2개 기본 좌표 — layoutPrimaryResultLabels가 wide surface 좌표로 재배치.
         titleLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultTitleOffsetYV11
+            y: frame.midY + UILayout.resultTitleOffsetY
         )
         scoreLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.resultScoreOffsetYV4
-        )
-        bestLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.resultBestOffsetYV2
-        )
-        statsLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.resultStatsOffsetY
-        )
-        characterLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.resultCharacterOffsetY
-        )
-        difficultyLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.resultDifficultyOffsetY
-        )
-        promptLabel.position = CGPoint(
-            x: frame.midX,
-            y: frame.midY + GameConfig.resultPromptOffsetY
+            y: frame.midY + UILayout.resultScoreOffsetY
         )
         // Phase 6-15 — newBestLabel은 isNewBest일 때만 addChild되지만, 위치 set은 부착 여부 무관하게 안전.
         newBestLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.newBestOffsetY
+            y: frame.midY + FeelTuning.newBestOffsetY
         )
     }
 
@@ -821,38 +699,25 @@ final class ResultScene: SKScene {
     private func makeResultLayoutMetrics(panelSize: CGSize) -> ResultLayoutMetrics {
         let scale = resultCompactScale()
         let center = resultPanelCenter(panelHeight: panelSize.height)
-        let columnInset = GameConfig.resultWideColumnInsetV7 * scale
-        let columnGap = GameConfig.resultWideColumnGapV7 * scale
+        let columnInset = UILayout.resultWideColumnInset * scale
+        let columnGap = UILayout.resultWideColumnGap * scale
         let contentWidth = max(0, panelSize.width - columnInset * 2 - columnGap)
-        let leftWidth = contentWidth * GameConfig.resultWideScoreColumnRatioV7
-        let rightWidth = contentWidth * GameConfig.resultWideGoalColumnRatioV7
+        let leftWidth = contentWidth * UILayout.resultWideScoreColumnRatio
+        let rightWidth = contentWidth * UILayout.resultWideGoalColumnRatio
         let leftEdge = center.x - panelSize.width / 2 + columnInset
         let leftColumnX = leftEdge + leftWidth / 2
         let rightColumnX = leftEdge + leftWidth + columnGap + rightWidth / 2
-        let topY = center.y + panelSize.height / 2 - GameConfig.resultWideTopInsetV7 * scale
-        let scoreY = topY - GameConfig.resultWideScoreBelowTopV7 * scale
+        let topY = center.y + panelSize.height / 2 - UILayout.resultWideTopInset * scale
+        let scoreY = topY - UILayout.resultWideScoreBelowTop * scale
         // V1 — verdict 큰 폰트 전용 슬롯. 기존 goalY를 verdict y로 재정의하고 아래 요소를 verdict 기준으로 내린다.
-        let verdictY = topY - GameConfig.resultVerdictBelowTopV1 * scale
-        let summaryY = verdictY - GameConfig.resultVerdictSummaryGapV1 * scale
-        let nextGoalY = verdictY - GameConfig.resultVerdictNextGoalGapV1 * scale
-        let statsY = center.y - panelSize.height / 2 + GameConfig.resultWideStatsBottomInsetV7 * scale
-        // V11 — 점수 아래 "충분한" 간격을 우선하고, 하단 stat과는 최소 간격만 보장한다.
-        // scoreLabel.calculateAccumulatedFrame()는 contentScale 적용 타이밍에 좌우되므로
-        // width-aware 패턴과 동일하게 폰트 크기 근사(fallback)로 점수 높이를 잡는다.
-        let pillHalfHeight = GameConfig.resultBestPillHeightV3 * scale / 2
-        let scoreHalfHeight = GameConfig.resultScoreNumFontSizeV2 * scale / 2
-        let desiredBestPillY = scoreY - scoreHalfHeight
-            - GameConfig.resultBestPillScoreGapV11 * scale - pillHalfHeight
-        let statsTopY = statsY + GameConfig.resultStatValueFontSizeV2 * scale
-        let minPillY = statsTopY
-            + GameConfig.resultBestPillStatsClearanceV11 * scale + pillHalfHeight
-        // 점수 아래 간격을 우선하되, stat 그룹과 겹칠 때만 끌어올린다.
-        // V12 — 이 값은 이제 scoreSubLabel(점수 아래 캡션)만 사용한다. BEST pill은 아래 우상단 좌표로 분리.
-        let bestPillY = max(minPillY, desiredBestPillY)
+        let verdictY = topY - UILayout.resultVerdictBelowTop * scale
+        let summaryY = verdictY - UILayout.resultVerdictSummaryGap * scale
+        let nextGoalY = verdictY - UILayout.resultVerdictNextGoalGap * scale
+        let statsY = center.y - panelSize.height / 2 + UILayout.resultWideStatsBottomInset * scale
         // V12 — BEST pill 우상단 전용 좌표. 클램프와 무관 → 점수(leftColumnX, scoreY)와 구조적으로 겹칠 수 없다.
         // 좌상단 headerChip(leftColumnX, topY)과 대칭. x는 우측 컬럼에서 더 우측으로, y는 topY 바로 아래(헤더 행).
-        let bestPillX = rightColumnX + GameConfig.resultBestPillTopOffsetXV12 * scale
-        let bestPillTopY = topY - GameConfig.resultBestPillTopBelowTopV12 * scale
+        let bestPillX = rightColumnX + UILayout.resultBestPillTopOffsetX * scale
+        let bestPillTopY = topY - UILayout.resultBestPillTopBelowTop * scale
         return ResultLayoutMetrics(
             panelSize: panelSize,
             panelCenter: center,
@@ -860,7 +725,6 @@ final class ResultScene: SKScene {
             rightColumnX: rightColumnX,
             topY: topY,
             scoreY: scoreY,
-            bestPillY: bestPillY,
             bestPillX: bestPillX,
             bestPillTopY: bestPillTopY,
             verdictY: verdictY,
@@ -881,17 +745,9 @@ final class ResultScene: SKScene {
             x: metrics.leftColumnX,
             y: metrics.topY
         )
-        subtitleLabel.position = CGPoint(
-            x: metrics.leftColumnX,
-            y: metrics.topY - GameConfig.resultWideTitleBelowTopV7 * metrics.scale
-        )
-        scoreSubLabel.position = CGPoint(
-            x: metrics.leftColumnX,
-            y: metrics.bestPillY
-        )
         titleLabel.position = CGPoint(
             x: metrics.leftColumnX,
-            y: metrics.topY - GameConfig.resultWideTitleBelowTopV7 * metrics.scale
+            y: metrics.topY - UILayout.resultWideTitleBelowTop * metrics.scale
         )
         scoreLabel.position = CGPoint(
             x: metrics.leftColumnX,
@@ -926,26 +782,26 @@ final class ResultScene: SKScene {
         )
         divider.position = CGPoint(
             x: metrics.rightColumnX,
-            y: metrics.verdictY - GameConfig.resultVerdictDividerGapV1 * metrics.scale
+            y: metrics.verdictY - UILayout.resultVerdictDividerGap * metrics.scale
         )
     }
 
     private func layoutStats(metrics: ResultLayoutMetrics) {
-        let statTitleY = metrics.statsY - GameConfig.resultLegacyStatTitleGap * metrics.scale
+        let statTitleY = metrics.statsY - UILayout.resultLegacyStatTitleGap * metrics.scale
         playsValueLabel.position = CGPoint(
-            x: metrics.panelCenter.x - GameConfig.resultWideStatSpacingXV7 * metrics.scale,
+            x: metrics.panelCenter.x - UILayout.resultWideStatSpacingX * metrics.scale,
             y: metrics.statsY
         )
         playsTitleLabel.position = CGPoint(
-            x: metrics.panelCenter.x - GameConfig.resultWideStatSpacingXV7 * metrics.scale,
+            x: metrics.panelCenter.x - UILayout.resultWideStatSpacingX * metrics.scale,
             y: statTitleY
         )
         totalValueLabel.position = CGPoint(
-            x: metrics.panelCenter.x + GameConfig.resultWideStatSpacingXV7 * metrics.scale,
+            x: metrics.panelCenter.x + UILayout.resultWideStatSpacingX * metrics.scale,
             y: metrics.statsY
         )
         totalTitleLabel.position = CGPoint(
-            x: metrics.panelCenter.x + GameConfig.resultWideStatSpacingXV7 * metrics.scale,
+            x: metrics.panelCenter.x + UILayout.resultWideStatSpacingX * metrics.scale,
             y: statTitleY
         )
     }
@@ -962,16 +818,16 @@ final class ResultScene: SKScene {
         mainButton?.setScale(scale)
         let buttonY = frame.minY
             + safe.bottom
-            + GameConfig.resultWideButtonBottomInsetV7
-            + GameConfig.primaryButtonHeight * scale / 2
+            + UILayout.resultWideButtonBottomInset
+            + UILayout.primaryButtonHeight * scale / 2
         // Sprint V6 — 하단 3버튼 X 간격 확대: share(-70→-60), restart(+80→+95),
         //   scoreboard(share-110→share-130). 빽빽함 해소. V2/V3 토큰 값은 byte-identical 보존.
         let totalWidth = resultButtonTotalWidth(scale: scale)
         let leftEdge = resultSafeCenterX() - totalWidth / 2
-        let scoreboardWidth = GameConfig.resultScoreboardButtonWidthV3 * scale
-        let shareWidth = GameConfig.resultShareButtonWidthV2 * scale
-        let restartWidth = GameConfig.primaryButtonWidth * scale
-        let mainWidth = GameConfig.resultMainButtonWidth * scale
+        let scoreboardWidth = UILayout.resultScoreboardButtonWidth * scale
+        let shareWidth = UILayout.resultShareButtonWidth * scale
+        let restartWidth = UILayout.primaryButtonWidth * scale
+        let mainWidth = UILayout.resultMainButtonWidth * scale
         let gap = resultButtonGap(scale: scale)
         let scoreboardX = leftEdge + scoreboardWidth / 2
         let shareX = scoreboardX + scoreboardWidth / 2 + gap + shareWidth / 2
@@ -1002,22 +858,22 @@ final class ResultScene: SKScene {
         let availableWidth = size.width
             - safe.left
             - safe.right
-            - GameConfig.resultWidePanelHorizontalPaddingV7 * 2
+            - UILayout.resultWidePanelHorizontalPadding * 2
         let minimumWidth = min(
-            GameConfig.resultWidePanelMinWidthV7 * scale,
+            UILayout.resultWidePanelMinWidth * scale,
             availableWidth
         )
         let width = max(
             minimumWidth,
-            min(GameConfig.resultWidePanelMaxWidthV7, availableWidth)
+            min(UILayout.resultWidePanelMaxWidth, availableWidth)
         )
         let availableHeight = size.height
             - safe.top
             - safe.bottom
-            - GameConfig.resultWidePanelVerticalPaddingV7 * 2
+            - UILayout.resultWidePanelVerticalPadding * 2
         let verticalBandHeight = resultPanelTopBound() - resultPanelBottomBound()
         let height = min(
-            GameConfig.resultWidePanelHeightV7,
+            UILayout.resultWidePanelHeight,
             availableHeight,
             verticalBandHeight
         )
@@ -1039,14 +895,14 @@ final class ResultScene: SKScene {
         let buttonScale = resultButtonScale()
         let buttonTopY = frame.minY
             + safe.bottom
-            + GameConfig.resultWideButtonBottomInsetV7
-            + GameConfig.primaryButtonHeight * buttonScale
-        return buttonTopY + GameConfig.resultWidePanelSafeGapV7
+            + UILayout.resultWideButtonBottomInset
+            + UILayout.primaryButtonHeight * buttonScale
+        return buttonTopY + UILayout.resultWidePanelSafeGap
     }
 
     private func resultPanelTopBound() -> CGFloat {
         let safe = resultSafeInsets()
-        return frame.maxY - safe.top - GameConfig.resultWidePanelVerticalPaddingV7
+        return frame.maxY - safe.top - UILayout.resultWidePanelVerticalPadding
     }
 
     private func resultSafeCenterX() -> CGFloat {
@@ -1056,18 +912,18 @@ final class ResultScene: SKScene {
     }
 
     private func scoreNoteIconOffsetX(scale: CGFloat) -> CGFloat {
-        let fixedOffset = abs(GameConfig.resultScoreNoteIconOffsetXV3) * scale
+        let fixedOffset = abs(UILayout.resultScoreNoteIconOffsetX) * scale
         let widthAwareOffset = scoreLabel.calculateAccumulatedFrame().width / 2
-            + GameConfig.resultWideScoreNoteGapV7 * scale
+            + UILayout.resultWideScoreNoteGap * scale
         return max(fixedOffset, widthAwareOffset)
     }
 
     private func resultCompactScale() -> CGFloat {
-        if size.height < GameConfig.compactLandscapeMinHeight {
-            return GameConfig.resultWideCompactScaleV7
+        if size.height < UILayout.compactLandscapeMinHeight {
+            return UILayout.resultWideCompactScale
         }
-        if size.width < GameConfig.compactNarrowWidth {
-            return GameConfig.resultWideNarrowScaleV7
+        if size.width < UILayout.compactNarrowWidth {
+            return UILayout.resultWideNarrowScale
         }
         return 1.0
     }
@@ -1077,29 +933,29 @@ final class ResultScene: SKScene {
         let availableWidth = size.width
             - safe.left
             - safe.right
-            - GameConfig.menuHorizontalSafePadding * 2
+            - UILayout.menuHorizontalSafePadding * 2
         let normalScale = resultCompactScale()
         let requiredWidth = resultButtonTotalWidth(scale: normalScale)
         guard requiredWidth > availableWidth, requiredWidth > 0 else {
             return normalScale
         }
-        let compactWidth = resultButtonTotalWidth(scale: GameConfig.resultButtonCompactScale)
+        let compactWidth = resultButtonTotalWidth(scale: UILayout.resultButtonCompactScale)
         if compactWidth <= availableWidth {
-            return GameConfig.resultButtonCompactScale
+            return UILayout.resultButtonCompactScale
         }
-        return max(GameConfig.labelMinimumScale, availableWidth / resultButtonTotalWidth(scale: 1.0))
+        return max(Typography.labelMinimumScale, availableWidth / resultButtonTotalWidth(scale: 1.0))
     }
 
     private func resultButtonTotalWidth(scale: CGFloat) -> CGFloat {
-        return GameConfig.resultScoreboardButtonWidthV3 * scale
-            + GameConfig.resultShareButtonWidthV2 * scale
-            + GameConfig.primaryButtonWidth * scale
-            + GameConfig.resultMainButtonWidth * scale
+        return UILayout.resultScoreboardButtonWidth * scale
+            + UILayout.resultShareButtonWidth * scale
+            + UILayout.primaryButtonWidth * scale
+            + UILayout.resultMainButtonWidth * scale
             + resultButtonGap(scale: scale) * 3
     }
 
     private func resultButtonGap(scale: CGFloat) -> CGFloat {
-        return GameConfig.resultWideButtonGapV7 * scale
+        return UILayout.resultWideButtonGap * scale
     }
 
     private func resultSafeInsets() -> UIEdgeInsets {
@@ -1154,7 +1010,7 @@ final class ResultScene: SKScene {
     private func transitionToCharacterHome(in view: SKView) {
         isTransitioning = true
         let characterHome = CharacterSelectScene.newCharacterSelectScene()
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(characterHome, transition: fade)
     }
 
@@ -1178,7 +1034,7 @@ final class ResultScene: SKScene {
             lastUpdatedKey: lastUpdatedKey,
             returnContext: ctx
         )
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(scoreboard, transition: fade)
     }
 
@@ -1190,7 +1046,7 @@ final class ResultScene: SKScene {
         let characterID = inferredCharacterID
             ?? CharacterPreferenceRepository.scoped(scope: scope).current
         let gameScene = GameScene.newGameScene(characterID: characterID, difficulty: difficulty)
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(gameScene, transition: fade)
     }
 
@@ -1259,8 +1115,8 @@ final class ResultScene: SKScene {
 
     private func resultShareImage(from view: SKView) -> UIImage? {
         let bounds = view.bounds
-        guard bounds.width >= GameConfig.resultShareImageMinimumSide,
-              bounds.height >= GameConfig.resultShareImageMinimumSide else {
+        guard bounds.width >= UILayout.resultShareImageMinimumSide,
+              bounds.height >= UILayout.resultShareImageMinimumSide else {
             return nil
         }
 
@@ -1281,7 +1137,7 @@ final class ResultScene: SKScene {
     }
 
     private func sharePopoverSourceRect(in view: SKView) -> CGRect {
-        let anchorSize = GameConfig.resultSharePopoverAnchorSize
+        let anchorSize = UILayout.resultSharePopoverAnchorSize
         let fallback = CGRect(
             x: view.bounds.midX - anchorSize / 2,
             y: view.bounds.midY - anchorSize / 2,
@@ -1304,7 +1160,7 @@ final class ResultScene: SKScene {
 
     private func shareMessage() -> String {
         let bestPrefix = isNewBest ? "신기록! " : ""
-        let target = GameConfig.targetScoreByDifficulty[difficulty] ?? 0
+        let target = GameplayTuning.targetScoreByDifficulty[difficulty] ?? 0
         return "\(bestPrefix)김간호는 음악박사에서 \(characterName) · \(difficulty.displayName) 난이도 \(finalScore)점 달성! 최고기록 \(bestScore)점, 목표 \(target)점."
     }
 
@@ -1314,21 +1170,21 @@ final class ResultScene: SKScene {
         shareFailureToast?.removeAllActions()
         shareFailureToast?.removeFromParent()
 
-        let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-        label.text = GameConfig.resultShareFailureToastText
-        label.fontSize = GameConfig.resultShareToastFontSize
+        let label = SKLabelNode(fontNamed: Typography.fontDisplay)
+        label.text = UILayout.resultShareFailureToastText
+        label.fontSize = UILayout.resultShareToastFontSize
         label.fontColor = .ganhoNavyDeep
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
-        label.zPosition = GameConfig.resultShareToastZPosition
+        label.zPosition = ZOrder.resultShareToastZPosition
         label.position = shareToastPosition()
         label.alpha = .zero
         shareFailureToast = label
         addChild(label)
 
-        let fadeIn = SKAction.fadeIn(withDuration: GameConfig.resultShareToastFadeDuration)
-        let wait = SKAction.wait(forDuration: GameConfig.resultShareToastDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.resultShareToastFadeDuration)
+        let fadeIn = SKAction.fadeIn(withDuration: UILayout.resultShareToastFadeDuration)
+        let wait = SKAction.wait(forDuration: UILayout.resultShareToastDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: UILayout.resultShareToastFadeDuration)
         let clearReference = SKAction.run { [weak self, weak label] in
             guard let self = self,
                   let label = label,
@@ -1346,12 +1202,12 @@ final class ResultScene: SKScene {
         if let shareButton = shareButton {
             return CGPoint(
                 x: shareButton.position.x,
-                y: shareButton.position.y + GameConfig.resultShareToastOffsetY
+                y: shareButton.position.y + UILayout.resultShareToastOffsetY
             )
         }
         return CGPoint(
             x: frame.midX,
-            y: frame.minY + GameConfig.resultShareToastOffsetY
+            y: frame.minY + UILayout.resultShareToastOffsetY
         )
     }
 
@@ -1371,22 +1227,22 @@ final class ResultScene: SKScene {
     /// 중앙 보상 라벨은 별도 축하 문구로만 표시한다.
     /// 햅틱/사운드/sparkle/bestPill pulse는 revealNewBest()에서 그대로 유지한다.
     private func configureNewBestLabel() {
-        newBestLabel.fontSize = GameConfig.newBestFontSize
+        newBestLabel.fontSize = FeelTuning.newBestFontSize
         newBestLabel.fontColor = .ganhoYellowF      // 황금 — ComboPopup x10 황금기와 동일 톤
         newBestLabel.horizontalAlignmentMode = .center
         newBestLabel.verticalAlignmentMode = .center
         newBestLabel.alpha = 0                      // fade-in 시작점
-        newBestLabel.zPosition = GameConfig.newBestZPosition  // bestLabel 위로 겹침
+        newBestLabel.zPosition = ZOrder.newBestZPosition
         newBestLabel.position = CGPoint(
             x: frame.midX,
-            y: frame.midY + GameConfig.newBestOffsetY
+            y: frame.midY + FeelTuning.newBestOffsetY
         )
     }
 
     /// SKScene 자체에 SKAction 부착 — Timer/DispatchQueue 사용 금지(Swift 규칙 9).
     /// [weak self] 캡처 — 씬 해제 가능성 대비.
     private func scheduleNewBestRewardPulse() {
-        let wait = SKAction.wait(forDuration: GameConfig.resultRewardPulseDelay)
+        let wait = SKAction.wait(forDuration: UILayout.resultRewardPulseDelay)
         let reveal = SKAction.run { [weak self] in
             self?.revealNewBest()
         }
@@ -1401,56 +1257,53 @@ final class ResultScene: SKScene {
         // 2) 청각: NewMail 1025 — 긍정·묵직. 6-11/6-13 재사용으로 신규 SFX 0건.
         audio.play(.comboMilestoneStrong)
         // 3) 시각: fade-in + scale pulse. group으로 동시 실행.
-        let fadeIn = SKAction.fadeIn(withDuration: GameConfig.newBestFadeInDuration)
+        let fadeIn = SKAction.fadeIn(withDuration: FeelTuning.newBestFadeInDuration)
         let scaleUp = SKAction.scale(
-            to: GameConfig.newBestEndScalePeak,
-            duration: GameConfig.newBestScalePulseDuration / 2
+            to: FeelTuning.newBestEndScalePeak,
+            duration: FeelTuning.newBestScalePulseDuration / 2
         )
         let scaleDown = SKAction.scale(
             to: 1.0,
-            duration: GameConfig.newBestScalePulseDuration / 2
+            duration: FeelTuning.newBestScalePulseDuration / 2
         )
         let pulse = SKAction.sequence([scaleUp, scaleDown])
         if newBestLabel.parent != nil {
             newBestLabel.run(SKAction.group([fadeIn, pulse]))
         }
-        // 4) BEST pill 깜빡임 시작. legacy bestLabel은 hidden 유지.
+        // 4) BEST pill 깜빡임 시작.
         startBestLabelGoldBlink()
         // 5) Sprint 5 — sparkle 5발 부착 (마지막 라인 추가). 기존 시퀀스 보존.
         emitSparkleBurst()
     }
 
-    /// legacy bestLabel은 숨기고 실제 표시되는 BEST pill에 alpha 깜빡임을 적용한다.
+    /// 실제 표시되는 BEST pill에 alpha 깜빡임을 적용한다. (legacy bestLabel은 R0에서 삭제.)
     /// withKey 패턴(6-14 tensionBlink 답습) — 같은 키 재호출 시 자동 교체로 자연 멱등.
     /// 씬 해제 시 ARC가 액션 정리하므로 명시적 stop 불필요.
     private func startBestLabelGoldBlink() {
-        bestLabel.removeAllActions()
-        bestLabel.alpha = 0
-        bestLabel.isHidden = true
         let fadeOut = SKAction.fadeAlpha(
-            to: GameConfig.newBestBlinkMinAlpha,
-            duration: GameConfig.newBestBlinkHalfPeriod
+            to: FeelTuning.newBestBlinkMinAlpha,
+            duration: FeelTuning.newBestBlinkHalfPeriod
         )
         let fadeIn = SKAction.fadeAlpha(
-            to: GameConfig.menuControlEnabledAlpha,
-            duration: GameConfig.newBestBlinkHalfPeriod
+            to: UILayout.menuControlEnabledAlpha,
+            duration: FeelTuning.newBestBlinkHalfPeriod
         )
         let cycle = SKAction.sequence([fadeOut, fadeIn])
-        bestPill?.run(.repeatForever(cycle), withKey: GameConfig.newBestBlinkActionKey)
+        bestPill?.run(.repeatForever(cycle), withKey: FeelTuning.newBestBlinkActionKey)
     }
 
     /// Sprint 5 — 신기록 시 카드 주변 5개 좌표에 SparkleEffectNode 부착 + emit().
     /// 기존 SparkleEffectNode(자가 소멸 4호) 그대로 재활용 — 내부 0건 변경. addChild 좌표/zPosition만 다름.
     /// 5개 자식은 각자 0.5초 후 자가 소멸 → ResultScene은 후속 정리 0건.
     private func emitSparkleBurst() {
-        for offset in GameConfig.resultSparklePositionsV2 {
+        for offset in UILayout.resultSparklePositions {
             // Sprint 10 Phase J — .menu 명시. 메뉴 v2 카툰 톤(원형 순백) 유지 — 인게임 픽셀 톤과 분리.
             let sparkle = SparkleEffectNode(context: .menu)
             sparkle.position = CGPoint(
                 x: frame.midX + offset.x,
                 y: frame.midY + offset.y
             )
-            sparkle.zPosition = GameConfig.newBestZPosition + 1
+            sparkle.zPosition = ZOrder.newBestZPosition + 1
             addChild(sparkle)
             sparkle.emit()
         }

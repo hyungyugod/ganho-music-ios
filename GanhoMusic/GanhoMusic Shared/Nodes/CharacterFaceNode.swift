@@ -89,7 +89,7 @@ final class CharacterFaceNode: SKNode {
     /// `0.47 ≈ 32 / 68`(CharacterFaceNode head ellipse ry 34 × 2 = 68 → 32pt 목표).
     static func mini(id: CharacterID) -> CharacterFaceNode {
         let face = CharacterFaceNode(id: id)
-        face.setScale(GameConfig.scoreboardMiniFaceScale)
+        face.setScale(UILayout.scoreboardMiniFaceScale)
         face.name = "miniFace_\(id.rawValue)"
         return face
     }
@@ -100,13 +100,13 @@ final class CharacterFaceNode: SKNode {
     private func buildHeadBase() {
         let head = SKShapeNode(
             ellipseOf: CGSize(
-                width: GameConfig.characterFaceHeadRadiusX * 2,
-                height: GameConfig.characterFaceHeadRadiusY * 2
+                width: UILayout.characterFaceHeadRadiusX * 2,
+                height: UILayout.characterFaceHeadRadiusY * 2
             )
         )
         head.fillColor = Self.skin
         head.strokeColor = Self.navy
-        head.lineWidth = GameConfig.characterFaceOutlineWidth
+        head.lineWidth = UILayout.characterFaceOutlineWidth
         head.position = .zero
         head.zPosition = 0
         addChild(head)

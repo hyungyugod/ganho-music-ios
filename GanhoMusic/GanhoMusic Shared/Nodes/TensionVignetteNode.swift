@@ -29,7 +29,7 @@ final class TensionVignetteNode: SKNode {
     init(sceneSize: CGSize) {
         super.init()
         name = "tensionVignette"
-        zPosition = GameConfig.tensionVignetteZPosition
+        zPosition = ZOrder.tensionVignetteZPosition
         buildEdges(sceneSize: sceneSize)
         startBlink()
     }
@@ -43,8 +43,8 @@ final class TensionVignetteNode: SKNode {
     /// 상/하: 폭=전체 화면, 높이=thickness. 좌/우: 폭=thickness, 높이=전체 화면.
     /// 모서리는 상/하 막대가 덮음(L-shape 겹침 → 더 진한 코너) — 시각 의도된 강조.
     private func buildEdges(sceneSize: CGSize) {
-        let thickness = GameConfig.tensionVignetteThickness
-        let alpha = GameConfig.tensionVignetteEdgeAlpha
+        let thickness = FeelTuning.tensionVignetteThickness
+        let alpha = FeelTuning.tensionVignetteEdgeAlpha
         let halfW = sceneSize.width / 2
         let halfH = sceneSize.height / 2
 
@@ -89,9 +89,9 @@ final class TensionVignetteNode: SKNode {
     /// 4 자식 모두 동일 깜빡임 액션 — fadeAlpha 0.3 ↔ 0.7, 0.5s. HUD TIME 슬롯 깜빡임과 같은 박자.
     /// SKAction.repeatForever — detach 시 SpriteKit이 자식 액션도 함께 정리(removeAllActions 불필요).
     private func startBlink() {
-        let half = GameConfig.tensionVignetteBlinkHalfPeriod
-        let minA = GameConfig.tensionVignetteBlinkAlphaMin
-        let maxA = GameConfig.tensionVignetteBlinkAlphaMax
+        let half = FeelTuning.tensionVignetteBlinkHalfPeriod
+        let minA = FeelTuning.tensionVignetteBlinkAlphaMin
+        let maxA = FeelTuning.tensionVignetteBlinkAlphaMax
         let toMin = SKAction.fadeAlpha(to: minA, duration: half)
         let toMax = SKAction.fadeAlpha(to: maxA, duration: half)
         let cycle = SKAction.sequence([toMin, toMax])

@@ -19,7 +19,7 @@ final class ProfileAvatarViewNode: SKNode {
     // MARK: - Init
     override init() {
         super.init()
-        frameNode.zPosition = GameConfig.profileAvatarFrameZPosition
+        frameNode.zPosition = ZOrder.profileAvatarFrameZPosition
         addChild(frameNode)
     }
 
@@ -53,30 +53,30 @@ final class ProfileAvatarViewNode: SKNode {
                 width: size.width,
                 height: size.height
             ),
-            cornerWidth: GameConfig.profileAvatarFrameCornerRadius,
-            cornerHeight: GameConfig.profileAvatarFrameCornerRadius,
+            cornerWidth: UILayout.profileAvatarFrameCornerRadius,
+            cornerHeight: UILayout.profileAvatarFrameCornerRadius,
             transform: nil
         )
         // v2 톤: 어두운 네이비+골드 → 밝은 크림+코랄 (Summary·Detail 양쪽 자동 일관 적용)
-        frameNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.profileAvatarFrameFillAlpha)
-        frameNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.profileAvatarFrameStrokeAlpha)
-        frameNode.lineWidth = GameConfig.profileAvatarFrameLineWidth
+        frameNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.profileAvatarFrameFillAlpha)
+        frameNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.profileAvatarFrameStrokeAlpha)
+        frameNode.lineWidth = UILayout.profileAvatarFrameLineWidth
     }
 
     private func addPhoto(texture: SKTexture, size: CGSize) {
         let crop = SKCropNode()
         let mask = SKShapeNode(
             rectOf: size,
-            cornerRadius: GameConfig.profileAvatarFrameCornerRadius
+            cornerRadius: UILayout.profileAvatarFrameCornerRadius
         )
         mask.fillColor = .white
         mask.strokeColor = .clear
         crop.maskNode = mask
-        crop.zPosition = GameConfig.profileAvatarContentZPosition
+        crop.zPosition = ZOrder.profileAvatarContentZPosition
 
         let node = SKSpriteNode(texture: texture)
         node.size = aspectFill(textureSize: texture.size(), targetSize: size)
-        node.zPosition = GameConfig.profileAvatarContentZPosition
+        node.zPosition = ZOrder.profileAvatarContentZPosition
         crop.addChild(node)
 
         cropNode = crop
@@ -86,12 +86,12 @@ final class ProfileAvatarViewNode: SKNode {
 
     private func addPortrait(characterID: CharacterID, size: CGSize) {
         let contentSize = CGSize(
-            width: max(0, size.width - GameConfig.profileAvatarContentInset * 2),
-            height: max(0, size.height - GameConfig.profileAvatarContentInset * 2)
+            width: max(0, size.width - UILayout.profileAvatarContentInset * 2),
+            height: max(0, size.height - UILayout.profileAvatarContentInset * 2)
         )
         let node = CharacterPortraitNode(characterID: characterID, maxSize: contentSize)
         node.position = CGPoint(x: 0, y: -contentSize.height / 2)
-        node.zPosition = GameConfig.profileAvatarContentZPosition
+        node.zPosition = ZOrder.profileAvatarContentZPosition
         portraitNode = node
         addChild(node)
     }

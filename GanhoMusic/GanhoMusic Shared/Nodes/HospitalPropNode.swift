@@ -22,7 +22,7 @@ final class HospitalPropNode: SKNode {
     init(kind: HospitalPropKind, size: CGSize) {
         super.init()
         name = "hospitalProp"
-        zPosition = GameConfig.hospitalPropZPosition
+        zPosition = ZOrder.hospitalPropZPosition
         switch kind {
         case .bed:
             buildBed(size: size)
@@ -50,8 +50,8 @@ final class HospitalPropNode: SKNode {
         addChild(base)
 
         let pillowSize = CGSize(
-            width: size.width * GameConfig.hospitalBedPillowWidthRatio,
-            height: size.height * GameConfig.hospitalBedPillowHeightRatio
+            width: size.width * UILayout.hospitalBedPillowWidthRatio,
+            height: size.height * UILayout.hospitalBedPillowHeightRatio
         )
         let pillow = roundedRect(
             size: pillowSize,
@@ -59,14 +59,14 @@ final class HospitalPropNode: SKNode {
             strokeColor: .ganhoIngameWallHighlight
         )
         pillow.position = CGPoint(
-            x: -size.width * GameConfig.hospitalBedPillowOffsetXRatio,
-            y: size.height * GameConfig.hospitalBedPillowOffsetYRatio
+            x: -size.width * UILayout.hospitalBedPillowOffsetXRatio,
+            y: size.height * UILayout.hospitalBedPillowOffsetYRatio
         )
         addChild(pillow)
 
         let blanketSize = CGSize(
-            width: size.width * GameConfig.hospitalBedBlanketWidthRatio,
-            height: size.height * GameConfig.hospitalBedBlanketHeightRatio
+            width: size.width * UILayout.hospitalBedBlanketWidthRatio,
+            height: size.height * UILayout.hospitalBedBlanketHeightRatio
         )
         let blanket = roundedRect(
             size: blanketSize,
@@ -74,8 +74,8 @@ final class HospitalPropNode: SKNode {
             strokeColor: .ganhoIngameWallHighlight
         )
         blanket.position = CGPoint(
-            x: size.width * GameConfig.hospitalBedBlanketOffsetXRatio,
-            y: -size.height * GameConfig.hospitalBedBlanketOffsetYRatio
+            x: size.width * UILayout.hospitalBedBlanketOffsetXRatio,
+            y: -size.height * UILayout.hospitalBedBlanketOffsetYRatio
         )
         addChild(blanket)
     }
@@ -83,25 +83,25 @@ final class HospitalPropNode: SKNode {
     private func buildCurtain(size: CGSize) {
         let rail = SKSpriteNode(
             color: .ganhoIngameWallShadow,
-            size: CGSize(width: size.width, height: GameConfig.hospitalCurtainRailHeight)
+            size: CGSize(width: size.width, height: UILayout.hospitalCurtainRailHeight)
         )
         rail.position = CGPoint(
             x: 0,
-            y: size.height / 2 - GameConfig.hospitalCurtainRailHeight / 2
+            y: size.height / 2 - UILayout.hospitalCurtainRailHeight / 2
         )
         addChild(rail)
 
-        let stripeWidth = size.width / CGFloat(GameConfig.hospitalCurtainStripeCount)
-        for index in 0..<GameConfig.hospitalCurtainStripeCount {
+        let stripeWidth = size.width / CGFloat(UILayout.hospitalCurtainStripeCount)
+        for index in 0..<UILayout.hospitalCurtainStripeCount {
             let stripe = SKSpriteNode(
                 color: index % 2 == 0 ? .ganhoIngameWallHighlight : .ganhoIngameRewardMint,
-                size: CGSize(width: stripeWidth, height: size.height - GameConfig.hospitalCurtainRailHeight)
+                size: CGSize(width: stripeWidth, height: size.height - UILayout.hospitalCurtainRailHeight)
             )
             stripe.position = CGPoint(
                 x: -size.width / 2 + stripeWidth / 2 + CGFloat(index) * stripeWidth,
-                y: -GameConfig.hospitalCurtainRailHeight / 2
+                y: -UILayout.hospitalCurtainRailHeight / 2
             )
-            stripe.alpha = GameConfig.hospitalPropSoftAlpha
+            stripe.alpha = UILayout.hospitalPropSoftAlpha
             addChild(stripe)
         }
     }
@@ -114,12 +114,12 @@ final class HospitalPropNode: SKNode {
         )
         addChild(base)
 
-        let drawerHeight = size.height / CGFloat(GameConfig.hospitalCabinetDrawerCount)
-        for index in 0..<GameConfig.hospitalCabinetDrawerCount {
+        let drawerHeight = size.height / CGFloat(UILayout.hospitalCabinetDrawerCount)
+        for index in 0..<UILayout.hospitalCabinetDrawerCount {
             let drawer = roundedRect(
                 size: CGSize(
-                    width: size.width * GameConfig.hospitalCabinetDrawerWidthRatio,
-                    height: drawerHeight * GameConfig.hospitalCabinetDrawerHeightRatio
+                    width: size.width * UILayout.hospitalCabinetDrawerWidthRatio,
+                    height: drawerHeight * UILayout.hospitalCabinetDrawerHeightRatio
                 ),
                 fillColor: .ganhoIngameFloorA,
                 strokeColor: .ganhoIngameWallShadow
@@ -134,27 +134,27 @@ final class HospitalPropNode: SKNode {
 
     private func buildCart(size: CGSize) {
         let tray = roundedRect(
-            size: CGSize(width: size.width, height: size.height * GameConfig.hospitalCartTrayHeightRatio),
+            size: CGSize(width: size.width, height: size.height * UILayout.hospitalCartTrayHeightRatio),
             fillColor: .ganhoPaper,
             strokeColor: .ganhoIngameWallShadow
         )
-        tray.position = CGPoint(x: 0, y: size.height * GameConfig.hospitalCartTrayOffsetYRatio)
+        tray.position = CGPoint(x: 0, y: size.height * UILayout.hospitalCartTrayOffsetYRatio)
         addChild(tray)
 
-        let legHeight = size.height * GameConfig.hospitalCartLegHeightRatio
-        let legWidth = GameConfig.hospitalCartLegWidth
+        let legHeight = size.height * UILayout.hospitalCartLegHeightRatio
+        let legWidth = UILayout.hospitalCartLegWidth
         for xOffset in [
-            -size.width * GameConfig.hospitalCartLegOffsetXRatio,
-            size.width * GameConfig.hospitalCartLegOffsetXRatio
+            -size.width * UILayout.hospitalCartLegOffsetXRatio,
+            size.width * UILayout.hospitalCartLegOffsetXRatio
         ] {
             let leg = SKSpriteNode(
                 color: .ganhoIngameWallShadow,
                 size: CGSize(width: legWidth, height: legHeight)
             )
-            leg.position = CGPoint(x: xOffset, y: -size.height * GameConfig.hospitalCartLegOffsetYRatio)
+            leg.position = CGPoint(x: xOffset, y: -size.height * UILayout.hospitalCartLegOffsetYRatio)
             addChild(leg)
 
-            let wheel = SKShapeNode(circleOfRadius: GameConfig.hospitalCartWheelRadius)
+            let wheel = SKShapeNode(circleOfRadius: UILayout.hospitalCartWheelRadius)
             wheel.fillColor = .ganhoIngameWallShadow
             wheel.strokeColor = .clear
             wheel.position = CGPoint(x: xOffset, y: -size.height / 2)
@@ -168,11 +168,11 @@ final class HospitalPropNode: SKNode {
                              strokeColor: UIColor) -> SKShapeNode {
         let node = SKShapeNode(
             rectOf: size,
-            cornerRadius: GameConfig.hospitalPropCornerRadius
+            cornerRadius: UILayout.hospitalPropCornerRadius
         )
         node.fillColor = fillColor
         node.strokeColor = strokeColor
-        node.lineWidth = GameConfig.hospitalPropLineWidth
+        node.lineWidth = UILayout.hospitalPropLineWidth
         return node
     }
 }

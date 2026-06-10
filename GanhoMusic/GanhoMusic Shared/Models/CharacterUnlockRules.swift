@@ -13,7 +13,7 @@ enum CharacterUnlockRules {
     static func previousCharacter(for id: CharacterID) -> CharacterID? {
         let characters = CharacterID.allCases
         guard let index = characters.firstIndex(of: id),
-              index > GameConfig.characterHomeDefaultIndex else {
+              index > UILayout.characterHomeDefaultIndex else {
             return nil
         }
         return characters[index - 1]
@@ -24,7 +24,7 @@ enum CharacterUnlockRules {
                            scores: [CharacterID: [Difficulty: Int]]) -> Bool {
         guard let previous = previousCharacter(for: id) else { return true }
         if graduations[previous] != nil { return true }
-        return bestUnlockScore(for: previous, scores: scores) >= GameConfig.characterUnlockRequiredScore
+        return bestUnlockScore(for: previous, scores: scores) >= GameplayTuning.characterUnlockRequiredScore
     }
 
     static func state(for id: CharacterID,
@@ -36,7 +36,7 @@ enum CharacterUnlockRules {
         if graduations[previous] != nil {
             return .unlocked(id)
         }
-        if bestUnlockScore(for: previous, scores: scores) >= GameConfig.characterUnlockRequiredScore {
+        if bestUnlockScore(for: previous, scores: scores) >= GameplayTuning.characterUnlockRequiredScore {
             return .unlocked(id)
         }
         return .locked(id, requiredCharacterID: previous)

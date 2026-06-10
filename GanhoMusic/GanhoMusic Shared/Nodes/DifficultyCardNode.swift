@@ -63,24 +63,24 @@ final class DifficultyCardNode: SKNode {
     init(id: Difficulty) {
         self.id = id
         // Sprint 8 Phase D — V4 카드 크기(130 × 200) + V3 코너 반경(20pt) 보존.
-        // V3 size 상수(difficultyCardWidthV3=112, HeightV3=82)는 GameConfig에 byte-identical 보존.
+        // R0 — 구 V3 size 상수(112×82)는 참조 0 확인 후 삭제. 현행 difficultyCardWidth/Height가 단일 진실.
         let cardSize = CGSize(
-            width: GameConfig.difficultyCardWidthV4,
-            height: GameConfig.difficultyCardHeightV4
+            width: UILayout.difficultyCardWidth,
+            height: UILayout.difficultyCardHeight
         )
         background = SKShapeNode(
             rectOf: cardSize,
-            cornerRadius: GameConfig.difficultyCardCornerRadiusV3
+            cornerRadius: UILayout.difficultyCardCornerRadius
         )
         // Sprint 7 Phase C — 미선택 기본 톤: id.cardFillTop α 0.08 fill + id.cardStrokeColor α 0.4 stroke.
         // setSelected가 호출되면서 초기 상태에서도 다시 설정되지만 안전을 위해 init에서 채움.
         background.fillColor = id.cardFillTop.withAlphaComponent(
-            GameConfig.difficultyCardDeselectedFillAlphaV3
+            UILayout.difficultyCardDeselectedFillAlpha
         )
         background.strokeColor = id.cardStrokeColor.withAlphaComponent(
-            GameConfig.difficultyCardDeselectedStrokeAlphaV3
+            UILayout.difficultyCardDeselectedStrokeAlpha
         )
-        background.lineWidth = GameConfig.difficultyCardStrokeLineWidthV3
+        background.lineWidth = UILayout.difficultyCardStrokeLineWidth
 
         nameLabel = SKLabelNode(text: id.displayName)
         subtitleLabel = SKLabelNode(text: id.subtitle)
@@ -90,17 +90,17 @@ final class DifficultyCardNode: SKNode {
         // Phase 10-2 — 링 글로우. 카드보다 padding만큼 큰 캡슐(외곽 형태 유지).
         // Sprint 7 Phase C — strokeColor를 id.cardGlowColor(카드별 강조색)로 분기.
         let ringSize = CGSize(
-            width: cardSize.width + GameConfig.difficultyCardRingGlowPadding,
-            height: cardSize.height + GameConfig.difficultyCardRingGlowPadding
+            width: cardSize.width + UILayout.difficultyCardRingGlowPadding,
+            height: cardSize.height + UILayout.difficultyCardRingGlowPadding
         )
         ringGlow = SKShapeNode(
             rectOf: ringSize,
-            cornerRadius: GameConfig.difficultyCardCornerRadiusV3
+            cornerRadius: UILayout.difficultyCardCornerRadius
         )
         ringGlow.fillColor = .clear
         ringGlow.strokeColor = id.cardGlowColor
-        ringGlow.lineWidth = GameConfig.difficultyCardRingGlowLineWidth
-        ringGlow.glowWidth = GameConfig.difficultyCardSelectedGlowSpreadPhaseC
+        ringGlow.lineWidth = UILayout.difficultyCardRingGlowLineWidth
+        ringGlow.glowWidth = UILayout.difficultyCardSelectedGlowSpreadPhaseC
         ringGlow.alpha = 0
 
         super.init()
@@ -134,18 +134,18 @@ final class DifficultyCardNode: SKNode {
     /// nameLabel / nameLabelStroke / subtitleLabel / descriptionLabel 모두 색 동기화.
     func setSelected(_ selected: Bool) {
         isSelected = selected
-        alpha = selected ? 1.0 : GameConfig.difficultyCardDeselectedAlphaV3
+        alpha = selected ? 1.0 : UILayout.difficultyCardDeselectedAlpha
         removeAction(forKey: "cardScale")
         if selected {
             // Phase 10-2 — spring: overshoot 1.12 → settle 1.08.
             let overshoot = SKAction.scale(
-                to: layoutScale * GameConfig.difficultyCardSpringOvershootScale,
-                duration: GameConfig.difficultyCardSpringPhase1Duration
+                to: layoutScale * UILayout.difficultyCardSpringOvershootScale,
+                duration: UILayout.difficultyCardSpringPhase1Duration
             )
             overshoot.timingMode = .easeOut
             let settle = SKAction.scale(
-                to: layoutScale * GameConfig.characterCardSelectedScale,
-                duration: GameConfig.difficultyCardSpringPhase2Duration
+                to: layoutScale * UILayout.characterCardSelectedScale,
+                duration: UILayout.difficultyCardSpringPhase2Duration
             )
             settle.timingMode = .easeInEaseOut
             run(
@@ -154,17 +154,17 @@ final class DifficultyCardNode: SKNode {
             )
         } else {
             run(
-                SKAction.scale(to: layoutScale, duration: GameConfig.characterCardScaleDuration),
+                SKAction.scale(to: layoutScale, duration: UILayout.characterCardScaleDuration),
                 withKey: "cardScale"
             )
         }
         // Sprint 7 Phase C — fill / stroke를 카드별 색(id.cardFillTop / id.cardStrokeColor)으로 분기.
         background.fillColor = selected
-            ? id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardSelectedFillAlphaV3)
-            : id.cardFillTop.withAlphaComponent(GameConfig.difficultyCardDeselectedFillAlphaV3)
+            ? id.cardFillTop.withAlphaComponent(UILayout.difficultyCardSelectedFillAlpha)
+            : id.cardFillTop.withAlphaComponent(UILayout.difficultyCardDeselectedFillAlpha)
         background.strokeColor = selected
             ? id.cardStrokeColor
-            : id.cardStrokeColor.withAlphaComponent(GameConfig.difficultyCardDeselectedStrokeAlphaV3)
+            : id.cardStrokeColor.withAlphaComponent(UILayout.difficultyCardDeselectedStrokeAlpha)
 
         // Sprint 7 — 라벨 색 동기화. 선택 시 진한 네이비, 미선택 시 muted 네이비.
         nameLabel.fontColor = selected ? .ganhoNavyDeep : .ganhoNavyMuted
@@ -187,11 +187,11 @@ final class DifficultyCardNode: SKNode {
         ringGlow.strokeColor = id.cardGlowColor
         ringGlow.removeAction(forKey: "ringFade")
         let targetAlpha: CGFloat = selected
-            ? GameConfig.difficultyCardSelectedGlowAlphaPhaseC
+            ? UILayout.difficultyCardSelectedGlowAlphaPhaseC
             : 0.0
         let duration: TimeInterval = selected
-            ? GameConfig.difficultyCardRingGlowFadeInDuration
-            : GameConfig.difficultyCardRingGlowFadeOutDuration
+            ? UILayout.difficultyCardRingGlowFadeInDuration
+            : UILayout.difficultyCardRingGlowFadeOutDuration
         ringGlow.run(
             SKAction.fadeAlpha(to: targetAlpha, duration: duration),
             withKey: "ringFade"
@@ -200,11 +200,11 @@ final class DifficultyCardNode: SKNode {
         // Sprint 7 Phase C — lift 액션. 증분 패턴(targetY - liftCurrentOffset)으로
         // setSelected 중복 호출 시 누적 방지. moveBy는 *현재 위치에서 상대 이동*.
         removeAction(forKey: "cardLift")
-        let targetY: CGFloat = selected ? GameConfig.difficultyCardSelectedLiftY : 0
+        let targetY: CGFloat = selected ? UILayout.difficultyCardSelectedLiftY : 0
         let lift = SKAction.moveBy(
             x: 0,
             y: targetY - liftCurrentOffset,
-            duration: GameConfig.difficultyCardSelectedLiftDuration
+            duration: UILayout.difficultyCardSelectedLiftDuration
         )
         lift.timingMode = .easeOut
         run(lift, withKey: "cardLift")
@@ -215,7 +215,7 @@ final class DifficultyCardNode: SKNode {
     func setLayoutScale(_ scale: CGFloat) {
         layoutScale = scale
         removeAction(forKey: "cardScale")
-        let selectedScale = isSelected ? GameConfig.characterCardSelectedScale : 1.0
+        let selectedScale = isSelected ? UILayout.characterCardSelectedScale : 1.0
         setScale(layoutScale * selectedScale)
     }
 
@@ -236,24 +236,24 @@ final class DifficultyCardNode: SKNode {
     /// Sprint 7 Phase C — nameLabel 30pt + nameLabelStroke(폰트 = 30 + 1×2 = 32pt) 2-라벨 stroke.
     private func configureLabels() {
         // V4 layout 산출 — 카드 내부 상대 좌표.
-        let cardTopY: CGFloat = GameConfig.difficultyCardHeightV4 / 2
-        let innerTopY: CGFloat = cardTopY - GameConfig.difficultyCardPaddingV4
-        let nameHalfHeight: CGFloat = GameConfig.difficultyCardNameFontSizePhaseC / 2
+        let cardTopY: CGFloat = UILayout.difficultyCardHeight / 2
+        let innerTopY: CGFloat = cardTopY - UILayout.difficultyCardPadding
+        let nameHalfHeight: CGFloat = UILayout.difficultyCardNameFontSizePhaseC / 2
         let nameCenterY: CGFloat = innerTopY - nameHalfHeight
         let nameBottomY: CGFloat = nameCenterY - nameHalfHeight
-        let subtitleHalfHeight: CGFloat = GameConfig.difficultyCardSubtitleFontSizeV4 / 2
+        let subtitleHalfHeight: CGFloat = UILayout.difficultyCardSubtitleFontSize / 2
         let subtitleCenterY: CGFloat = nameBottomY
-            - GameConfig.difficultyCardHeaderGapV4
+            - UILayout.difficultyCardHeaderGap
             - subtitleHalfHeight
         let subtitleBottomY: CGFloat = subtitleCenterY - subtitleHalfHeight
-        let descriptionTopY: CGFloat = subtitleBottomY - GameConfig.difficultyCardSubtitleGapV4
+        let descriptionTopY: CGFloat = subtitleBottomY - UILayout.difficultyCardSubtitleGap
         // V4 wrap 폭 = cardWidth(130) - padding(14) × 2 = 102pt.
-        let wrapWidth: CGFloat = GameConfig.difficultyCardWidthV4
-            - GameConfig.difficultyCardPaddingV4 * 2
+        let wrapWidth: CGFloat = UILayout.difficultyCardWidth
+            - UILayout.difficultyCardPadding * 2
 
         // 이름 라벨 — 카드 상단. Sprint 7 Phase C: 22 → 30pt + navyDeep fill.
-        nameLabel.fontName = GameConfig.fontDisplay
-        nameLabel.fontSize = GameConfig.difficultyCardNameFontSizePhaseC
+        nameLabel.fontName = Typography.fontDisplay
+        nameLabel.fontSize = UILayout.difficultyCardNameFontSizePhaseC
         nameLabel.fontColor = .ganhoNavyDeep
         nameLabel.horizontalAlignmentMode = .center
         nameLabel.verticalAlignmentMode = .center
@@ -262,16 +262,16 @@ final class DifficultyCardNode: SKNode {
         fitLabel(
             nameLabel,
             maxWidth: wrapWidth,
-            minimumScale: GameConfig.labelMinimumScale
+            minimumScale: Typography.labelMinimumScale
         )
 
         // Sprint 7 Phase C — stroke 라벨. nameLabel과 같은 텍스트, 폰트는 nameFontSize + stroke×2,
         // fontColor는 id.cardStrokeColor — 위에 nameLabel(navy)이 덮으며 외곽선 효과 근사.
         // SKLabelNode는 stroke 직접 미지원이라 2-라벨 겹침 기법 사용.
         nameLabelStroke.text = id.displayName
-        nameLabelStroke.fontName = GameConfig.fontDisplay
-        nameLabelStroke.fontSize = GameConfig.difficultyCardNameFontSizePhaseC
-            + GameConfig.difficultyCardNameStrokeWidthPhaseC * 2
+        nameLabelStroke.fontName = Typography.fontDisplay
+        nameLabelStroke.fontSize = UILayout.difficultyCardNameFontSizePhaseC
+            + UILayout.difficultyCardNameStrokeWidthPhaseC * 2
         nameLabelStroke.fontColor = id.cardStrokeColor
         nameLabelStroke.horizontalAlignmentMode = .center
         nameLabelStroke.verticalAlignmentMode = .center
@@ -280,12 +280,12 @@ final class DifficultyCardNode: SKNode {
         fitLabel(
             nameLabelStroke,
             maxWidth: wrapWidth,
-            minimumScale: GameConfig.labelMinimumScale
+            minimumScale: Typography.labelMinimumScale
         )
 
         // 부제 — 중단. Sprint 8 Phase D — attributedText + lineHeightMultiple 1.4.
-        subtitleLabel.fontName = GameConfig.fontBody
-        subtitleLabel.fontSize = GameConfig.difficultyCardSubtitleFontSizeV4
+        subtitleLabel.fontName = Typography.fontBody
+        subtitleLabel.fontSize = UILayout.difficultyCardSubtitleFontSize
         subtitleLabel.fontColor = .ganhoNavyMuted
         subtitleLabel.horizontalAlignmentMode = .center
         subtitleLabel.verticalAlignmentMode = .center
@@ -298,8 +298,8 @@ final class DifficultyCardNode: SKNode {
         )
 
         // 설명 — 하단(Sprint 7 신규). Sprint 8 Phase D — attributedText + line height 1.4 + .top anchor.
-        descriptionLabel.fontName = GameConfig.fontBody
-        descriptionLabel.fontSize = GameConfig.difficultyCardDescriptionFontSizeV3
+        descriptionLabel.fontName = Typography.fontBody
+        descriptionLabel.fontSize = UILayout.difficultyCardDescriptionFontSize
         descriptionLabel.fontColor = .ganhoNavyMuted
         descriptionLabel.horizontalAlignmentMode = .center
         descriptionLabel.verticalAlignmentMode = .top
@@ -322,12 +322,12 @@ final class DifficultyCardNode: SKNode {
         alignment: NSTextAlignment
     ) -> NSAttributedString {
         let style = NSMutableParagraphStyle()
-        style.lineHeightMultiple = GameConfig.difficultyCardSubtitleLineHeightV4
+        style.lineHeightMultiple = UILayout.difficultyCardSubtitleLineHeight
         style.alignment = alignment
         let font: UIFont = UIFont(
-            name: GameConfig.fontBody,
-            size: GameConfig.difficultyCardSubtitleFontSizeV4
-        ) ?? UIFont.systemFont(ofSize: GameConfig.difficultyCardSubtitleFontSizeV4)
+            name: Typography.fontBody,
+            size: UILayout.difficultyCardSubtitleFontSize
+        ) ?? UIFont.systemFont(ofSize: UILayout.difficultyCardSubtitleFontSize)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: UIColor.ganhoNavyMuted,
@@ -344,12 +344,12 @@ final class DifficultyCardNode: SKNode {
         alignment: NSTextAlignment
     ) -> NSAttributedString {
         let style = NSMutableParagraphStyle()
-        style.lineHeightMultiple = GameConfig.difficultyCardSubtitleLineHeightV4
+        style.lineHeightMultiple = UILayout.difficultyCardSubtitleLineHeight
         style.alignment = alignment
         let font: UIFont = UIFont(
-            name: GameConfig.fontBody,
-            size: GameConfig.difficultyCardDescriptionFontSizeV3
-        ) ?? UIFont.systemFont(ofSize: GameConfig.difficultyCardDescriptionFontSizeV3)
+            name: Typography.fontBody,
+            size: UILayout.difficultyCardDescriptionFontSize
+        ) ?? UIFont.systemFont(ofSize: UILayout.difficultyCardDescriptionFontSize)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: color,

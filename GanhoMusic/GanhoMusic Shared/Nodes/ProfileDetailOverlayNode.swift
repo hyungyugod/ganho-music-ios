@@ -33,14 +33,14 @@ final class ProfileDetailOverlayNode: SKNode {
     private let panelShadowNode = SKShapeNode()
     private let panelNode = SKShapeNode()
     private let accentStripNode = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let bodyLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let bodyLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let avatarView = ProfileAvatarViewNode()
     private var dynamicNodes: [SKNode] = []
     private var actionTargets: [(node: SKNode, action: ProfileDetailAction)] = []
     private var panelSize = CGSize(
-        width: GameConfig.profileDetailPanelWidth,
-        height: GameConfig.profileDetailPanelHeight
+        width: UILayout.profileDetailPanelWidth,
+        height: UILayout.profileDetailPanelHeight
     )
     private var panelFrame: CGRect = .zero
     private(set) var currentMode: ProfileDetailMode = .detail
@@ -49,7 +49,7 @@ final class ProfileDetailOverlayNode: SKNode {
     init(sceneSize: CGSize) {
         super.init()
         name = "profileDetailOverlay"
-        zPosition = GameConfig.profileDetailOverlayZPosition
+        zPosition = ZOrder.profileDetailOverlayZPosition
         configureNodes()
         updateDimPath(sceneSize: sceneSize)
     }
@@ -62,51 +62,51 @@ final class ProfileDetailOverlayNode: SKNode {
     // MARK: - Configure
     private func configureNodes() {
         // v2 dim: 순수 검정 대신 따뜻한 딥 네이비 — 풀스크린 오버레이 가독성 유지.
-        dimNode.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(GameConfig.profileDetailDimAlpha)
+        dimNode.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.profileDetailDimAlpha)
         dimNode.strokeColor = .clear
         dimNode.lineWidth = 0
-        dimNode.zPosition = GameConfig.profileDetailDimZPosition
+        dimNode.zPosition = ZOrder.profileDetailDimZPosition
         addChild(dimNode)
 
         // v2 그림자 톤: 묶음 A의 코랄 섀도 + glassPill 그림자 투명도로 통일.
-        panelShadowNode.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(GameConfig.glassPillShadowAlpha)
+        panelShadowNode.fillColor = UIColor.ganhoCoralShadow.withAlphaComponent(UILayout.glassPillShadowAlpha)
         panelShadowNode.strokeColor = .clear
         panelShadowNode.lineWidth = 0
-        panelShadowNode.position = CGPoint(x: 0, y: GameConfig.overlayButtonShadowOffsetY)
-        panelShadowNode.zPosition = GameConfig.profileDetailPanelZPosition - 1
+        panelShadowNode.position = CGPoint(x: 0, y: UILayout.overlayButtonShadowOffsetY)
+        panelShadowNode.zPosition = ZOrder.profileDetailPanelZPosition - 1
         addChild(panelShadowNode)
 
-        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(GameConfig.profileDetailPanelFillAlpha)
+        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.profileDetailPanelFillAlpha)
         // v2 테두리: 얇은 코랄.
-        panelNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.profileDetailPanelStrokeAlpha)
-        panelNode.lineWidth = GameConfig.profileDetailPanelLineWidth
-        panelNode.zPosition = GameConfig.profileDetailPanelZPosition
+        panelNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.profileDetailPanelStrokeAlpha)
+        panelNode.lineWidth = UILayout.profileDetailPanelLineWidth
+        panelNode.zPosition = ZOrder.profileDetailPanelZPosition
         addChild(panelNode)
 
         // v2 악센트 스트립: 골드 잔재 제거 → 코랄.
         accentStripNode.fillColor = .ganhoCoralPrimary
         accentStripNode.strokeColor = .clear
         accentStripNode.lineWidth = 0
-        accentStripNode.zPosition = GameConfig.profileDetailLabelZPosition
+        accentStripNode.zPosition = ZOrder.profileDetailLabelZPosition
         addChild(accentStripNode)
 
-        titleLabel.fontSize = GameConfig.profileDetailTitleFontSize
+        titleLabel.fontSize = UILayout.profileDetailTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .left
         titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = GameConfig.profileDetailLabelZPosition
+        titleLabel.zPosition = ZOrder.profileDetailLabelZPosition
         addChild(titleLabel)
 
-        bodyLabel.fontSize = GameConfig.profileDetailBodyFontSize
+        bodyLabel.fontSize = UILayout.profileDetailBodyFontSize
         bodyLabel.fontColor = .ganhoNavyMuted
         bodyLabel.horizontalAlignmentMode = .left
         bodyLabel.verticalAlignmentMode = .top
         bodyLabel.numberOfLines = 0
-        bodyLabel.preferredMaxLayoutWidth = GameConfig.profileDetailBodyWidth
-        bodyLabel.zPosition = GameConfig.profileDetailLabelZPosition
+        bodyLabel.preferredMaxLayoutWidth = UILayout.profileDetailBodyWidth
+        bodyLabel.zPosition = ZOrder.profileDetailLabelZPosition
         addChild(bodyLabel)
 
-        avatarView.zPosition = GameConfig.profileDetailLabelZPosition
+        avatarView.zPosition = ZOrder.profileDetailLabelZPosition
         addChild(avatarView)
     }
 
@@ -125,7 +125,7 @@ final class ProfileDetailOverlayNode: SKNode {
         avatarView.update(
             snapshot: avatar,
             repository: repository,
-            size: GameConfig.profileDetailAvatarSize
+            size: UILayout.profileDetailAvatarSize
         )
 
         switch mode {
@@ -156,12 +156,12 @@ final class ProfileDetailOverlayNode: SKNode {
     }
 
     private func updatePanelPath(sceneSize: CGSize) {
-        let panelWidth = sceneSize.width < GameConfig.compactNarrowWidth
-            ? GameConfig.profileDetailPanelCompactWidth
-            : GameConfig.profileDetailPanelWidth
+        let panelWidth = sceneSize.width < UILayout.compactNarrowWidth
+            ? UILayout.profileDetailPanelCompactWidth
+            : UILayout.profileDetailPanelWidth
         panelSize = CGSize(
             width: panelWidth,
-            height: GameConfig.profileDetailPanelHeight
+            height: UILayout.profileDetailPanelHeight
         )
         panelFrame = CGRect(
             x: -panelSize.width / 2,
@@ -171,27 +171,27 @@ final class ProfileDetailOverlayNode: SKNode {
         )
         let panelPath = CGPath(
             roundedRect: panelFrame,
-            cornerWidth: GameConfig.profileDetailPanelCornerRadius,
-            cornerHeight: GameConfig.profileDetailPanelCornerRadius,
+            cornerWidth: UILayout.profileDetailPanelCornerRadius,
+            cornerHeight: UILayout.profileDetailPanelCornerRadius,
             transform: nil
         )
         panelNode.path = panelPath
         panelShadowNode.path = panelPath
         accentStripNode.path = CGPath(
             roundedRect: CGRect(
-                x: -panelSize.width / 2 + GameConfig.profileDetailPanelHorizontalInset,
-                y: panelSize.height / 2 - GameConfig.profileDetailPanelTopInset / 2,
-                width: GameConfig.accentLineWidth,
-                height: GameConfig.overlayButtonHighlightHeight
+                x: -panelSize.width / 2 + UILayout.profileDetailPanelHorizontalInset,
+                y: panelSize.height / 2 - UILayout.profileDetailPanelTopInset / 2,
+                width: UILayout.accentLineWidth,
+                height: UILayout.overlayButtonHighlightHeight
             ),
-            cornerWidth: GameConfig.overlayButtonHighlightHeight / 2,
-            cornerHeight: GameConfig.overlayButtonHighlightHeight / 2,
+            cornerWidth: UILayout.overlayButtonHighlightHeight / 2,
+            cornerHeight: UILayout.overlayButtonHighlightHeight / 2,
             transform: nil
         )
     }
 
     private func configureDetail(snapshot: CharacterHomeSnapshot) {
-        titleLabel.text = GameConfig.profileDetailTitleText
+        titleLabel.text = UILayout.profileDetailTitleText
         bodyLabel.text = snapshot.profileDetailIdentityText
         layoutHeader()
         addMetricRow(snapshot: snapshot)
@@ -200,146 +200,146 @@ final class ProfileDetailOverlayNode: SKNode {
 
     private func configureAvatarPicker(avatar: ProfileAvatarSnapshot,
                                        unlockedCharacters: [CharacterID]) {
-        titleLabel.text = GameConfig.profileDetailAvatarPickerTitleText
-        bodyLabel.text = GameConfig.profileDetailAvatarPickerBodyText
+        titleLabel.text = UILayout.profileDetailAvatarPickerTitleText
+        bodyLabel.text = UILayout.profileDetailAvatarPickerBodyText
         layoutHeader()
 
         let optionCharacters = unlockedCharacters.isEmpty ? [.kim] : unlockedCharacters
         let count = CGFloat(optionCharacters.count)
-        let totalWidth = GameConfig.profileDetailAvatarOptionSize.width * count
-            + GameConfig.profileDetailAvatarOptionGap * max(0, count - 1)
-        var currentX = -totalWidth / 2 + GameConfig.profileDetailAvatarOptionSize.width / 2
+        let totalWidth = UILayout.profileDetailAvatarOptionSize.width * count
+            + UILayout.profileDetailAvatarOptionGap * max(0, count - 1)
+        var currentX = -totalWidth / 2 + UILayout.profileDetailAvatarOptionSize.width / 2
 
         for characterID in optionCharacters {
             addAvatarOption(
                 characterID: characterID,
                 selected: avatar.selectedID.characterID == characterID,
-                position: CGPoint(x: currentX, y: GameConfig.profileDetailAvatarOptionsOffsetY)
+                position: CGPoint(x: currentX, y: UILayout.profileDetailAvatarOptionsOffsetY)
             )
-            currentX += GameConfig.profileDetailAvatarOptionSize.width
-                + GameConfig.profileDetailAvatarOptionGap
+            currentX += UILayout.profileDetailAvatarOptionSize.width
+                + UILayout.profileDetailAvatarOptionGap
         }
 
         let photoButton = makeButton(
-            text: GameConfig.profileDetailChoosePhotoText,
-            width: GameConfig.profileDetailWideButtonWidth,
+            text: UILayout.profileDetailChoosePhotoText,
+            width: UILayout.profileDetailWideButtonWidth,
             action: .choosePhoto,
             style: .secondary
         )
         photoButton.position = CGPoint(
-            x: -GameConfig.profileDetailWideButtonWidth / 2 - GameConfig.profileDetailButtonGap / 2,
-            y: GameConfig.profileDetailBottomButtonOffsetY
+            x: -UILayout.profileDetailWideButtonWidth / 2 - UILayout.profileDetailButtonGap / 2,
+            y: UILayout.profileDetailBottomButtonOffsetY
         )
         addDynamicNode(photoButton)
 
         let closeButton = makeButton(
-            text: GameConfig.profileDetailCloseText,
-            width: GameConfig.profileDetailButtonWidth,
+            text: UILayout.profileDetailCloseText,
+            width: UILayout.profileDetailButtonWidth,
             action: .close,
             style: .secondary
         )
         closeButton.position = CGPoint(
-            x: GameConfig.profileDetailButtonWidth / 2 + GameConfig.profileDetailButtonGap / 2,
-            y: GameConfig.profileDetailBottomButtonOffsetY
+            x: UILayout.profileDetailButtonWidth / 2 + UILayout.profileDetailButtonGap / 2,
+            y: UILayout.profileDetailBottomButtonOffsetY
         )
         addDynamicNode(closeButton)
     }
 
     private func configureBusy(snapshot: CharacterHomeSnapshot) {
-        titleLabel.text = GameConfig.profileDetailBusyTitleText
-        bodyLabel.text = GameConfig.profileDetailBusyBodyText
+        titleLabel.text = UILayout.profileDetailBusyTitleText
+        bodyLabel.text = UILayout.profileDetailBusyBodyText
         layoutHeader()
         addMetricRow(snapshot: snapshot)
     }
 
     private func configureNicknamePrompt(snapshot: CharacterHomeSnapshot) {
-        titleLabel.text = GameConfig.profileNicknamePromptTitleText
-        bodyLabel.text = GameConfig.profileNicknamePromptBodyText
+        titleLabel.text = UILayout.profileNicknamePromptTitleText
+        bodyLabel.text = UILayout.profileNicknamePromptBodyText
         layoutHeader()
         addMetricRow(snapshot: snapshot)
 
         let buttons = [
             makeButton(
-                text: GameConfig.profileNicknamePromptButtonText,
-                width: GameConfig.profileDetailWideButtonWidth,
+                text: UILayout.profileNicknamePromptButtonText,
+                width: UILayout.profileDetailWideButtonWidth,
                 action: .editProfileName,
                 style: .primary
             ),
             makeButton(
-                text: GameConfig.profileDetailCloseText,
-                width: GameConfig.profileDetailButtonWidth,
+                text: UILayout.profileDetailCloseText,
+                width: UILayout.profileDetailButtonWidth,
                 action: .close,
                 style: .secondary
             )
         ]
-        layoutButtonRow(buttons, y: GameConfig.profileDetailSecondButtonRowOffsetY)
+        layoutButtonRow(buttons, y: UILayout.profileDetailSecondButtonRowOffsetY)
     }
 
     private func layoutHeader() {
-        let leftX = -panelSize.width / 2 + GameConfig.profileDetailPanelHorizontalInset
-        let topY = panelSize.height / 2 - GameConfig.profileDetailPanelTopInset
+        let leftX = -panelSize.width / 2 + UILayout.profileDetailPanelHorizontalInset
+        let topY = panelSize.height / 2 - UILayout.profileDetailPanelTopInset
         avatarView.position = CGPoint(
-            x: leftX + GameConfig.profileDetailAvatarSize.width / 2,
-            y: topY - GameConfig.profileDetailAvatarSize.height / 2
+            x: leftX + UILayout.profileDetailAvatarSize.width / 2,
+            y: topY - UILayout.profileDetailAvatarSize.height / 2
         )
         titleLabel.position = CGPoint(
-            x: leftX + GameConfig.profileDetailAvatarSize.width + GameConfig.profileDetailHeaderTextGap,
-            y: topY - GameConfig.profileDetailTitleOffsetY
+            x: leftX + UILayout.profileDetailAvatarSize.width + UILayout.profileDetailHeaderTextGap,
+            y: topY - UILayout.profileDetailTitleOffsetY
         )
         bodyLabel.position = CGPoint(
             x: titleLabel.position.x,
-            y: titleLabel.position.y - GameConfig.profileDetailBodyBelowTitleGap
+            y: titleLabel.position.y - UILayout.profileDetailBodyBelowTitleGap
         )
     }
 
     private func addMetricRow(snapshot: CharacterHomeSnapshot) {
         let labels = [
-            (GameConfig.characterHomePlayCountLabelText, "\(snapshot.playCount)\(GameConfig.characterHomePlaySuffixText)"),
-            (GameConfig.characterHomeBestScoreLabelText, "\(snapshot.highScore)\(GameConfig.characterHomePointSuffixText)"),
-            (GameConfig.characterHomeTotalScoreLabelText, "\(snapshot.totalScore)\(GameConfig.characterHomePointSuffixText)")
+            (UILayout.characterHomePlayCountLabelText, "\(snapshot.playCount)\(UILayout.characterHomePlaySuffixText)"),
+            (UILayout.characterHomeBestScoreLabelText, "\(snapshot.highScore)\(UILayout.characterHomePointSuffixText)"),
+            (UILayout.characterHomeTotalScoreLabelText, "\(snapshot.totalScore)\(UILayout.characterHomePointSuffixText)")
         ]
-        let totalWidth = GameConfig.profileDetailMetricWidth * CGFloat(labels.count)
-            + GameConfig.profileDetailMetricGap * CGFloat(max(0, labels.count - 1))
-        var currentX = -totalWidth / 2 + GameConfig.profileDetailMetricWidth / 2
+        let totalWidth = UILayout.profileDetailMetricWidth * CGFloat(labels.count)
+            + UILayout.profileDetailMetricGap * CGFloat(max(0, labels.count - 1))
+        var currentX = -totalWidth / 2 + UILayout.profileDetailMetricWidth / 2
         for item in labels {
             let title = makeLabel(
                 text: item.0,
-                fontName: GameConfig.fontBody,
-                fontSize: GameConfig.profileDetailMetricTitleFontSize,
+                fontName: Typography.fontBody,
+                fontSize: UILayout.profileDetailMetricTitleFontSize,
                 color: .ganhoNavyMuted
             )
-            title.position = CGPoint(x: currentX, y: GameConfig.profileDetailMetricTitleOffsetY)
+            title.position = CGPoint(x: currentX, y: UILayout.profileDetailMetricTitleOffsetY)
             addDynamicNode(title)
 
             let value = makeLabel(
                 text: item.1,
-                fontName: GameConfig.fontNumeric,
-                fontSize: GameConfig.profileDetailMetricValueFontSize,
+                fontName: Typography.fontNumeric,
+                fontSize: UILayout.profileDetailMetricValueFontSize,
                 color: .ganhoNavyDeep
             )
-            value.position = CGPoint(x: currentX, y: GameConfig.profileDetailMetricValueOffsetY)
+            value.position = CGPoint(x: currentX, y: UILayout.profileDetailMetricValueOffsetY)
             addDynamicNode(value)
-            currentX += GameConfig.profileDetailMetricWidth + GameConfig.profileDetailMetricGap
+            currentX += UILayout.profileDetailMetricWidth + UILayout.profileDetailMetricGap
         }
     }
 
     private func addDetailButtons(snapshot: CharacterHomeSnapshot) {
         let firstRow = [
             makeButton(
-                text: GameConfig.profileDetailEditNameText,
-                width: GameConfig.profileDetailWideButtonWidth,
+                text: UILayout.profileDetailEditNameText,
+                width: UILayout.profileDetailWideButtonWidth,
                 action: .editProfileName,
                 style: .primary
             ),
             makeButton(
-                text: GameConfig.profileDetailChooseAvatarText,
-                width: GameConfig.profileDetailWideButtonWidth,
+                text: UILayout.profileDetailChooseAvatarText,
+                width: UILayout.profileDetailWideButtonWidth,
                 action: .chooseAvatar,
                 style: .secondary
             ),
             makeButton(
-                text: GameConfig.profileDetailChoosePhotoText,
-                width: GameConfig.profileDetailWideButtonWidth,
+                text: UILayout.profileDetailChoosePhotoText,
+                width: UILayout.profileDetailWideButtonWidth,
                 action: .choosePhoto,
                 style: .secondary
             )
@@ -347,80 +347,80 @@ final class ProfileDetailOverlayNode: SKNode {
 
         let accountButton = snapshot.isAppleLinked
             ? makeButton(
-                text: GameConfig.accountMenuSignOutText,
-                width: GameConfig.profileDetailButtonWidth,
+                text: UILayout.accountMenuSignOutText,
+                width: UILayout.profileDetailButtonWidth,
                 action: .signOut,
                 style: .secondary
             )
             : makeButton(
-                text: GameConfig.authAppleButtonText,
-                width: GameConfig.profileDetailWideButtonWidth,
+                text: UILayout.authAppleButtonText,
+                width: UILayout.profileDetailWideButtonWidth,
                 action: .linkApple,
                 style: .primary
             )
-        layoutButtonRow(firstRow, y: GameConfig.profileDetailFirstButtonRowOffsetY)
+        layoutButtonRow(firstRow, y: UILayout.profileDetailFirstButtonRowOffsetY)
 
         let secondRow = [
             accountButton,
             makeButton(
-                text: GameConfig.accountMenuDeleteText,
-                width: GameConfig.profileDetailButtonWidth,
+                text: UILayout.accountMenuDeleteText,
+                width: UILayout.profileDetailButtonWidth,
                 action: .requestDeleteConfirmation,
                 style: .destructive
             ),
             makeButton(
-                text: GameConfig.profileDetailCloseText,
-                width: GameConfig.profileDetailButtonWidth,
+                text: UILayout.profileDetailCloseText,
+                width: UILayout.profileDetailButtonWidth,
                 action: .close,
                 style: .secondary
             )
         ]
-        layoutButtonRow(secondRow, y: GameConfig.profileDetailSecondButtonRowOffsetY)
+        layoutButtonRow(secondRow, y: UILayout.profileDetailSecondButtonRowOffsetY)
     }
 
     private func addAvatarOption(characterID: CharacterID,
                                  selected: Bool,
                                  position: CGPoint) {
-        let optionSize = GameConfig.profileDetailAvatarOptionSize
+        let optionSize = UILayout.profileDetailAvatarOptionSize
         let card = SKShapeNode(
             rectOf: optionSize,
-            cornerRadius: GameConfig.profileDetailAvatarOptionCornerRadius
+            cornerRadius: UILayout.profileDetailAvatarOptionCornerRadius
         )
         // v2 톤: 선택 = 부드러운 코랄 패드 + 코랄 테두리, 미선택 = 크림 + navyMuted 테두리.
         card.fillColor = selected
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.profileDetailAvatarOptionSelectedCoralFillAlpha)
-            : UIColor.ganhoPaper.withAlphaComponent(GameConfig.profileDetailAvatarOptionFillAlpha)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.profileDetailAvatarOptionSelectedCoralFillAlpha)
+            : UIColor.ganhoPaper.withAlphaComponent(UILayout.profileDetailAvatarOptionFillAlpha)
         card.strokeColor = selected
             ? .ganhoCoralPrimary
-            : UIColor.ganhoNavyMuted.withAlphaComponent(GameConfig.profileDetailPanelStrokeAlpha)
+            : UIColor.ganhoNavyMuted.withAlphaComponent(UILayout.profileDetailPanelStrokeAlpha)
         card.lineWidth = selected
-            ? GameConfig.profileDetailAvatarOptionSelectedLineWidth
-            : GameConfig.profileDetailPanelLineWidth
+            ? UILayout.profileDetailAvatarOptionSelectedLineWidth
+            : UILayout.profileDetailPanelLineWidth
         card.position = position
-        card.zPosition = GameConfig.profileDetailButtonZPosition
+        card.zPosition = ZOrder.profileDetailButtonZPosition
         addDynamicNode(card, action: .selectAvatar(characterID))
 
         let portrait = CharacterPortraitNode(
             characterID: characterID,
-            maxSize: GameConfig.profileDetailAvatarOptionPortraitSize
+            maxSize: UILayout.profileDetailAvatarOptionPortraitSize
         )
         portrait.position = CGPoint(
             x: position.x,
-            y: position.y - GameConfig.profileDetailAvatarOptionPortraitSize.height / 2
-                + GameConfig.profileDetailAvatarOptionPortraitOffsetY
+            y: position.y - UILayout.profileDetailAvatarOptionPortraitSize.height / 2
+                + UILayout.profileDetailAvatarOptionPortraitOffsetY
         )
-        portrait.zPosition = GameConfig.profileDetailButtonZPosition + 1
+        portrait.zPosition = ZOrder.profileDetailButtonZPosition + 1
         addDynamicNode(portrait)
 
         let label = makeLabel(
             text: characterID.displayName,
-            fontName: GameConfig.fontDisplay,
-            fontSize: GameConfig.profileDetailAvatarOptionLabelFontSize,
+            fontName: Typography.fontDisplay,
+            fontSize: UILayout.profileDetailAvatarOptionLabelFontSize,
             color: selected ? .ganhoPaper : .ganhoNavyDeep
         )
         label.position = CGPoint(
             x: position.x,
-            y: position.y + GameConfig.profileDetailAvatarOptionLabelOffsetY
+            y: position.y + UILayout.profileDetailAvatarOptionLabelOffsetY
         )
         addDynamicNode(label)
     }
@@ -434,11 +434,11 @@ final class ProfileDetailOverlayNode: SKNode {
             subtitle: nil,
             size: CGSize(
                 width: width,
-                height: GameConfig.profileDetailButtonHeight
+                height: UILayout.profileDetailButtonHeight
             ),
             style: style
         )
-        button.zPosition = GameConfig.profileDetailButtonZPosition
+        button.zPosition = ZOrder.profileDetailButtonZPosition
         actionTargets.append((node: button, action: action))
         return button
     }
@@ -447,12 +447,12 @@ final class ProfileDetailOverlayNode: SKNode {
         guard !buttons.isEmpty else { return }
         let totalWidth = buttons.reduce(CGFloat.zero) { result, button in
             result + button.calculateAccumulatedFrame().width
-        } + GameConfig.profileDetailButtonGap * CGFloat(max(0, buttons.count - 1))
+        } + UILayout.profileDetailButtonGap * CGFloat(max(0, buttons.count - 1))
         var currentX = -totalWidth / 2
         for button in buttons {
             let width = button.calculateAccumulatedFrame().width
             button.position = CGPoint(x: currentX + width / 2, y: y)
-            currentX += width + GameConfig.profileDetailButtonGap
+            currentX += width + UILayout.profileDetailButtonGap
             addDynamicNode(button)
         }
     }
@@ -467,7 +467,7 @@ final class ProfileDetailOverlayNode: SKNode {
         label.fontColor = color
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
-        label.zPosition = GameConfig.profileDetailLabelZPosition
+        label.zPosition = ZOrder.profileDetailLabelZPosition
         return label
     }
 

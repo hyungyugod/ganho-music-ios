@@ -14,13 +14,13 @@ import SpriteKit
 final class AccentLineNode: SKShapeNode {
 
     // MARK: - Init
-    /// 크기 고정(GameConfig.accentLineWidth × accentLineHeight) 코랄 라인.
+    /// 크기 고정(UILayout.accentLineWidth × accentLineHeight) 코랄 라인.
     /// 호출자는 좌표만 잡으면 됨 — 색·두께·라운드 캡은 토큰에서 자동.
     override init() {
         super.init()
         let size = CGSize(
-            width: GameConfig.accentLineWidth,
-            height: GameConfig.accentLineHeight
+            width: UILayout.accentLineWidth,
+            height: UILayout.accentLineHeight
         )
         // rect 중심을 (0,0)으로 — SKShapeNode 관례에 맞춤(부모가 좌표 결정).
         path = CGPath(

@@ -39,10 +39,10 @@ final class BombFlashNode: SKSpriteNode, SelfDismissingNode {
     func flash(sceneSize: CGSize) {
         size = sceneSize
         position = .zero
-        let wait    = SKAction.wait(forDuration: GameConfig.bombFlashDelay)
-        let fadeIn  = SKAction.fadeAlpha(to: GameConfig.bombFlashPeakAlpha,
-                                         duration: GameConfig.bombFlashFadeInDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.bombFlashFadeOutDuration)
+        let wait    = SKAction.wait(forDuration: FeelTuning.bombFlashDelay)
+        let fadeIn  = SKAction.fadeAlpha(to: FeelTuning.bombFlashPeakAlpha,
+                                         duration: FeelTuning.bombFlashFadeInDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.bombFlashFadeOutDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([wait, fadeIn, fadeOut, cleanup]))
     }

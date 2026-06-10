@@ -54,10 +54,10 @@ final class CountdownNode: SKNode, SelfDismissingNode {
     /// Sprint 7 Phase E(QA 9.76 합격) 시점의 fontDisplay로 폰트만 회귀. 색 분기(.ingame 픽셀 톤)는 보존.
     init(context: CountdownContext) {
         self.context = context
-        self.label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        self.label = SKLabelNode(fontNamed: Typography.fontDisplay)
         super.init()
         name = "countdown"
-        zPosition = GameConfig.countdownZPosition
+        zPosition = ZOrder.countdownZPosition
         configureLabel()
         addChild(label)
     }
@@ -105,15 +105,15 @@ final class CountdownNode: SKNode, SelfDismissingNode {
             self.label.text = text
             self.label.fontColor = color
             // Sprint 7 Phase E — 매 단계 fontSize 갱신 (숫자 120pt). GO! 단계에서 140pt로 바뀐 후 다시 1로 돌아올 때도 안정.
-            self.label.fontSize = GameConfig.countdownNumberFontSizeV3
+            self.label.fontSize = FeelTuning.countdownNumberFontSize
             self.alpha = 0
             self.label.alpha = 1
             self.label.setScale(1.0)
             onTick()
         }
-        let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.countdownFadeInDuration)
-        let hold    = SKAction.wait(forDuration: GameConfig.countdownHoldDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownFadeOutDuration)
+        let fadeIn  = SKAction.fadeIn(withDuration: FeelTuning.countdownFadeInDuration)
+        let hold    = SKAction.wait(forDuration: FeelTuning.countdownHoldDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.countdownFadeOutDuration)
         return .sequence([setup, fadeIn, hold, fadeOut])
     }
 
@@ -129,21 +129,21 @@ final class CountdownNode: SKNode, SelfDismissingNode {
             self.label.text = "GO!"
             self.label.fontColor = goColor
             // Sprint 7 Phase E — GO! fontSize 140pt (숫자 120pt보다 큼). "더 큰 임팩트" 위계.
-            self.label.fontSize = GameConfig.countdownGoFontSizeV3
+            self.label.fontSize = FeelTuning.countdownGoFontSize
             self.alpha = 0
             self.label.alpha = 1
             // Sprint 7 Phase E — 시작 scale 1.0 → 1.2. 등장부터 임팩트 확보.
-            self.label.setScale(GameConfig.countdownGoStartScaleV3)
+            self.label.setScale(FeelTuning.countdownGoStartScale)
             onGo()
         }
-        let fadeIn  = SKAction.fadeIn(withDuration: GameConfig.countdownFadeInDuration)
+        let fadeIn  = SKAction.fadeIn(withDuration: FeelTuning.countdownFadeInDuration)
         // Sprint 7 Phase E — 끝 scale 1.3 → 1.8. 더 큰 펄스.
-        let scaleUp = SKAction.scale(to: GameConfig.countdownGoEndScaleV3,
-                                     duration: GameConfig.countdownGoHoldDuration)
-        let hold    = SKAction.wait(forDuration: GameConfig.countdownGoHoldDuration)
+        let scaleUp = SKAction.scale(to: FeelTuning.countdownGoEndScale,
+                                     duration: FeelTuning.countdownGoHoldDuration)
+        let hold    = SKAction.wait(forDuration: FeelTuning.countdownGoHoldDuration)
         // hold와 scaleUp을 group으로 동시 — *커지면서 잠시 홀딩*. 둘 다 같은 duration이라 동기 종료.
         let holdGroup = SKAction.group([hold, scaleUp])
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.countdownGoFadeOutDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.countdownGoFadeOutDuration)
         return .sequence([setup, fadeIn, holdGroup, fadeOut])
     }
 
@@ -152,7 +152,7 @@ final class CountdownNode: SKNode, SelfDismissingNode {
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     /// 색/텍스트는 매 단계 setup 액션에서 갱신되므로 여기선 미설정.
     private func configureLabel() {
-        label.fontSize = GameConfig.countdownFontSize
+        label.fontSize = FeelTuning.countdownFontSize
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         label.position = .zero

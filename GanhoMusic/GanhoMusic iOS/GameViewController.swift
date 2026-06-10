@@ -127,8 +127,8 @@ extension GameViewController {
         presentProfileNameEditor(
             request: request,
             message: request.isNicknameRequired
-                ? GameConfig.profileNameEditRequiredMessageText
-                : GameConfig.profileNameEditMessageText,
+                ? UILayout.profileNameEditRequiredMessageText
+                : UILayout.profileNameEditMessageText,
             displayName: request.displayName,
             nickname: request.nickname
         )
@@ -151,8 +151,8 @@ extension GameViewController {
         presentProfileNameEditor(
             request: request,
             message: request.isNicknameRequired
-                ? GameConfig.profileNameEditRequiredMessageText
-                : GameConfig.profileNameEditMessageText,
+                ? UILayout.profileNameEditRequiredMessageText
+                : UILayout.profileNameEditMessageText,
             displayName: request.displayName,
             nickname: request.nickname
         )
@@ -171,8 +171,8 @@ extension GameViewController {
                                           nickname: String?) {
         let editor = ProfileNameEditorViewController(
             titleText: request.isNicknameRequired
-                ? GameConfig.profileNameEditRequiredTitleText
-                : GameConfig.profileNameEditTitleText,
+                ? UILayout.profileNameEditRequiredTitleText
+                : UILayout.profileNameEditTitleText,
             messageText: message,
             displayName: displayName,
             nickname: nickname,
@@ -250,7 +250,7 @@ extension GameViewController {
             }
         case .cancelled, .failure:
             editor.setSaving(false)
-            editor.showMessage(GameConfig.profileNameEditFailedText)
+            editor.showMessage(UILayout.profileNameEditFailedText)
         }
     }
 
@@ -278,13 +278,13 @@ extension GameViewController {
     private func nicknameValidationMessage(for nickname: String?,
                                            isRequired: Bool) -> String? {
         guard let trimmed = trimmedOptionalText(nickname) else {
-            return isRequired ? GameConfig.profileNameEditNicknameEmptyText : nil
+            return isRequired ? UILayout.profileNameEditNicknameEmptyText : nil
         }
-        if trimmed.count < GameConfig.profileNicknameMinLength {
-            return GameConfig.profileNameEditNicknameTooShortText
+        if trimmed.count < StorageKeys.profileNicknameMinLength {
+            return UILayout.profileNameEditNicknameTooShortText
         }
-        if trimmed.count > GameConfig.profileNicknameMaxLength {
-            return GameConfig.profileNameEditNicknameTooLongText
+        if trimmed.count > StorageKeys.profileNicknameMaxLength {
+            return UILayout.profileNameEditNicknameTooLongText
         }
         return nil
     }
@@ -384,7 +384,7 @@ private final class ProfileNameEditorViewController: UIViewController {
         saveButton.isEnabled = !saving
         cancelButton.isEnabled = !saving
         saveButton.setTitle(
-            saving ? GameConfig.profileNameEditSavingText : GameConfig.profileNameEditSaveText,
+            saving ? UILayout.profileNameEditSavingText : UILayout.profileNameEditSaveText,
             for: .normal
         )
     }
@@ -396,24 +396,24 @@ private final class ProfileNameEditorViewController: UIViewController {
     // MARK: - Setup
     private func setupDimView() {
         dimView.translatesAutoresizingMaskIntoConstraints = false
-        dimView.backgroundColor = UIColor.black.withAlphaComponent(GameConfig.profileNameEditDimAlpha)
+        dimView.backgroundColor = UIColor.black.withAlphaComponent(UILayout.profileNameEditDimAlpha)
         view.addSubview(dimView)
     }
 
     private func setupPanel() {
         panelView.translatesAutoresizingMaskIntoConstraints = false
         panelView.backgroundColor = .ganhoPaper
-        panelView.layer.cornerRadius = GameConfig.profileNameEditPanelCornerRadius
-        panelView.layer.borderWidth = GameConfig.profileNameEditPanelBorderWidth
+        panelView.layer.cornerRadius = UILayout.profileNameEditPanelCornerRadius
+        panelView.layer.borderWidth = UILayout.profileNameEditPanelBorderWidth
         panelView.layer.borderColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.profileNameEditPanelBorderAlpha)
+            .withAlphaComponent(UILayout.profileNameEditPanelBorderAlpha)
             .cgColor
         panelView.layer.shadowColor = UIColor.ganhoNavyDeep.cgColor
-        panelView.layer.shadowOpacity = GameConfig.profileNameEditPanelShadowAlpha
-        panelView.layer.shadowRadius = GameConfig.profileNameEditPanelShadowRadius
+        panelView.layer.shadowOpacity = UILayout.profileNameEditPanelShadowAlpha
+        panelView.layer.shadowRadius = UILayout.profileNameEditPanelShadowRadius
         panelView.layer.shadowOffset = CGSize(
             width: .zero,
-            height: GameConfig.profileNameEditPanelShadowOffsetY
+            height: UILayout.profileNameEditPanelShadowOffsetY
         )
         view.addSubview(panelView)
     }
@@ -422,7 +422,7 @@ private final class ProfileNameEditorViewController: UIViewController {
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         contentStack.axis = .vertical
         contentStack.alignment = .fill
-        contentStack.spacing = GameConfig.profileNameEditStackSpacing
+        contentStack.spacing = UILayout.profileNameEditStackSpacing
         panelView.addSubview(contentStack)
 
         configureLabels()
@@ -439,22 +439,22 @@ private final class ProfileNameEditorViewController: UIViewController {
 
     private func configureLabels() {
         titleLabel.text = titleText
-        titleLabel.font = UIFont(name: GameConfig.fontDisplay, size: GameConfig.profileNameEditTitleFontSize)
-            ?? .boldSystemFont(ofSize: GameConfig.profileNameEditTitleFontSize)
+        titleLabel.font = UIFont(name: Typography.fontDisplay, size: UILayout.profileNameEditTitleFontSize)
+            ?? .boldSystemFont(ofSize: UILayout.profileNameEditTitleFontSize)
         titleLabel.textColor = .ganhoNavyDeep
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 1
 
         messageLabel.text = defaultMessageText
-        messageLabel.font = UIFont(name: GameConfig.fontBody, size: GameConfig.profileNameEditMessageFontSize)
-            ?? .systemFont(ofSize: GameConfig.profileNameEditMessageFontSize)
+        messageLabel.font = UIFont(name: Typography.fontBody, size: UILayout.profileNameEditMessageFontSize)
+            ?? .systemFont(ofSize: UILayout.profileNameEditMessageFontSize)
         messageLabel.textColor = .ganhoNavyMuted
         messageLabel.textAlignment = .center
         messageLabel.numberOfLines = 0
     }
 
     private func configureFields() {
-        configure(textField: nicknameField, placeholder: GameConfig.profileNameEditNicknamePlaceholderText)
+        configure(textField: nicknameField, placeholder: UILayout.profileNameEditNicknamePlaceholderText)
         nicknameField.text = initialNickname
         nicknameField.autocapitalizationType = .none
         nicknameField.textContentType = .nickname
@@ -465,21 +465,21 @@ private final class ProfileNameEditorViewController: UIViewController {
     private func configure(textField: UITextField, placeholder: String) {
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.placeholder = placeholder
-        textField.font = UIFont(name: GameConfig.fontBody, size: GameConfig.profileNameEditFieldFontSize)
-            ?? .systemFont(ofSize: GameConfig.profileNameEditFieldFontSize)
+        textField.font = UIFont(name: Typography.fontBody, size: UILayout.profileNameEditFieldFontSize)
+            ?? .systemFont(ofSize: UILayout.profileNameEditFieldFontSize)
         textField.textColor = .ganhoNavyDeep
         textField.tintColor = .ganhoCoralPrimary
-        textField.backgroundColor = UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)
+        textField.backgroundColor = UIColor.white.withAlphaComponent(UILayout.glassPillFillAlpha)
         textField.clearButtonMode = .whileEditing
         textField.returnKeyType = .done
-        textField.layer.cornerRadius = GameConfig.profileNameEditFieldCornerRadius
-        textField.layer.borderWidth = GameConfig.profileNameEditFieldBorderWidth
+        textField.layer.cornerRadius = UILayout.profileNameEditFieldCornerRadius
+        textField.layer.borderWidth = UILayout.profileNameEditFieldBorderWidth
         textField.layer.borderColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.profileNameEditFieldBorderAlpha)
+            .withAlphaComponent(UILayout.profileNameEditFieldBorderAlpha)
             .cgColor
         textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
         NSLayoutConstraint.activate([
-            textField.heightAnchor.constraint(equalToConstant: GameConfig.profileNameEditFieldHeight)
+            textField.heightAnchor.constraint(equalToConstant: UILayout.profileNameEditFieldHeight)
         ])
     }
 
@@ -487,10 +487,10 @@ private final class ProfileNameEditorViewController: UIViewController {
         buttonStack.axis = .horizontal
         buttonStack.alignment = .fill
         buttonStack.distribution = .fillEqually
-        buttonStack.spacing = GameConfig.profileNameEditButtonGap
+        buttonStack.spacing = UILayout.profileNameEditButtonGap
 
-        configure(button: cancelButton, title: GameConfig.profileNameEditCancelText, isPrimary: false)
-        configure(button: saveButton, title: GameConfig.profileNameEditSaveText, isPrimary: true)
+        configure(button: cancelButton, title: UILayout.profileNameEditCancelText, isPrimary: false)
+        configure(button: saveButton, title: UILayout.profileNameEditSaveText, isPrimary: true)
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
 
@@ -501,28 +501,28 @@ private final class ProfileNameEditorViewController: UIViewController {
     private func configure(button: UIButton, title: String, isPrimary: Bool) {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont(name: GameConfig.fontDisplay, size: GameConfig.profileNameEditButtonFontSize)
-            ?? .boldSystemFont(ofSize: GameConfig.profileNameEditButtonFontSize)
-        button.layer.cornerRadius = GameConfig.profileNameEditFieldCornerRadius
-        button.layer.borderWidth = GameConfig.menuControlLineWidth
+        button.titleLabel?.font = UIFont(name: Typography.fontDisplay, size: UILayout.profileNameEditButtonFontSize)
+            ?? .boldSystemFont(ofSize: UILayout.profileNameEditButtonFontSize)
+        button.layer.cornerRadius = UILayout.profileNameEditFieldCornerRadius
+        button.layer.borderWidth = UILayout.menuControlLineWidth
         button.layer.borderColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.menuControlStrokeAlpha)
+            .withAlphaComponent(UILayout.menuControlStrokeAlpha)
             .cgColor
-        button.backgroundColor = isPrimary ? .ganhoCoralPrimary : UIColor.white.withAlphaComponent(GameConfig.glassPillFillAlpha)
+        button.backgroundColor = isPrimary ? .ganhoCoralPrimary : UIColor.white.withAlphaComponent(UILayout.glassPillFillAlpha)
         button.setTitleColor(isPrimary ? .ganhoPaper : .ganhoNavyDeep, for: .normal)
-        button.heightAnchor.constraint(equalToConstant: GameConfig.profileNameEditButtonHeight).isActive = true
+        button.heightAnchor.constraint(equalToConstant: UILayout.profileNameEditButtonHeight).isActive = true
     }
 
     private func setupConstraints() {
         let safe = view.safeAreaLayoutGuide
         let minimumWidth = panelView.widthAnchor.constraint(
-            greaterThanOrEqualToConstant: GameConfig.profileNameEditPanelMinWidth
+            greaterThanOrEqualToConstant: UILayout.profileNameEditPanelMinWidth
         )
-        minimumWidth.priority = UILayoutPriority(GameConfig.profileNameEditPanelMinimumWidthPriority)
+        minimumWidth.priority = UILayoutPriority(UILayout.profileNameEditPanelMinimumWidthPriority)
         let preferredWidth = panelView.widthAnchor.constraint(
-            equalToConstant: GameConfig.profileNameEditPanelMaxWidth
+            equalToConstant: UILayout.profileNameEditPanelMaxWidth
         )
-        preferredWidth.priority = UILayoutPriority(GameConfig.profileNameEditPanelPreferredWidthPriority)
+        preferredWidth.priority = UILayoutPriority(UILayout.profileNameEditPanelPreferredWidthPriority)
 
         // 키보드 회피 시 constant만 갱신할 수 있도록 centerY 제약을 프로퍼티에 보관한다.
         let centerY = panelView.centerYAnchor.constraint(equalTo: safe.centerYAnchor)
@@ -536,41 +536,41 @@ private final class ProfileNameEditorViewController: UIViewController {
 
             panelView.centerXAnchor.constraint(equalTo: safe.centerXAnchor),
             centerY,
-            panelView.widthAnchor.constraint(lessThanOrEqualToConstant: GameConfig.profileNameEditPanelMaxWidth),
+            panelView.widthAnchor.constraint(lessThanOrEqualToConstant: UILayout.profileNameEditPanelMaxWidth),
             preferredWidth,
             panelView.leadingAnchor.constraint(
                 greaterThanOrEqualTo: safe.leadingAnchor,
-                constant: GameConfig.profileNameEditPanelHorizontalSafeInset
+                constant: UILayout.profileNameEditPanelHorizontalSafeInset
             ),
             panelView.trailingAnchor.constraint(
                 lessThanOrEqualTo: safe.trailingAnchor,
-                constant: -GameConfig.profileNameEditPanelHorizontalSafeInset
+                constant: -UILayout.profileNameEditPanelHorizontalSafeInset
             ),
             panelView.topAnchor.constraint(
                 greaterThanOrEqualTo: safe.topAnchor,
-                constant: GameConfig.profileNameEditPanelVerticalSafeInset
+                constant: UILayout.profileNameEditPanelVerticalSafeInset
             ),
             panelView.bottomAnchor.constraint(
                 lessThanOrEqualTo: safe.bottomAnchor,
-                constant: -GameConfig.profileNameEditPanelVerticalSafeInset
+                constant: -UILayout.profileNameEditPanelVerticalSafeInset
             ),
             minimumWidth,
 
             contentStack.leadingAnchor.constraint(
                 equalTo: panelView.leadingAnchor,
-                constant: GameConfig.profileNameEditContentInset
+                constant: UILayout.profileNameEditContentInset
             ),
             contentStack.trailingAnchor.constraint(
                 equalTo: panelView.trailingAnchor,
-                constant: -GameConfig.profileNameEditContentInset
+                constant: -UILayout.profileNameEditContentInset
             ),
             contentStack.topAnchor.constraint(
                 equalTo: panelView.topAnchor,
-                constant: GameConfig.profileNameEditContentInset
+                constant: UILayout.profileNameEditContentInset
             ),
             contentStack.bottomAnchor.constraint(
                 equalTo: panelView.bottomAnchor,
-                constant: -GameConfig.profileNameEditContentInset
+                constant: -UILayout.profileNameEditContentInset
             )
         ])
     }
@@ -623,7 +623,7 @@ private final class ProfileNameEditorViewController: UIViewController {
         let appliedShift = panelCenterYConstraint?.constant ?? 0
         let naturalPanelBottom = panelView.frame.maxY - appliedShift
         let kbTop = kbFrameInView.minY
-        let overlap = naturalPanelBottom - kbTop + GameConfig.profileNameEditKeyboardClearance
+        let overlap = naturalPanelBottom - kbTop + UILayout.profileNameEditKeyboardClearance
         // UIKit 좌표계(좌상단 원점) — 위로 올리려면 constant는 음수. 겹치지 않으면 0.
         let shift = max(0, overlap)
         panelCenterYConstraint?.constant = -shift
@@ -637,7 +637,7 @@ private final class ProfileNameEditorViewController: UIViewController {
 
     private func animateAlongsideKeyboard(_ note: Notification) {
         let duration = (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double)
-            ?? GameConfig.profileNameEditKeyboardAnimationDuration
+            ?? UILayout.profileNameEditKeyboardAnimationDuration
         UIView.animate(withDuration: duration) { [weak self] in
             self?.view.layoutIfNeeded()
         }
@@ -663,8 +663,8 @@ private final class ProfileNameEditorViewController: UIViewController {
     private func updateSaveButton(enabled: Bool) {
         saveButton.isEnabled = enabled
         saveButton.alpha = enabled
-            ? GameConfig.menuControlEnabledAlpha
-            : GameConfig.overlayButtonDisabledAlpha
+            ? UILayout.menuControlEnabledAlpha
+            : UILayout.overlayButtonDisabledAlpha
     }
 }
 
@@ -705,7 +705,7 @@ private final class ProfileNameTextField: UITextField {
 
     private func inset(_ bounds: CGRect) -> CGRect {
         return bounds.insetBy(
-            dx: GameConfig.profileNameEditFieldHorizontalInset,
+            dx: UILayout.profileNameEditFieldHorizontalInset,
             dy: .zero
         )
     }
@@ -726,14 +726,14 @@ extension GameViewController: PHPickerViewControllerDelegate {
 
     private func handleProfilePhotoPickerRequested(_ notification: Notification) {
         guard presentedViewController == nil else { return }
-        guard let scope = notification.userInfo?[GameConfig.profileAvatarScopeUserInfoKey] as? AccountProgressScope else {
+        guard let scope = notification.userInfo?[UILayout.profileAvatarScopeUserInfoKey] as? AccountProgressScope else {
             return
         }
 
         pendingProfileAvatarScope = scope
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
         configuration.filter = .images
-        configuration.selectionLimit = GameConfig.profileAvatarPhotoSelectionLimit
+        configuration.selectionLimit = UILayout.profileAvatarPhotoSelectionLimit
 
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = self
@@ -768,7 +768,7 @@ extension GameViewController: PHPickerViewControllerDelegate {
                 NotificationCenter.default.post(
                     name: .ganhoProfileAvatarDidChange,
                     object: nil,
-                    userInfo: [GameConfig.profileAvatarScopeUserInfoKey: scope]
+                    userInfo: [UILayout.profileAvatarScopeUserInfoKey: scope]
                 )
             }
         }

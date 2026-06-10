@@ -18,36 +18,39 @@ import SpriteKit
 ///  - 자식 시각(armor + 일자눈)/applyVisualScaleV9 본체 삭제 — 본체 픽셀 텍스처만 노출
 ///  - color clear / colorBlendFactor 1.0 정책 제거 (super.init color:.clear이라 자연 투명)
 ///  - startPatrol → startPatrolFrom(index:) 리팩터 + selectInitialWaypoint(from:) 신설(farthest-first)
-///  - 좌표 정합: 옛 200/760·100/380 폐기 → 원본 80/540·80/300 4점 직접 사용 (GameConfig)
+///  - 좌표 정합: 옛 200/760·100/380 폐기 → 원본 80/540·80/300 4점 직접 사용 (GameplayTuning)
 ///  - PixelDirection/Frame 갱신 (PlayerNode/EnemyNode/ProfessorNode 패턴 동형)
-final class StoneGuardNode: SKSpriteNode {
+/// R0 — 방향+프레임 통합(updatePixelAnimation)은 PixelPositionDeltaAnimating 기본 구현 사용 (사본 제거).
+final class StoneGuardNode: SKSpriteNode, PixelPositionDeltaAnimating {
 
     // MARK: - Pixel Sprite State (Sprint 10 Phase F)
     /// 현재 픽셀 텍스처가 표현하는 방향. SKAction.move의 진행 방향에 따라 갱신.
-    private var pixelDirection: PixelDirection = .down
+    var pixelDirection: PixelDirection = .down
     /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
-    private var pixelFrame: PixelFrame = .idle
+    var pixelFrame: PixelFrame = .idle
+    /// B형(position-delta) 이동 판정 임계값 0.01 — 기존 리터럴의 상수화 (값 변경 0).
+    var movementThreshold: CGFloat { GameplayTuning.pixelDirectionPositionDeltaThreshold }
     /// step1↔step2 교차 누적 시간 (초). 0.22초 도달 시 토글 + 0 리셋.
-    private var frameAccumulator: TimeInterval = 0
+    var frameAccumulator: TimeInterval = 0
     /// updatePixelAnimation에서 *이전 프레임 위치*와 비교하여 진행 방향 산출.
-    private var lastPosition: CGPoint = .zero
+    var lastPosition: CGPoint = .zero
     /// lastPosition 첫 초기화 여부. 첫 update에서 자기 자신과 비교 → 거짓 정지 신호 방지.
-    private var hasLastPosition: Bool = false
+    var hasLastPosition: Bool = false
     private let proximityWarning = EnemyProximityWarningNode(color: .ganhoIngameDanger)
 
     // MARK: - Init
     init() {
         // PhysicsBody는 옛 16×20 size 그대로 유지 — hitbox 회귀 0.
         let physicsSize = CGSize(
-            width:  GameConfig.stoneGuardWidth,
-            height: GameConfig.stoneGuardHeight
+            width:  GameplayTuning.stoneGuardWidth,
+            height: GameplayTuning.stoneGuardHeight
         )
         // 시각은 pixelSpriteScale(2)배 — EnemyNode/ProfessorNode 패턴 동형 (32×40pt).
         let visualSize = CGSize(
-            width:  GameConfig.stoneGuardWidth  * GameConfig.pixelSpriteScale,
-            height: GameConfig.stoneGuardHeight * GameConfig.pixelSpriteScale
+            width:  GameplayTuning.stoneGuardWidth  * GameplayTuning.pixelSpriteScale,
+            height: GameplayTuning.stoneGuardHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. refreshTexture()와 같은 캐시를 워밍 →
+        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
         // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
         let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
         // Sprint 10 Phase F — color:.ganhoStoneGuardLight 폐기. 본체는 텍스처 노출, color:.clear.
@@ -86,7 +89,7 @@ final class StoneGuardNode: SKSpriteNode {
     /// GameScene+Setup.setupStoneGuard에서 worldNode addChild 직후 1회 호출.
     /// 호출 직후 startPatrolFrom(index:)로 패트롤 시퀀스 자동 시작.
     func selectInitialWaypoint(from playerPosition: CGPoint) {
-        let wps = GameConfig.stoneGuardWaypoints
+        let wps = GameplayTuning.stoneGuardWaypoints
         guard !wps.isEmpty else { return }
         var maxDist: CGFloat = -1
         var maxIndex: Int = 0
@@ -97,7 +100,7 @@ final class StoneGuardNode: SKSpriteNode {
                 maxIndex = i
             }
         }
-        removeAction(forKey: GameConfig.stoneGuardPatrolActionKey)
+        removeAction(forKey: GameplayTuning.stoneGuardPatrolActionKey)
         position = wps[maxIndex]
         startPatrolFrom(index: maxIndex)
     }
@@ -106,7 +109,7 @@ final class StoneGuardNode: SKSpriteNode {
     /// 4 waypoint 시계방향 무한 순환 SKAction. 시작 인덱스부터 시퀀스를 구성.
     /// run 직전 위치는 waypoints[startIndex]에 있어야 함(selectInitialWaypoint이 보장).
     private func startPatrolFrom(index startIndex: Int) {
-        let waypoints = GameConfig.stoneGuardWaypoints
+        let waypoints = GameplayTuning.stoneGuardWaypoints
         guard !waypoints.isEmpty else { return }
         let count = waypoints.count
         var moves: [SKAction] = []
@@ -116,66 +119,24 @@ final class StoneGuardNode: SKSpriteNode {
             let from = waypoints[fromIdx]
             let to   = waypoints[toIdx]
             let dist = hypot(to.x - from.x, to.y - from.y)
-            let dur  = TimeInterval(dist / GameConfig.stoneGuardSpeed)
+            let dur  = TimeInterval(dist / GameplayTuning.stoneGuardSpeed)
             moves.append(.move(to: to, duration: dur))
         }
         let loop = SKAction.repeatForever(.sequence(moves))
-        run(loop, withKey: GameConfig.stoneGuardPatrolActionKey)
+        run(loop, withKey: GameplayTuning.stoneGuardPatrolActionKey)
     }
 
     // MARK: - Pixel Animation (Sprint 10 Phase F)
-    /// GameScene.update가 매 프레임 호출. position 변화량으로 방향/걷기 프레임 갱신.
-    /// ProfessorNode.updatePixelAnimation 패턴 정확 답습 — SKAction.move 기반이라 position 변화량 추적.
-    func updatePixelAnimation(deltaTime: TimeInterval) {
-        guard hasLastPosition else {
-            lastPosition = position
-            hasLastPosition = true
-            return
-        }
-        let dx = position.x - lastPosition.x
-        let dy = position.y - lastPosition.y
-        lastPosition = position
-
-        let absDx = abs(dx)
-        let absDy = abs(dy)
-        guard absDx > 0.01 || absDy > 0.01 else {
-            if pixelFrame != .idle {
-                pixelFrame = .idle
-                frameAccumulator = 0
-                refreshTexture()
-            }
-            return
-        }
-        let newDir: PixelDirection
-        if absDx > absDy {
-            newDir = dx >= 0 ? .right : .left
-        } else {
-            newDir = dy >= 0 ? .up : .down
-        }
-        var needsRefresh = false
-        if newDir != pixelDirection {
-            pixelDirection = newDir
-            needsRefresh = true
-        }
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
-            frameAccumulator = 0
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            needsRefresh = true
-        }
-        if needsRefresh {
-            refreshTexture()
-        }
-    }
+    // R0 — updatePixelAnimation 본문은 PixelPositionDeltaAnimating 기본 구현이 단일 진실 원천.
+    // (방향+프레임 병합 후 텍스처 갱신 1회 — needsRefresh 시맨틱 보존.)
 
     func updateProximityWarning(distanceToPlayer distance: CGFloat, profile: DangerWarningProfile) {
         proximityWarning.update(distanceToPlayer: distance, profile: profile)
     }
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성.
-    /// 출시 전 최적화 — CGImage→SKTexture 매번 재렌더 폐기. (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
-    private func refreshTexture() {
+    func applyPixelTexture() {
         texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
@@ -201,8 +162,6 @@ final class StoneGuardNode: SKSpriteNode {
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F · 본문 삭제)
-    // setupVisualOverlay / attachArmor / attachEyes / applyVisualScaleV9 4개 메서드 본문 삭제.
     // 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(armor + 일자눈) 부착 폐기.
-    // GameConfig.stoneGuardEyeOffsetX/Y/stoneGuardVisualScaleV9 상수는 변경 금지 우회 위해 보존
-    // (호출자 0건이 되어 자연 deprecate).
+    // R0 — 자연 deprecate 상태였던 stoneGuard 시각 전용 상수도 호출자 0건 확인 후 삭제 완료.
 }

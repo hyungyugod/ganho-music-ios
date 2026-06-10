@@ -27,17 +27,17 @@ final class ScoreSystem {
     /// - Parameter now: 현재 게임 시각 (보통 lastUpdateTime).
     @discardableResult
     func recordNoteHit(at now: TimeInterval) -> Int {
-        let isInWindow = combo > 0 && now - lastCollectAt < GameConfig.comboWindow
+        let isInWindow = combo > 0 && now - lastCollectAt < GameplayTuning.comboWindow
         combo = isInWindow ? combo + 1 : 1
         let gain: Int
-        if combo >= GameConfig.comboBonusThresholdHigh {
-            gain = GameConfig.scorePerNoteComboHigh   // 4 (combo >= 7)
-        } else if combo >= GameConfig.comboBonusThresholdMid {
-            gain = GameConfig.scorePerNoteComboMid    // 3 (combo >= 5)
-        } else if combo >= GameConfig.comboBonusThreshold {
-            gain = GameConfig.scorePerNoteCombo       // 2 (combo >= 3)
+        if combo >= GameplayTuning.comboBonusThresholdHigh {
+            gain = GameplayTuning.scorePerNoteComboHigh   // 4 (combo >= 7)
+        } else if combo >= GameplayTuning.comboBonusThresholdMid {
+            gain = GameplayTuning.scorePerNoteComboMid    // 3 (combo >= 5)
+        } else if combo >= GameplayTuning.comboBonusThreshold {
+            gain = GameplayTuning.scorePerNoteCombo       // 2 (combo >= 3)
         } else {
-            gain = GameConfig.scorePerNote            // 1 (combo < 3)
+            gain = GameplayTuning.scorePerNote            // 1 (combo < 3)
         }
         score += gain
         lastCollectAt = now
@@ -47,7 +47,7 @@ final class ScoreSystem {
     /// 콤보 윈도우 만료 검사. update 안에서 매 프레임 호출.
     /// - Parameter currentTime: 현재 SpriteKit 시각.
     func tickComboExpiry(currentTime: TimeInterval) {
-        if combo > 0, currentTime - lastCollectAt > GameConfig.comboWindow {
+        if combo > 0, currentTime - lastCollectAt > GameplayTuning.comboWindow {
             combo = 0
         }
     }
@@ -57,7 +57,7 @@ final class ScoreSystem {
     /// charmStudentBonusScore(4) = scorePerNoteCombo(2)의 2배. 1회 한정 스킬에 합당한 보상.
     /// 시그니처는 기존 recordNoteHit과 분리 — 호출부에서 두 경로가 명확히 갈림(DRY 위배 의도적).
     func recordCharmedNoteHit() {
-        score += GameConfig.charmStudentBonusScore
+        score += GameplayTuning.charmStudentBonusScore
     }
 
     /// Phase 9-6 — 변기 보너스 수집 시 호출. 음표 2개 효과(GDD §7-3).

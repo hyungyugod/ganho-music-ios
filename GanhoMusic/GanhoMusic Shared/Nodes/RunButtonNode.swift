@@ -20,27 +20,27 @@ final class RunButtonNode: SKNode {
 
     // MARK: - Init
     override init() {
-        backgroundNode = SKShapeNode(circleOfRadius: GameConfig.runButtonRadius)
-        labelNode = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-        keyLabelChip = DarkContextChipNode(label: GameConfig.runButtonKeyText)
+        backgroundNode = SKShapeNode(circleOfRadius: UILayout.runButtonRadius)
+        labelNode = SKLabelNode(fontNamed: Typography.fontDisplay)
+        keyLabelChip = DarkContextChipNode(label: UILayout.runButtonKeyText)
         super.init()
 
         backgroundNode.fillColor = UIColor.ganhoDifficultyEasyDeep
-            .withAlphaComponent(GameConfig.runButtonReleasedAlpha)
-        backgroundNode.strokeColor = UIColor.white.withAlphaComponent(GameConfig.runButtonReleasedAlpha)
-        backgroundNode.lineWidth = GameConfig.runButtonStrokeWidth
+            .withAlphaComponent(UILayout.runButtonReleasedAlpha)
+        backgroundNode.strokeColor = UIColor.white.withAlphaComponent(UILayout.runButtonReleasedAlpha)
+        backgroundNode.lineWidth = UILayout.runButtonStrokeWidth
         backgroundNode.zPosition = 100
 
-        labelNode.text = GameConfig.runButtonText
-        labelNode.fontSize = GameConfig.characterHomePanelBodyFontSize
+        labelNode.text = UILayout.runButtonText
+        labelNode.fontSize = UILayout.characterHomePanelBodyFontSize
         labelNode.fontColor = .white
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         labelNode.zPosition = 101
 
         keyLabelChip.position = CGPoint(
-            x: GameConfig.skillButtonV2KeyLabelOffset,
-            y: GameConfig.skillButtonV2KeyLabelOffset
+            x: UILayout.skillButtonKeyLabelOffset,
+            y: UILayout.skillButtonKeyLabelOffset
         )
         keyLabelChip.zPosition = 102
 
@@ -48,7 +48,7 @@ final class RunButtonNode: SKNode {
         addChild(labelNode)
         addChild(keyLabelChip)
 
-        alpha = GameConfig.skillButtonActiveAlpha
+        alpha = GameplayTuning.skillButtonActiveAlpha
         isUserInteractionEnabled = true
         name = "runButton"
     }
@@ -58,7 +58,7 @@ final class RunButtonNode: SKNode {
     }
 
     override func contains(_ point: CGPoint) -> Bool {
-        return hypot(point.x, point.y) <= GameConfig.runButtonTouchRadius
+        return hypot(point.x, point.y) <= UILayout.runButtonTouchRadius
     }
 
     // MARK: - Touch
@@ -93,15 +93,15 @@ final class RunButtonNode: SKNode {
 
     private func applyVisualState() {
         backgroundNode.fillColor = isPressed
-            ? UIColor.ganhoCoralPrimary.withAlphaComponent(GameConfig.runButtonPressedAlpha)
-            : UIColor.ganhoDifficultyEasyDeep.withAlphaComponent(GameConfig.runButtonReleasedAlpha)
+            ? UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.runButtonPressedAlpha)
+            : UIColor.ganhoDifficultyEasyDeep.withAlphaComponent(UILayout.runButtonReleasedAlpha)
         backgroundNode.strokeColor = isPressed
             ? .ganhoPixelHudYellow
-            : UIColor.white.withAlphaComponent(GameConfig.runButtonReleasedAlpha)
-        let scale = isPressed ? GameConfig.ingamePressScale : GameConfig.dpadReleasedScale
+            : UIColor.white.withAlphaComponent(UILayout.runButtonReleasedAlpha)
+        let scale = isPressed ? UILayout.ingamePressScale : UILayout.dpadReleasedScale
         run(
-            .scale(to: scale, duration: GameConfig.ingamePressDuration),
-            withKey: GameConfig.ingamePressActionKey
+            .scale(to: scale, duration: UILayout.ingamePressDuration),
+            withKey: UILayout.ingamePressActionKey
         )
     }
 }

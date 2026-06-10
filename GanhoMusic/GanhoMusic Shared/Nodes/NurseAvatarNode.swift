@@ -83,7 +83,7 @@ final class NurseAvatarNode: SKNode {
         let shoulders = SKShapeNode(path: path)
         shoulders.fillColor = Self.scrubMint
         shoulders.strokeColor = Self.navy
-        shoulders.lineWidth = GameConfig.nurseAvatarOutlineWidth
+        shoulders.lineWidth = UILayout.nurseAvatarOutlineWidth
         shoulders.lineJoin = .round
         shoulders.zPosition = -5
         addChild(shoulders)
@@ -133,7 +133,7 @@ final class NurseAvatarNode: SKNode {
         let head = SKShapeNode(ellipseOf: CGSize(width: 130, height: 140))
         head.fillColor = Self.skin
         head.strokeColor = Self.navy
-        head.lineWidth = GameConfig.nurseAvatarOutlineWidth
+        head.lineWidth = UILayout.nurseAvatarOutlineWidth
         head.position = .zero
         head.zPosition = 0
         addChild(head)
@@ -242,7 +242,7 @@ final class NurseAvatarNode: SKNode {
         bandPath.addQuadCurve(to: CGPoint(x: 72, y: 8), control: CGPoint(x: 72, y: 75))
         let band = SKShapeNode(path: bandPath)
         band.strokeColor = Self.coral
-        band.lineWidth = GameConfig.nurseAvatarHeadphoneBandWidth
+        band.lineWidth = UILayout.nurseAvatarHeadphoneBandWidth
         band.fillColor = .clear
         band.lineCap = .round
         band.zPosition = 15
@@ -255,7 +255,7 @@ final class NurseAvatarNode: SKNode {
             let outer = SKShapeNode(ellipseOf: CGSize(width: 32, height: 44))
             outer.fillColor = Self.coral
             outer.strokeColor = Self.navy
-            outer.lineWidth = GameConfig.nurseAvatarOutlineWidth
+            outer.lineWidth = UILayout.nurseAvatarOutlineWidth
             outer.position = CGPoint(x: 70 * s, y: -3)
             outer.zPosition = 20
             addChild(outer)
@@ -347,7 +347,7 @@ final class NurseAvatarNode: SKNode {
         // 살 라인.
         let armSkin = SKShapeNode(path: path)
         armSkin.strokeColor = Self.skin
-        armSkin.lineWidth = GameConfig.nurseAvatarArmWidth
+        armSkin.lineWidth = UILayout.nurseAvatarArmWidth
         armSkin.fillColor = .clear
         armSkin.lineCap = .round
         armSkin.zPosition = 30

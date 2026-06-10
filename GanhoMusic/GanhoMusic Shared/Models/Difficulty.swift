@@ -68,11 +68,11 @@ enum Difficulty: String, CaseIterable {
     var targetScore: Int {
         switch self {
         case .easy:
-            return GameConfig.targetScoreByDifficulty[.easy] ?? Int.max
+            return GameplayTuning.targetScoreByDifficulty[.easy] ?? Int.max
         case .normal:
-            return GameConfig.targetScoreByDifficulty[.normal] ?? Int.max
+            return GameplayTuning.targetScoreByDifficulty[.normal] ?? Int.max
         case .hard:
-            return GameConfig.targetScoreByDifficulty[.hard] ?? Int.max
+            return GameplayTuning.targetScoreByDifficulty[.hard] ?? Int.max
         }
     }
 

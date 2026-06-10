@@ -21,13 +21,13 @@ struct ProfileNameEditRequest {
 
     var userInfo: [String: Any] {
         var info: [String: Any] = [
-            GameConfig.profileNameEditRequiredUserInfoKey: isNicknameRequired
+            UILayout.profileNameEditRequiredUserInfoKey: isNicknameRequired
         ]
         if let displayName = displayName {
-            info[GameConfig.profileNameEditDisplayNameUserInfoKey] = displayName
+            info[UILayout.profileNameEditDisplayNameUserInfoKey] = displayName
         }
         if let nickname = nickname {
-            info[GameConfig.profileNameEditNicknameUserInfoKey] = nickname
+            info[UILayout.profileNameEditNicknameUserInfoKey] = nickname
         }
         return info
     }
@@ -42,11 +42,11 @@ struct ProfileNameEditRequest {
     }
 
     init?(notification: Notification) {
-        guard let required = notification.userInfo?[GameConfig.profileNameEditRequiredUserInfoKey] as? Bool else {
+        guard let required = notification.userInfo?[UILayout.profileNameEditRequiredUserInfoKey] as? Bool else {
             return nil
         }
-        displayName = notification.userInfo?[GameConfig.profileNameEditDisplayNameUserInfoKey] as? String
-        nickname = notification.userInfo?[GameConfig.profileNameEditNicknameUserInfoKey] as? String
+        displayName = notification.userInfo?[UILayout.profileNameEditDisplayNameUserInfoKey] as? String
+        nickname = notification.userInfo?[UILayout.profileNameEditNicknameUserInfoKey] as? String
         isNicknameRequired = required
     }
 }
@@ -59,8 +59,8 @@ struct ProfileNameEditResult {
 
     var userInfo: [String: Any] {
         return [
-            GameConfig.profileNameEditSucceededUserInfoKey: didSave,
-            GameConfig.profileNameEditRequiredUserInfoKey: wasNicknameRequired
+            UILayout.profileNameEditSucceededUserInfoKey: didSave,
+            UILayout.profileNameEditRequiredUserInfoKey: wasNicknameRequired
         ]
     }
 
@@ -71,8 +71,8 @@ struct ProfileNameEditResult {
     }
 
     init?(notification: Notification) {
-        guard let didSave = notification.userInfo?[GameConfig.profileNameEditSucceededUserInfoKey] as? Bool,
-              let required = notification.userInfo?[GameConfig.profileNameEditRequiredUserInfoKey] as? Bool else {
+        guard let didSave = notification.userInfo?[UILayout.profileNameEditSucceededUserInfoKey] as? Bool,
+              let required = notification.userInfo?[UILayout.profileNameEditRequiredUserInfoKey] as? Bool else {
             return nil
         }
         self.didSave = didSave

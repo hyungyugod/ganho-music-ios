@@ -25,7 +25,7 @@ extension GameScene {
     }
 
     private func isZeroVector(_ vector: CGVector) -> Bool {
-        return hypot(vector.dx, vector.dy) < GameConfig.dpadInputSnapEpsilon
+        return hypot(vector.dx, vector.dy) < GameplayTuning.dpadInputSnapEpsilon
     }
 }
 

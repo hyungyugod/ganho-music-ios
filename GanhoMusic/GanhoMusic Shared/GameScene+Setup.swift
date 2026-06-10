@@ -44,17 +44,17 @@ extension GameScene {
     /// 호출은 setupWorld()에서 1회만 — update() 안 호출 금지(성능 핵심).
     private func addCheckerboardFloor() {
         let container = SKNode()
-        container.name = GameConfig.checkerboardContainerName
-        container.zPosition = GameConfig.checkerboardZPosition
+        container.name = GameplayTuning.checkerboardContainerName
+        container.zPosition = ZOrder.checkerboardZPosition
 
-        let t = GameConfig.tileSize
+        let t = GameplayTuning.tileSize
         let half = t / 2
         let floorA = UIColor.ganhoIngameFloorA
         let floorB = UIColor.ganhoIngameFloorB
         let tileSize = CGSize(width: t, height: t)
 
-        for c in 0..<GameConfig.mapColumns {
-            for r in 0..<GameConfig.mapRows {
+        for c in 0..<GameplayTuning.mapColumns {
+            for r in 0..<GameplayTuning.mapRows {
                 // 시장 패턴(market check): (c + r)의 홀짝성으로 두 색 교차.
                 let color = ((c + r) % 2 == 0) ? floorA : floorB
                 let tile = SKSpriteNode(color: color, size: tileSize)
@@ -74,14 +74,14 @@ extension GameScene {
     // 제거된 함수: addHorizontalWall / addVerticalWall / addRectPillar / addOuterWalls /
     //             addCentralPillar / addHardMap / addNormalMap.
     // 호출자 0건 검증(grep 결과 SELF_CHECK §5) → setupMap의 단일 위임으로 책임 이동.
-    // outerWallBorder* 상수도 호출자 0건 — GameConfig에 정의만 남되 본 Phase는 시각 사용 중단.
+    // outerWallBorder* 상수도 호출자 0건 — UILayout에 정의만 남되 본 Phase는 시각 사용 중단.
 
     func setupPlayer() {
         // Phase 2-6 hotfix 2 — 중앙 기둥(맵 정중앙)과 분리된 좌측 1/4 지점.
         // 기둥과 같은 좌표에서 시작 시 dynamic body 분리 force로 튕기는 잠재 버그 회피.
         player.position = CGPoint(
-            x: GameConfig.mapWidth  / 4,
-            y: GameConfig.mapHeight / 2
+            x: GameplayTuning.mapWidth  / 4,
+            y: GameplayTuning.mapHeight / 2
         )
         player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
         player.apply(difficulty)    // Phase 7-1 — 난이도별 baseSpeedStart/End set. character 먼저 → difficulty 나중(주의사항 1).
@@ -96,8 +96,8 @@ extension GameScene {
 
     func setupCamera() {
         cameraNode.position = CGPoint(
-            x: GameConfig.mapWidth  / 2,
-            y: GameConfig.mapHeight / 2
+            x: GameplayTuning.mapWidth  / 2,
+            y: GameplayTuning.mapHeight / 2
         )
         addChild(cameraNode)
         camera = cameraNode   // 씬에 메인 카메라 통보 (필수)
@@ -139,7 +139,7 @@ extension GameScene {
         }
         enemy.progressProvider = { [weak self] in
             guard let self = self else { return 0 }
-            return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+            return Double(1.0 - self.remainingTime / GameplayTuning.gameDuration)
         }
         enemy.charmActiveProvider = { [weak self] in
             return self?.skillSystem.isCharmActive ?? false
@@ -167,7 +167,7 @@ extension GameScene {
     func setupProfessor() {
         guard difficulty == .hard else { return }
         let node = ProfessorNode()
-        node.warningProfile = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
+        node.warningProfile = GameplayTuning.warningProfileByDifficulty[difficulty] ?? GameplayTuning.warningProfileFallback
         worldNode.addChild(node)
         professor = node
         // 요청4 — 점대칭 스폰 정책. worldNode 부착 직후 spawnOpposite이 플레이어 스폰의
@@ -175,7 +175,7 @@ extension GameScene {
         // farthest-first(selectInitialWaypoint) 대비 정확히 정반대 → 등장 직후 즉사성 피격 완화.
         node.spawnOpposite(
             of: player.position,
-            mapSize: CGSize(width: GameConfig.mapWidth, height: GameConfig.mapHeight)
+            mapSize: CGSize(width: GameplayTuning.mapWidth, height: GameplayTuning.mapHeight)
         )
         // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
         // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
@@ -184,7 +184,7 @@ extension GameScene {
             worldNode: worldNode,
             progressProvider: { [weak self] in
                 guard let self = self else { return 0 }
-                return Double(1.0 - self.remainingTime / GameConfig.gameDuration)
+                return Double(1.0 - self.remainingTime / GameplayTuning.gameDuration)
             }
         )
     }
@@ -201,7 +201,7 @@ extension GameScene {
         }
         layoutSkillButton()
         // Sprint 8 Phase F — 본체 zPos 80 명시. HUD 라벨(100)·슬롯 라벨(110) 아래에 적층.
-        skillButton.zPosition = GameConfig.skillButtonZPositionV4
+        skillButton.zPosition = ZOrder.skillButtonZPosition
     }
 
     // MARK: - Run Button (Sprint 11)
@@ -212,7 +212,7 @@ extension GameScene {
             self?.player.isRunning = pressed
         }
         layoutRunButton()
-        runButton.zPosition = GameConfig.skillButtonZPositionV4
+        runButton.zPosition = ZOrder.skillButtonZPosition
     }
 
     // MARK: - HUD Skill Slot (Phase 9-5)
@@ -232,14 +232,14 @@ extension GameScene {
         let safe = SceneSafeArea.insets(for: self)
         let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
         skillButton.setScale(scale)
-        let radius = max(GameConfig.skillButtonV2Radius, GameConfig.skillButtonRadius)
+        let radius = max(UILayout.skillButtonVisualRadius, GameplayTuning.skillButtonRadius)
         let marginX = controlMargin(
-            base: GameConfig.skillButtonMarginX,
+            base: GameplayTuning.skillButtonMarginX,
             radius: radius,
             scale: scale
         )
         let marginY = controlMargin(
-            base: GameConfig.skillButtonMarginY,
+            base: GameplayTuning.skillButtonMarginY,
             radius: radius,
             scale: scale
         )
@@ -254,7 +254,7 @@ extension GameScene {
         let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
         runButton.setScale(scale)
         runButton.position = CGPoint(
-            x: skillButton.position.x - GameConfig.runButtonGapFromSkill * scale,
+            x: skillButton.position.x - UILayout.runButtonGapFromSkill * scale,
             y: skillButton.position.y
         )
     }
@@ -266,7 +266,7 @@ extension GameScene {
         hudSkillSlot.setScale(scale)
         hudSkillSlot.position = CGPoint(
             x: skillButton.position.x,
-            y: skillButton.position.y + GameConfig.hudSkillSlotOffsetY * scale
+            y: skillButton.position.y + GameplayTuning.hudSkillSlotOffsetY * scale
         )
     }
 
@@ -287,14 +287,14 @@ extension GameScene {
         let safe = SceneSafeArea.insets(for: self)
         let scale = DeviceLayoutProfile.resolve(for: self).ingameTopButtonScale
         pauseButton.setScale(scale)
-        let radius = GameConfig.pauseButtonSize / 2
+        let radius = UILayout.pauseButtonSize / 2
         let marginX = controlMargin(
-            base: GameConfig.pauseButtonMarginX,
+            base: UILayout.pauseButtonMarginX,
             radius: radius,
             scale: scale
         )
         let marginY = controlMargin(
-            base: GameConfig.pauseButtonMarginY,
+            base: UILayout.pauseButtonMarginY,
             radius: radius,
             scale: scale
         )
@@ -328,7 +328,7 @@ extension GameScene {
             // SKAction.sequence 5단계 — DispatchQueue/Timer 금지(주의사항).
             let enter = SKAction.moveTo(x: self.size.width * 0.5,
                                         duration: 1.2)
-            let stay  = SKAction.wait(forDuration: GameConfig.sergeantParkOnStageDurationV4)
+            let stay  = SKAction.wait(forDuration: GameplayTuning.sergeantParkOnStageDuration)
             let exit  = SKAction.moveTo(x: -100, duration: 1.5)
             let cleanup = SKAction.removeFromParent()
             park.run(.sequence([enter, stay, exit, cleanup]))
@@ -354,14 +354,14 @@ extension GameScene {
         overlay.addChild(closeup)
 
         // 토스트 — 긴 서사 멘트 상수화 + 멀티라인 줄바꿈(36→24pt). coralPrimary.
-        let toast = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-        toast.text = GameConfig.sergeantParkIntroToastText            // 하드코딩 제거 → 상수
-        toast.fontSize = GameConfig.sergeantParkIntroToastFontSize    // 36 → 24 (긴 문장)
+        let toast = SKLabelNode(fontNamed: Typography.fontDisplay)
+        toast.text = FeelTuning.sergeantParkIntroToastText            // 하드코딩 제거 → 상수
+        toast.fontSize = FeelTuning.sergeantParkIntroToastFontSize    // 36 → 24 (긴 문장)
         toast.fontColor = .ganhoCoralPrimary
         // 긴 문장 줄바꿈 — 한 줄 폭 초과 방지(numberOfLines/lineBreakMode/maxWidth 3종 필수).
         toast.numberOfLines = 0
         toast.lineBreakMode = .byWordWrapping
-        toast.preferredMaxLayoutWidth = GameConfig.sergeantParkIntroToastMaxWidth
+        toast.preferredMaxLayoutWidth = FeelTuning.sergeantParkIntroToastMaxWidth
         toast.horizontalAlignmentMode = .center
         toast.verticalAlignmentMode = .center                        // 다줄 수직 중심 안정
         toast.position = CGPoint(x: 0, y: -120)
@@ -375,7 +375,7 @@ extension GameScene {
         // (1) 묵직한 진동 heavy 2회 — Timer/DispatchQueue 금지, SKAction.sequence 경유. [weak self] 필수.
         let haptic1 = SKAction.run { [weak self] in self?.haptics.heavy() }
         let haptic2 = SKAction.run { [weak self] in self?.haptics.heavy() }
-        let hapticGap = SKAction.wait(forDuration: GameConfig.sergeantParkIntroHapticGap)
+        let hapticGap = SKAction.wait(forDuration: FeelTuning.sergeantParkIntroHapticGap)
         overlay.run(.sequence([haptic1, hapticGap, haptic2]))
 
         // (2) 카메라 쉐이크 — cameraNode에 직접 run(자가 원위치 복귀).
@@ -383,7 +383,7 @@ extension GameScene {
 
         // (3) 등장 플래시 — HitFlashNode 재사용(붉은 풀스크린, 자가 소멸). 컷씬 전용 zPos로 overlay 위에.
         let flash = HitFlashNode()
-        flash.zPosition = GameConfig.sergeantParkIntroFlashZPosition
+        flash.zPosition = ZOrder.sergeantParkIntroFlashZPosition
         cameraNode.addChild(flash)
         flash.flash(sceneSize: size)
 

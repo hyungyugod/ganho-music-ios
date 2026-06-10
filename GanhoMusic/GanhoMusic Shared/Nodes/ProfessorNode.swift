@@ -21,19 +21,22 @@ import SpriteKit
 ///  - 청진기 발사 직전 0.4s 텔레그래프 노출(ProfessorTelegraphNode)
 ///  - 발사 시작점 = 본체 + unitVec × 12px (자기 위치 충돌로 즉시 소멸 방지)
 ///  - 자식 시각(disc/tube)/applyVisualScaleV9 본체 삭제 — 픽셀 본체만 노출
-final class ProfessorNode: SKSpriteNode {
+/// R0 — 방향+프레임 통합(updatePixelAnimation)은 PixelPositionDeltaAnimating 기본 구현 사용 (사본 제거).
+final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
 
     // MARK: - Pixel Sprite State (Phase 9-7 · 보존)
     /// 현재 픽셀 텍스처가 표현하는 방향. SKAction.move의 진행 방향에 따라 갱신.
-    private var pixelDirection: PixelDirection = .down
+    var pixelDirection: PixelDirection = .down
     /// 현재 픽셀 텍스처가 표현하는 프레임. 이동 중 step1↔step2 교차, 정지 시 idle.
-    private var pixelFrame: PixelFrame = .idle
-    /// step1↔step2 교차 누적 시간 (초). GameConfig.pixelWalkFrameInterval 도달 시 토글 + 0 리셋.
-    private var frameAccumulator: TimeInterval = 0
+    var pixelFrame: PixelFrame = .idle
+    /// B형(position-delta) 이동 판정 임계값 0.01 — 기존 리터럴의 상수화 (값 변경 0).
+    var movementThreshold: CGFloat { GameplayTuning.pixelDirectionPositionDeltaThreshold }
+    /// step1↔step2 교차 누적 시간 (초). GameplayTuning.pixelWalkFrameInterval 도달 시 토글 + 0 리셋.
+    var frameAccumulator: TimeInterval = 0
     /// updatePixelAnimation에서 *이전 프레임 위치*와 비교하여 진행 방향 산출.
-    private var lastPosition: CGPoint = .zero
+    var lastPosition: CGPoint = .zero
     /// lastPosition 첫 초기화 여부. 첫 update에서 자기 자신과 비교 → 거짓 정지 신호 방지.
-    private var hasLastPosition: Bool = false
+    var hasLastPosition: Bool = false
 
     // MARK: - Throwing State (Phase 9-7 · 보존)
     /// 청진기 발사 루프가 사용하는 worldNode 약참조.
@@ -43,17 +46,17 @@ final class ProfessorNode: SKSpriteNode {
     /// 게임 진행률(0..1) 공급자. 발사 주기 보간에 사용.
     private var progressProvider: () -> Double = { 0 }
     /// 난이도별 경고 표시량. 실제 발사 주기/속도에는 관여하지 않는다.
-    var warningProfile = GameConfig.warningProfileFallback
+    var warningProfile = GameplayTuning.warningProfileFallback
     private let proximityWarning = EnemyProximityWarningNode(color: .ganhoCoralPrimary)
 
     // MARK: - Init
     init() {
         // EnemyNode/PlayerNode 패턴 동형 — 시각은 pixelSpriteScale(2)배, physicsBody는 미부착.
         let visualSize = CGSize(
-            width:  GameConfig.professorWidth  * GameConfig.pixelSpriteScale,
-            height: GameConfig.professorHeight * GameConfig.pixelSpriteScale
+            width:  GameplayTuning.professorWidth  * GameplayTuning.pixelSpriteScale,
+            height: GameplayTuning.professorHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. refreshTexture()와 같은 캐시를 워밍 →
+        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
         // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
         let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
@@ -80,7 +83,7 @@ final class ProfessorNode: SKSpriteNode {
     /// GameScene+Setup.setupProfessor에서 worldNode addChild 직후 1회 호출.
     /// 호출 직후 startPatrolFrom(index:)로 패트롤 시퀀스 자동 시작.
     func selectInitialWaypoint(from playerPosition: CGPoint) {
-        let wps = GameConfig.professorWaypoints
+        let wps = GameplayTuning.professorWaypoints
         guard !wps.isEmpty else { return }
         var maxDist: CGFloat = -1
         var maxIndex: Int = 0
@@ -92,7 +95,7 @@ final class ProfessorNode: SKSpriteNode {
             }
         }
         // 이전 패트롤 액션 정지(있다면) — 멱등 호출 안전.
-        removeAction(forKey: GameConfig.professorPatrolActionKey)
+        removeAction(forKey: GameplayTuning.professorPatrolActionKey)
         position = wps[maxIndex]
         startPatrolFrom(index: maxIndex)
     }
@@ -101,7 +104,7 @@ final class ProfessorNode: SKSpriteNode {
     /// 좌표는 점대칭점 그대로 두되, patrol은 그 점에서 최근접 waypoint부터 시작해 8자 연속성 유지.
     /// selectInitialWaypoint(farthest-first)과 병존 — setupProfessor 호출부만 이쪽으로 교체.
     func spawnOpposite(of playerPosition: CGPoint, mapSize: CGSize) {
-        let wps = GameConfig.professorWaypoints
+        let wps = GameplayTuning.professorWaypoints
         guard !wps.isEmpty else { return }
         let opposite = CGPoint(
             x: mapSize.width  - playerPosition.x,
@@ -117,7 +120,7 @@ final class ProfessorNode: SKSpriteNode {
             }
         }
         // 이전 패트롤 액션 정지(있다면) — 멱등 호출 안전(selectInitialWaypoint과 동일 정책).
-        removeAction(forKey: GameConfig.professorPatrolActionKey)
+        removeAction(forKey: GameplayTuning.professorPatrolActionKey)
         position = opposite
         startPatrolFrom(index: nearestIndex)
     }
@@ -125,10 +128,10 @@ final class ProfessorNode: SKSpriteNode {
     // MARK: - Patrol (Sprint 10 Phase F · 8자 순환)
     /// 4 waypoint 8자 무한 순환 SKAction. 시작 인덱스부터 반대로 재구성하여
     /// run하기 직전 위치는 waypoints[startIndex]에 있어야 함(selectInitialWaypoint이 보장).
-    /// 좌표 순서는 GameConfig.professorWaypoints가 8자(figure-8) 형태로 정의 —
+    /// 좌표 순서는 GameplayTuning.professorWaypoints가 8자(figure-8) 형태로 정의 —
     /// (120,100)→(520,280)→(520,100)→(120,280) → 두 번 교차하며 한 바퀴.
     private func startPatrolFrom(index startIndex: Int) {
-        let waypoints = GameConfig.professorWaypoints
+        let waypoints = GameplayTuning.professorWaypoints
         guard !waypoints.isEmpty else { return }
         let count = waypoints.count
         var moves: [SKAction] = []
@@ -139,16 +142,16 @@ final class ProfessorNode: SKSpriteNode {
             let from = waypoints[fromIdx]
             let to   = waypoints[toIdx]
             let dist = hypot(to.x - from.x, to.y - from.y)
-            let dur  = TimeInterval(dist / GameConfig.professorSpeed)
+            let dur  = TimeInterval(dist / GameplayTuning.professorSpeed)
             moves.append(.move(to: to, duration: dur))
         }
         let loop = SKAction.repeatForever(.sequence(moves))
-        run(loop, withKey: GameConfig.professorPatrolActionKey)
+        run(loop, withKey: GameplayTuning.professorPatrolActionKey)
     }
 
     // MARK: - Throwing
     /// 외부(GameScene+Setup.setupProfessor)가 1회 호출. 의존성 주입 후 첫 발사 스케줄.
-    /// 첫 발사 전 GameConfig.professorInitialThrowDelay(3.0s) 대기 — 플레이어 학습 시간.
+    /// 첫 발사 전 GameplayTuning.professorInitialThrowDelay(3.0s) 대기 — 플레이어 학습 시간.
     func startThrowingStethoscopes(targetProvider: @escaping () -> CGPoint?,
                                     worldNode: SKNode,
                                     progressProvider: @escaping () -> Double) {
@@ -161,12 +164,12 @@ final class ProfessorNode: SKSpriteNode {
     /// 첫 발사를 professorInitialThrowDelay(3.0s) 후 발화. 이후엔 scheduleNextThrow의
     /// progress 보간(2.5 → 1.4)으로 자연 진행.
     private func scheduleFirstThrow() {
-        let initialWait = SKAction.wait(forDuration: GameConfig.professorInitialThrowDelay)
+        let initialWait = SKAction.wait(forDuration: GameplayTuning.professorInitialThrowDelay)
         let kickoff = SKAction.run { [weak self] in
             self?.throwStethoscope()
             self?.scheduleNextThrow()
         }
-        run(.sequence([initialWait, kickoff]), withKey: GameConfig.professorThrowActionKey)
+        run(.sequence([initialWait, kickoff]), withKey: GameplayTuning.professorThrowActionKey)
     }
 
     /// 다음 발사를 SKAction 재귀로 예약. 매 사이클마다 currentThrowInterval() 호출 →
@@ -178,14 +181,14 @@ final class ProfessorNode: SKSpriteNode {
             self?.throwStethoscope()
             self?.scheduleNextThrow()
         }
-        run(.sequence([wait, throwAction]), withKey: GameConfig.professorThrowActionKey)
+        run(.sequence([wait, throwAction]), withKey: GameplayTuning.professorThrowActionKey)
     }
 
     /// 현재 게임 진행률에 따른 청진기 발사 주기 (보간). 시작 2.5초 → 끝 1.4초.
     private func currentThrowInterval() -> TimeInterval {
         let progress = progressProvider()
-        let start = GameConfig.stethoscopeThrowIntervalStart
-        let end   = GameConfig.stethoscopeThrowIntervalEnd
+        let start = GameplayTuning.stethoscopeThrowIntervalStart
+        let end   = GameplayTuning.stethoscopeThrowIntervalEnd
         return start + (end - start) * progress
     }
 
@@ -199,18 +202,18 @@ final class ProfessorNode: SKSpriteNode {
     private func throwStethoscope() {
         guard let world = worldRef else { return }
         guard let target = targetProvider() else { return }
-        guard currentStethoscopeCount(in: world) < GameConfig.stethoscopeMaxConcurrent else { return }
+        guard currentStethoscopeCount(in: world) < GameplayTuning.stethoscopeMaxConcurrent else { return }
         let telegraph = ProfessorTelegraphNode()
-        telegraph.position = CGPoint(x: 0, y: GameConfig.professorTelegraphOffsetY)
+        telegraph.position = CGPoint(x: 0, y: GameplayTuning.professorTelegraphOffsetY)
         addChild(telegraph)
         let fanAngles = stethoscopeFanAngles(towards: target)
         telegraph.attachWarningLine(
             angles: fanAngles,
             profile: warningProfile,
-            originOffsetY: -GameConfig.professorTelegraphOffsetY
+            originOffsetY: -GameplayTuning.professorTelegraphOffsetY
         )
         telegraph.startBlinking()
-        let wait = SKAction.wait(forDuration: GameConfig.professorTelegraphDuration)
+        let wait = SKAction.wait(forDuration: GameplayTuning.professorTelegraphDuration)
         let fire = SKAction.run { [weak self, weak telegraph, weak world] in
             telegraph?.removeFromParent()
             guard let self = self, let world = world else { return }
@@ -223,8 +226,8 @@ final class ProfessorNode: SKSpriteNode {
     /// spread=2π면 base 기준 전방위 균등 radial, spread<2π면 base 중심 부채꼴(같은 코드).
     private func stethoscopeFanAngles(towards target: CGPoint) -> [CGFloat] {
         let base = atan2(target.y - position.y, target.x - position.x)
-        let count = max(1, GameConfig.stethoscopeFanCount)
-        let step = GameConfig.stethoscopeFanSpreadRadians / CGFloat(count)
+        let count = max(1, GameplayTuning.stethoscopeFanCount)
+        let step = GameplayTuning.stethoscopeFanSpreadRadians / CGFloat(count)
         return (0..<count).map { base + step * CGFloat($0) }
     }
 
@@ -237,12 +240,12 @@ final class ProfessorNode: SKSpriteNode {
             let unitY = sin(angle)
             let steth = StethoscopeNode()
             steth.position = CGPoint(
-                x: position.x + unitX * GameConfig.stethoscopeFireStartOffset,
-                y: position.y + unitY * GameConfig.stethoscopeFireStartOffset
+                x: position.x + unitX * GameplayTuning.stethoscopeFireStartOffset,
+                y: position.y + unitY * GameplayTuning.stethoscopeFireStartOffset
             )
             steth.physicsBody?.velocity = CGVector(
-                dx: unitX * GameConfig.stethoscopeSpeed,
-                dy: unitY * GameConfig.stethoscopeSpeed
+                dx: unitX * GameplayTuning.stethoscopeSpeed,
+                dy: unitY * GameplayTuning.stethoscopeSpeed
             )
             world.addChild(steth)
         }
@@ -257,55 +260,15 @@ final class ProfessorNode: SKSpriteNode {
 
     /// 게임 종료 시 GameScene.endGame이 호출. 발사 루프 정지 + 활성 청진기 velocity 0.
     func stopThrowing(worldNode: SKNode) {
-        removeAction(forKey: GameConfig.professorThrowActionKey)
+        removeAction(forKey: GameplayTuning.professorThrowActionKey)
         worldNode.enumerateChildNodes(withName: "stethoscope") { node, _ in
             node.physicsBody?.velocity = .zero
         }
     }
 
     // MARK: - Pixel Animation (Phase 9-7 · 보존)
-    /// GameScene.update가 매 프레임 호출. position 변화량으로 방향/걷기 프레임 갱신.
-    func updatePixelAnimation(deltaTime: TimeInterval) {
-        guard hasLastPosition else {
-            lastPosition = position
-            hasLastPosition = true
-            return
-        }
-        let dx = position.x - lastPosition.x
-        let dy = position.y - lastPosition.y
-        lastPosition = position
-
-        let absDx = abs(dx)
-        let absDy = abs(dy)
-        guard absDx > 0.01 || absDy > 0.01 else {
-            if pixelFrame != .idle {
-                pixelFrame = .idle
-                frameAccumulator = 0
-                refreshTexture()
-            }
-            return
-        }
-        let newDir: PixelDirection
-        if absDx > absDy {
-            newDir = dx >= 0 ? .right : .left
-        } else {
-            newDir = dy >= 0 ? .up : .down
-        }
-        var needsRefresh = false
-        if newDir != pixelDirection {
-            pixelDirection = newDir
-            needsRefresh = true
-        }
-        frameAccumulator += deltaTime
-        if frameAccumulator >= GameConfig.pixelWalkFrameInterval {
-            frameAccumulator = 0
-            pixelFrame = (pixelFrame == .step1) ? .step2 : .step1
-            needsRefresh = true
-        }
-        if needsRefresh {
-            refreshTexture()
-        }
-    }
+    // R0 — updatePixelAnimation 본문은 PixelPositionDeltaAnimating 기본 구현이 단일 진실 원천.
+    // (방향+프레임 병합 후 텍스처 갱신 1회 — needsRefresh 시맨틱 보존.)
 
     func updateProximityWarning(distanceToPlayer distance: CGFloat, profile: DangerWarningProfile) {
         proximityWarning.update(
@@ -315,10 +278,9 @@ final class ProfessorNode: SKSpriteNode {
         )
     }
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성.
-    /// 출시 전 최적화 — CGImage→SKTexture 매번 재렌더 폐기. (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
-    private func refreshTexture() {
+    func applyPixelTexture() {
         texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
@@ -344,8 +306,6 @@ final class ProfessorNode: SKSpriteNode {
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F · 본문 삭제)
-    // setupVisualOverlay / attachStethoscopeDisc / attachStethoscopeTube / applyVisualScaleV9
-    // 본문 삭제. 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(disc/tube) 부착 폐기.
-    // 관련 GameConfig 상수(professorStethoIconRadius/Offset/Tube*/professorVisualScaleV9)는
-    // 본 Phase 변경 금지 우회 위해 보존 — 호출자 0건이 되어 자연 deprecate.
+    // 원본 game.js는 16×20 픽셀 본체만 노출 — 자식 시각(disc/tube) 부착 폐기.
+    // R0 — 자연 deprecate 상태였던 professorStetho* 전용 상수도 호출자 0건 확인 후 삭제 완료.
 }

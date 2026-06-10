@@ -22,7 +22,7 @@ final class NoteNode: SKSpriteNode {
         // Sprint 10.5 Phase B — 시각/hitbox 분리.
         //   visualSize = noteSize(32) — 사용자 요청 "사람의 반(캐릭터 32×40 대비 80%)".
         //   hitboxSize = 16 — 게임 밸런스 회귀 0 (Phase E 이전 동일).
-        let visualSize = CGSize(width: GameConfig.noteSize, height: GameConfig.noteSize)
+        let visualSize = CGSize(width: GameplayTuning.noteSize, height: GameplayTuning.noteSize)
         let hitboxSize = CGSize(width: 16, height: 16)
         // Sprint 10 Phase E — 원본 8분 음표 픽셀 텍스처. 글로우/펄스/링 자식 0개.
         let texture = PixelSpriteRenderer.notePixelTexture()
@@ -42,14 +42,14 @@ final class NoteNode: SKSpriteNode {
         // Sprint 10 Phase E — bob 애니메이션 ±2.4px y, 0.7s 주기.
         // 인스턴스마다 phase 랜덤 → 같은 프레임 스폰된 음표 5개가 동조하지 않도록 분산.
         // withKey "noteBob" 멱등 — 동일 키 재호출 시 SpriteKit이 이전 액션 자동 교체.
-        let phase = TimeInterval.random(in: 0..<GameConfig.noteBobDuration)
+        let phase = TimeInterval.random(in: 0..<GameplayTuning.noteBobDuration)
         let waitPhase = SKAction.wait(forDuration: phase)
         let up = SKAction.moveBy(x: 0,
-                                 y: GameConfig.noteBobAmplitude,
-                                 duration: GameConfig.noteBobDuration / 2)
+                                 y: GameplayTuning.noteBobAmplitude,
+                                 duration: GameplayTuning.noteBobDuration / 2)
         let down = up.reversed()
         let bob = SKAction.sequence([up, down])
-        run(.sequence([waitPhase, .repeatForever(bob)]), withKey: GameConfig.noteBobActionKey)
+        run(.sequence([waitPhase, .repeatForever(bob)]), withKey: UILayout.noteBobActionKey)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -62,30 +62,30 @@ final class NoteNode: SKSpriteNode {
     /// easy일 때는 SKAction 부착 자체가 0건 → 기존 동작 정확 보존(회귀 0, 주의사항 2).
     /// SpawnSystem.trySpawnNote에서 addChild 직후 1회 호출. withKey 사용으로 멱등(중복 호출 시 자동 교체).
     func applyLifetime(_ ttl: TimeInterval) {
-        guard ttl.isFinite, ttl < GameConfig.gameDuration else { return }
+        guard ttl.isFinite, ttl < GameplayTuning.gameDuration else { return }
         let wait   = SKAction.wait(forDuration: ttl)
         let fade   = SKAction.fadeOut(withDuration: 0.2)
         let remove = SKAction.removeFromParent()
-        run(.sequence([wait, fade, remove]), withKey: GameConfig.noteLifetimeActionKey)
+        run(.sequence([wait, fade, remove]), withKey: UILayout.noteLifetimeActionKey)
     }
 
     // MARK: - Readability
     private func addReadableHalo() {
-        let halo = SKShapeNode(circleOfRadius: GameConfig.noteReadableHaloRadius)
+        let halo = SKShapeNode(circleOfRadius: UILayout.noteReadableHaloRadius)
         halo.strokeColor = UIColor.ganhoIngameReward
-            .withAlphaComponent(GameConfig.noteReadableHaloAlpha)
-        halo.lineWidth = GameConfig.ingameObjectHaloLineWidth
+            .withAlphaComponent(UILayout.noteReadableHaloAlpha)
+        halo.lineWidth = UILayout.ingameObjectHaloLineWidth
         halo.fillColor = UIColor.ganhoIngameRewardMint
-            .withAlphaComponent(GameConfig.ingameObjectHaloAlpha * GameConfig.ingameHalfAlphaMultiplier)
+            .withAlphaComponent(UILayout.ingameObjectHaloAlpha * UILayout.ingameHalfAlphaMultiplier)
         halo.zPosition = -1
         addChild(halo)
 
-        let sparkle = SKShapeNode(circleOfRadius: GameConfig.noteReadableSparkleRadius)
+        let sparkle = SKShapeNode(circleOfRadius: UILayout.noteReadableSparkleRadius)
         sparkle.fillColor = .ganhoPixelHudWhite
         sparkle.strokeColor = .clear
         sparkle.position = CGPoint(
-            x: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio,
-            y: GameConfig.noteReadableHaloRadius * GameConfig.noteReadableSparkleOffsetRatio
+            x: UILayout.noteReadableHaloRadius * UILayout.noteReadableSparkleOffsetRatio,
+            y: UILayout.noteReadableHaloRadius * UILayout.noteReadableSparkleOffsetRatio
         )
         sparkle.zPosition = 2
         addChild(sparkle)

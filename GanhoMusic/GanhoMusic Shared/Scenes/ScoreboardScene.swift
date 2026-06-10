@@ -44,8 +44,6 @@ final class ScoreboardScene: SKScene {
 
     // 자식 노드 — didMove에서 부착, layoutAll에서 좌표만 갱신.
 
-    /// 이전 gradient 참조. 톤다운 sprint에서는 단색 배경만 사용하므로 nil 유지.
-    private var gradientBg: GradientBackgroundNode?
     /// 좌상단 "← 결과로" GlassPill — touchesBegan hit-test 대상.
     private var backButton: GlassPillNode?
     /// 우상단 "캐릭터별 기록" DarkContextChip — 시각만.
@@ -53,9 +51,9 @@ final class ScoreboardScene: SKScene {
     /// 헤더 액센트 라인.
     private let accentLine = AccentLineNode()
     /// 타이틀 "기록 보기" (Jua 30pt).
-    private let titleLabel = SKLabelNode(text: GameConfig.scoreboardTitleText)
+    private let titleLabel = SKLabelNode(text: UILayout.scoreboardTitleText)
     /// 부제 (Gowun Dodum 12pt).
-    private let subtitleLabel = SKLabelNode(text: GameConfig.scoreboardSubtitleText)
+    private let subtitleLabel = SKLabelNode(text: UILayout.scoreboardSubtitleText)
     /// 매트릭스 컨테이너 — 열 헤더 + 행 헤더 + 15 셀 + ★ 마커 자식.
     private let matrixContainer = SKNode()
     /// 하단 stat 라벨 (총 플레이 N회 · 졸업장 N장 보유).
@@ -122,9 +120,7 @@ final class ScoreboardScene: SKScene {
     // MARK: - Setup
 
     private func setupSolidBackground() {
-        gradientBg?.removeFromParent()
-        gradientBg = nil
-        backgroundColor = GameConfig.menuSolidBackgroundColor
+        backgroundColor = Palette.menuSolidBackgroundColor
     }
 
     /// 헤더 — AccentLine + 타이틀 + 부제.
@@ -132,8 +128,8 @@ final class ScoreboardScene: SKScene {
         accentLine.zPosition = 5
         addChild(accentLine)
 
-        titleLabel.fontName = GameConfig.fontDisplay
-        titleLabel.fontSize = GameConfig.scoreboardTitleFontSize
+        titleLabel.fontName = Typography.fontDisplay
+        titleLabel.fontSize = UILayout.scoreboardTitleFontSize
         titleLabel.fontColor = .ganhoNavyDeep
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
@@ -141,8 +137,8 @@ final class ScoreboardScene: SKScene {
         titleLabel.name = "scoreboardTitle"
         addChild(titleLabel)
 
-        subtitleLabel.fontName = GameConfig.fontBody
-        subtitleLabel.fontSize = GameConfig.scoreboardSubtitleFontSize
+        subtitleLabel.fontName = Typography.fontBody
+        subtitleLabel.fontSize = UILayout.scoreboardSubtitleFontSize
         subtitleLabel.fontColor = .ganhoNavyMuted
         subtitleLabel.horizontalAlignmentMode = .center
         subtitleLabel.verticalAlignmentMode = .center
@@ -154,10 +150,10 @@ final class ScoreboardScene: SKScene {
     /// 좌상단 "← 결과로" GlassPill.
     private func setupBackButton() {
         let pill = GlassPillNode(
-            text: GameConfig.scoreboardBackButtonText,
+            text: UILayout.scoreboardBackButtonText,
             size: CGSize(
-                width: GameConfig.scoreboardBackButtonWidth,
-                height: GameConfig.scoreboardBackButtonHeight
+                width: UILayout.scoreboardBackButtonWidth,
+                height: UILayout.scoreboardBackButtonHeight
             )
         )
         pill.zPosition = 100
@@ -169,7 +165,7 @@ final class ScoreboardScene: SKScene {
     /// 우상단 "캐릭터별 기록" DarkContextChip — 브레드크럼.
     private func setupBreadcrumbChip() {
         let chip = DarkContextChipNode(
-            label: GameConfig.scoreboardBreadcrumbText,
+            label: UILayout.scoreboardBreadcrumbText,
             badge: nil
         )
         chip.zPosition = 100
@@ -192,9 +188,9 @@ final class ScoreboardScene: SKScene {
 
         // 열 헤더 3개 — 난이도별 색 토큰(Phase C cardFillBottom).
         for (col, diff) in difficulties.enumerated() {
-            let label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let label = SKLabelNode(fontNamed: Typography.fontDisplay)
             label.text = diff.displayName
-            label.fontSize = GameConfig.scoreboardColumnHeaderFontSizeV4
+            label.fontSize = UILayout.scoreboardColumnHeaderFontSize
             label.fontColor = diff.cardStrokeColor
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
@@ -211,10 +207,10 @@ final class ScoreboardScene: SKScene {
             face.position = rowHeaderFacePosition(row: row)
             matrixContainer.addChild(face)
 
-            let nameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+            let nameLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
             // displayName 첫 글자(1자) — "김", "정", "건", "임", "이".
             nameLabel.text = String(charID.displayName.prefix(1))
-            nameLabel.fontSize = GameConfig.scoreboardRowHeaderShortNameFontSize
+            nameLabel.fontSize = UILayout.scoreboardRowHeaderShortNameFontSize
             nameLabel.fontColor = .ganhoNavyDeep
             nameLabel.horizontalAlignmentMode = .center
             nameLabel.verticalAlignmentMode = .center
@@ -231,16 +227,16 @@ final class ScoreboardScene: SKScene {
                 let cellLabel = SKLabelNode()
                 if score > 0 {
                     cellLabel.text = "\(score)"
-                    cellLabel.fontName = GameConfig.fontDisplay
-                    cellLabel.fontSize = GameConfig.scoreboardCellScoreFontSize
+                    cellLabel.fontName = Typography.fontDisplay
+                    cellLabel.fontSize = UILayout.scoreboardCellScoreFontSize
                     cellLabel.fontColor = .ganhoNavyDeep
                     cellLabel.alpha = 1.0
                 } else {
-                    cellLabel.text = GameConfig.scoreboardCellEmptyText
-                    cellLabel.fontName = GameConfig.fontBody
-                    cellLabel.fontSize = GameConfig.scoreboardCellEmptyFontSize
+                    cellLabel.text = UILayout.scoreboardCellEmptyText
+                    cellLabel.fontName = Typography.fontBody
+                    cellLabel.fontSize = UILayout.scoreboardCellEmptyFontSize
                     cellLabel.fontColor = .ganhoNavyMuted
-                    cellLabel.alpha = GameConfig.scoreboardCellEmptyAlpha
+                    cellLabel.alpha = UILayout.scoreboardCellEmptyAlpha
                 }
                 cellLabel.horizontalAlignmentMode = .center
                 cellLabel.verticalAlignmentMode = .center
@@ -255,9 +251,9 @@ final class ScoreboardScene: SKScene {
         if let key = lastUpdatedKey,
            let row = characters.firstIndex(of: key.0),
            let col = difficulties.firstIndex(of: key.1) {
-            let star = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-            star.text = GameConfig.scoreboardStarMarkerText
-            star.fontSize = GameConfig.scoreboardStarMarkerFontSize
+            let star = SKLabelNode(fontNamed: Typography.fontDisplay)
+            star.text = UILayout.scoreboardStarMarkerText
+            star.fontSize = UILayout.scoreboardStarMarkerFontSize
             star.fontColor = .ganhoMusicGold
             star.horizontalAlignmentMode = .center
             star.verticalAlignmentMode = .center
@@ -265,8 +261,8 @@ final class ScoreboardScene: SKScene {
             star.name = "scoreboardStarMarker"
             let cellPos = cellPosition(row: row, col: col)
             star.position = CGPoint(
-                x: cellPos.x + GameConfig.scoreboardStarMarkerOffsetX,
-                y: cellPos.y + GameConfig.scoreboardStarMarkerOffsetY
+                x: cellPos.x + UILayout.scoreboardStarMarkerOffsetX,
+                y: cellPos.y + UILayout.scoreboardStarMarkerOffsetY
             )
             matrixContainer.addChild(star)
         }
@@ -277,8 +273,8 @@ final class ScoreboardScene: SKScene {
         let plays = statsRepo.current.playCount
         let diplomas = graduationRepo.current.count
         statLabel.text = "총 플레이 \(plays)회 · 졸업장 \(diplomas)장 보유"
-        statLabel.fontName = GameConfig.fontBody
-        statLabel.fontSize = GameConfig.scoreboardStatFontSize
+        statLabel.fontName = Typography.fontBody
+        statLabel.fontSize = UILayout.scoreboardStatFontSize
         statLabel.fontColor = .ganhoNavyMuted
         statLabel.horizontalAlignmentMode = .center
         statLabel.verticalAlignmentMode = .center
@@ -299,29 +295,29 @@ final class ScoreboardScene: SKScene {
         // AccentLine은 V3 위치(+130)에서 -40 = +90으로 내려 *타이틀 아래 + 헤더 위* 시각 구분선 역할.
         accentLine.position = CGPoint(
             x: centerX,
-            y: frame.midY + GameConfig.scoreboardAccentLineOffsetY
-                          - GameConfig.scoreboardTitleYOffsetV4
+            y: frame.midY + UILayout.scoreboardAccentLineOffsetY
+                          - UILayout.scoreboardTitleYOffset
         )
         titleLabel.position = CGPoint(
             x: centerX,
-            y: frame.midY + GameConfig.scoreboardTitleOffsetY
-                          + GameConfig.scoreboardTitleYOffsetV4
+            y: frame.midY + UILayout.scoreboardTitleOffsetY
+                          + UILayout.scoreboardTitleYOffset
         )
         subtitleLabel.position = CGPoint(
             x: centerX,
-            y: frame.midY + GameConfig.scoreboardSubtitleOffsetY
-                          + GameConfig.scoreboardTitleYOffsetV4
+            y: frame.midY + UILayout.scoreboardSubtitleOffsetY
+                          + UILayout.scoreboardTitleYOffset
         )
 
         // 백 버튼 / 브레드크럼 — safe area를 흡수해 노치/Dynamic Island 회피.
         let safe = scoreboardSafeInsets()
-        let topY = frame.maxY - safe.top - GameConfig.scoreboardBackButtonInsetY
-        let leftX = frame.minX + safe.left + GameConfig.scoreboardBackButtonInsetX
+        let topY = frame.maxY - safe.top - UILayout.scoreboardBackButtonInsetY
+        let leftX = frame.minX + safe.left + UILayout.scoreboardBackButtonInsetX
         backButton?.position = CGPoint(
-            x: leftX + GameConfig.scoreboardBackButtonWidth / 2,
+            x: leftX + UILayout.scoreboardBackButtonWidth / 2,
             y: topY
         )
-        let rightInsetX = frame.maxX - safe.right - GameConfig.scoreboardBreadcrumbInsetX
+        let rightInsetX = frame.maxX - safe.right - UILayout.scoreboardBreadcrumbInsetX
         breadcrumbChip?.position = CGPoint(
             x: rightInsetX - (breadcrumbChip?.calculateAccumulatedFrame().width ?? 0) / 2,
             y: topY
@@ -330,11 +326,11 @@ final class ScoreboardScene: SKScene {
         // V4 → V6 — stat 라벨을 매트릭스 마지막 행 bottom으로부터 40pt 아래에 동적 배치.
         // V3/V4 상수(scoreboardStatOffsetY=-150 / scoreboardStatBottomGapV4=24)는 byte-identical 보존.
         // V6에서 24pt → 40pt 확대로 매트릭스↔stat 묶음 시각 분리 강화.
-        let lastRowCenterY = dataRowCenterY(row: GameConfig.scoreboardMatrixRowCount - 1)
-        let lastRowBottomY = lastRowCenterY - GameConfig.scoreboardCellHeight / 2
+        let lastRowCenterY = dataRowCenterY(row: UILayout.scoreboardMatrixRowCount - 1)
+        let lastRowBottomY = lastRowCenterY - UILayout.scoreboardCellHeight / 2
         statLabel.position = CGPoint(
             x: centerX,
-            y: lastRowBottomY - GameConfig.scoreboardStatBottomGapV6
+            y: lastRowBottomY - UILayout.scoreboardStatBottomGap
         )
 
         // 매트릭스 자식 좌표 재계산 — 헬퍼 함수가 frame.midX/midY를 직접 참조하므로
@@ -378,8 +374,8 @@ final class ScoreboardScene: SKScene {
            let star = matrixContainer.childNode(withName: "scoreboardStarMarker") {
             let cellPos = cellPosition(row: row, col: col)
             star.position = CGPoint(
-                x: cellPos.x + GameConfig.scoreboardStarMarkerOffsetX,
-                y: cellPos.y + GameConfig.scoreboardStarMarkerOffsetY
+                x: cellPos.x + UILayout.scoreboardStarMarkerOffsetX,
+                y: cellPos.y + UILayout.scoreboardStarMarkerOffsetY
             )
         }
     }
@@ -388,16 +384,16 @@ final class ScoreboardScene: SKScene {
 
     /// 매트릭스 총 폭 — 행 헤더 폭 + 3 셀 폭 + 2 간격.
     private var matrixTotalWidth: CGFloat {
-        return GameConfig.scoreboardRowHeaderWidth
-            + CGFloat(GameConfig.scoreboardMatrixColumnCount) * GameConfig.scoreboardCellWidth
-            + CGFloat(GameConfig.scoreboardMatrixColumnCount - 1) * GameConfig.scoreboardCellGap
+        return UILayout.scoreboardRowHeaderWidth
+            + CGFloat(UILayout.scoreboardMatrixColumnCount) * UILayout.scoreboardCellWidth
+            + CGFloat(UILayout.scoreboardMatrixColumnCount - 1) * UILayout.scoreboardCellGap
     }
 
     /// 매트릭스 총 높이 — 열 헤더 행 + 5 데이터 행 + 5 간격.
     private var matrixTotalHeight: CGFloat {
-        return GameConfig.scoreboardCellHeight
-            + CGFloat(GameConfig.scoreboardMatrixRowCount) * GameConfig.scoreboardCellHeight
-            + CGFloat(GameConfig.scoreboardMatrixRowCount) * GameConfig.scoreboardCellGap
+        return UILayout.scoreboardCellHeight
+            + CGFloat(UILayout.scoreboardMatrixRowCount) * UILayout.scoreboardCellHeight
+            + CGFloat(UILayout.scoreboardMatrixRowCount) * UILayout.scoreboardCellGap
     }
 
     /// 매트릭스 좌상단 (시각 기준 origin) 의 씬 좌표.
@@ -407,23 +403,23 @@ final class ScoreboardScene: SKScene {
     private var matrixOriginTopY: CGFloat {
         // V6 — 매트릭스 zone -30pt 시프트. 부제(midY+112)와 열 헤더(midY+110) 겹침 해소.
         // V3 scoreboardMatrixOffsetY(+10)는 byte-identical 보존 — 사용처만 V6 토큰으로 교체.
-        return frame.midY + GameConfig.scoreboardMatrixOffsetYV6 + matrixTotalHeight / 2
+        return frame.midY + UILayout.scoreboardMatrixOffsetY + matrixTotalHeight / 2
     }
 
     /// 열 헤더 (col = 0..2) 중심 좌표. 매트릭스 최상단 row(헤더 row).
     private func columnHeaderPosition(col: Int) -> CGPoint {
-        let cellX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth
-            + CGFloat(col) * (GameConfig.scoreboardCellWidth + GameConfig.scoreboardCellGap)
-            + GameConfig.scoreboardCellWidth / 2
-        let headerY = matrixOriginTopY - GameConfig.scoreboardCellHeight / 2
+        let cellX = matrixOriginX + UILayout.scoreboardRowHeaderWidth
+            + CGFloat(col) * (UILayout.scoreboardCellWidth + UILayout.scoreboardCellGap)
+            + UILayout.scoreboardCellWidth / 2
+        let headerY = matrixOriginTopY - UILayout.scoreboardCellHeight / 2
         return CGPoint(x: cellX, y: headerY)
     }
 
     /// 행 헤더의 미니 얼굴 중심 좌표.
     /// V6 — face↔name 거리 V3 22pt → 32pt 확대. V3 토큰 값은 byte-identical 보존, 참조만 V6로 교체.
     private func rowHeaderFacePosition(row: Int) -> CGPoint {
-        let faceX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth / 2
-            - GameConfig.scoreboardRowHeaderShortNameOffsetXV6 / 2
+        let faceX = matrixOriginX + UILayout.scoreboardRowHeaderWidth / 2
+            - UILayout.scoreboardRowHeaderShortNameOffsetX / 2
         let faceY = dataRowCenterY(row: row)
         return CGPoint(x: faceX, y: faceY)
     }
@@ -431,17 +427,17 @@ final class ScoreboardScene: SKScene {
     /// 행 헤더의 약칭(이름 첫 글자) 라벨 중심 좌표.
     /// V6 — face↔name 거리 V3 22pt → 32pt 확대. V3 토큰 값은 byte-identical 보존, 참조만 V6로 교체.
     private func rowHeaderNamePosition(row: Int) -> CGPoint {
-        let nameX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth / 2
-            + GameConfig.scoreboardRowHeaderShortNameOffsetXV6 / 2
+        let nameX = matrixOriginX + UILayout.scoreboardRowHeaderWidth / 2
+            + UILayout.scoreboardRowHeaderShortNameOffsetX / 2
         let nameY = dataRowCenterY(row: row)
         return CGPoint(x: nameX, y: nameY)
     }
 
     /// 데이터 셀 (row = 0..4, col = 0..2) 중심 좌표.
     private func cellPosition(row: Int, col: Int) -> CGPoint {
-        let cellX = matrixOriginX + GameConfig.scoreboardRowHeaderWidth
-            + CGFloat(col) * (GameConfig.scoreboardCellWidth + GameConfig.scoreboardCellGap)
-            + GameConfig.scoreboardCellWidth / 2
+        let cellX = matrixOriginX + UILayout.scoreboardRowHeaderWidth
+            + CGFloat(col) * (UILayout.scoreboardCellWidth + UILayout.scoreboardCellGap)
+            + UILayout.scoreboardCellWidth / 2
         let cellY = dataRowCenterY(row: row)
         return CGPoint(x: cellX, y: cellY)
     }
@@ -452,10 +448,10 @@ final class ScoreboardScene: SKScene {
     /// 시그니처(`row: Int -> CGFloat`)는 byte-identical 보존 — 본문 안 상수만 V4 토큰으로 교체.
     private func dataRowCenterY(row: Int) -> CGFloat {
         let firstDataRowTop = matrixOriginTopY
-            - GameConfig.scoreboardCellHeight
-            - GameConfig.scoreboardHeaderRowGapV4
-        return firstDataRowTop - GameConfig.scoreboardCellHeight / 2
-            - CGFloat(row) * GameConfig.scoreboardCellPitchYV4
+            - UILayout.scoreboardCellHeight
+            - UILayout.scoreboardHeaderRowGap
+        return firstDataRowTop - UILayout.scoreboardCellHeight / 2
+            - CGFloat(row) * UILayout.scoreboardCellPitchY
     }
 
     private func scoreboardSafeInsets() -> UIEdgeInsets {
@@ -504,7 +500,7 @@ final class ScoreboardScene: SKScene {
         } else {
             nextScene = StartScene.newStartScene()
         }
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(nextScene, transition: fade)
     }
 }

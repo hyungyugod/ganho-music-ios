@@ -36,30 +36,30 @@ final class DPadNode: SKNode {
 
     // MARK: - Init
     override init() {
-        baseRing = SKShapeNode(circleOfRadius: GameConfig.dpadTouchRadius)
+        baseRing = SKShapeNode(circleOfRadius: GameplayTuning.dpadTouchRadius)
 
         let buttonSize = CGSize(
-            width: GameConfig.dpadButtonSize,
-            height: GameConfig.dpadButtonSize
+            width: GameplayTuning.dpadButtonSize,
+            height: GameplayTuning.dpadButtonSize
         )
-        upButton = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
-        downButton = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
-        leftButton = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
-        rightButton = SKShapeNode(rectOf: buttonSize, cornerRadius: GameConfig.dpadButtonCornerRadius)
+        upButton = SKShapeNode(rectOf: buttonSize, cornerRadius: UILayout.dpadButtonCornerRadius)
+        downButton = SKShapeNode(rectOf: buttonSize, cornerRadius: UILayout.dpadButtonCornerRadius)
+        leftButton = SKShapeNode(rectOf: buttonSize, cornerRadius: UILayout.dpadButtonCornerRadius)
+        rightButton = SKShapeNode(rectOf: buttonSize, cornerRadius: UILayout.dpadButtonCornerRadius)
 
         centerDeadzone = SKShapeNode(
-            circleOfRadius: GameConfig.dpadAnalogDeadzoneRadius
+            circleOfRadius: GameplayTuning.dpadAnalogDeadzoneRadius
         )
-        thumbNode = SKShapeNode(circleOfRadius: GameConfig.dpadThumbRadius)
+        thumbNode = SKShapeNode(circleOfRadius: GameplayTuning.dpadThumbRadius)
 
-        upIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
-        downIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
-        leftIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
-        rightIcon = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        upIcon = SKLabelNode(fontNamed: Typography.fontPixel)
+        downIcon = SKLabelNode(fontNamed: Typography.fontPixel)
+        leftIcon = SKLabelNode(fontNamed: Typography.fontPixel)
+        rightIcon = SKLabelNode(fontNamed: Typography.fontPixel)
 
         super.init()
 
-        let offset = GameConfig.dpadButtonSize
+        let offset = GameplayTuning.dpadButtonSize
         upButton.position = CGPoint(x: 0, y: offset)
         downButton.position = CGPoint(x: 0, y: -offset)
         leftButton.position = CGPoint(x: -offset, y: 0)
@@ -67,10 +67,10 @@ final class DPadNode: SKNode {
 
         configureBaseRing()
         configureButtons()
-        configureIcon(upIcon, text: GameConfig.dpadUpIconText, position: upButton.position)
-        configureIcon(downIcon, text: GameConfig.dpadDownIconText, position: downButton.position)
-        configureIcon(leftIcon, text: GameConfig.dpadLeftIconText, position: leftButton.position)
-        configureIcon(rightIcon, text: GameConfig.dpadRightIconText, position: rightButton.position)
+        configureIcon(upIcon, text: UILayout.dpadUpIconText, position: upButton.position)
+        configureIcon(downIcon, text: UILayout.dpadDownIconText, position: downButton.position)
+        configureIcon(leftIcon, text: UILayout.dpadLeftIconText, position: leftButton.position)
+        configureIcon(rightIcon, text: UILayout.dpadRightIconText, position: rightButton.position)
         configureCenterDeadzone()
         configureThumb()
 
@@ -86,7 +86,7 @@ final class DPadNode: SKNode {
         addChild(rightIcon)
         addChild(thumbNode)
 
-        alpha = GameConfig.ingameControlReadableAlpha
+        alpha = UILayout.ingameControlReadableAlpha
         isUserInteractionEnabled = true
 
         upButton.name = "dpadUp"
@@ -101,7 +101,7 @@ final class DPadNode: SKNode {
     }
 
     override func contains(_ point: CGPoint) -> Bool {
-        return hypot(point.x, point.y) <= GameConfig.dpadTouchRadius
+        return hypot(point.x, point.y) <= GameplayTuning.dpadTouchRadius
     }
 
     // MARK: - Touch
@@ -132,14 +132,14 @@ final class DPadNode: SKNode {
     // MARK: - Direction Resolution
     private func updateDirection(forTouchLocation location: CGPoint) {
         let distance = hypot(location.x, location.y)
-        guard distance >= GameConfig.dpadAnalogDeadzoneRadius else {
+        guard distance >= GameplayTuning.dpadAnalogDeadzoneRadius else {
             currentDirection = .zero
             updateThumb(position: .zero)
             applyPressedState(for: nil)
             return
         }
 
-        let clampedDistance = min(distance, GameConfig.dpadAnalogMaxRadius)
+        let clampedDistance = min(distance, GameplayTuning.dpadAnalogMaxRadius)
         let unit = CGVector(dx: location.x / distance, dy: location.y / distance)
         let correctedUnit = axisCorrectedUnitVector(from: unit)
         currentDirection = normalizedGameplayVector(from: correctedUnit)
@@ -160,14 +160,14 @@ final class DPadNode: SKNode {
 
     private func normalizedGameplayVector(from vector: CGVector) -> CGVector {
         let length = hypot(vector.dx, vector.dy)
-        guard length >= GameConfig.dpadInputSnapEpsilon else { return .zero }
+        guard length >= GameplayTuning.dpadInputSnapEpsilon else { return .zero }
         return CGVector(dx: vector.dx / length, dy: vector.dy / length)
     }
 
     private func axisCorrectedUnitVector(from unit: CGVector) -> CGVector {
         let absDx = abs(unit.dx)
         let absDy = abs(unit.dy)
-        let ratio = GameConfig.dpadAxisSnapDominanceRatio
+        let ratio = GameplayTuning.dpadAxisSnapDominanceRatio
 
         if absDx >= absDy * ratio {
             return CGVector(dx: unit.dx >= 0 ? 1 : -1, dy: 0)
@@ -181,42 +181,42 @@ final class DPadNode: SKNode {
     // MARK: - Visual State
     private func configureBaseRing() {
         baseRing.fillColor = UIColor.ganhoIngameControlFill
-            .withAlphaComponent(GameConfig.ingameHalfAlphaMultiplier)
+            .withAlphaComponent(UILayout.ingameHalfAlphaMultiplier)
         baseRing.strokeColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
-        baseRing.lineWidth = GameConfig.dpadButtonStrokeLineWidth
+            .withAlphaComponent(UILayout.dpadButtonStrokeAlpha)
+        baseRing.lineWidth = UILayout.dpadButtonStrokeLineWidth
         baseRing.zPosition = 0
     }
 
     private func configureButtons() {
         for button in [upButton, downButton, leftButton, rightButton] {
             button.fillColor = UIColor.ganhoIngameControlFill
-                .withAlphaComponent(GameConfig.dpadButtonFillAlpha)
+                .withAlphaComponent(UILayout.dpadButtonFillAlpha)
             button.strokeColor = UIColor.ganhoNavyDeep
-                .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
-            button.lineWidth = GameConfig.dpadButtonStrokeLineWidth
+                .withAlphaComponent(UILayout.dpadButtonStrokeAlpha)
+            button.lineWidth = UILayout.dpadButtonStrokeLineWidth
             button.zPosition = 1
         }
     }
 
     private func configureCenterDeadzone() {
         centerDeadzone.fillColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.dpadCenterDeadzoneAlpha)
+            .withAlphaComponent(UILayout.dpadCenterDeadzoneAlpha)
         centerDeadzone.strokeColor = .clear
         centerDeadzone.zPosition = 2
     }
 
     private func configureThumb() {
         thumbNode.fillColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.dpadThumbAlpha)
+            .withAlphaComponent(GameplayTuning.dpadThumbAlpha)
         thumbNode.strokeColor = .ganhoPixelHudYellow
-        thumbNode.lineWidth = GameConfig.dpadButtonStrokeLineWidth
+        thumbNode.lineWidth = UILayout.dpadButtonStrokeLineWidth
         thumbNode.zPosition = 4
     }
 
     private func configureIcon(_ icon: SKLabelNode, text: String, position: CGPoint) {
         icon.text = text
-        icon.fontSize = GameConfig.dpadIconFontSize
+        icon.fontSize = UILayout.dpadIconFontSize
         icon.fontColor = .ganhoNavyDeep
         icon.horizontalAlignmentMode = .center
         icon.verticalAlignmentMode = .center
@@ -236,35 +236,35 @@ final class DPadNode: SKNode {
         let button = buttonNode(for: direction)
         let icon = iconNode(for: direction)
         button.fillColor = UIColor.ganhoIngameControlPressed
-            .withAlphaComponent(GameConfig.dpadPressedFillAlpha)
+            .withAlphaComponent(UILayout.dpadPressedFillAlpha)
         button.strokeColor = .ganhoPixelHudYellow
         icon.fontColor = .ganhoPixelOutlineBlack
         button.run(
-            .scale(to: GameConfig.ingamePressScale, duration: GameConfig.ingamePressDuration),
-            withKey: GameConfig.ingamePressActionKey
+            .scale(to: UILayout.ingamePressScale, duration: UILayout.ingamePressDuration),
+            withKey: UILayout.ingamePressActionKey
         )
         icon.run(
-            .scale(to: GameConfig.ingamePressScale, duration: GameConfig.ingamePressDuration),
-            withKey: GameConfig.ingamePressActionKey
+            .scale(to: UILayout.ingamePressScale, duration: UILayout.ingamePressDuration),
+            withKey: UILayout.ingamePressActionKey
         )
     }
 
     private func resetButtonStyles() {
         for button in [upButton, downButton, leftButton, rightButton] {
             button.fillColor = UIColor.ganhoIngameControlFill
-                .withAlphaComponent(GameConfig.dpadButtonFillAlpha)
+                .withAlphaComponent(UILayout.dpadButtonFillAlpha)
             button.strokeColor = UIColor.ganhoNavyDeep
-                .withAlphaComponent(GameConfig.dpadButtonStrokeAlpha)
+                .withAlphaComponent(UILayout.dpadButtonStrokeAlpha)
             button.run(
-                .scale(to: GameConfig.dpadReleasedScale, duration: GameConfig.ingamePressDuration),
-                withKey: GameConfig.ingamePressActionKey
+                .scale(to: UILayout.dpadReleasedScale, duration: UILayout.ingamePressDuration),
+                withKey: UILayout.ingamePressActionKey
             )
         }
         for icon in [upIcon, downIcon, leftIcon, rightIcon] {
             icon.fontColor = .ganhoNavyDeep
             icon.run(
-                .scale(to: GameConfig.dpadReleasedScale, duration: GameConfig.ingamePressDuration),
-                withKey: GameConfig.ingamePressActionKey
+                .scale(to: UILayout.dpadReleasedScale, duration: UILayout.ingamePressDuration),
+                withKey: UILayout.ingamePressActionKey
             )
         }
     }

@@ -12,7 +12,7 @@ final class ProjectileWarningLineNode: SKNode {
     init(angles: [CGFloat], length: CGFloat, color: UIColor, alpha: CGFloat) {
         super.init()
         name = "projectileWarningLine"
-        zPosition = GameConfig.projectileWarningLineZPosition
+        zPosition = ZOrder.projectileWarningLineZPosition
         self.alpha = alpha
         for angle in angles {
             addLine(angle: angle, length: length, color: color)
@@ -31,7 +31,7 @@ final class ProjectileWarningLineNode: SKNode {
 
         let line = SKShapeNode(path: path)
         line.strokeColor = color
-        line.lineWidth = GameConfig.projectileWarningLineWidth
+        line.lineWidth = GameplayTuning.projectileWarningLineWidth
         line.lineCap = .round
         line.fillColor = .clear
         line.zPosition = 0
@@ -39,11 +39,11 @@ final class ProjectileWarningLineNode: SKNode {
     }
 
     private func runPulse() {
-        let fadeDown = SKAction.fadeAlpha(to: alpha * GameConfig.projectileWarningLinePulseMinRatio,
-                                          duration: GameConfig.projectileWarningLinePulseHalfDuration)
+        let fadeDown = SKAction.fadeAlpha(to: alpha * GameplayTuning.projectileWarningLinePulseMinRatio,
+                                          duration: GameplayTuning.projectileWarningLinePulseHalfDuration)
         let fadeUp = SKAction.fadeAlpha(to: alpha,
-                                        duration: GameConfig.projectileWarningLinePulseHalfDuration)
+                                        duration: GameplayTuning.projectileWarningLinePulseHalfDuration)
         run(.repeatForever(.sequence([fadeDown, fadeUp])),
-            withKey: GameConfig.projectileWarningLinePulseActionKey)
+            withKey: GameplayTuning.projectileWarningLinePulseActionKey)
     }
 }

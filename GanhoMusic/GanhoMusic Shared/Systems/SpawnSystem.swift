@@ -25,40 +25,29 @@ final class SpawnSystem {
     private var noteSpawnTick: Int = 0
 
     // MARK: - Tunable (Phase 7-1 / Sprint 10 Phase I)
-    /// 동시 음표 최대 수. default = GameConfig.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
-    var noteMaxConcurrent: Int = GameConfig.noteMaxConcurrent
+    /// 동시 음표 최대 수. default = GameplayTuning.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
+    var noteMaxConcurrent: Int = GameplayTuning.noteMaxConcurrent
     /// 음표 TTL (초). easy = .infinity → NoteNode.applyLifetime이 가드로 noop → 무한 TTL 유지.
     var noteLifetime: TimeInterval = .infinity
-    /// Sprint 10 Phase I — 음표 spawn 주기 (초). default = GameConfig.noteSpawnInterval(1.5, easy)
+    /// Sprint 10 Phase I — 음표 spawn 주기 (초). default = GameplayTuning.noteSpawnInterval(1.5, easy)
     /// → apply 누락 시 easy 동작 자연 fallback. apply(difficulty)가 dict에서 set.
     /// startNoteSpawnLoop가 self.noteSpawnInterval 참조 → 난이도별 차등 적용.
-    var noteSpawnInterval: TimeInterval = GameConfig.noteSpawnInterval
+    var noteSpawnInterval: TimeInterval = GameplayTuning.noteSpawnInterval
 
-    // MARK: Dead (Phase D 이후 미사용, Sprint 10 Phase I 보류 — OQ-B)
-    // 호출처: currentObstaclesTarget getter(아래)만 projectileMaxConcurrent 사용 → 보존 필수.
-    // burst/fireIntervalStart/End 3개는 호출처 0이지만 즉시 삭제 X — 후속 정리 sprint에서.
     /// F 동시 최대 수. AIRFORCE 도주 종료 후 F 재시딩 목표치(currentObstaclesTarget)에서 사용 — *살아있음*.
-    var projectileMaxConcurrent: Int = GameConfig.projectileMaxConcurrent
-    /// F 동시 burst 발사 수. Phase D 이후 호출처 0 (EnemyNode가 GameConfig dict 직접 참조).
-    var projectileBurstCount: Int = 1
-    /// F 발사 주기 시작값. Phase D 이후 호출처 0.
-    var projectileFireIntervalStart: TimeInterval = GameConfig.projectileFireInterval
-    /// F 발사 주기 끝값. Phase D 이후 호출처 0.
-    var projectileFireIntervalEnd: TimeInterval = GameConfig.projectileFireIntervalEnd
+    /// R0 — dead 3종(burst/fireIntervalStart/End)은 호출처 0 확인 후 삭제. 발사 책임은 EnemyNode가 전담.
+    var projectileMaxConcurrent: Int = GameplayTuning.projectileMaxConcurrent
 
     // MARK: - Apply (Phase 7-1)
     /// 난이도 정체성 단일 진입점. GameScene.startGameProperly에서 spawnSystem.start 직전 1줄 호출.
     /// 모든 dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
     func apply(_ difficulty: Difficulty) {
-        noteMaxConcurrent          = GameConfig.noteMaxConcurrentByDifficulty[difficulty]          ?? GameConfig.noteMaxConcurrent
-        noteLifetime               = GameConfig.noteLifetimeByDifficulty[difficulty]               ?? .infinity
-        projectileMaxConcurrent    = GameConfig.projectileMaxConcurrentByDifficulty[difficulty]    ?? GameConfig.projectileMaxConcurrent
-        projectileBurstCount       = GameConfig.projectileBurstCountByDifficulty[difficulty]       ?? 1
-        projectileFireIntervalStart = GameConfig.projectileFireIntervalStartByDifficulty[difficulty] ?? GameConfig.projectileFireInterval
-        projectileFireIntervalEnd   = GameConfig.projectileFireIntervalEndByDifficulty[difficulty]   ?? GameConfig.projectileFireIntervalEnd
+        noteMaxConcurrent          = GameplayTuning.noteMaxConcurrentByDifficulty[difficulty]          ?? GameplayTuning.noteMaxConcurrent
+        noteLifetime               = GameplayTuning.noteLifetimeByDifficulty[difficulty]               ?? .infinity
+        projectileMaxConcurrent    = GameplayTuning.projectileMaxConcurrentByDifficulty[difficulty]    ?? GameplayTuning.projectileMaxConcurrent
         // Sprint 10 Phase I — 음표 spawn 주기 난이도 차등 (원본 game.js L101~L105 1:1).
         // easy=1.5(기존값 = 회귀 0) / normal=0.4 / hard=0.3. fallback은 기존 단일값 noteSpawnInterval.
-        noteSpawnInterval = GameConfig.noteSpawnIntervalByDifficulty[difficulty] ?? GameConfig.noteSpawnInterval
+        noteSpawnInterval = GameplayTuning.noteSpawnIntervalByDifficulty[difficulty] ?? GameplayTuning.noteSpawnInterval
     }
 
     // MARK: - Lifecycle
@@ -100,7 +89,7 @@ final class SpawnSystem {
 
     // MARK: - Note Spawn (Phase 2-3 / Sprint 10 Phase I)
     /// 음표 자동 spawn 루프 시작. SKAction.repeatForever — Timer 금지.
-    /// Sprint 10 Phase I — GameConfig.noteSpawnInterval(static) → self.noteSpawnInterval(인스턴스).
+    /// Sprint 10 Phase I — GameplayTuning.noteSpawnInterval(static) → self.noteSpawnInterval(인스턴스).
     /// apply(difficulty)가 set한 난이도별 dict 값을 그대로 반영 — easy=1.5(회귀 0)/normal=0.4/hard=0.3.
     private func startNoteSpawnLoop() {
         let wait  = SKAction.wait(forDuration: self.noteSpawnInterval)
@@ -115,7 +104,7 @@ final class SpawnSystem {
     private func trySpawnNote() {
         guard let world = worldNode else { return }
         noteSpawnTick += 1
-        if noteSpawnTick % GameConfig.notePatternEverySpawn == 0,
+        if noteSpawnTick % GameplayTuning.notePatternEverySpawn == 0,
            trySpawnNotePattern(in: world) {
             return
         }
@@ -134,18 +123,18 @@ final class SpawnSystem {
 
     /// 외곽 벽과 수집 hitbox가 겹치지 않는 열린 위치. 중앙 기둥/벽 내부 후보는 제한 횟수 안에서 재시도한다.
     private func randomNotePosition() -> CGPoint? {
-        return randomOpenMapPosition(halfExtent: GameConfig.spawnCollectibleHalfExtent)
+        return randomOpenMapPosition(halfExtent: GameplayTuning.spawnCollectibleHalfExtent)
     }
 
     private func randomOpenMapPosition(halfExtent: CGFloat) -> CGPoint? {
-        let margin = GameConfig.tileSize + halfExtent
+        let margin = GameplayTuning.tileSize + halfExtent
         let minX = margin
-        let maxX = GameConfig.mapWidth - margin
+        let maxX = GameplayTuning.mapWidth - margin
         let minY = margin
-        let maxY = GameConfig.mapHeight - margin
+        let maxY = GameplayTuning.mapHeight - margin
         guard maxX >= minX, maxY >= minY else { return nil }
 
-        for _ in 0..<GameConfig.spawnPositionMaxAttempts {
+        for _ in 0..<GameplayTuning.spawnPositionMaxAttempts {
             let point = CGPoint(
                 x: CGFloat.random(in: minX ... maxX),
                 y: CGFloat.random(in: minY ... maxY)
@@ -159,15 +148,15 @@ final class SpawnSystem {
     }
 
     private func isAwayFromCenterPillar(_ point: CGPoint) -> Bool {
-        let cx = GameConfig.mapWidth / 2
-        let cy = GameConfig.mapHeight / 2
-        return abs(point.x - cx) + abs(point.y - cy) >= GameConfig.tileSize * 3
+        let cx = GameplayTuning.mapWidth / 2
+        let cy = GameplayTuning.mapHeight / 2
+        return abs(point.x - cx) + abs(point.y - cy) >= GameplayTuning.tileSize * 3
     }
 
     private func isOpenSpawnPoint(_ point: CGPoint, halfExtent: CGFloat) -> Bool {
-        let margin = GameConfig.tileSize + halfExtent
-        guard point.x >= margin, point.x <= GameConfig.mapWidth - margin else { return false }
-        guard point.y >= margin, point.y <= GameConfig.mapHeight - margin else { return false }
+        let margin = GameplayTuning.tileSize + halfExtent
+        guard point.x >= margin, point.x <= GameplayTuning.mapWidth - margin else { return false }
+        guard point.y >= margin, point.y <= GameplayTuning.mapHeight - margin else { return false }
 
         for sample in spawnCollisionSamples(center: point, halfExtent: halfExtent) {
             if hasWallBody(at: sample) {
@@ -197,11 +186,11 @@ final class SpawnSystem {
     }
 
     private func trySpawnNotePattern(in world: SKNode) -> Bool {
-        guard currentNoteCount() <= noteMaxConcurrent - GameConfig.notePatternSize else { return false }
+        guard currentNoteCount() <= noteMaxConcurrent - GameplayTuning.notePatternSize else { return false }
         guard let origin = randomNotePosition() else { return false }
-        let spacing = GameConfig.notePatternSpacing
+        let spacing = GameplayTuning.notePatternSpacing
         let rawOffsets: [CGPoint]
-        switch (noteSpawnTick / GameConfig.notePatternEverySpawn) % 3 {
+        switch (noteSpawnTick / GameplayTuning.notePatternEverySpawn) % 3 {
         case 0:
             rawOffsets = [-1.5, -0.5, 0.5, 1.5].map { CGPoint(x: $0 * spacing, y: 0) }
         case 1:
@@ -216,7 +205,7 @@ final class SpawnSystem {
         }
         for offset in rawOffsets {
             let position = clampedNotePosition(CGPoint(x: origin.x + offset.x, y: origin.y + offset.y))
-            guard isOpenSpawnPoint(position, halfExtent: GameConfig.spawnCollectibleHalfExtent) else { continue }
+            guard isOpenSpawnPoint(position, halfExtent: GameplayTuning.spawnCollectibleHalfExtent) else { continue }
             spawnNote(at: position, in: world)
         }
         return true
@@ -230,20 +219,17 @@ final class SpawnSystem {
     }
 
     private func clampedNotePosition(_ point: CGPoint) -> CGPoint {
-        let margin = GameConfig.tileSize + GameConfig.spawnCollectibleHalfExtent
+        let margin = GameplayTuning.tileSize + GameplayTuning.spawnCollectibleHalfExtent
         return CGPoint(
-            x: min(max(point.x, margin), GameConfig.mapWidth - margin),
-            y: min(max(point.y, margin), GameConfig.mapHeight - margin)
+            x: min(max(point.x, margin), GameplayTuning.mapWidth - margin),
+            y: min(max(point.y, margin), GameplayTuning.mapHeight - margin)
         )
     }
 
     // MARK: - Projectile Fire (Sprint 10 Phase E)
     // Phase D OQ-6 — 발사 책임이 EnemyNode 내부 텔레그래프 상태 머신으로 완전 이전.
-    // dead code 5 메서드(startProjectileFireLoop / scheduleNextFire / currentFireInterval /
-    //   fireProjectile / currentProjectileCount) 제거. 호출처 0.
     // stop()의 "fireProjectiles" removeAction은 유지 — noop 안전망.
-    // dead 프로퍼티(projectileMaxConcurrent / projectileBurstCount / projectileFireIntervalStart /
-    //   projectileFireIntervalEnd)는 Phase I로 미룸.
+    // R0 — dead 프로퍼티 3종(burst/fireIntervalStart/End) 삭제 완료. projectileMaxConcurrent만 생존.
 
     /// Phase 4-7 — 외부 호출용. AIRFORCE 이스터에그 수간호사 복귀 시 F 1발 즉시 발사.
     /// Sprint 10 Phase D — 발사 책임이 EnemyNode로 이동 → enemy.fireFOnce() 1줄 위임.
@@ -283,7 +269,7 @@ final class SpawnSystem {
     /// 매 12초 사이클마다 1회 확률 판정(Bernoulli). 첫 12초는 wait → 변기 0개 (의도된 톤).
     /// 게임 일시정지(scene.isPaused=true) 시 SKAction 자체 멈춤 → 자연 차단.
     private func startToiletSpawnLoop() {
-        let wait = SKAction.wait(forDuration: GameConfig.toiletSpawnInterval)
+        let wait = SKAction.wait(forDuration: GameplayTuning.toiletSpawnInterval)
         let roll = SKAction.run { [weak self] in self?.tryRollAndSpawnToilet() }
         let loop = SKAction.repeatForever(.sequence([wait, roll]))
         scene?.run(loop, withKey: "spawnToilets")
@@ -296,8 +282,8 @@ final class SpawnSystem {
     /// 3) 위치 산출(중앙 기둥 회피) 실패 시 noop (다음 사이클 재시도).
     private func tryRollAndSpawnToilet() {
         guard let world = worldNode else { return }
-        guard currentToiletCount() < GameConfig.toiletMaxConcurrent else { return }
-        guard CGFloat.random(in: 0..<1) < GameConfig.toiletSpawnProbability else { return }
+        guard currentToiletCount() < GameplayTuning.toiletMaxConcurrent else { return }
+        guard CGFloat.random(in: 0..<1) < GameplayTuning.toiletSpawnProbability else { return }
         guard let position = randomToiletPosition() else { return }
         let toilet = ToiletNode()
         toilet.position = position
@@ -318,6 +304,6 @@ final class SpawnSystem {
     /// 중심+네 모서리 wall 검사까지 통과한 randomNotePosition 정책을 재사용한다.
     /// nil 반환 시 호출부(`tryRollAndSpawnToilet`)가 noop → 다음 사이클 재시도.
     private func randomToiletPosition() -> CGPoint? {
-        return randomOpenMapPosition(halfExtent: GameConfig.spawnCollectibleHalfExtent)
+        return randomOpenMapPosition(halfExtent: GameplayTuning.spawnCollectibleHalfExtent)
     }
 }

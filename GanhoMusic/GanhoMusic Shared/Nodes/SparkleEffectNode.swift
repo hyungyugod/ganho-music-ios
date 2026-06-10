@@ -37,7 +37,7 @@ final class SparkleEffectNode: SKNode, SelfDismissingNode {
         self.context = context
         super.init()
         name = "sparkle"
-        zPosition = GameConfig.sparkleZPosition
+        zPosition = ZOrder.sparkleZPosition
         buildParticles()
     }
 
@@ -52,12 +52,12 @@ final class SparkleEffectNode: SKNode, SelfDismissingNode {
     /// - `.menu`: SKShapeNode `sparkleParticleRadius` 원형 + .white.
     /// init 시점에만 호출 — update 안 addChild 패턴 위반 0.
     private func buildParticles() {
-        for _ in 0..<GameConfig.sparkleParticleCount {
+        for _ in 0..<FeelTuning.sparkleParticleCount {
             let particle: SKNode
             switch context {
             case .ingame:
                 // 인게임 픽셀 톤 — 정사각 픽셀 페이퍼 화이트. 어두운 BG(#1A1B2E) 위 8-bit 별빛.
-                let pixelSize = GameConfig.sparklePixelSize
+                let pixelSize = FeelTuning.sparklePixelSize
                 let sprite = SKSpriteNode(
                     color: .ganhoPixelHudWhite,
                     size: CGSize(width: pixelSize, height: pixelSize)
@@ -65,7 +65,7 @@ final class SparkleEffectNode: SKNode, SelfDismissingNode {
                 particle = sprite
             case .menu:
                 // 메뉴 카툰 톤 — 둥근 원 순백. v2 따뜻한 BG 위 신기록 burst.
-                let shape = SKShapeNode(circleOfRadius: GameConfig.sparkleParticleRadius)
+                let shape = SKShapeNode(circleOfRadius: FeelTuning.sparkleParticleRadius)
                 shape.fillColor = .white
                 shape.strokeColor = .clear
                 particle = shape
@@ -80,20 +80,20 @@ final class SparkleEffectNode: SKNode, SelfDismissingNode {
     /// *동시* run. group 액션 [move, fadeOut, scale]을 동시 진행. self 미사용 — [weak self] 캡처 불필요.
     /// **Sprint 10 Phase J: SKAction 본문 0건 변경.**
     func emit() {
-        let angleStep = (2 * CGFloat.pi) / CGFloat(GameConfig.sparkleParticleCount)
+        let angleStep = (2 * CGFloat.pi) / CGFloat(FeelTuning.sparkleParticleCount)
         for (index, child) in children.enumerated() {
             let angle = angleStep * CGFloat(index)
-            let dx = cos(angle) * GameConfig.sparkleSpawnDistance
-            let dy = sin(angle) * GameConfig.sparkleSpawnDistance
-            let move  = SKAction.moveBy(x: dx, y: dy, duration: GameConfig.sparkleFadeDuration)
-            let fade  = SKAction.fadeOut(withDuration: GameConfig.sparkleFadeDuration)
-            let scale = SKAction.scale(to: GameConfig.sparkleEndScale,
-                                       duration: GameConfig.sparkleFadeDuration)
+            let dx = cos(angle) * FeelTuning.sparkleSpawnDistance
+            let dy = sin(angle) * FeelTuning.sparkleSpawnDistance
+            let move  = SKAction.moveBy(x: dx, y: dy, duration: FeelTuning.sparkleFadeDuration)
+            let fade  = SKAction.fadeOut(withDuration: FeelTuning.sparkleFadeDuration)
+            let scale = SKAction.scale(to: FeelTuning.sparkleEndScale,
+                                       duration: FeelTuning.sparkleFadeDuration)
             child.run(.group([move, fade, scale]))
         }
         // 컨테이너 자가 제거: group 길이만큼 대기 후 removeFromParent.
         // child 액션과 동일한 sparkleFadeDuration으로 묶어 정확한 타이밍 보장.
-        let wait    = SKAction.wait(forDuration: GameConfig.sparkleFadeDuration)
+        let wait    = SKAction.wait(forDuration: FeelTuning.sparkleFadeDuration)
         let cleanup = SKAction.removeFromParent()
         run(.sequence([wait, cleanup]))
     }

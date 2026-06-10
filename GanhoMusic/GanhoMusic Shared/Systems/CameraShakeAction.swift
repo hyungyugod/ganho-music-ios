@@ -15,7 +15,7 @@ enum CameraShakeAction {
 
     // MARK: - Make
     /// 좌→우→좌→우 직선 이동을 cameraShakeStepCount회 반복 후 *원위치 복귀*.
-    /// 진폭은 GameConfig.cameraShakeAmplitude, 스텝당 길이는 cameraShakeStepDuration.
+    /// 진폭은 FeelTuning.cameraShakeAmplitude, 스텝당 길이는 cameraShakeStepDuration.
     /// 마지막 복귀 단계는 누적 변위 0이 되도록 부호 결정 (count 짝/홀).
     /// 학생 비유: 머리를 좌·우·좌·우·좌·우 흔든 뒤 정면으로 *딱* 복귀.
     ///
@@ -29,9 +29,9 @@ enum CameraShakeAction {
     ///   복귀:+amp   (누적   0) ✓
     /// 일반화: count 짝수 → 누적 -amp → 복귀 +amp / count 홀수 → 복귀 -amp.
     static func make() -> SKAction {
-        let amp = GameConfig.cameraShakeAmplitude
-        let dur = GameConfig.cameraShakeStepDuration
-        let count = GameConfig.cameraShakeStepCount
+        let amp = FeelTuning.cameraShakeAmplitude
+        let dur = FeelTuning.cameraShakeStepDuration
+        let count = FeelTuning.cameraShakeStepCount
 
         // 첫 이동(+amp), 그 후 (count-1)회 ±2amp 토글, 마지막 ±amp로 원위치.
         var steps: [SKAction] = []

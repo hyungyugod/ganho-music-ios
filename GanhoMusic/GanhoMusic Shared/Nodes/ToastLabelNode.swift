@@ -32,10 +32,10 @@ final class ToastLabelNode: SKNode, SelfDismissingNode {
         self.label = SKLabelNode(text: text)
         super.init()
         name = "toast"
-        zPosition = GameConfig.toastZPosition
+        zPosition = ZOrder.toastZPosition
         configureLabel()
         // 시작 시 살짝 작게 — *부풀어 오르는* 톤. ScorePopupNode(0.8 → 1.0)과 동형.
-        setScale(GameConfig.toastStartScale)
+        setScale(FeelTuning.toastStartScale)
         addChild(label)
     }
 
@@ -46,14 +46,14 @@ final class ToastLabelNode: SKNode, SelfDismissingNode {
     // MARK: - Spawn (static factory — 외부 유일 진입점)
     /// 변기 수집 좌표 위쪽에 토스트 텍스트를 띄우는 자가 소멸 라벨.
     /// - Parameters:
-    ///   - text: 표시 텍스트. 호출부에서 `GameConfig.toiletToastText` 전달.
+    ///   - text: 표시 텍스트. 호출부에서 `FeelTuning.toiletToastText` 전달.
     ///   - position: 변기가 수집된 worldNode 좌표 (sparkle.position과 동일 권장).
     ///   - parent: 부착 부모. 호출부에서 `worldNode` 전달 — sparkle과 동일 부모 → 카메라 follow 동기.
     static func spawn(text: String, at position: CGPoint, parent: SKNode) {
         let node = ToastLabelNode(text: text)
         // 변기 중심 위쪽 +toastStartOffsetY pt에서 시작 — 변기 본체와 텍스트 픽셀 겹침 방지.
         node.position = CGPoint(x: position.x,
-                                y: position.y + GameConfig.toastStartOffsetY)
+                                y: position.y + FeelTuning.toastStartOffsetY)
         parent.addChild(node)
         node.animate()
     }
@@ -65,11 +65,11 @@ final class ToastLabelNode: SKNode, SelfDismissingNode {
     /// ScorePopupNode.animate() 완전 답습 — 상수만 toastDuration / toastFlyUpDistance / toastEndScale.
     private func animate() {
         let moveUp  = SKAction.moveBy(x: 0,
-                                       y: GameConfig.toastFlyUpDistance,
-                                       duration: GameConfig.toastDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.toastDuration)
-        let scaleUp = SKAction.scale(to: GameConfig.toastEndScale,
-                                      duration: GameConfig.toastDuration)
+                                       y: FeelTuning.toastFlyUpDistance,
+                                       duration: FeelTuning.toastDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.toastDuration)
+        let scaleUp = SKAction.scale(to: FeelTuning.toastEndScale,
+                                      duration: FeelTuning.toastDuration)
         let group   = SKAction.group([moveUp, fadeOut, scaleUp])
         let cleanup = SKAction.removeFromParent()
         run(.sequence([group, cleanup]))
@@ -79,7 +79,7 @@ final class ToastLabelNode: SKNode, SelfDismissingNode {
     /// 라벨 스타일 — 황금색(.ganhoYellowF), 중앙 정렬. fontName 미지정 (다른 자가 소멸 노드 일관).
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     private func configureLabel() {
-        label.fontSize = GameConfig.toastFontSize
+        label.fontSize = FeelTuning.toastFontSize
         // .ganhoYellowF — 콤보 ×10 마일스톤(황금기 톤)과 동일 색 → *보너스 = 황금기 가속*이라는 의미 공유.
         label.fontColor = .ganhoYellowF
         label.verticalAlignmentMode = .center

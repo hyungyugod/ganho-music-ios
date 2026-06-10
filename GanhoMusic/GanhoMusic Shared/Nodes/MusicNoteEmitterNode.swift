@@ -6,7 +6,7 @@
 //
 //  떠다니는 음표 파티클 컨테이너. 화면 하단에서 살구색 ♪/♫/♩가 천천히 위로 떠오르며 fade.
 //  SKAction.repeatForever로 스폰 — Timer 사용 0.
-//  동시 표시 상한 GameConfig.musicNoteEmitterMaxConcurrent로 가드.
+//  동시 표시 상한 UILayout.musicNoteEmitterMaxConcurrent로 가드.
 //  자식 음표가 화면 위로 사라지면 자가 removeFromParent — addChild 누적 없음.
 //
 
@@ -35,7 +35,7 @@ final class MusicNoteEmitterNode: SKNode {
         self.sceneSize = sceneSize
         super.init()
         name = "musicNoteEmitter"
-        zPosition = GameConfig.startSceneMusicNoteZPosition
+        zPosition = ZOrder.startSceneMusicNoteZPosition
         startEmitting()
     }
 
@@ -50,7 +50,7 @@ final class MusicNoteEmitterNode: SKNode {
         let spawn = SKAction.run { [weak self] in
             self?.spawnOneNote()
         }
-        let wait = SKAction.wait(forDuration: GameConfig.musicNoteEmitterSpawnInterval)
+        let wait = SKAction.wait(forDuration: UILayout.musicNoteEmitterSpawnInterval)
         let sequence = SKAction.sequence([spawn, wait])
         run(SKAction.repeatForever(sequence), withKey: spawnActionKey)
     }
@@ -58,10 +58,10 @@ final class MusicNoteEmitterNode: SKNode {
     /// 음표 1개 스폰. activeCount 상한 가드 → 라벨 생성 → 액션 시퀀스 부착.
     /// 모든 클로저 `[weak self]` — emitter 소멸 시 메모리 누수 0.
     private func spawnOneNote() {
-        guard activeCount < GameConfig.musicNoteEmitterMaxConcurrent else { return }
+        guard activeCount < UILayout.musicNoteEmitterMaxConcurrent else { return }
         let glyph = glyphCandidates.randomElement() ?? "♪"
         let label = SKLabelNode(text: glyph)
-        label.fontSize = GameConfig.musicNoteEmitterFontSize
+        label.fontSize = UILayout.musicNoteEmitterFontSize
         label.fontColor = .ganhoAccentCoral
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
@@ -69,32 +69,32 @@ final class MusicNoteEmitterNode: SKNode {
         let startX = CGFloat.random(in: 0...sceneSize.width)
         label.position = CGPoint(
             x: startX,
-            y: GameConfig.musicNoteEmitterStartYOffset
+            y: UILayout.musicNoteEmitterStartYOffset
         )
         addChild(label)
         activeCount += 1
 
         let drift = CGFloat.random(
-            in: -GameConfig.musicNoteEmitterDriftRange...GameConfig.musicNoteEmitterDriftRange
+            in: -UILayout.musicNoteEmitterDriftRange...UILayout.musicNoteEmitterDriftRange
         )
         let rise = SKAction.moveBy(
             x: drift,
-            y: sceneSize.height + GameConfig.musicNoteEmitterRiseEndYMargin
-                - GameConfig.musicNoteEmitterStartYOffset,
-            duration: GameConfig.musicNoteEmitterRiseDuration
+            y: sceneSize.height + UILayout.musicNoteEmitterRiseEndYMargin
+                - UILayout.musicNoteEmitterStartYOffset,
+            duration: UILayout.musicNoteEmitterRiseDuration
         )
         let fadeIn = SKAction.fadeAlpha(
-            to: GameConfig.musicNoteEmitterMaxAlpha,
-            duration: GameConfig.musicNoteEmitterFadeInDuration
+            to: UILayout.musicNoteEmitterMaxAlpha,
+            duration: UILayout.musicNoteEmitterFadeInDuration
         )
         let fadeOut = SKAction.fadeOut(
-            withDuration: GameConfig.musicNoteEmitterFadeOutDuration
+            withDuration: UILayout.musicNoteEmitterFadeOutDuration
         )
         // rise와 병렬로 진행되, 상승 종료 직전에 fadeOut 시작.
         let fadeOutDelay = max(
             0,
-            GameConfig.musicNoteEmitterRiseDuration
-                - GameConfig.musicNoteEmitterFadeOutDuration
+            UILayout.musicNoteEmitterRiseDuration
+                - UILayout.musicNoteEmitterFadeOutDuration
         )
         let waitThenFadeOut = SKAction.sequence([
             SKAction.wait(forDuration: fadeOutDelay),

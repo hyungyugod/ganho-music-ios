@@ -45,7 +45,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     /// 컴파일 타임에 차단 (ScorePopupNode 9호 패턴 답습).
     private init(title: String, body: String, sceneSize: CGSize, fontName: String? = nil) {
         self.background = SKSpriteNode(
-            color: UIColor.black.withAlphaComponent(GameConfig.cutsceneBackgroundAlpha),
+            color: UIColor.black.withAlphaComponent(FeelTuning.cutsceneBackgroundAlpha),
             size: sceneSize
         )
         self.titleLabel = SKLabelNode(text: title)
@@ -53,7 +53,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         self.tapLabel = SKLabelNode(text: "TAP TO CONTINUE")
         super.init()
         name = "cutsceneOverlay"
-        zPosition = GameConfig.cutsceneZPosition
+        zPosition = ZOrder.cutsceneZPosition
         // 자기 자신이 touchesBegan을 받기 위해 true 필수 — SKNode 기본은 false.
         // 미설정 시 터치가 부모(cameraNode → scene)로 전파되어 컷씬 dismiss 트리거 누락.
         isUserInteractionEnabled = true
@@ -93,7 +93,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         node.onDismiss = onDismiss
         parent.addChild(node)
         // fadeIn — 등장 보간. ScorePopupNode·CountdownNode와 동형 자가 소멸 패턴.
-        node.run(SKAction.fadeIn(withDuration: GameConfig.cutsceneFadeInDuration))
+        node.run(SKAction.fadeIn(withDuration: FeelTuning.cutsceneFadeInDuration))
     }
 
     // MARK: - Touch Trigger
@@ -115,7 +115,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         // 콜백 1회 캡처 후 nil 토글 — onDismiss 중복 호출 차단(2중 안전망).
         let callback = onDismiss
         onDismiss = nil
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.cutsceneFadeOutDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.cutsceneFadeOutDuration)
         // notify는 self 미사용 — [weak self] 불필요. CountdownNode.start 패턴 답습.
         let notify = SKAction.run { callback?() }
         let cleanup = SKAction.removeFromParent()
@@ -136,11 +136,11 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     /// 라벨은 본 노드 좌표계 (0, +offset)에 부착 → cameraNode 부착 시 화면 중앙 위쪽.
     private func configureTitleLabel(fontName: String? = nil) {
         if let fontName { titleLabel.fontName = fontName }
-        titleLabel.fontSize = GameConfig.cutsceneTitleFontSize
+        titleLabel.fontSize = FeelTuning.cutsceneTitleFontSize
         titleLabel.fontColor = .ganhoPaper
         titleLabel.verticalAlignmentMode = .center
         titleLabel.horizontalAlignmentMode = .center
-        titleLabel.position = CGPoint(x: 0, y: GameConfig.cutsceneTitleOffsetY)
+        titleLabel.position = CGPoint(x: 0, y: FeelTuning.cutsceneTitleOffsetY)
         titleLabel.zPosition = 1   // 배경(0) 위.
     }
 
@@ -149,7 +149,7 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     /// 폭 = sceneSize.width × cutsceneBodyWidthRatio(0.7) — 양 가장자리 15% 여백.
     private func configureBodyLabel(sceneSize: CGSize, fontName: String? = nil) {
         if let fontName { bodyLabel.fontName = fontName }
-        bodyLabel.fontSize = GameConfig.cutsceneBodyFontSize
+        bodyLabel.fontSize = FeelTuning.cutsceneBodyFontSize
         bodyLabel.fontColor = .ganhoPaper
         bodyLabel.verticalAlignmentMode = .center
         bodyLabel.horizontalAlignmentMode = .center
@@ -157,20 +157,20 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         bodyLabel.zPosition = 1
         // iOS 11+ 자동 줄바꿈. numberOfLines = 0 → 줄 수 제한 없음 + preferredMaxLayoutWidth 기반 wrap.
         bodyLabel.numberOfLines = 0
-        bodyLabel.preferredMaxLayoutWidth = sceneSize.width * GameConfig.cutsceneBodyWidthRatio
+        bodyLabel.preferredMaxLayoutWidth = sceneSize.width * FeelTuning.cutsceneBodyWidthRatio
     }
 
     /// TAP 라벨 — 본문 아래쪽 -cutsceneTapOffsetY, 부속 안내 톤(alpha 0.7).
     /// titlePromptBlink(0.6초 깜빡임)과 달리 *정적 표시* — 컷씬 본문 가독성 우선(시각 노이즈 ↓).
     private func configureTapLabel(fontName: String? = nil) {
         if let fontName { tapLabel.fontName = fontName }
-        tapLabel.fontSize = GameConfig.cutsceneTapFontSize
+        tapLabel.fontSize = FeelTuning.cutsceneTapFontSize
         tapLabel.fontColor = .ganhoPaper
         tapLabel.verticalAlignmentMode = .center
         tapLabel.horizontalAlignmentMode = .center
-        tapLabel.position = CGPoint(x: 0, y: GameConfig.cutsceneTapOffsetY)
+        tapLabel.position = CGPoint(x: 0, y: FeelTuning.cutsceneTapOffsetY)
         tapLabel.zPosition = 1
         // 부속 안내 — 제목/본문(1.0) 대비 시각 위계.
-        tapLabel.alpha = GameConfig.cutsceneTapLabelAlpha
+        tapLabel.alpha = FeelTuning.cutsceneTapLabelAlpha
     }
 }

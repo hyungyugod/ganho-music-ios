@@ -16,14 +16,14 @@ struct CharacterUnlockState {
     let requiredScore: Int?
 
     var requirementText: String {
-        guard !isUnlocked else { return GameConfig.characterHomeUnlockedText }
+        guard !isUnlocked else { return UILayout.characterHomeUnlockedText }
         guard let requiredCharacterID = requiredCharacterID else {
-            return GameConfig.characterHomeLockedText
+            return UILayout.characterHomeLockedText
         }
         if let requiredScore = requiredScore {
-            return "\(requiredCharacterID.displayName) \(requiredScore)\(GameConfig.characterHomePointSuffixText) \(GameConfig.characterHomeAchievedText)"
+            return "\(requiredCharacterID.displayName) \(requiredScore)\(UILayout.characterHomePointSuffixText) \(UILayout.characterHomeAchievedText)"
         }
-        return "\(requiredCharacterID.displayName) \(GameConfig.characterHomeUnlockRequirementSuffix)"
+        return "\(requiredCharacterID.displayName) \(UILayout.characterHomeUnlockRequirementSuffix)"
     }
 
     // MARK: - Factories
@@ -42,7 +42,7 @@ struct CharacterUnlockState {
             characterID: characterID,
             isUnlocked: false,
             requiredCharacterID: requiredCharacterID,
-            requiredScore: GameConfig.characterUnlockRequiredScore
+            requiredScore: GameplayTuning.characterUnlockRequiredScore
         )
     }
 }

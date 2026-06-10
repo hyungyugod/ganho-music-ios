@@ -27,7 +27,7 @@ extension GameScene {
     }
 
     func controlMargin(base: CGFloat, radius: CGFloat, scale: CGFloat) -> CGFloat {
-        return base + max(0, radius * (scale - GameConfig.regularLayoutScale))
+        return base + max(0, radius * (scale - UILayout.regularLayoutScale))
     }
 
     func layoutDPad() {
@@ -37,13 +37,13 @@ extension GameScene {
         let scale = DeviceLayoutProfile.resolve(for: self).ingameControlScale
         dpad.setScale(scale)
         let marginX = controlMargin(
-            base: GameConfig.dpadMarginX,
-            radius: GameConfig.dpadTouchRadius,
+            base: GameplayTuning.dpadMarginX,
+            radius: GameplayTuning.dpadTouchRadius,
             scale: scale
         )
         let marginY = controlMargin(
-            base: GameConfig.dpadMarginY,
-            radius: GameConfig.dpadTouchRadius,
+            base: GameplayTuning.dpadMarginY,
+            radius: GameplayTuning.dpadTouchRadius,
             scale: scale
         )
         dpad.position = CGPoint(
@@ -58,8 +58,8 @@ extension GameScene {
         let scale = DeviceLayoutProfile.resolve(for: self).ingameHUDScale
         hud.setScale(scale)
         let marginY = controlMargin(
-            base: GameConfig.hudTopMargin,
-            radius: GameConfig.hudSlotHeight / 2,
+            base: UILayout.hudTopMargin,
+            radius: UILayout.hudSlotHeight / 2,
             scale: scale
         )
         hud.position = CGPoint(

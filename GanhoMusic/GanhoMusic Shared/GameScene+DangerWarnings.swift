@@ -10,7 +10,7 @@ import SpriteKit
 
 extension GameScene {
     func updateDangerWarnings() {
-        let profile = GameConfig.warningProfileByDifficulty[difficulty] ?? GameConfig.warningProfileFallback
+        let profile = GameplayTuning.warningProfileByDifficulty[difficulty] ?? GameplayTuning.warningProfileFallback
         enemy.updateProximityWarning(
             distanceToPlayer: distance(from: enemy.position, to: player.position),
             profile: profile

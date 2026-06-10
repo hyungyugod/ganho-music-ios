@@ -22,8 +22,8 @@ final class DifficultySelectScene: BaseMenuScene {
     private var isTransitioning = false
 
     // 헤더/배경.
-    private let headerLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let headerLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let headerSubLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private let accentLine = AccentLineNode()
     private var musicNoteEmitter: MusicNoteEmitterNode?
 
@@ -34,21 +34,21 @@ final class DifficultySelectScene: BaseMenuScene {
     // 좌측 캐릭터 요약 카드.
     private var summaryContainer: SKShapeNode?
     private var summaryNameBadge: SKShapeNode?
-    private let summaryNameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let summaryNameLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     /// V5 — 좌측 카드 풀바디 픽셀 스프라이트(SkillExplanationScene와 동일 패턴).
     /// CharacterFaceNode 본체는 다른 화면(CharacterSelectScene 등)이 사용 중이므로
     /// 본체 변경 0줄 + 본 씬 내 타입만 SKSpriteNode로 교체.
     private var summaryFace: SKSpriteNode?
-    private let summarySkillLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let summarySkillLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     private var summarySpeedChip: SKShapeNode?
-    private let summarySpeedLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let summarySpeedLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
 
     // 우측 난이도 3장.
     private var difficultyCards: [DifficultyCardNode] = []
 
     // 하단 시작 버튼.
     private let startButton = PrimaryButtonNode(
-        text: GameConfig.difficultySelectStartButtonText
+        text: UILayout.difficultySelectStartButtonText
     )
 
     // MARK: - Factory
@@ -100,7 +100,7 @@ final class DifficultySelectScene: BaseMenuScene {
     }
 
     private func setupMusicNoteEmitter() {
-        guard GameConfig.menuAmbientNotesEnabled else { return }
+        guard UILayout.menuAmbientNotesEnabled else { return }
         let emitter = MusicNoteEmitterNode(sceneSize: size)
         emitter.position = .zero
         musicNoteEmitter = emitter
@@ -117,15 +117,15 @@ final class DifficultySelectScene: BaseMenuScene {
 
     // MARK: - Setup (Header)
     private func setupHeader() {
-        headerLabel.text = GameConfig.difficultySelectHeaderText
-        headerLabel.fontSize = GameConfig.difficultySelectHeaderFontSize
+        headerLabel.text = UILayout.difficultySelectHeaderText
+        headerLabel.fontSize = UILayout.difficultySelectHeaderFontSize
         headerLabel.fontColor = .ganhoNavyDeep
         headerLabel.horizontalAlignmentMode = .center
         headerLabel.verticalAlignmentMode = .center
         addChild(headerLabel)
 
-        headerSubLabel.text = GameConfig.difficultySelectHeaderSubText
-        headerSubLabel.fontSize = GameConfig.difficultySelectHeaderSubFontSize
+        headerSubLabel.text = UILayout.difficultySelectHeaderSubText
+        headerSubLabel.fontSize = UILayout.difficultySelectHeaderSubFontSize
         headerSubLabel.fontColor = .ganhoNavyMuted
         headerSubLabel.horizontalAlignmentMode = .center
         headerSubLabel.verticalAlignmentMode = .center
@@ -142,17 +142,17 @@ final class DifficultySelectScene: BaseMenuScene {
         headerSubLabel.setScale(scale)
         accentLine.setScale(scale)
         let baseY = min(
-            frame.midY + GameConfig.difficultySelectHeaderOffsetY * scale,
-            topBarY(extraInset: GameConfig.difficultySelectBackPillHeight)
+            frame.midY + UILayout.difficultySelectHeaderOffsetY * scale,
+            topBarY(extraInset: UILayout.difficultySelectBackPillHeight)
         )
         headerLabel.position = CGPoint(x: centerX, y: baseY)
         headerSubLabel.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.difficultySelectHeaderSubOffsetY * scale
+            y: baseY + UILayout.difficultySelectHeaderSubOffsetY * scale
         )
         accentLine.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.difficultySelectAccentLineOffsetY * scale
+            y: baseY + UILayout.difficultySelectAccentLineOffsetY * scale
         )
     }
 
@@ -162,21 +162,21 @@ final class DifficultySelectScene: BaseMenuScene {
     ///  - 그 외 → "← 스킬 다시"
     private func setupTopBar() {
         let backText: String = (characterID == .kim)
-            ? GameConfig.difficultySelectBackPillTextCharacter
-            : GameConfig.difficultySelectBackPillTextSkill
+            ? UILayout.difficultySelectBackPillTextCharacter
+            : UILayout.difficultySelectBackPillTextSkill
         let back = GlassPillNode(
             text: backText,
             size: CGSize(
-                width: GameConfig.difficultySelectBackPillWidth,
-                height: GameConfig.difficultySelectBackPillHeight
+                width: UILayout.difficultySelectBackPillWidth,
+                height: UILayout.difficultySelectBackPillHeight
             )
         )
         backPill = back
         addChild(back)
 
         let chip = DarkContextChipNode(
-            label: GameConfig.difficultySelectBreadcrumbLabel,
-            badge: GameConfig.difficultySelectBreadcrumbBadge
+            label: UILayout.difficultySelectBreadcrumbLabel,
+            badge: UILayout.difficultySelectBreadcrumbBadge
         )
         breadcrumbChip = chip
         addChild(chip)
@@ -189,20 +189,20 @@ final class DifficultySelectScene: BaseMenuScene {
         let y = topBarY(
             extraInset: max(
                 0,
-                GameConfig.difficultySelectTopBarMarginY - GameConfig.menuTopSafePadding
+                UILayout.difficultySelectTopBarMarginY - UILayout.menuTopSafePadding
             )
         )
         backPill?.setScale(scale)
         breadcrumbChip?.setScale(scale)
         backPill?.position = CGPoint(
-            x: frame.minX + safe.left + GameConfig.difficultySelectTopBarMarginX * scale
-                + GameConfig.difficultySelectBackPillWidth * scale / 2,
+            x: frame.minX + safe.left + UILayout.difficultySelectTopBarMarginX * scale
+                + UILayout.difficultySelectBackPillWidth * scale / 2,
             y: y
         )
         if let chip = breadcrumbChip {
             let halfWidth = chip.calculateAccumulatedFrame().width / 2
             chip.position = CGPoint(
-                x: frame.maxX - safe.right - GameConfig.difficultySelectTopBarMarginX * scale - halfWidth,
+                x: frame.maxX - safe.right - UILayout.difficultySelectTopBarMarginX * scale - halfWidth,
                 y: y
             )
         }
@@ -213,18 +213,18 @@ final class DifficultySelectScene: BaseMenuScene {
     private func setupSummaryCard() {
         // 본 카드.
         let cardSize = CGSize(
-            width: GameConfig.difficultySelectSummaryCardWidth,
-            height: GameConfig.difficultySelectSummaryCardHeight
+            width: UILayout.difficultySelectSummaryCardWidth,
+            height: UILayout.difficultySelectSummaryCardHeight
         )
         let card = SKShapeNode(
             rectOf: cardSize,
-            cornerRadius: GameConfig.difficultySelectSummaryCardCornerRadius
+            cornerRadius: UILayout.difficultySelectSummaryCardCornerRadius
         )
         card.fillColor = UIColor.white
-            .withAlphaComponent(GameConfig.difficultySelectSummaryCardFillAlpha)
+            .withAlphaComponent(UILayout.difficultySelectSummaryCardFillAlpha)
         card.strokeColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.difficultySelectSummaryCardStrokeAlpha)
-        card.lineWidth = GameConfig.difficultySelectSummaryCardStrokeWidth
+            .withAlphaComponent(UILayout.difficultySelectSummaryCardStrokeAlpha)
+        card.lineWidth = UILayout.difficultySelectSummaryCardStrokeWidth
         card.zPosition = 80
         card.name = "difficultySelectSummaryCard"
         summaryContainer = card
@@ -232,8 +232,8 @@ final class DifficultySelectScene: BaseMenuScene {
 
         // 이름 뱃지(코랄). OQ-7 — `.ganhoCoralPrimary` 통일.
         let badgeSize = CGSize(
-            width: GameConfig.difficultySelectSummaryNameBadgeWidth,
-            height: GameConfig.difficultySelectSummaryNameBadgeHeight
+            width: UILayout.difficultySelectSummaryNameBadgeWidth,
+            height: UILayout.difficultySelectSummaryNameBadgeHeight
         )
         let badge = SKShapeNode(
             rectOf: badgeSize,
@@ -246,7 +246,7 @@ final class DifficultySelectScene: BaseMenuScene {
         addChild(badge)
 
         summaryNameLabel.text = characterID.displayName
-        summaryNameLabel.fontSize = GameConfig.difficultySelectSummaryNameBadgeFontSize
+        summaryNameLabel.fontSize = UILayout.difficultySelectSummaryNameBadgeFontSize
         summaryNameLabel.fontColor = .white
         summaryNameLabel.horizontalAlignmentMode = .center
         summaryNameLabel.verticalAlignmentMode = .center
@@ -260,10 +260,10 @@ final class DifficultySelectScene: BaseMenuScene {
 
         // 스킬명 — 김간호는 "스킬 없음" 그 외는 displayName.
         let skillText: String = (characterID.skill == .none)
-            ? GameConfig.difficultySelectSummarySkillNoneText
+            ? UILayout.difficultySelectSummarySkillNoneText
             : characterID.skill.displayName
         summarySkillLabel.text = skillText
-        summarySkillLabel.fontSize = GameConfig.difficultySelectSummarySkillFontSize
+        summarySkillLabel.fontSize = UILayout.difficultySelectSummarySkillFontSize
         summarySkillLabel.fontColor = .ganhoNavyDeep
         summarySkillLabel.horizontalAlignmentMode = .center
         summarySkillLabel.verticalAlignmentMode = .center
@@ -272,15 +272,15 @@ final class DifficultySelectScene: BaseMenuScene {
 
         // 속도 칩 — 민트 톤(ganhoScrubMint α 0.4).
         let chipSize = CGSize(
-            width: GameConfig.difficultySelectSummarySpeedChipWidth,
-            height: GameConfig.difficultySelectSummarySpeedChipHeight
+            width: UILayout.difficultySelectSummarySpeedChipWidth,
+            height: UILayout.difficultySelectSummarySpeedChipHeight
         )
         let chip = SKShapeNode(
             rectOf: chipSize,
             cornerRadius: chipSize.height / 2
         )
         chip.fillColor = UIColor.ganhoScrubMint
-            .withAlphaComponent(GameConfig.difficultySelectSummarySpeedChipFillAlpha)
+            .withAlphaComponent(UILayout.difficultySelectSummarySpeedChipFillAlpha)
         // Sprint 7 Phase C — 속도 칩 stroke 1pt 보강(.ganhoDifficultyEasyDeep #5EBFA3).
         // mockup `box-shadow + stroke 1pt` 톤을 SpriteKit에서 stroke만으로 근사.
         chip.strokeColor = .ganhoDifficultyEasyDeep
@@ -291,7 +291,7 @@ final class DifficultySelectScene: BaseMenuScene {
 
         let speedText = formatted(characterID.playerSpeedMultiplier)
         summarySpeedLabel.text = "⚡ 속도 ×\(speedText)"
-        summarySpeedLabel.fontSize = GameConfig.difficultySelectSummarySpeedChipFontSize
+        summarySpeedLabel.fontSize = UILayout.difficultySelectSummarySpeedChipFontSize
         summarySpeedLabel.fontColor = .ganhoNavyDeep
         summarySpeedLabel.horizontalAlignmentMode = .center
         summarySpeedLabel.verticalAlignmentMode = .center
@@ -327,8 +327,8 @@ final class DifficultySelectScene: BaseMenuScene {
         face.size = aspectFitSize(
             textureSize: texture.size(),
             maxSize: CGSize(
-                width: GameConfig.difficultySelectSummaryFullBodyMaxWidthV6,
-                height: GameConfig.difficultySelectSummaryFullBodyMaxHeightV6
+                width: UILayout.difficultySelectSummaryFullBodyMaxWidth,
+                height: UILayout.difficultySelectSummaryFullBodyMaxHeight
             )
         )
         face.zPosition = 105
@@ -358,35 +358,35 @@ final class DifficultySelectScene: BaseMenuScene {
         summarySpeedChip?.setScale(scale)
         summarySpeedLabel.setScale(scale)
         let safe = menuSafeInsets()
-        let halfWidth = GameConfig.difficultySelectSummaryCardWidth * scale / 2
-        let preferredX = frame.midX + GameConfig.difficultySelectSummaryCardOffsetXV3 * scale
+        let halfWidth = UILayout.difficultySelectSummaryCardWidth * scale / 2
+        let preferredX = frame.midX + UILayout.difficultySelectSummaryCardOffsetX * scale
         let minX = frame.minX
             + safe.left
-            + GameConfig.menuHorizontalSafePadding
+            + UILayout.menuHorizontalSafePadding
             + halfWidth
         let cardsLeftEdge = difficultyCardsLeftEdge(scale: scale)
         let maxX = cardsLeftEdge
-            - GameConfig.difficultySelectColumnMinGap * scale
+            - UILayout.difficultySelectColumnMinGap * scale
             - halfWidth
         let baseX = maxX > minX
             ? min(max(preferredX, minX), maxX)
             : minX
         // V5 — 헤더(midY+140)와 카드 top 호흡 50pt 확보 위해 OffsetY V5(-40) 채택.
         // 기존 V3(-10)는 byte-identical 보존 — 다른 사용처 회귀 위험 0.
-        let baseY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5 * scale
+        let baseY = frame.midY + UILayout.difficultySelectSummaryCardOffsetY * scale
         summaryContainer?.position = CGPoint(x: baseX, y: baseY)
-        let badgeY = baseY + GameConfig.difficultySelectSummaryNameBadgeOffsetY
+        let badgeY = baseY + UILayout.difficultySelectSummaryNameBadgeOffsetY
         summaryNameBadge?.position = CGPoint(x: baseX, y: badgeY)
         summaryNameLabel.position = CGPoint(x: baseX, y: badgeY)
         summaryFace?.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.difficultySelectSummaryFaceOffsetY
+            y: baseY + UILayout.difficultySelectSummaryFaceOffsetY
         )
         summarySkillLabel.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.difficultySelectSummarySkillOffsetY
+            y: baseY + UILayout.difficultySelectSummarySkillOffsetY
         )
-        let speedChipY = baseY + GameConfig.difficultySelectSummarySpeedChipOffsetY
+        let speedChipY = baseY + UILayout.difficultySelectSummarySpeedChipOffsetY
         summarySpeedChip?.position = CGPoint(x: baseX, y: speedChipY)
         summarySpeedLabel.position = CGPoint(x: baseX, y: speedChipY)
     }
@@ -414,7 +414,7 @@ final class DifficultySelectScene: BaseMenuScene {
 
     /// 3 카드 가로 일렬 — 화면 우측 영역 중앙(midX + offset).
     /// Sprint 8 Phase D — width/spacing 모두 V4 상수(130 / 22) 참조. V3 상수는 byte-identical 보존
-    /// (다른 사용처 회귀 방지 + GameConfig 토큰 그대로 유지).
+    /// (다른 사용처 회귀 방지 + Config 토큰 그대로 유지).
     /// 합산 폭 = 130×3 + 22×2 = 434pt < 화면 폭 844pt(landscape) → 잘림 0 보장.
     private func layoutDifficultyCards() {
         let count = difficultyCards.count
@@ -423,21 +423,21 @@ final class DifficultySelectScene: BaseMenuScene {
         let availableWidth = size.width
             - safe.left
             - safe.right
-            - GameConfig.menuHorizontalSafePadding * 2
+            - UILayout.menuHorizontalSafePadding * 2
         let scale = min(
             difficultyLayoutScale(),
-            availableWidth < GameConfig.difficultyCompactWidthThreshold
-                ? GameConfig.difficultyCompactScale
+            availableWidth < UILayout.difficultyCompactWidthThreshold
+                ? UILayout.difficultyCompactScale
                 : menuCompactScale()
         )
-        let width = GameConfig.difficultyCardWidthV4
-        let spacing = GameConfig.difficultyCardGapV4
+        let width = UILayout.difficultyCardWidth
+        let spacing = UILayout.difficultyCardGap
         let totalWidth = (width * CGFloat(count) + spacing * CGFloat(count - 1)) * scale
-        let centerX = frame.midX + GameConfig.difficultySelectDifficultyRowOffsetX * scale
-        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+        let centerX = frame.midX + UILayout.difficultySelectDifficultyRowOffsetX * scale
+        let rightLimit = frame.maxX - safe.right - UILayout.menuHorizontalSafePadding
         let clampedCenterX = min(centerX, rightLimit - totalWidth / 2)
         let startX = clampedCenterX - totalWidth / 2 + width * scale / 2
-        let y = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY * scale
+        let y = frame.midY + UILayout.difficultySelectDifficultyRowOffsetY * scale
         for (index, card) in difficultyCards.enumerated() {
             card.setLayoutScale(scale)
             card.position = CGPoint(
@@ -476,20 +476,20 @@ final class DifficultySelectScene: BaseMenuScene {
         // V3/V5 — 기존 V3 산식은 byte-identical 보존, 본 호출은 V5 offset(-200) 사용.
         let scale = difficultyLayoutScale()
         startButton.setScale(scale)
-        let v3Y = frame.midY + GameConfig.difficultySelectStartButtonOffsetYV5 * scale
+        let v3Y = frame.midY + UILayout.difficultySelectStartButtonOffsetY * scale
 
-        let buttonHalfHeight = GameConfig.primaryButtonHeight * scale / 2
-        let breathingGap = GameConfig.difficultySelectStartButtonBreathingGapV5 * scale
+        let buttonHalfHeight = UILayout.primaryButtonHeight * scale / 2
+        let breathingGap = UILayout.difficultySelectStartButtonBreathingGap * scale
 
         // V4 — 우측 난이도 3장 카드 bottom 호흡 산식(기존 톤 유지).
-        let rightCardCenterY = frame.midY + GameConfig.difficultySelectDifficultyRowOffsetY * scale
-        let rightCardBottomY = rightCardCenterY - GameConfig.difficultyCardHeightV4 * scale / 2
+        let rightCardCenterY = frame.midY + UILayout.difficultySelectDifficultyRowOffsetY * scale
+        let rightCardBottomY = rightCardCenterY - UILayout.difficultyCardHeight * scale / 2
         let v4RightY = rightCardBottomY - breathingGap - buttonHalfHeight
 
         // V5 신규 — 좌측 요약 카드 bottom 호흡 산식.
-        let leftCardCenterY = frame.midY + GameConfig.difficultySelectSummaryCardOffsetYV5 * scale
+        let leftCardCenterY = frame.midY + UILayout.difficultySelectSummaryCardOffsetY * scale
         let leftCardBottomY = leftCardCenterY
-            - GameConfig.difficultySelectSummaryCardHeight * scale / 2
+            - UILayout.difficultySelectSummaryCardHeight * scale / 2
         let v5LeftY = leftCardBottomY - breathingGap - buttonHalfHeight
 
         // 가장 아래(작은 y) 채택 — 어떤 카드와도 36pt+ 호흡 보장.
@@ -508,16 +508,16 @@ final class DifficultySelectScene: BaseMenuScene {
         let availableWidth = size.width
             - safe.left
             - safe.right
-            - GameConfig.menuHorizontalSafePadding * 2
-        let summaryWidth = GameConfig.difficultySelectSummaryCardWidth
-        let cardsWidth = GameConfig.difficultyCardWidthV4 * CGFloat(Difficulty.allCases.count)
-            + GameConfig.difficultyCardGapV4 * CGFloat(Difficulty.allCases.count - 1)
+            - UILayout.menuHorizontalSafePadding * 2
+        let summaryWidth = UILayout.difficultySelectSummaryCardWidth
+        let cardsWidth = UILayout.difficultyCardWidth * CGFloat(Difficulty.allCases.count)
+            + UILayout.difficultyCardGap * CGFloat(Difficulty.allCases.count - 1)
         let requiredWidth = summaryWidth
-            + GameConfig.difficultySelectColumnMinGap
+            + UILayout.difficultySelectColumnMinGap
             + cardsWidth
         let widthScale = availableWidth / requiredWidth
         return max(
-            GameConfig.difficultySelectMinimumLayoutScale,
+            UILayout.difficultySelectMinimumLayoutScale,
             min(menuCompactScale(), widthScale)
         )
     }
@@ -526,12 +526,12 @@ final class DifficultySelectScene: BaseMenuScene {
         let safe = menuSafeInsets()
         let count = CGFloat(max(difficultyCards.count, Difficulty.allCases.count))
         let totalWidth = (
-            GameConfig.difficultyCardWidthV4 * count
-            + GameConfig.difficultyCardGapV4 * (count - 1)
+            UILayout.difficultyCardWidth * count
+            + UILayout.difficultyCardGap * (count - 1)
         ) * scale
         let preferredCenterX = frame.midX
-            + GameConfig.difficultySelectDifficultyRowOffsetX * scale
-        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+            + UILayout.difficultySelectDifficultyRowOffsetX * scale
+        let rightLimit = frame.maxX - safe.right - UILayout.menuHorizontalSafePadding
         let centerX = min(preferredCenterX, rightLimit - totalWidth / 2)
         return centerX - totalWidth / 2
     }
@@ -561,7 +561,7 @@ final class DifficultySelectScene: BaseMenuScene {
     private func transitionBack() {
         guard let view = self.view else { return }
         isTransitioning = true
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         switch characterID {
         case .kim:
             let scene = CharacterSelectScene.newCharacterSelectScene()
@@ -583,7 +583,7 @@ final class DifficultySelectScene: BaseMenuScene {
             characterID: characterID,
             difficulty: selectedDifficulty
         )
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(gameScene, transition: fade)
     }
 }

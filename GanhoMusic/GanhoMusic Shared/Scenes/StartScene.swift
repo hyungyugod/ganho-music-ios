@@ -18,12 +18,12 @@ final class StartScene: BaseMenuScene {
     /// 씬 전환이 시작됐는지 여부. true가 되면 추가 탭은 무시 — 더블 enter 방지.
     private var isTransitioning = false
     /// Sprint 2 — Jua 2-라인 타이틀. line1 "김간호는"(navyDeep 44pt), line2 "음악박사 ♪"(coral 56pt).
-    private let titleLine1 = SKLabelNode(fontNamed: GameConfig.fontDisplay)
-    private let titleLine2 = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let titleLine1 = SKLabelNode(fontNamed: Typography.fontDisplay)
+    private let titleLine2 = SKLabelNode(fontNamed: Typography.fontDisplay)
     /// Sprint 2 — 타이틀 위 AccentLine(32×3 코랄).
     private let accentLine = AccentLineNode()
     /// Sprint 2 — Gowun Dodum 태그라인(2줄 자동 줄바꿈).
-    private let taglineLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let taglineLabel = SKLabelNode(fontNamed: Typography.fontBody)
     /// 시작 버튼 — 명시 탭만 다음 단계로 진행.
     private let startButton = PrimaryButtonNode(text: "시작")
     /// 캐릭터 선택 영속 계층. didMove에서 .current로 복원 — 10-1a는 GameScene 직진 시점에 사용.
@@ -35,7 +35,7 @@ final class StartScene: BaseMenuScene {
     private var nurseAvatar: NurseAvatarNode?
     /// Sprint 11 — "Apple 연동됨" 상태 표시. 우상단 테두리 pill(GlassPillNode) → 시작 버튼 바로 아래
     /// plain 텍스트 라벨로 교체. 표시/숨김은 isHidden(게이트 = canUseAppleLinkedSession)으로 통제.
-    private let authCaptionLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let authCaptionLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private var currentAuthProfile: AuthProfileSnapshot?
     private var authStateReady = false
     private var shouldOpenLoginChoiceOnEntry = false
@@ -86,7 +86,7 @@ final class StartScene: BaseMenuScene {
 
     /// Phase 10-2 — 음표 파티클 컨테이너 부착. SKAction.repeatForever로 자동 스폰 시작.
     private func setupMusicNoteEmitter() {
-        guard GameConfig.menuAmbientNotesEnabled else { return }
+        guard UILayout.menuAmbientNotesEnabled else { return }
         let emitter = MusicNoteEmitterNode(sceneSize: size)
         // 원점은 씬 좌측 하단 (0,0) — emitter 내부 좌표계가 sceneSize 범위에 그대로 매핑.
         emitter.position = .zero
@@ -109,26 +109,26 @@ final class StartScene: BaseMenuScene {
     private func setupTitleBlock() {
         // 라인 1 — "김간호는" navyDeep.
         titleLine1.text = "김간호는"
-        titleLine1.fontSize = GameConfig.startSceneTitleLine1FontSize
+        titleLine1.fontSize = UILayout.startSceneTitleLine1FontSize
         titleLine1.fontColor = .ganhoNavyDeep
         titleLine1.horizontalAlignmentMode = .right
         titleLine1.verticalAlignmentMode = .center
 
         // 라인 2 — "음악박사 ♪" coral.
         titleLine2.text = "음악박사 ♪"
-        titleLine2.fontSize = GameConfig.startSceneTitleLine2FontSize
+        titleLine2.fontSize = UILayout.startSceneTitleLine2FontSize
         titleLine2.fontColor = .ganhoCoralPrimary
         titleLine2.horizontalAlignmentMode = .right
         titleLine2.verticalAlignmentMode = .center
 
         // 태그라인 — Gowun Dodum body.
         taglineLabel.text = "수간호사 몰래, 떠오른 멜로디를\n45초 안에 모아 보세요"
-        taglineLabel.fontSize = GameConfig.startSceneTaglineFontSize
+        taglineLabel.fontSize = UILayout.startSceneTaglineFontSize
         taglineLabel.fontColor = .ganhoNavyMuted
         taglineLabel.horizontalAlignmentMode = .right
         taglineLabel.verticalAlignmentMode = .center
         taglineLabel.numberOfLines = 0
-        taglineLabel.preferredMaxLayoutWidth = GameConfig.startSceneTaglineMaxWidth
+        taglineLabel.preferredMaxLayoutWidth = UILayout.startSceneTaglineMaxWidth
 
         addChild(accentLine)
         addChild(titleLine1)
@@ -144,49 +144,49 @@ final class StartScene: BaseMenuScene {
         titleLine2.setScale(scale)
         taglineLabel.setScale(scale)
         accentLine.setScale(scale)
-        taglineLabel.preferredMaxLayoutWidth = GameConfig.startSceneTaglineMaxWidth * scale
-        let avatarReservedWidth = GameConfig.startSceneAvatarReservedWidth * avatarScale()
+        taglineLabel.preferredMaxLayoutWidth = UILayout.startSceneTaglineMaxWidth * scale
+        let avatarReservedWidth = UILayout.startSceneAvatarReservedWidth * avatarScale()
         let leftLimit = frame.minX
             + safe.left
             + avatarReservedWidth
-            + GameConfig.startSceneMinTitleAvatarGap * scale
-        let rightLimit = frame.maxX - safe.right - GameConfig.menuHorizontalSafePadding
+            + UILayout.startSceneMinTitleAvatarGap * scale
+        let rightLimit = frame.maxX - safe.right - UILayout.menuHorizontalSafePadding
         let anchorX = min(
-            frame.maxX - GameConfig.startSceneTitleBlockRightMargin * scale,
+            frame.maxX - UILayout.startSceneTitleBlockRightMargin * scale,
             rightLimit
         )
-        let compactOffsetY = size.height < GameConfig.compactLandscapeMinHeight
-            ? GameConfig.startSceneCompactTitleOffsetY
-            : GameConfig.startSceneTitleBlockOffsetY
+        let compactOffsetY = size.height < UILayout.compactLandscapeMinHeight
+            ? UILayout.startSceneCompactTitleOffsetY
+            : UILayout.startSceneTitleBlockOffsetY
         let titleHeight = (
-            GameConfig.startSceneAccentLineAboveTitleOffset
-            + GameConfig.startSceneTitleLineSpacing
-            - GameConfig.startSceneTaglineBelowTitleOffset
+            UILayout.startSceneAccentLineAboveTitleOffset
+            + UILayout.startSceneTitleLineSpacing
+            - UILayout.startSceneTaglineBelowTitleOffset
         ) * scale
         let maxCenterY = frame.maxY
             - safe.top
-            - GameConfig.menuTopSafePadding
+            - UILayout.menuTopSafePadding
             - titleHeight / 2
         let minCenterY = bottomCTAAnchorY(
-            buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2
-        ) + GameConfig.primaryButtonHeight * scale
+            buttonHalfHeight: UILayout.primaryButtonHeight * scale / 2
+        ) + UILayout.primaryButtonHeight * scale
         let preferredCenterY = frame.midY + compactOffsetY * scale
         let centerY = min(max(preferredCenterY, minCenterY), maxCenterY)
         let resolvedAnchorX = min(max(anchorX, leftLimit), rightLimit)
         // 타이틀 1행은 위, 타이틀 2행은 아래 — 줄간 lineSpacing.
-        let line1Y = centerY + GameConfig.startSceneTitleLineSpacing * scale / 2
-        let line2Y = centerY - GameConfig.startSceneTitleLineSpacing * scale / 2
+        let line1Y = centerY + UILayout.startSceneTitleLineSpacing * scale / 2
+        let line2Y = centerY - UILayout.startSceneTitleLineSpacing * scale / 2
         titleLine1.position = CGPoint(x: resolvedAnchorX, y: line1Y)
         titleLine2.position = CGPoint(x: resolvedAnchorX, y: line2Y)
         // AccentLine은 타이틀1 위로 +offset, 우측 정렬에 맞춰 우측 끝을 anchorX에 맞춤.
         accentLine.position = CGPoint(
-            x: resolvedAnchorX - GameConfig.accentLineWidth * scale / 2,
-            y: line1Y + GameConfig.startSceneAccentLineAboveTitleOffset * scale
+            x: resolvedAnchorX - UILayout.accentLineWidth * scale / 2,
+            y: line1Y + UILayout.startSceneAccentLineAboveTitleOffset * scale
         )
         // 태그라인은 타이틀2 아래.
         taglineLabel.position = CGPoint(
             x: resolvedAnchorX,
-            y: line2Y + GameConfig.startSceneTaglineBelowTitleOffset * scale
+            y: line2Y + UILayout.startSceneTaglineBelowTitleOffset * scale
         )
     }
 
@@ -195,8 +195,8 @@ final class StartScene: BaseMenuScene {
     /// PNG swap 호환 — SKNode 서브클래스라 향후 SKSpriteNode(texture:)로 교체 가능.
     private func setupNurseAvatar() {
         let avatar = NurseAvatarNode()
-        avatar.setScale(GameConfig.nurseAvatarScale)
-        avatar.zPosition = GameConfig.nurseAvatarZPosition
+        avatar.setScale(UILayout.nurseAvatarScale)
+        avatar.zPosition = ZOrder.nurseAvatarZPosition
         nurseAvatar = avatar
         addChild(avatar)
         layoutNurseAvatar()
@@ -204,11 +204,11 @@ final class StartScene: BaseMenuScene {
 
     private func layoutNurseAvatar() {
         let safe = menuSafeInsets()
-        let scale = GameConfig.nurseAvatarScale * menuCompactScale() * avatarScale()
+        let scale = UILayout.nurseAvatarScale * menuCompactScale() * avatarScale()
         nurseAvatar?.setScale(scale)
         nurseAvatar?.position = CGPoint(
-            x: frame.minX + safe.left + GameConfig.nurseAvatarOffsetX * avatarScale(),
-            y: frame.midY + GameConfig.nurseAvatarOffsetY * menuCompactScale()
+            x: frame.minX + safe.left + UILayout.nurseAvatarOffsetX * avatarScale(),
+            y: frame.midY + UILayout.nurseAvatarOffsetY * menuCompactScale()
         )
     }
 
@@ -222,27 +222,27 @@ final class StartScene: BaseMenuScene {
     /// Sprint 7+ — safeArea.bottom 회피로 교체.
     /// frame.midY + offset 식은 디바이스에 따라 시작 버튼이 잘렸다(iPhone 17 Pro Landscape 사고).
     /// 새 식: frame.minY + safeArea.bottom + startButtonBottomInset → 모든 디바이스 보장.
-    /// 기존 GameConfig.startSceneStartButtonOffsetY(-180)는 값만 보존(다른 곳 참조 가능성).
+    /// 기존 UILayout.startSceneStartButtonOffsetY(-180)는 값만 보존(다른 곳 참조 가능성).
     private func layoutStartButton() {
         let scale = menuCompactScale()
         startButton.setScale(scale)
-        let buttonHalf = GameConfig.primaryButtonHeight * scale / 2
+        let buttonHalf = UILayout.primaryButtonHeight * scale / 2
         // Sprint 11+ — 버튼은 caption 위로 동반(둘이 함께 이동). caption은 .bottom 정렬이라
         // position.y가 곧 caption 바닥 → 그 위로 글자높이(fontSize)만큼 더하면 caption 상단.
         // caption은 isHidden이어도 position은 유효하므로 게이트 상태와 무관하게 기준이 깨지지 않는다.
         let captionTopY = authCaptionLabel.position.y
-            + GameConfig.startSceneAuthCaptionFontSize * scale
+            + UILayout.startSceneAuthCaptionFontSize * scale
         // startSceneStartButtonLift를 caption↔버튼 간격으로 재활용(새 매직넘버 도입 금지).
         startButton.position = CGPoint(
             x: frame.midX,
-            y: captionTopY + GameConfig.startSceneStartButtonLift * scale + buttonHalf
+            y: captionTopY + UILayout.startSceneStartButtonLift * scale + buttonHalf
         )
         attachStartButtonPulse()
     }
 
     private func avatarScale() -> CGFloat {
-        return size.height < GameConfig.compactLandscapeMinHeight
-            ? GameConfig.startSceneAvatarCompactScale
+        return size.height < UILayout.compactLandscapeMinHeight
+            ? UILayout.startSceneAvatarCompactScale
             : 1.0
     }
 
@@ -252,13 +252,13 @@ final class StartScene: BaseMenuScene {
     private func attachStartButtonPulse() {
         let baseScale = menuCompactScale()
         let down = SKAction.scale(
-            to: baseScale * GameConfig.startButtonPulseScaleMin,
-            duration: GameConfig.startButtonPulseHalfDuration
+            to: baseScale * UILayout.startButtonPulseScaleMin,
+            duration: UILayout.startButtonPulseHalfDuration
         )
         down.timingMode = .easeInEaseOut
         let up = SKAction.scale(
-            to: baseScale * GameConfig.startButtonPulseScaleMax,
-            duration: GameConfig.startButtonPulseHalfDuration
+            to: baseScale * UILayout.startButtonPulseScaleMax,
+            duration: UILayout.startButtonPulseHalfDuration
         )
         up.timingMode = .easeInEaseOut
         let pulse = SKAction.sequence([down, up])
@@ -302,7 +302,7 @@ final class StartScene: BaseMenuScene {
         if shouldOpenLoginChoiceOnEntry {
             showLoginChoiceOverlay(
                 mode: .busy,
-                statusText: GameConfig.loginChoiceCheckingAccountText
+                statusText: UILayout.loginChoiceCheckingAccountText
             )
         }
 
@@ -322,7 +322,7 @@ final class StartScene: BaseMenuScene {
         guard authStateReady else {
             showLoginChoiceOverlay(
                 mode: .busy,
-                statusText: GameConfig.loginChoiceCheckingAccountText
+                statusText: UILayout.loginChoiceCheckingAccountText
             )
             waitForAuthStateThenResolveStart()
             return
@@ -367,12 +367,12 @@ final class StartScene: BaseMenuScene {
     /// Sprint 11 — "Apple 연동됨"을 테두리/배경 없는 plain 텍스트로. GlassPillNode·필 스타일 제거.
     /// 표시/숨김 게이트(canUseAppleLinkedSession)는 refreshAuthCaption이 단일 진실 원천으로 유지.
     private func setupAuthCaption() {
-        authCaptionLabel.text = GameConfig.authLinkedStatusText   // 상수 그대로 재사용
-        authCaptionLabel.fontSize = GameConfig.startSceneAuthCaptionFontSize
+        authCaptionLabel.text = UILayout.authLinkedStatusText   // 상수 그대로 재사용
+        authCaptionLabel.fontSize = UILayout.startSceneAuthCaptionFontSize
         authCaptionLabel.fontColor = .ganhoNavyMuted             // plain·저채도(테두리/배경 없음)
         authCaptionLabel.horizontalAlignmentMode = .center
         authCaptionLabel.verticalAlignmentMode = .center
-        authCaptionLabel.zPosition = GameConfig.characterHomeButtonZPosition
+        authCaptionLabel.zPosition = ZOrder.characterHomeButtonZPosition
         authCaptionLabel.isHidden = true                         // 기존 게이트 동작 보존
         addChild(authCaptionLabel)
         layoutAuthCaption()
@@ -393,7 +393,7 @@ final class StartScene: BaseMenuScene {
             authCaptionLabel.position = CGPoint(
                 x: frame.midX,
                 y: bottomCTAAnchorY(
-                    buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2
+                    buttonHalfHeight: UILayout.primaryButtonHeight * scale / 2
                 )
             )
             return
@@ -405,7 +405,7 @@ final class StartScene: BaseMenuScene {
 
     private func refreshAuthCaption() {
         if canUseAppleLinkedSession {
-            authCaptionLabel.text = GameConfig.authLinkedStatusText
+            authCaptionLabel.text = UILayout.authLinkedStatusText
             authCaptionLabel.isHidden = false
         } else {
             authCaptionLabel.isHidden = true
@@ -415,8 +415,8 @@ final class StartScene: BaseMenuScene {
     /// 연동 caption 탭 히트 영역. 작은 글자라 텍스트 bbox만으로는 좁아 hit 패딩만큼 inset으로 확장.
     private func authCaptionHitFrame() -> CGRect {
         return authCaptionLabel.calculateAccumulatedFrame().insetBy(
-            dx: -GameConfig.startSceneAuthCaptionHitPadding,
-            dy: -GameConfig.startSceneAuthCaptionHitPadding
+            dx: -UILayout.startSceneAuthCaptionHitPadding,
+            dy: -UILayout.startSceneAuthCaptionHitPadding
         )
     }
 
@@ -457,7 +457,7 @@ final class StartScene: BaseMenuScene {
     private func handleGuestStartTap() {
         guard !isLoginRequestInFlight else { return }
         isLoginRequestInFlight = true
-        loginChoiceOverlay?.setMode(.busy, statusText: GameConfig.loginChoiceGuestBusyText)
+        loginChoiceOverlay?.setMode(.busy, statusText: UILayout.loginChoiceGuestBusyText)
         let needsGuestReset = Auth.auth().currentUser?.isAnonymous == false
 
         Task { [weak self] in
@@ -478,7 +478,7 @@ final class StartScene: BaseMenuScene {
                 case .cancelled, .failure(_):
                     self.loginChoiceOverlay?.setMode(
                         .idle,
-                        statusText: GameConfig.loginChoiceFailureText
+                        statusText: UILayout.loginChoiceFailureText
                     )
                 }
             }
@@ -488,12 +488,12 @@ final class StartScene: BaseMenuScene {
     private func handleAppleStartTap() {
         guard !isLoginRequestInFlight else { return }
         guard let window = view?.window else {
-            loginChoiceOverlay?.setMode(.idle, statusText: GameConfig.loginChoiceFailureText)
+            loginChoiceOverlay?.setMode(.idle, statusText: UILayout.loginChoiceFailureText)
             return
         }
 
         isLoginRequestInFlight = true
-        loginChoiceOverlay?.setMode(.busy, statusText: GameConfig.loginChoiceAppleBusyText)
+        loginChoiceOverlay?.setMode(.busy, statusText: UILayout.loginChoiceAppleBusyText)
 
         Task { [weak self] in
             let result = await FirebaseAuthManager.shared.signInWithApple(presentationAnchor: window)
@@ -509,7 +509,7 @@ final class StartScene: BaseMenuScene {
                 case .cancelled:
                     self.loginChoiceOverlay?.setMode(
                         .idle,
-                        statusText: GameConfig.loginChoiceCancelledText
+                        statusText: UILayout.loginChoiceCancelledText
                     )
                 case .failure(let error):
                     self.loginChoiceOverlay?.setMode(
@@ -524,13 +524,13 @@ final class StartScene: BaseMenuScene {
     private func appleFailureStatusText(for error: AuthError?) -> String {
         switch error {
         case .some(.appleAuthorizationTimedOut):
-            return GameConfig.loginChoiceAppleTimeoutText
+            return UILayout.loginChoiceAppleTimeoutText
         case .some(.appleConfigurationFailed):
-            return GameConfig.loginChoiceAppleConfigurationText
+            return UILayout.loginChoiceAppleConfigurationText
         case .some(.appleCredentialRejected):
-            return GameConfig.loginChoiceAppleCredentialText
+            return UILayout.loginChoiceAppleCredentialText
         default:
-            return GameConfig.loginChoiceFailureText
+            return UILayout.loginChoiceFailureText
         }
     }
 
@@ -551,12 +551,12 @@ final class StartScene: BaseMenuScene {
         // Phase 10-2 — 타이틀/시작 버튼/NurseAvatar *살짝 위로* 슬라이드 + fadeOut.
         let slideUp = SKAction.moveBy(
             x: 0,
-            y: GameConfig.startSceneExitSlideDistance,
-            duration: GameConfig.startSceneExitSlideDuration
+            y: UILayout.startSceneExitSlideDistance,
+            duration: UILayout.startSceneExitSlideDuration
         )
         slideUp.timingMode = .easeIn
         let fadeOut = SKAction.fadeOut(
-            withDuration: GameConfig.startSceneExitSlideDuration
+            withDuration: UILayout.startSceneExitSlideDuration
         )
         // 같은 액션 인스턴스를 여러 노드에 run하면 SpriteKit이 내부적으로 복사 — 안전.
         let exit = SKAction.group([slideUp, fadeOut])
@@ -569,13 +569,13 @@ final class StartScene: BaseMenuScene {
 
         // Phase 10-2 — 슬라이드 완료 후 presentScene.
         // Sprint 6 — newCharacterSelectScene을 *인자 없이* 호출(difficulty 제거).
-        let wait = SKAction.wait(forDuration: GameConfig.startSceneExitSlideDuration)
+        let wait = SKAction.wait(forDuration: UILayout.startSceneExitSlideDuration)
         let present = SKAction.run { [weak view] in
             guard let view = view else { return }
             let nextScene = CharacterSelectScene.newCharacterSelectScene(
                 openProfileOnEntry: openProfileOnEntry
             )
-            let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+            let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
             view.presentScene(nextScene, transition: fade)
         }
         run(SKAction.sequence([wait, present]))

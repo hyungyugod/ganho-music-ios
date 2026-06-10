@@ -23,12 +23,12 @@ enum IntroCutsceneNode {
     ///   - scene: 컷씬을 부착할 GameScene. scene.cameraNode 자식으로 표시.
     ///   - character: 캐릭터별 본문 분기 — CutsceneTexts.intro lookup.
     ///   - difficulty: 난이도별 본문 분기 — easy/normal vs hard.
-    ///   - delay: present 직전 대기 시간. 기본값 GameConfig.cutsceneIntroDelay (0.25s) — 원본 L2268.
+    ///   - delay: present 직전 대기 시간. 기본값 FeelTuning.cutsceneIntroDelay (0.25s) — 원본 L2268.
     ///   - onDismiss: 사용자 탭 후 fadeOut 종료 시점에 호출. [weak self] 캡처는 호출부 책임.
     static func present(scene: GameScene,
                         character: CharacterID,
                         difficulty: Difficulty,
-                        delay: TimeInterval = GameConfig.cutsceneIntroDelay,
+                        delay: TimeInterval = FeelTuning.cutsceneIntroDelay,
                         onDismiss: @escaping () -> Void) {
         let texts = CutsceneTexts.intro(difficulty: difficulty, character: character)
         // SKAction.wait → SKAction.run 시퀀스. scene 자체에 run하므로 scene 해제 시 자동 멈춤.
@@ -41,7 +41,7 @@ enum IntroCutsceneNode {
                 body: texts.body,
                 parent: scene.cameraNode,
                 sceneSize: scene.size,
-                fontName: GameConfig.pixelCutsceneFontName,
+                fontName: Typography.pixelCutsceneFontName,
                 onDismiss: onDismiss
             )
         }

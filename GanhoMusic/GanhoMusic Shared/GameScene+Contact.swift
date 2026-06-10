@@ -50,12 +50,12 @@ extension GameScene {
 
             ScorePopupNode.spawn(at: sparkleOrigin, gainedPoints: gainedPoints, parent: self.worldNode)
 
-            if GameConfig.comboMilestones.contains(currentCombo),
+            if FeelTuning.comboMilestones.contains(currentCombo),
                !self.triggeredComboMilestones.contains(currentCombo) {
                 self.triggeredComboMilestones.insert(currentCombo)
                 self.playComboMilestoneFeedback(for: currentCombo)
                 let popup = ComboPopupNode(milestone: currentCombo)
-                popup.position = CGPoint(x: 0, y: GameConfig.comboPopupStartOffsetY)
+                popup.position = CGPoint(x: 0, y: FeelTuning.comboPopupStartOffsetY)
                 self.cameraNode.addChild(popup)
                 popup.animate()
             }
@@ -73,12 +73,12 @@ extension GameScene {
                 return
             }
             self.playStethoscopeHitFeedback()
-            ToastLabelNode.spawn(text: GameConfig.stethoscopeToastText,
+            ToastLabelNode.spawn(text: GameplayTuning.stethoscopeToastText,
                                  at: self.player.position,
                                  parent: self.worldNode)
-            let toastWait = SKAction.wait(forDuration: GameConfig.stethoscopeToastDuration)
+            let toastWait = SKAction.wait(forDuration: GameplayTuning.stethoscopeToastDuration)
             let freezeKick = SKAction.run { [weak self] in
-                self?.player.freeze(duration: GameConfig.playerFreezeDuration)
+                self?.player.freeze(duration: GameplayTuning.playerFreezeDuration)
             }
             self.run(.sequence([toastWait, freezeKick]))
             self.deferRemoveAfterContact(node)
@@ -105,34 +105,34 @@ extension GameScene {
             let toiletOrigin = toilet.position
             let gains = self.scoreSystem.recordToiletBonus(at: self.lastUpdateTime)
             let currentCombo = self.scoreSystem.combo
-            self.playNoteCollectFeedback(gainedPoints: gains.max() ?? GameConfig.scorePerNote, combo: currentCombo)
+            self.playNoteCollectFeedback(gainedPoints: gains.max() ?? GameplayTuning.scorePerNote, combo: currentCombo)
 
             let sparkle = SparkleEffectNode(context: .ingame)
             sparkle.position = toiletOrigin
             self.worldNode.addChild(sparkle)
             sparkle.emit()
 
-            ToastLabelNode.spawn(text: GameConfig.toiletToastText,
+            ToastLabelNode.spawn(text: FeelTuning.toiletToastText,
                                  at: toiletOrigin,
                                  parent: self.worldNode)
 
             if let firstGain = gains.first, let secondGain = gains.dropFirst().first {
-                ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x - GameConfig.toiletScorePopupFanOutX,
+                ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x - GameplayTuning.toiletScorePopupFanOutX,
                                                  y: toiletOrigin.y),
                                      gainedPoints: firstGain,
                                      parent: self.worldNode)
-                ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x + GameConfig.toiletScorePopupFanOutX,
+                ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x + GameplayTuning.toiletScorePopupFanOutX,
                                                  y: toiletOrigin.y),
                                      gainedPoints: secondGain,
                                      parent: self.worldNode)
             }
 
-            if GameConfig.comboMilestones.contains(currentCombo),
+            if FeelTuning.comboMilestones.contains(currentCombo),
                !self.triggeredComboMilestones.contains(currentCombo) {
                 self.triggeredComboMilestones.insert(currentCombo)
                 self.playComboMilestoneFeedback(for: currentCombo)
                 let popup = ComboPopupNode(milestone: currentCombo)
-                popup.position = CGPoint(x: 0, y: GameConfig.comboPopupStartOffsetY)
+                popup.position = CGPoint(x: 0, y: FeelTuning.comboPopupStartOffsetY)
                 self.cameraNode.addChild(popup)
                 popup.animate()
             }

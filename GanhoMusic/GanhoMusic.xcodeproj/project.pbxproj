@@ -9,7 +9,13 @@
 /* Begin PBXBuildFile section */
 		09ADEBC9555A458BA09456D9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 01907AD2D84A4F0C94D7969C /* FirebaseAuth */; };
 		860F95DDC6374B9B8BF4FCB1 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = BF6902ABD421442C80E52550 /* FirebaseFirestore */; };
-		A1C0F1610000000000000001 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1510000000000000001 /* GameConfig.swift */; };
+		C0F1A0DE0000000000000101 /* GameplayTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000001 /* GameplayTuning.swift */; };
+		C0F1A0DE0000000000000102 /* FeelTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000002 /* FeelTuning.swift */; };
+		C0F1A0DE0000000000000103 /* UILayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000003 /* UILayout.swift */; };
+		C0F1A0DE0000000000000104 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000004 /* Palette.swift */; };
+		C0F1A0DE0000000000000105 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000005 /* Typography.swift */; };
+		C0F1A0DE0000000000000106 /* ZOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000006 /* ZOrder.swift */; };
+		C0F1A0DE0000000000000107 /* StorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000007 /* StorageKeys.swift */; };
 		A1C0F1620000000000000002 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1520000000000000002 /* GameState.swift */; };
 		A1C0F1630000000000000003 /* PhysicsCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1530000000000000003 /* PhysicsCategory.swift */; };
 		A1C0F1640000000000000004 /* ColorTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1540000000000000004 /* ColorTokens.swift */; };
@@ -30,6 +36,7 @@
 		A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */; };
 		A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000020 /* BombFlashNode.swift */; };
 		A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000021 /* SelfDismissingNode.swift */; };
+		C0F1A0DE0000000000000108 /* PixelCharacterAnimating.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000008 /* PixelCharacterAnimating.swift */; };
 		A1C0F1B00000000000000022 /* CharacterID.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000022 /* CharacterID.swift */; };
 		A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000023 /* CharacterCardNode.swift */; };
 		A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };
@@ -67,7 +74,6 @@
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
 		A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000052 /* SkillExplanationScene.swift */; };
-		A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */; };
 		A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */; };
 		A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000056 /* GlassPillNode.swift */; };
 		A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000057 /* AccentLineNode.swift */; };
@@ -80,7 +86,6 @@
 		A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000074 /* ScoreboardScene.swift */; };
 		A1C0F1B00000000000000075 /* SergeantParkNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000075 /* SergeantParkNode.swift */; };
 		A1C0F1B00000000000000076 /* Direction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000076 /* Direction.swift */; };
-		A1C0F1B00000000000000077 /* CharacterFullBodyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000077 /* CharacterFullBodyNode.swift */; };
 		A1C0F1B00000000000000078 /* MapNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000078 /* MapNode.swift */; };
 		A1C0F1B00000000000000079 /* WallTileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000079 /* WallTileNode.swift */; };
 		A1C0F1B0000000000000007A /* EnemyTelegraphNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000007A /* EnemyTelegraphNode.swift */; };
@@ -132,7 +137,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A1C0F1510000000000000001 /* GameConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfig.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000001 /* GameplayTuning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameplayTuning.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000002 /* FeelTuning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeelTuning.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000003 /* UILayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UILayout.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000004 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000005 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000006 /* ZOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZOrder.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000007 /* StorageKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageKeys.swift; sourceTree = "<group>"; };
 		A1C0F1520000000000000002 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 		A1C0F1530000000000000003 /* PhysicsCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsCategory.swift; sourceTree = "<group>"; };
 		A1C0F1540000000000000004 /* ColorTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTokens.swift; sourceTree = "<group>"; };
@@ -153,6 +164,7 @@
 		A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirforceOverlayNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000020 /* BombFlashNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombFlashNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000021 /* SelfDismissingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfDismissingNode.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000008 /* PixelCharacterAnimating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterAnimating.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000022 /* CharacterID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterID.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000023 /* CharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
@@ -190,7 +202,6 @@
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000052 /* SkillExplanationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillExplanationScene.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientBackgroundNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicNoteEmitterNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000056 /* GlassPillNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPillNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000057 /* AccentLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentLineNode.swift; sourceTree = "<group>"; };
@@ -203,7 +214,6 @@
 		A1C0F1A00000000000000074 /* ScoreboardScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreboardScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000075 /* SergeantParkNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SergeantParkNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000076 /* Direction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Direction.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000077 /* CharacterFullBodyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterFullBodyNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000078 /* MapNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000079 /* WallTileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallTileNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000007A /* EnemyTelegraphNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyTelegraphNode.swift; sourceTree = "<group>"; };
@@ -389,7 +399,13 @@
 		A1C0F1500000000000000000 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				A1C0F1510000000000000001 /* GameConfig.swift */,
+				C0F1A0DE0000000000000001 /* GameplayTuning.swift */,
+				C0F1A0DE0000000000000002 /* FeelTuning.swift */,
+				C0F1A0DE0000000000000003 /* UILayout.swift */,
+				C0F1A0DE0000000000000004 /* Palette.swift */,
+				C0F1A0DE0000000000000005 /* Typography.swift */,
+				C0F1A0DE0000000000000006 /* ZOrder.swift */,
+				C0F1A0DE0000000000000007 /* StorageKeys.swift */,
 				A1C0F1520000000000000002 /* GameState.swift */,
 				A1C0F1530000000000000003 /* PhysicsCategory.swift */,
 				A1C0F1540000000000000004 /* ColorTokens.swift */,
@@ -435,7 +451,6 @@
 				AC0000000000000000000001 /* AccountMenuOverlayNode.swift */,
 				DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */,
 				OA1000000000000000000001 /* OverlayActionButtonNode.swift */,
-				A1C0F1A00000000000000053 /* GradientBackgroundNode.swift */,
 				A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */,
 				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
 				A1C0F1A00000000000000057 /* AccentLineNode.swift */,
@@ -451,7 +466,6 @@
 				B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */,
 				A1C0F1A00000000000000071 /* NurseAvatarNode.swift */,
 				A1C0F1A00000000000000075 /* SergeantParkNode.swift */,
-				A1C0F1A00000000000000077 /* CharacterFullBodyNode.swift */,
 				A1C0F1A00000000000000078 /* MapNode.swift */,
 				A1C0F1A00000000000000079 /* WallTileNode.swift */,
 				EE1000000000000000000004 /* HospitalPropNode.swift */,
@@ -548,6 +562,7 @@
 			isa = PBXGroup;
 			children = (
 				A1C0F1A00000000000000021 /* SelfDismissingNode.swift */,
+				C0F1A0DE0000000000000008 /* PixelCharacterAnimating.swift */,
 			);
 			name = Protocols;
 			path = "GanhoMusic Shared/Protocols";
@@ -761,7 +776,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1C0F1610000000000000001 /* GameConfig.swift in Sources */,
+				C0F1A0DE0000000000000101 /* GameplayTuning.swift in Sources */,
+				C0F1A0DE0000000000000102 /* FeelTuning.swift in Sources */,
+				C0F1A0DE0000000000000103 /* UILayout.swift in Sources */,
+				C0F1A0DE0000000000000104 /* Palette.swift in Sources */,
+				C0F1A0DE0000000000000105 /* Typography.swift in Sources */,
+				C0F1A0DE0000000000000106 /* ZOrder.swift in Sources */,
+				C0F1A0DE0000000000000107 /* StorageKeys.swift in Sources */,
 				A1C0F1620000000000000002 /* GameState.swift in Sources */,
 				A1C0F1630000000000000003 /* PhysicsCategory.swift in Sources */,
 				A1C0F1640000000000000004 /* ColorTokens.swift in Sources */,
@@ -783,6 +804,7 @@
 				A1C0F1B00000000000000019 /* AirforceOverlayNode.swift in Sources */,
 				A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */,
 				A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */,
+				C0F1A0DE0000000000000108 /* PixelCharacterAnimating.swift in Sources */,
 				A1C0F1B00000000000000022 /* CharacterID.swift in Sources */,
 				A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */,
 				A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
@@ -830,7 +852,6 @@
 				A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */,
 				A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */,
 				A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */,
-				A1C0F1B00000000000000053 /* GradientBackgroundNode.swift in Sources */,
 				A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */,
 				A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */,
 				A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */,
@@ -844,7 +865,6 @@
 				A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */,
 				A1C0F1B00000000000000075 /* SergeantParkNode.swift in Sources */,
 				A1C0F1B00000000000000076 /* Direction.swift in Sources */,
-				A1C0F1B00000000000000077 /* CharacterFullBodyNode.swift in Sources */,
 				A1C0F1B00000000000000078 /* MapNode.swift in Sources */,
 				A1C0F1B00000000000000079 /* WallTileNode.swift in Sources */,
 				A1C0F1B0000000000000007A /* EnemyTelegraphNode.swift in Sources */,

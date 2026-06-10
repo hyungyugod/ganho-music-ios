@@ -22,12 +22,12 @@ final class EnemyTelegraphNode: SKNode {
 
     // MARK: - Init
     override init() {
-        // PlayerSkill 등 본체 패턴(GameConfig.fontDisplay)과 동형. 32pt 강조 폰트.
-        label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        // PlayerSkill 등 본체 패턴(Typography.fontDisplay)과 동형. 32pt 강조 폰트.
+        label = SKLabelNode(fontNamed: Typography.fontDisplay)
         super.init()
         label.text = "!"
         label.fontSize = 32
-        label.fontColor = GameConfig.nurseChiefTelegraphColor
+        label.fontColor = Palette.nurseChiefTelegraphColor
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         label.zPosition = 1
@@ -40,14 +40,14 @@ final class EnemyTelegraphNode: SKNode {
 
     // MARK: - Blink
     /// 120ms on/off 깜빡임 시작. SKAction.repeatForever → 노드 제거 시 자동 정리.
-    /// Timer 금지 (주의사항 — 매직 넘버 0/GameConfig 경유).
+    /// Timer 금지 (주의사항 — 매직 넘버 0/Config 상수 경유).
     /// enterTelegraph 호출 직후 1회 호출. enterIdle에서 노드 자체 removeFromParent로 액션도 정리.
     func startBlinking() {
         let on = SKAction.fadeAlpha(to: 1.0, duration: 0)
         let off = SKAction.fadeAlpha(to: 0.0, duration: 0)
-        let wait = SKAction.wait(forDuration: GameConfig.nurseChiefTelegraphBlinkInterval)
+        let wait = SKAction.wait(forDuration: GameplayTuning.nurseChiefTelegraphBlinkInterval)
         let blink = SKAction.repeatForever(.sequence([on, wait, off, wait]))
-        run(blink, withKey: GameConfig.telegraphBlinkActionKey)
+        run(blink, withKey: GameplayTuning.telegraphBlinkActionKey)
     }
 
     func attachWarningLines(angles: [CGFloat], profile: DangerWarningProfile, originOffsetY: CGFloat) {
@@ -55,7 +55,7 @@ final class EnemyTelegraphNode: SKNode {
         let line = ProjectileWarningLineNode(
             angles: angles,
             length: profile.telegraphLineLength,
-            color: GameConfig.nurseChiefTelegraphColor,
+            color: Palette.nurseChiefTelegraphColor,
             alpha: profile.telegraphLineAlpha
         )
         line.position = CGPoint(x: 0, y: originOffsetY)

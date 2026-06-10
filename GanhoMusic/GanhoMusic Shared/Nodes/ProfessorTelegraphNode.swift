@@ -28,7 +28,7 @@ final class ProfessorTelegraphNode: SKNode {
     // MARK: - Init
     override init() {
         // EnemyTelegraphNode와 동형 — 32pt fontDisplay 강조 폰트.
-        label = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+        label = SKLabelNode(fontNamed: Typography.fontDisplay)
         super.init()
         label.text = "!"
         label.fontSize = 32
@@ -52,9 +52,9 @@ final class ProfessorTelegraphNode: SKNode {
     func startBlinking() {
         let on = SKAction.fadeAlpha(to: 1.0, duration: 0)
         let off = SKAction.fadeAlpha(to: 0.0, duration: 0)
-        let wait = SKAction.wait(forDuration: GameConfig.nurseChiefTelegraphBlinkInterval)
+        let wait = SKAction.wait(forDuration: GameplayTuning.nurseChiefTelegraphBlinkInterval)
         let blink = SKAction.repeatForever(.sequence([on, wait, off, wait]))
-        run(blink, withKey: GameConfig.telegraphBlinkActionKey)
+        run(blink, withKey: GameplayTuning.telegraphBlinkActionKey)
     }
 
     func attachWarningLine(angle: CGFloat, profile: DangerWarningProfile, originOffsetY: CGFloat) {
@@ -75,7 +75,7 @@ final class ProfessorTelegraphNode: SKNode {
     /// stethoscopeFanWarningLinesEnabled=false면 경고선을 부착하지 않는다(공정성 토글).
     func attachWarningLine(angles: [CGFloat], profile: DangerWarningProfile, originOffsetY: CGFloat) {
         warningLine?.removeFromParent()
-        guard GameConfig.stethoscopeFanWarningLinesEnabled, !angles.isEmpty else { return }
+        guard GameplayTuning.stethoscopeFanWarningLinesEnabled, !angles.isEmpty else { return }
         let line = ProjectileWarningLineNode(
             angles: angles,
             length: profile.telegraphLineLength,

@@ -23,10 +23,10 @@ final class SkillExplanationScene: BaseMenuScene {
     private let characterID: CharacterID
     private var isTransitioning = false
     /// Sprint 2 — 헤더 라벨(Jua, navyDeep).
-    private let headerLabel = SKLabelNode(text: GameConfig.skillExplanationHeaderText)
+    private let headerLabel = SKLabelNode(text: UILayout.skillExplanationHeaderText)
     /// Sprint 2 — 헤더 AccentLine + Gowun Dodum 부제.
     private let accentLine = AccentLineNode()
-    private let headerSubLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let headerSubLabel = SKLabelNode(fontNamed: Typography.fontBody)
     /// Sprint 2 — 상단 좌우 GlassPill 뒤로 + DarkContextChip 브레드크럼.
     private var topBackPill: GlassPillNode?
     private var breadcrumbChip: DarkContextChipNode?
@@ -36,9 +36,9 @@ final class SkillExplanationScene: BaseMenuScene {
     private var avatarCard: SKShapeNode?
     /// Sprint 2 — 아바타 카드 안 상단 코랄 이름 뱃지.
     private var avatarNameBadge: SKShapeNode?
-    private let avatarNameLabel = SKLabelNode(fontNamed: GameConfig.fontDisplay)
+    private let avatarNameLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
     /// Sprint 2 — 아바타 카드 아래 role 라벨(Gowun Dodum) + 속도 칩.
-    private let avatarRoleLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let avatarRoleLabel = SKLabelNode(fontNamed: Typography.fontBody)
     private var avatarSpeedChip: DarkContextChipNode?
     /// Sprint 10.9 — 우측 스킬 정보를 하나의 브리핑 패널로 묶어 밀집감을 낮춘다.
     private var briefingPanel: SKShapeNode?
@@ -46,7 +46,7 @@ final class SkillExplanationScene: BaseMenuScene {
     private let skillNameLabel = SKLabelNode(text: "")
     /// Sprint 2 — 우측 인용 박스(좌 3px 코랄 보더 + 글래스 fill).
     private var skillQuoteBox: SKShapeNode?
-    private let skillQuoteLabel = SKLabelNode(fontNamed: GameConfig.fontBody)
+    private let skillQuoteLabel = SKLabelNode(fontNamed: Typography.fontBody)
     /// Sprint 2 — 우측 메타 칩 3개(CD / 범위 / 즉발).
     private var statChips: [DarkContextChipNode] = []
     /// Sprint 6 — "시작"이 아니라 "다음" — 다음 단계가 DifficultySelectScene이므로.
@@ -86,8 +86,8 @@ final class SkillExplanationScene: BaseMenuScene {
         }()
         self.avatarSprite = SKSpriteNode(texture: texture)
         self.avatarSprite.size = CGSize(
-            width: GameConfig.skillExplanationAvatarWidth,
-            height: GameConfig.skillExplanationAvatarHeight
+            width: UILayout.skillExplanationAvatarWidth,
+            height: UILayout.skillExplanationAvatarHeight
         )
         super.init(size: size)
     }
@@ -130,15 +130,15 @@ final class SkillExplanationScene: BaseMenuScene {
 
     // MARK: - Setup (Sprint 2 · Header)
     private func setupHeader() {
-        headerLabel.fontName = GameConfig.fontDisplay
-        headerLabel.fontSize = GameConfig.skillExplanationHeaderFontSize
+        headerLabel.fontName = Typography.fontDisplay
+        headerLabel.fontSize = UILayout.skillExplanationHeaderFontSize
         headerLabel.fontColor = .ganhoNavyDeep
         headerLabel.horizontalAlignmentMode = .center
         headerLabel.verticalAlignmentMode = .center
         addChild(headerLabel)
 
-        headerSubLabel.text = GameConfig.skillExplanationHeaderSubText
-        headerSubLabel.fontSize = GameConfig.skillExplanationHeaderSubFontSize
+        headerSubLabel.text = UILayout.skillExplanationHeaderSubText
+        headerSubLabel.fontSize = UILayout.skillExplanationHeaderSubFontSize
         headerSubLabel.fontColor = .ganhoNavyMuted
         headerSubLabel.horizontalAlignmentMode = .center
         headerSubLabel.verticalAlignmentMode = .center
@@ -156,27 +156,27 @@ final class SkillExplanationScene: BaseMenuScene {
         headerSubLabel.setScale(scale)
         accentLine.setScale(scale)
         let baseY = min(
-            frame.midY + GameConfig.skillExplanationHeaderOffsetY * scale,
-            topBarY(extraInset: GameConfig.skillExplanationBackPillHeight)
+            frame.midY + UILayout.skillExplanationHeaderOffsetY * scale,
+            topBarY(extraInset: UILayout.skillExplanationBackPillHeight)
         )
         headerLabel.position = CGPoint(x: centerX, y: baseY)
         headerSubLabel.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.skillExplanationHeaderSubOffsetY * scale
+            y: baseY + UILayout.skillExplanationHeaderSubOffsetY * scale
         )
         accentLine.position = CGPoint(
             x: centerX,
-            y: baseY + GameConfig.skillExplanationAccentLineOffsetY * scale
+            y: baseY + UILayout.skillExplanationAccentLineOffsetY * scale
         )
     }
 
     // MARK: - Setup (Sprint 2 · Top Bar)
     private func setupTopBar() {
         let back = GlassPillNode(
-            text: GameConfig.skillExplanationBackPillText,
+            text: UILayout.skillExplanationBackPillText,
             size: CGSize(
-                width: GameConfig.skillExplanationBackPillWidth,
-                height: GameConfig.skillExplanationBackPillHeight
+                width: UILayout.skillExplanationBackPillWidth,
+                height: UILayout.skillExplanationBackPillHeight
             )
         )
         topBackPill = back
@@ -188,7 +188,7 @@ final class SkillExplanationScene: BaseMenuScene {
         // 실제 표시 대상은 .jung/.geon/.im/.lee 4명. 그 외 캐릭터도 displayName 조합 안전.
         let chip = DarkContextChipNode(
             label: "\(characterID.displayName) · 스킬 · 난이도",
-            badge: GameConfig.skillExplanationBreadcrumbBadge
+            badge: UILayout.skillExplanationBreadcrumbBadge
         )
         breadcrumbChip = chip
         addChild(chip)
@@ -201,20 +201,20 @@ final class SkillExplanationScene: BaseMenuScene {
         let y = topBarY(
             extraInset: max(
                 0,
-                GameConfig.skillExplanationTopBarMarginY - GameConfig.menuTopSafePadding
+                UILayout.skillExplanationTopBarMarginY - UILayout.menuTopSafePadding
             )
         )
         topBackPill?.setScale(scale)
         breadcrumbChip?.setScale(scale)
         topBackPill?.position = CGPoint(
-            x: frame.minX + safe.left + GameConfig.skillExplanationTopBarMarginX * scale
-                + GameConfig.skillExplanationBackPillWidth * scale / 2,
+            x: frame.minX + safe.left + UILayout.skillExplanationTopBarMarginX * scale
+                + UILayout.skillExplanationBackPillWidth * scale / 2,
             y: y
         )
         if let chip = breadcrumbChip {
             let halfWidth = chip.calculateAccumulatedFrame().width / 2
             chip.position = CGPoint(
-                x: frame.maxX - safe.right - GameConfig.skillExplanationTopBarMarginX * scale - halfWidth,
+                x: frame.maxX - safe.right - UILayout.skillExplanationTopBarMarginX * scale - halfWidth,
                 y: y
             )
         }
@@ -223,18 +223,18 @@ final class SkillExplanationScene: BaseMenuScene {
     // MARK: - Setup (Sprint 2 · Avatar Card)
     private func setupAvatarCard() {
         let cardSize = CGSize(
-            width: GameConfig.skillExplanationAvatarCardWidth,
-            height: GameConfig.skillExplanationAvatarCardHeight
+            width: UILayout.skillExplanationAvatarCardWidth,
+            height: UILayout.skillExplanationAvatarCardHeight
         )
         let card = SKShapeNode(
             rectOf: cardSize,
-            cornerRadius: GameConfig.skillExplanationAvatarCardCornerRadius
+            cornerRadius: UILayout.skillExplanationAvatarCardCornerRadius
         )
         card.fillColor = UIColor.white
-            .withAlphaComponent(GameConfig.skillExplanationAvatarCardFillAlpha)
+            .withAlphaComponent(UILayout.skillExplanationAvatarCardFillAlpha)
         card.strokeColor = UIColor.ganhoCoralPrimary
-            .withAlphaComponent(GameConfig.skillExplanationAvatarCardStrokeAlpha)
-        card.lineWidth = GameConfig.skillExplanationAvatarCardStrokeWidth
+            .withAlphaComponent(UILayout.skillExplanationAvatarCardStrokeAlpha)
+        card.lineWidth = UILayout.skillExplanationAvatarCardStrokeWidth
         card.zPosition = 80
         card.name = "avatarCard"
         avatarCard = card
@@ -269,8 +269,8 @@ final class SkillExplanationScene: BaseMenuScene {
     // MARK: - Setup (Sprint 2 · Avatar Name Badge)
     private func setupAvatarNameBadge() {
         let badgeSize = CGSize(
-            width: GameConfig.skillExplanationAvatarNameBadgeWidth,
-            height: GameConfig.skillExplanationAvatarNameBadgeHeight
+            width: UILayout.skillExplanationAvatarNameBadgeWidth,
+            height: UILayout.skillExplanationAvatarNameBadgeHeight
         )
         let badge = SKShapeNode(
             rectOf: badgeSize,
@@ -285,7 +285,7 @@ final class SkillExplanationScene: BaseMenuScene {
         addChild(badge)
 
         avatarNameLabel.text = characterID.displayName
-        avatarNameLabel.fontSize = GameConfig.skillExplanationAvatarNameBadgeFontSize
+        avatarNameLabel.fontSize = UILayout.skillExplanationAvatarNameBadgeFontSize
         avatarNameLabel.fontColor = .white
         avatarNameLabel.horizontalAlignmentMode = .center
         avatarNameLabel.verticalAlignmentMode = .center
@@ -300,7 +300,7 @@ final class SkillExplanationScene: BaseMenuScene {
         avatarNameLabel.setScale(scale)
         let baseX = contentLeftX(scale: scale)
         let baseY = contentCenterY(scale: scale)
-        let badgeY = baseY + GameConfig.skillExplanationAvatarNameBadgeOffsetY * scale
+        let badgeY = baseY + UILayout.skillExplanationAvatarNameBadgeOffsetY * scale
         avatarNameBadge?.position = CGPoint(x: baseX, y: badgeY)
         avatarNameLabel.position = CGPoint(x: baseX, y: badgeY)
     }
@@ -308,7 +308,7 @@ final class SkillExplanationScene: BaseMenuScene {
     // MARK: - Setup (Sprint 2 · Role + Speed Chip)
     private func setupAvatarRoleAndSpeed() {
         avatarRoleLabel.text = characterID.tag
-        avatarRoleLabel.fontSize = GameConfig.skillExplanationAvatarRoleFontSize
+        avatarRoleLabel.fontSize = UILayout.skillExplanationAvatarRoleFontSize
         avatarRoleLabel.fontColor = .ganhoNavyMuted
         avatarRoleLabel.horizontalAlignmentMode = .center
         avatarRoleLabel.verticalAlignmentMode = .center
@@ -330,28 +330,28 @@ final class SkillExplanationScene: BaseMenuScene {
         let baseY = contentCenterY(scale: scale)
         avatarRoleLabel.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.skillExplanationAvatarRoleOffsetY * scale
+            y: baseY + UILayout.skillExplanationAvatarRoleOffsetY * scale
         )
         avatarSpeedChip?.position = CGPoint(
             x: baseX,
-            y: baseY + GameConfig.skillExplanationAvatarSpeedChipOffsetY * scale
+            y: baseY + UILayout.skillExplanationAvatarSpeedChipOffsetY * scale
         )
     }
 
     // MARK: - Sprint 10.9 · Right Briefing Panel
     private func setupBriefingPanel() {
         let panelSize = CGSize(
-            width: GameConfig.skillExplanationBriefingPanelWidthV4,
-            height: GameConfig.skillExplanationBriefingPanelHeightV4
+            width: UILayout.skillExplanationBriefingPanelWidth,
+            height: UILayout.skillExplanationBriefingPanelHeight
         )
         let panel = SKShapeNode(
             rectOf: panelSize,
-            cornerRadius: GameConfig.skillExplanationBriefingPanelCornerRadiusV4
+            cornerRadius: UILayout.skillExplanationBriefingPanelCornerRadius
         )
         panel.fillColor = UIColor.white
-            .withAlphaComponent(GameConfig.skillExplanationBriefingPanelFillAlphaV4)
+            .withAlphaComponent(UILayout.skillExplanationBriefingPanelFillAlpha)
         panel.strokeColor = UIColor.ganhoNavyDeep
-            .withAlphaComponent(GameConfig.skillExplanationBriefingPanelStrokeAlphaV4)
+            .withAlphaComponent(UILayout.skillExplanationBriefingPanelStrokeAlpha)
         panel.lineWidth = 1.2
         panel.zPosition = 84
         panel.name = "skillBriefingPanel"
@@ -366,15 +366,15 @@ final class SkillExplanationScene: BaseMenuScene {
         briefingPanel?.position = CGPoint(
             x: contentRightX(scale: scale),
             y: contentCenterY(scale: scale)
-                + GameConfig.skillExplanationBriefingPanelOffsetYV4 * scale
+                + UILayout.skillExplanationBriefingPanelOffsetY * scale
         )
     }
 
     // MARK: - Sprint 7 Phase B · Right Side Skill Name
     private func setupSkillName() {
         skillNameLabel.text = characterID.skill.displayName
-        skillNameLabel.fontName = GameConfig.fontDisplay
-        skillNameLabel.fontSize = GameConfig.skillExplanationSkillNameFontSize
+        skillNameLabel.fontName = Typography.fontDisplay
+        skillNameLabel.fontSize = UILayout.skillExplanationSkillNameFontSize
         skillNameLabel.fontColor = .ganhoNavyDeep
         skillNameLabel.horizontalAlignmentMode = .left
         skillNameLabel.verticalAlignmentMode = .center
@@ -389,7 +389,7 @@ final class SkillExplanationScene: BaseMenuScene {
         skillNameLabel.position = CGPoint(
             x: briefingPanelLeftTextX(scale: scale),
             y: contentCenterY(scale: scale)
-                + GameConfig.skillExplanationSkillNameOffsetYV4 * scale
+                + UILayout.skillExplanationSkillNameOffsetY * scale
         )
     }
 
@@ -399,12 +399,12 @@ final class SkillExplanationScene: BaseMenuScene {
     /// Sprint 7 Phase B — 폭 300→332(≈52%), 보더 3→4px. V3 상수만 참조, v2 상수 값 변경 0.
     private func setupSkillQuoteBox() {
         let boxSize = CGSize(
-            width: GameConfig.skillExplanationQuoteBoxWidthV4,
-            height: GameConfig.skillExplanationQuoteBoxHeightV4
+            width: UILayout.skillExplanationQuoteBoxWidth,
+            height: UILayout.skillExplanationQuoteBoxHeight
         )
         let box = SKShapeNode(
             rectOf: boxSize,
-            cornerRadius: GameConfig.skillExplanationQuoteBoxCornerRadius
+            cornerRadius: UILayout.skillExplanationQuoteBoxCornerRadius
         )
         box.fillColor = UIColor.white
             .withAlphaComponent(0.92)
@@ -416,7 +416,7 @@ final class SkillExplanationScene: BaseMenuScene {
         addChild(box)
 
         // Sprint 7 Phase B — 좌측 코랄 라운드 보더 4px (v2 3px → v3 4px).
-        let borderWidth = GameConfig.skillExplanationQuoteBoxBorderWidthV3
+        let borderWidth = UILayout.skillExplanationQuoteBoxBorderWidth
         let leftBorder = SKShapeNode(
             rectOf: CGSize(width: borderWidth, height: boxSize.height),
             cornerRadius: borderWidth / 2
@@ -429,13 +429,13 @@ final class SkillExplanationScene: BaseMenuScene {
         box.addChild(leftBorder)
 
         skillQuoteLabel.text = characterID.skill.fullDescription
-        skillQuoteLabel.fontSize = GameConfig.skillExplanationQuoteBoxFontSize
+        skillQuoteLabel.fontSize = UILayout.skillExplanationQuoteBoxFontSize
         skillQuoteLabel.fontColor = .ganhoNavyDeep
         skillQuoteLabel.horizontalAlignmentMode = .center
         skillQuoteLabel.verticalAlignmentMode = .center
         skillQuoteLabel.numberOfLines = 0
         skillQuoteLabel.preferredMaxLayoutWidth =
-            boxSize.width - GameConfig.skillExplanationQuoteBoxHorizontalPadding * 2
+            boxSize.width - UILayout.skillExplanationQuoteBoxHorizontalPadding * 2
         skillQuoteLabel.position = .zero
         skillQuoteLabel.zPosition = 92
         box.addChild(skillQuoteLabel)
@@ -447,12 +447,12 @@ final class SkillExplanationScene: BaseMenuScene {
         skillQuoteBox?.setScale(scale)
         // Label width is parent-local: the quote box itself receives the compact scale.
         skillQuoteLabel.preferredMaxLayoutWidth =
-            GameConfig.skillExplanationQuoteBoxWidthV4
-            - GameConfig.skillExplanationQuoteBoxHorizontalPadding * 2
+            UILayout.skillExplanationQuoteBoxWidth
+            - UILayout.skillExplanationQuoteBoxHorizontalPadding * 2
         skillQuoteBox?.position = CGPoint(
             x: contentRightX(scale: scale),
             y: contentCenterY(scale: scale)
-                + GameConfig.skillExplanationQuoteBoxOffsetYV4 * scale
+                + UILayout.skillExplanationQuoteBoxOffsetY * scale
         )
     }
 
@@ -493,11 +493,11 @@ final class SkillExplanationScene: BaseMenuScene {
         // 가로 정렬 — 누적 폭 계산 후 우측 영역 중앙(MetaLabelOffsetX) 기준 정렬.
         let widths = statChips.map { $0.calculateAccumulatedFrame().width }
         // Sprint 7 Phase B — V3 spacing 10pt (v2 8pt → v3 10pt). 메타 칩 호흡 +2pt.
-        let spacing = GameConfig.skillExplanationStatChipSpacingV3 * scale
+        let spacing = UILayout.skillExplanationStatChipSpacing * scale
         let total = widths.reduce(0, +) + spacing * CGFloat(statChips.count - 1)
         let centerX = contentRightX(scale: scale)
         let y = contentCenterY(scale: scale)
-            + GameConfig.skillExplanationStatChipRowOffsetYV4 * scale
+            + UILayout.skillExplanationStatChipRowOffsetY * scale
         var cursorX = centerX - total / 2
         for (index, chip) in statChips.enumerated() {
             let w = widths[index]
@@ -516,12 +516,12 @@ final class SkillExplanationScene: BaseMenuScene {
         let scale = skillLayoutScale()
         startButton.setScale(scale)
         let panelBottom = contentCenterY(scale: scale)
-            + GameConfig.skillExplanationBriefingPanelOffsetYV4 * scale
-            - GameConfig.skillExplanationBriefingPanelHeightV4 * scale / 2
+            + UILayout.skillExplanationBriefingPanelOffsetY * scale
+            - UILayout.skillExplanationBriefingPanelHeight * scale / 2
         let targetY = panelBottom
-            - GameConfig.skillExplanationButtonRightPanelGapV4 * scale
-            - GameConfig.primaryButtonHeight * scale / 2
-        let minY = bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
+            - UILayout.skillExplanationButtonRightPanelGap * scale
+            - UILayout.primaryButtonHeight * scale / 2
+        let minY = bottomCTAAnchorY(buttonHalfHeight: UILayout.primaryButtonHeight * scale / 2)
         startButton.position = CGPoint(
             x: contentRightX(scale: scale),
             y: max(targetY, minY)
@@ -535,26 +535,26 @@ final class SkillExplanationScene: BaseMenuScene {
         let availableWidth = size.width
             - safe.left
             - safe.right
-            - GameConfig.menuHorizontalSafePadding * 2
-        let requiredWidth = GameConfig.skillExplanationAvatarCardWidth
-            + GameConfig.difficultySelectColumnMinGap
-            + GameConfig.skillExplanationBriefingPanelWidthV4
+            - UILayout.menuHorizontalSafePadding * 2
+        let requiredWidth = UILayout.skillExplanationAvatarCardWidth
+            + UILayout.difficultySelectColumnMinGap
+            + UILayout.skillExplanationBriefingPanelWidth
         let widthScale = availableWidth / requiredWidth
         return max(
-            GameConfig.skillExplanationMinimumLayoutScale,
+            UILayout.skillExplanationMinimumLayoutScale,
             min(menuCompactScale(), widthScale)
         )
     }
 
     private func contentCenterY(scale: CGFloat) -> CGFloat {
-        let buttonY = bottomCTAAnchorY(buttonHalfHeight: GameConfig.primaryButtonHeight * scale / 2)
-        let topLimit = topBarY(extraInset: GameConfig.skillExplanationBackPillHeight)
-            - GameConfig.skillExplanationHeaderFontSize * scale
-        let preferred = frame.midY + GameConfig.skillExplanationAvatarCardOffsetY * scale
-        let cardHalfHeight = GameConfig.skillExplanationAvatarCardHeight * scale / 2
+        let buttonY = bottomCTAAnchorY(buttonHalfHeight: UILayout.primaryButtonHeight * scale / 2)
+        let topLimit = topBarY(extraInset: UILayout.skillExplanationBackPillHeight)
+            - UILayout.skillExplanationHeaderFontSize * scale
+        let preferred = frame.midY + UILayout.skillExplanationAvatarCardOffsetY * scale
+        let cardHalfHeight = UILayout.skillExplanationAvatarCardHeight * scale / 2
         let minY = buttonY
-            + GameConfig.primaryButtonHeight * scale / 2
-            + GameConfig.menuBottomSafePadding
+            + UILayout.primaryButtonHeight * scale / 2
+            + UILayout.menuBottomSafePadding
             + cardHalfHeight
         let maxY = topLimit - cardHalfHeight
         return maxY > minY ? min(max(preferred, minY), maxY) : preferred
@@ -562,30 +562,30 @@ final class SkillExplanationScene: BaseMenuScene {
 
     private func contentLeftX(scale: CGFloat) -> CGFloat {
         let safe = menuSafeInsets()
-        let halfWidth = GameConfig.skillExplanationAvatarCardWidth * scale / 2
-        let preferred = frame.midX + GameConfig.skillExplanationAvatarCardOffsetXV4 * scale
+        let halfWidth = UILayout.skillExplanationAvatarCardWidth * scale / 2
+        let preferred = frame.midX + UILayout.skillExplanationAvatarCardOffsetX * scale
         let minX = frame.minX
             + safe.left
-            + GameConfig.menuHorizontalSafePadding
+            + UILayout.menuHorizontalSafePadding
             + halfWidth
         return max(preferred, minX)
     }
 
     private func contentRightX(scale: CGFloat) -> CGFloat {
         let safe = menuSafeInsets()
-        let halfWidth = GameConfig.skillExplanationBriefingPanelWidthV4 * scale / 2
-        let preferred = frame.midX + GameConfig.skillExplanationBriefingPanelOffsetXV4 * scale
+        let halfWidth = UILayout.skillExplanationBriefingPanelWidth * scale / 2
+        let preferred = frame.midX + UILayout.skillExplanationBriefingPanelOffsetX * scale
         let maxX = frame.maxX
             - safe.right
-            - GameConfig.menuHorizontalSafePadding
+            - UILayout.menuHorizontalSafePadding
             - halfWidth
         return min(preferred, maxX)
     }
 
     private func briefingPanelLeftTextX(scale: CGFloat) -> CGFloat {
         contentRightX(scale: scale)
-            - GameConfig.skillExplanationBriefingPanelWidthV4 * scale / 2
-            + GameConfig.skillExplanationBriefingPanelTextInsetXV4 * scale
+            - UILayout.skillExplanationBriefingPanelWidth * scale / 2
+            + UILayout.skillExplanationBriefingPanelTextInsetX * scale
     }
 
     // MARK: - Touch
@@ -608,7 +608,7 @@ final class SkillExplanationScene: BaseMenuScene {
         guard let view = self.view else { return }
         isTransitioning = true
         let scene = CharacterSelectScene.newCharacterSelectScene()
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(scene, transition: fade)
     }
 
@@ -620,7 +620,7 @@ final class SkillExplanationScene: BaseMenuScene {
         let scene = DifficultySelectScene.newDifficultySelectScene(
             characterID: characterID
         )
-        let fade = SKTransition.fade(withDuration: GameConfig.sceneTransitionDuration)
+        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         view.presentScene(scene, transition: fade)
     }
 }

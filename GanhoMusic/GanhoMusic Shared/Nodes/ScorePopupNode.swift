@@ -43,15 +43,15 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// position 설정 누락 같은 사용자 실수 컴파일 타임 차단 (패턴 진화).
     private init(gainedPoints: Int) {
         // Sprint 10 Phase J — fontNamed 미지정(시스템 폰트) → fontPixel(Menlo-Bold). 인게임 픽셀 톤 통일.
-        self.label = SKLabelNode(fontNamed: GameConfig.fontPixel)
+        self.label = SKLabelNode(fontNamed: Typography.fontPixel)
         self.label.text = Self.text(for: gainedPoints)
-        self.isHighTier = gainedPoints >= GameConfig.scorePerNoteComboHigh
+        self.isHighTier = gainedPoints >= GameplayTuning.scorePerNoteComboHigh
         super.init()
         name = "scorePopup"
-        zPosition = GameConfig.scorePopupZPosition
+        zPosition = ZOrder.scorePopupZPosition
         configureLabel(color: Self.color(for: gainedPoints))
         // 시작 시 살짝 작게 — *부풀어 오르는* 톤. ComboPopup(1.0→1.4)보다 약한 *지역* 시그널.
-        setScale(GameConfig.scorePopupStartScale)
+        setScale(FeelTuning.scorePopupStartScale)
         addChild(label)
     }
 
@@ -69,7 +69,7 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
         let node = ScorePopupNode(gainedPoints: gainedPoints)
         // 시작 위치: 노트 중심 위쪽 +12pt — 노트 본체(16pt)와 텍스트가 같은 픽셀에서 겹치지 않게.
         node.position = CGPoint(x: position.x,
-                                y: position.y + GameConfig.scorePopupStartOffsetY)
+                                y: position.y + FeelTuning.scorePopupStartOffsetY)
         parent.addChild(node)
         node.animate()
     }
@@ -78,14 +78,14 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// 부모 addChild 직후 호출. 짧은 pop-in 뒤 move + fade를 동시 진행 → 자가 제거.
     /// self 캡처 없이 액션만 조립한다.
     private func animate() {
-        let pop = SKAction.scale(to: GameConfig.scorePopupPopScale,
-                                 duration: GameConfig.scorePopupPopDuration)
-        let settle = SKAction.scale(to: GameConfig.scorePopupEndScale,
-                                    duration: GameConfig.scorePopupSettleDuration)
+        let pop = SKAction.scale(to: FeelTuning.scorePopupPopScale,
+                                 duration: FeelTuning.scorePopupPopDuration)
+        let settle = SKAction.scale(to: FeelTuning.scorePopupEndScale,
+                                    duration: FeelTuning.scorePopupSettleDuration)
         let moveUp  = SKAction.moveBy(x: 0,
-                                       y: GameConfig.scorePopupFlyUpDistance,
-                                       duration: GameConfig.scorePopupDuration)
-        let fadeOut = SKAction.fadeOut(withDuration: GameConfig.scorePopupDuration)
+                                       y: FeelTuning.scorePopupFlyUpDistance,
+                                       duration: FeelTuning.scorePopupDuration)
+        let fadeOut = SKAction.fadeOut(withDuration: FeelTuning.scorePopupDuration)
         let floatGroup = SKAction.group([moveUp, fadeOut])
         let cleanup = SKAction.removeFromParent()
         let mainSequence = SKAction.sequence([pop, settle, floatGroup, cleanup])
@@ -97,15 +97,15 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     }
 
     private func makeHighTierShake() -> SKAction {
-        let right = SKAction.moveBy(x: GameConfig.scorePopupTierHighShakeX,
+        let right = SKAction.moveBy(x: FeelTuning.scorePopupTierHighShakeX,
                                     y: 0,
-                                    duration: GameConfig.scorePopupTierHighShakeDuration)
-        let left = SKAction.moveBy(x: -GameConfig.scorePopupTierHighShakeX * 2,
+                                    duration: FeelTuning.scorePopupTierHighShakeDuration)
+        let left = SKAction.moveBy(x: -FeelTuning.scorePopupTierHighShakeX * 2,
                                    y: 0,
-                                   duration: GameConfig.scorePopupTierHighShakeDuration)
-        let center = SKAction.moveBy(x: GameConfig.scorePopupTierHighShakeX,
+                                   duration: FeelTuning.scorePopupTierHighShakeDuration)
+        let center = SKAction.moveBy(x: FeelTuning.scorePopupTierHighShakeX,
                                      y: 0,
-                                     duration: GameConfig.scorePopupTierHighShakeDuration)
+                                     duration: FeelTuning.scorePopupTierHighShakeDuration)
         return .sequence([right, left, center])
     }
 
@@ -113,7 +113,7 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// 라벨 스타일 — 가산 점수에 따른 색, 중앙 정렬. fontPixel 기반 인게임 픽셀 톤.
     /// 라벨은 본 노드 좌표계 (0,0)에 부착 → 본 노드 position이 곧 라벨 표시 위치.
     private func configureLabel(color: UIColor) {
-        label.fontSize = GameConfig.scorePopupFontSize
+        label.fontSize = FeelTuning.scorePopupFontSize
         label.fontColor = color
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
@@ -122,14 +122,14 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
 
     private static func text(for gainedPoints: Int) -> String {
         switch gainedPoints {
-        case GameConfig.scorePerNote:
-            return "+\(GameConfig.scorePerNote)"
-        case GameConfig.scorePerNoteCombo:
-            return "+\(GameConfig.scorePerNoteCombo) \(GameConfig.scorePopupTextComboSuffix)"
-        case GameConfig.scorePerNoteComboMid:
-            return "+\(GameConfig.scorePerNoteComboMid) \(GameConfig.scorePopupTextComboSuffix)"
-        case GameConfig.scorePerNoteComboHigh:
-            return "+\(GameConfig.scorePerNoteComboHigh) \(GameConfig.scorePopupTextComboSuffix)"
+        case GameplayTuning.scorePerNote:
+            return "+\(GameplayTuning.scorePerNote)"
+        case GameplayTuning.scorePerNoteCombo:
+            return "+\(GameplayTuning.scorePerNoteCombo) \(FeelTuning.scorePopupTextComboSuffix)"
+        case GameplayTuning.scorePerNoteComboMid:
+            return "+\(GameplayTuning.scorePerNoteComboMid) \(FeelTuning.scorePopupTextComboSuffix)"
+        case GameplayTuning.scorePerNoteComboHigh:
+            return "+\(GameplayTuning.scorePerNoteComboHigh) \(FeelTuning.scorePopupTextComboSuffix)"
         default:
             return "+\(gainedPoints)"
         }
@@ -143,13 +143,13 @@ final class ScorePopupNode: SKNode, SelfDismissingNode {
     /// 인게임 점수 팝업, HUD, 콤보 색상이 같은 픽셀 팔레트를 공유 → 시각 일관성.
     private static func color(for gainedPoints: Int) -> UIColor {
         switch gainedPoints {
-        case GameConfig.scorePerNote:
+        case GameplayTuning.scorePerNote:
             return .ganhoPixelHudWhite
-        case GameConfig.scorePerNoteCombo:
+        case GameplayTuning.scorePerNoteCombo:
             return .ganhoPixelHudYellow
-        case GameConfig.scorePerNoteComboMid:
+        case GameplayTuning.scorePerNoteComboMid:
             return .ganhoPixelComboGold
-        case GameConfig.scorePerNoteComboHigh:
+        case GameplayTuning.scorePerNoteComboHigh:
             return .ganhoPixelComboRed
         default:
             return .ganhoPixelHudWhite
