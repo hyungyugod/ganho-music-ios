@@ -60,7 +60,7 @@ enum CharacterID: String, CaseIterable {
 
     /// Phase 10-1b — 캐릭터 선택 화면 카드 아래 표시되는 짧은 태그(특징 1줄).
     /// displayName(이름)과 분리 — 같은 카드 위치에 *이름 위에 태그* 톤으로 풍부한 정보 전달.
-    /// 카드 *외부* SKLabelNode로 표시되어 CharacterCardNode 내부 변경 0건.
+    /// 카드 *외부* SKLabelNode로 표시 (R4부터 CharacterSelect 프리뷰 칭호 라벨이 소비).
     var tag: String {
         switch self {
         case .kim:  return "번머리 실습생"

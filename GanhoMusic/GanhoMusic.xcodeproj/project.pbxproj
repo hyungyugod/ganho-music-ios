@@ -42,7 +42,6 @@
 		C0F1A0DE000000000000010B /* FrameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE000000000000000B /* FrameStats.swift */; };
 		C0F1A0DE000000000000010C /* TextureAtlasStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE000000000000000C /* TextureAtlasStore.swift */; };
 		A1C0F1B00000000000000022 /* CharacterID.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000022 /* CharacterID.swift */; };
-		A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000023 /* CharacterCardNode.swift */; };
 		A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };
 		A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000025 /* HapticsManager.swift */; };
 		A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000027 /* BGMPlayer.swift */; };
@@ -68,6 +67,17 @@
 		AB30F1B00000000000000009 /* PixelCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000009 /* PixelCardNode.swift */; };
 		AB30F1B0000000000000000A /* PixelDialogNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A0000000000000000A /* PixelDialogNode.swift */; };
 		AB30F1B0000000000000000B /* NightShiftBackdropNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */; };
+		AB40F1B00000000000000001 /* FeelTuning+R4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000001 /* FeelTuning+R4.swift */; };
+		AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000002 /* UILayout+R4.swift */; };
+		AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000003 /* PixelPortraitSprite.swift */; };
+		AB40F1B00000000000000004 /* PixelHeroSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000004 /* PixelHeroSprite.swift */; };
+		AB40F1B00000000000000005 /* PixelCharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000005 /* PixelCharacterCardNode.swift */; };
+		AB40F1B00000000000000006 /* LoginChoiceDialogNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000006 /* LoginChoiceDialogNode.swift */; };
+		AB40F1B00000000000000007 /* SkillBriefingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000007 /* SkillBriefingScene.swift */; };
+		AB40F1B00000000000000008 /* CharacterSelectScene+Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000008 /* CharacterSelectScene+Account.swift */; };
+		AB40F1B00000000000000009 /* StartScene+Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000009 /* StartScene+Auth.swift */; };
+		AB40F1B0000000000000000A /* CharacterSelectScene+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A0000000000000000A /* CharacterSelectScene+Layout.swift */; };
+		AB40F1B0000000000000000B /* CharacterSelectScene+Overlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A0000000000000000B /* CharacterSelectScene+Overlays.swift */; };
 		A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000031 /* ComboPopupNode.swift */; };
 		A1C0F1B00000000000000088 /* MilestoneBannerNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */; };
 		A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000032 /* ComboBreakNode.swift */; };
@@ -75,7 +85,6 @@
 		A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000034 /* ScorePopupNode.swift */; };
 		A1C0F1B00000000000000035 /* Difficulty.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000035 /* Difficulty.swift */; };
 		A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */; };
-		A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000037 /* DifficultyCardNode.swift */; };
 		A1C0F1B00000000000000038 /* CutsceneOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */; };
 		A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */; };
 		A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000040 /* GraduationRepository.swift */; };
@@ -95,14 +104,10 @@
 		A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004F /* BackButtonNode.swift */; };
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
-		A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000052 /* SkillExplanationScene.swift */; };
-		A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */; };
 		A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000056 /* GlassPillNode.swift */; };
 		A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000057 /* AccentLineNode.swift */; };
 		A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000058 /* DarkContextChipNode.swift */; };
 		A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000059 /* PauseButtonNode.swift */; };
-		A1C0F1B00000000000000070 /* CharacterFaceNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000070 /* CharacterFaceNode.swift */; };
-		A1C0F1B00000000000000071 /* NurseAvatarNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000071 /* NurseAvatarNode.swift */; };
 		A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000072 /* DifficultySelectScene.swift */; };
 		A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000073 /* SceneSafeArea.swift */; };
 		A1C0F1B00000000000000074 /* ScoreboardScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000074 /* ScoreboardScene.swift */; };
@@ -127,15 +132,9 @@
 		A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A000000000000000F0 /* BaseMenuScene.swift */; };
 		AA1200000000000000000001 /* RunButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100000000000000000001 /* RunButtonNode.swift */; };
 		AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000001 /* AccountMenuOverlayNode.swift */; };
-		B2C0F1B00000000000000101 /* CharacterHomeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000101 /* CharacterHomeSection.swift */; };
 		B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */; };
 		B2C0F1B00000000000000103 /* CharacterPortraitNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */; };
-		B2C0F1B00000000000000104 /* CharacterHomeMenuNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000104 /* CharacterHomeMenuNode.swift */; };
-		B2C0F1B00000000000000105 /* ProfileSummaryPanelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000105 /* ProfileSummaryPanelNode.swift */; };
-		B2C0F1B00000000000000106 /* AchievementStripNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000106 /* AchievementStripNode.swift */; };
-		B2C0F1B00000000000000107 /* RecordSummaryPanelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */; };
 		B8316D45F22D4F7DA0B204B7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 961C7E8E394A42E688745446 /* FirebaseCore */; };
-		DD1000000000000000000001 /* LoginChoiceOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */; };
 		EE2000000000000000000001 /* AccountProgressScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000001 /* AccountProgressScope.swift */; };
 		EE2000000000000000000002 /* CharacterUnlockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000002 /* CharacterUnlockState.swift */; };
 		EE2000000000000000000003 /* CharacterUnlockRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000003 /* CharacterUnlockRules.swift */; };
@@ -192,7 +191,6 @@
 		C0F1A0DE000000000000000B /* FrameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStats.swift; sourceTree = "<group>"; };
 		C0F1A0DE000000000000000C /* TextureAtlasStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureAtlasStore.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000022 /* CharacterID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterID.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000023 /* CharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000025 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000027 /* BGMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BGMPlayer.swift; sourceTree = "<group>"; };
@@ -218,6 +216,17 @@
 		AB30F1A00000000000000009 /* PixelCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCardNode.swift; sourceTree = "<group>"; };
 		AB30F1A0000000000000000A /* PixelDialogNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelDialogNode.swift; sourceTree = "<group>"; };
 		AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightShiftBackdropNode.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000001 /* FeelTuning+R4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R4.swift"; sourceTree = "<group>"; };
+		AB40F1A00000000000000002 /* UILayout+R4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R4.swift"; sourceTree = "<group>"; };
+		AB40F1A00000000000000003 /* PixelPortraitSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPortraitSprite.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000004 /* PixelHeroSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelHeroSprite.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000005 /* PixelCharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterCardNode.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000006 /* LoginChoiceDialogNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginChoiceDialogNode.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000007 /* SkillBriefingScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillBriefingScene.swift; sourceTree = "<group>"; };
+		AB40F1A00000000000000008 /* CharacterSelectScene+Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CharacterSelectScene+Account.swift"; sourceTree = "<group>"; };
+		AB40F1A00000000000000009 /* StartScene+Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StartScene+Auth.swift"; sourceTree = "<group>"; };
+		AB40F1A0000000000000000A /* CharacterSelectScene+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CharacterSelectScene+Layout.swift"; sourceTree = "<group>"; };
+		AB40F1A0000000000000000B /* CharacterSelectScene+Overlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CharacterSelectScene+Overlays.swift"; sourceTree = "<group>"; };
 		A1C0F1A00000000000000031 /* ComboPopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboPopupNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneBannerNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboBreakNode.swift; sourceTree = "<group>"; };
@@ -225,7 +234,6 @@
 		A1C0F1A00000000000000034 /* ScorePopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScorePopupNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000035 /* Difficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Difficulty.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000036 /* DifficultyPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyPreferenceRepository.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000037 /* DifficultyCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CutsceneOverlayNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000039 /* PerDifficultyScoreRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerDifficultyScoreRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000040 /* GraduationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraduationRepository.swift; sourceTree = "<group>"; };
@@ -245,14 +253,10 @@
 		A1C0F1A0000000000000004F /* BackButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000052 /* SkillExplanationScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillExplanationScene.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicNoteEmitterNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000056 /* GlassPillNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPillNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000057 /* AccentLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentLineNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000058 /* DarkContextChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkContextChipNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000059 /* PauseButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseButtonNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000070 /* CharacterFaceNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterFaceNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000071 /* NurseAvatarNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NurseAvatarNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000072 /* DifficultySelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultySelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000073 /* SceneSafeArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSafeArea.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000074 /* ScoreboardScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreboardScene.swift; sourceTree = "<group>"; };
@@ -277,17 +281,11 @@
 		A1C0F1A000000000000000F0 /* BaseMenuScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseMenuScene.swift; sourceTree = "<group>"; };
 		AA1100000000000000000001 /* RunButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunButtonNode.swift; sourceTree = "<group>"; };
 		AC0000000000000000000001 /* AccountMenuOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuOverlayNode.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000101 /* CharacterHomeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSection.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSnapshot.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPortraitNode.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000104 /* CharacterHomeMenuNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeMenuNode.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000105 /* ProfileSummaryPanelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSummaryPanelNode.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000106 /* AchievementStripNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementStripNode.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSummaryPanelNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginChoiceOverlayNode.swift; sourceTree = "<group>"; };
 		EE1000000000000000000001 /* AccountProgressScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountProgressScope.swift; sourceTree = "<group>"; };
 		EE1000000000000000000002 /* CharacterUnlockState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockState.swift; sourceTree = "<group>"; };
 		EE1000000000000000000003 /* CharacterUnlockRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterUnlockRules.swift; sourceTree = "<group>"; };
@@ -450,6 +448,8 @@
 				C0F1A0DE0000000000000002 /* FeelTuning.swift */,
 				AB20F1A00000000000000007 /* FeelTuning+R2.swift */,
 				AB30F1A00000000000000001 /* FeelTuning+R3.swift */,
+				AB40F1A00000000000000001 /* FeelTuning+R4.swift */,
+				AB40F1A00000000000000002 /* UILayout+R4.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -477,7 +477,6 @@
 				A1C0F1A00000000000000018 /* AirplaneNode.swift */,
 				A1C0F1A00000000000000019 /* AirforceOverlayNode.swift */,
 				A1C0F1A00000000000000020 /* BombFlashNode.swift */,
-				A1C0F1A00000000000000023 /* CharacterCardNode.swift */,
 				A1C0F1A00000000000000028 /* SparkleEffectNode.swift */,
 				A1C0F1A00000000000000029 /* HitFlashNode.swift */,
 				A1C0F1A00000000000000031 /* ComboPopupNode.swift */,
@@ -485,7 +484,6 @@
 				A1C0F1A00000000000000032 /* ComboBreakNode.swift */,
 				A1C0F1A00000000000000033 /* CountdownNode.swift */,
 				A1C0F1A00000000000000034 /* ScorePopupNode.swift */,
-				A1C0F1A00000000000000037 /* DifficultyCardNode.swift */,
 				A1C0F1A00000000000000038 /* CutsceneOverlayNode.swift */,
 				A1C0F1A00000000000000041 /* DiplomaOverlayNode.swift */,
 				A1C0F1A00000000000000044 /* PixelSpriteRenderer.swift */,
@@ -499,22 +497,14 @@
 				A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */,
 				A1C0F1A0000000000000004F /* BackButtonNode.swift */,
 				AC0000000000000000000001 /* AccountMenuOverlayNode.swift */,
-				DD0000000000000000000001 /* LoginChoiceOverlayNode.swift */,
 				OA1000000000000000000001 /* OverlayActionButtonNode.swift */,
-				A1C0F1A00000000000000054 /* MusicNoteEmitterNode.swift */,
 				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
 				A1C0F1A00000000000000057 /* AccentLineNode.swift */,
 				A1C0F1A00000000000000058 /* DarkContextChipNode.swift */,
 				A1C0F1A00000000000000059 /* PauseButtonNode.swift */,
-				A1C0F1A00000000000000070 /* CharacterFaceNode.swift */,
 				B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */,
-				B2C0F1A00000000000000104 /* CharacterHomeMenuNode.swift */,
-				B2C0F1A00000000000000105 /* ProfileSummaryPanelNode.swift */,
 				PA1000000000000000000003 /* ProfileAvatarViewNode.swift */,
 				PA1000000000000000000004 /* ProfileDetailOverlayNode.swift */,
-				B2C0F1A00000000000000106 /* AchievementStripNode.swift */,
-				B2C0F1A00000000000000107 /* RecordSummaryPanelNode.swift */,
-				A1C0F1A00000000000000071 /* NurseAvatarNode.swift */,
 				A1C0F1A00000000000000075 /* SergeantParkNode.swift */,
 				A1C0F1A00000000000000078 /* MapNode.swift */,
 				A1C0F1A00000000000000079 /* WallTileNode.swift */,
@@ -558,11 +548,15 @@
 				A1C0F1A00000000000000050 /* StartScene.swift */,
 				A1C0F1A000000000000000F0 /* BaseMenuScene.swift */,
 				A1C0F1A00000000000000051 /* CharacterSelectScene.swift */,
-				A1C0F1A00000000000000052 /* SkillExplanationScene.swift */,
 				A1C0F1A00000000000000072 /* DifficultySelectScene.swift */,
 				A1C0F1A00000000000000074 /* ScoreboardScene.swift */,
 				AB30F1A00000000000000002 /* SceneRouter.swift */,
 				AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */,
+				AB40F1A00000000000000007 /* SkillBriefingScene.swift */,
+				AB40F1A00000000000000008 /* CharacterSelectScene+Account.swift */,
+				AB40F1A00000000000000009 /* StartScene+Auth.swift */,
+				AB40F1A0000000000000000A /* CharacterSelectScene+Layout.swift */,
+				AB40F1A0000000000000000B /* CharacterSelectScene+Overlays.swift */,
 			);
 			name = Scenes;
 			path = "GanhoMusic Shared/Scenes";
@@ -596,7 +590,6 @@
 				FB1000000000000000000002 /* CloudScoreRecord.swift */,
 				FB1000000000000000000003 /* CloudProgressSnapshot.swift */,
 				A1C0F1A00000000000000022 /* CharacterID.swift */,
-				B2C0F1A00000000000000101 /* CharacterHomeSection.swift */,
 				B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */,
 				EE1000000000000000000001 /* AccountProgressScope.swift */,
 				EE1000000000000000000002 /* CharacterUnlockState.swift */,
@@ -604,6 +597,8 @@
 				A1C0F1A00000000000000035 /* Difficulty.swift */,
 				A1C0F1A00000000000000042 /* PixelSprite.swift */,
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
+				AB40F1A00000000000000003 /* PixelPortraitSprite.swift */,
+				AB40F1A00000000000000004 /* PixelHeroSprite.swift */,
 				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
 				A1C0F1A00000000000000076 /* Direction.swift */,
 				A1C0F1A00000000000000081 /* CutsceneTexts.swift */,
@@ -658,6 +653,8 @@
 				AB30F1A00000000000000009 /* PixelCardNode.swift */,
 				AB30F1A0000000000000000A /* PixelDialogNode.swift */,
 				AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */,
+				AB40F1A00000000000000005 /* PixelCharacterCardNode.swift */,
+				AB40F1A00000000000000006 /* LoginChoiceDialogNode.swift */,
 			);
 			name = UI;
 			path = UI;
@@ -906,7 +903,6 @@
 				C0F1A0DE000000000000010B /* FrameStats.swift in Sources */,
 				C0F1A0DE000000000000010C /* TextureAtlasStore.swift in Sources */,
 				A1C0F1B00000000000000022 /* CharacterID.swift in Sources */,
-				A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */,
 				A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
 				A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */,
 				A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */,
@@ -923,6 +919,17 @@
 				AB30F1B00000000000000009 /* PixelCardNode.swift in Sources */,
 				AB30F1B0000000000000000A /* PixelDialogNode.swift in Sources */,
 				AB30F1B0000000000000000B /* NightShiftBackdropNode.swift in Sources */,
+				AB40F1B00000000000000001 /* FeelTuning+R4.swift in Sources */,
+				AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */,
+				AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */,
+				AB40F1B00000000000000004 /* PixelHeroSprite.swift in Sources */,
+				AB40F1B00000000000000005 /* PixelCharacterCardNode.swift in Sources */,
+				AB40F1B00000000000000006 /* LoginChoiceDialogNode.swift in Sources */,
+				AB40F1B00000000000000007 /* SkillBriefingScene.swift in Sources */,
+				AB40F1B00000000000000008 /* CharacterSelectScene+Account.swift in Sources */,
+				AB40F1B00000000000000009 /* StartScene+Auth.swift in Sources */,
+				AB40F1B0000000000000000A /* CharacterSelectScene+Layout.swift in Sources */,
+				AB40F1B0000000000000000B /* CharacterSelectScene+Overlays.swift in Sources */,
 				AB20F1B00000000000000002 /* HitstopController.swift in Sources */,
 				AB20F1B00000000000000003 /* CameraDirector.swift in Sources */,
 				AB20F1B00000000000000004 /* EffectDirector.swift in Sources */,
@@ -938,7 +945,6 @@
 				A1C0F1B00000000000000034 /* ScorePopupNode.swift in Sources */,
 				A1C0F1B00000000000000035 /* Difficulty.swift in Sources */,
 				A1C0F1B00000000000000036 /* DifficultyPreferenceRepository.swift in Sources */,
-				A1C0F1B00000000000000037 /* DifficultyCardNode.swift in Sources */,
 				A1C0F1B00000000000000038 /* CutsceneOverlayNode.swift in Sources */,
 				A1C0F1B00000000000000039 /* PerDifficultyScoreRepository.swift in Sources */,
 				A1C0F1B00000000000000040 /* GraduationRepository.swift in Sources */,
@@ -958,25 +964,15 @@
 				A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */,
 				A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */,
 				AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */,
-				DD1000000000000000000001 /* LoginChoiceOverlayNode.swift in Sources */,
-				B2C0F1B00000000000000101 /* CharacterHomeSection.swift in Sources */,
 				B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */,
 				B2C0F1B00000000000000103 /* CharacterPortraitNode.swift in Sources */,
-				B2C0F1B00000000000000104 /* CharacterHomeMenuNode.swift in Sources */,
-				B2C0F1B00000000000000105 /* ProfileSummaryPanelNode.swift in Sources */,
-				B2C0F1B00000000000000106 /* AchievementStripNode.swift in Sources */,
-				B2C0F1B00000000000000107 /* RecordSummaryPanelNode.swift in Sources */,
 				A1C0F1B00000000000000050 /* StartScene.swift in Sources */,
 				A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */,
 				A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */,
-				A1C0F1B00000000000000052 /* SkillExplanationScene.swift in Sources */,
-				A1C0F1B00000000000000054 /* MusicNoteEmitterNode.swift in Sources */,
 				A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */,
 				A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */,
 				A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */,
 				A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */,
-				A1C0F1B00000000000000070 /* CharacterFaceNode.swift in Sources */,
-				A1C0F1B00000000000000071 /* NurseAvatarNode.swift in Sources */,
 				A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */,
 				A1C0F1B00000000000000073 /* SceneSafeArea.swift in Sources */,
 				FA1000000000000000000001 /* DeviceLayoutProfile.swift in Sources */,

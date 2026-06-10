@@ -38,11 +38,15 @@ class GameViewController: UIViewController {
         // view.safeAreaInsets를 받아 노드 배치 시 회피해야 한다.
 
         // Phase 10-1a — 첫 진입은 StartScene (구 TitleScene → 4단계 분리 시작점).
-        // R3 — DEBUG 한정 PixelKit 갤러리 부팅 분기 (SPEC 기능 7). 환경변수만 사용 —
-        // UserDefaults 미사용(키 불변 조건 회피). 릴리즈 빌드 동작 영향 0 (#if DEBUG 격리).
+        // R3 — DEBUG 한정 PixelKit 갤러리 부팅 분기. R4 §F-8 — GANHO_BOOT_SCENE 씬 직행 분기
+        // (스크린샷 자동화용). 환경변수만 사용 — UserDefaults 미사용(키 불변 조건 회피).
+        // 릴리즈 빌드 동작 영향 0 (#if DEBUG 격리 — 릴리즈 경로는 StartScene 단일).
         #if DEBUG
         if ProcessInfo.processInfo.environment["PIXELKIT_GALLERY"] == "1" {
             skView.presentScene(PixelKitGalleryScene.newGalleryScene())
+        } else if let bootName = ProcessInfo.processInfo.environment["GANHO_BOOT_SCENE"],
+                  let bootScene = Self.debugBootScene(named: bootName) {
+            skView.presentScene(bootScene)
         } else {
             skView.presentScene(StartScene.newStartScene())
         }
@@ -73,6 +77,27 @@ class GameViewController: UIViewController {
             NotificationCenter.default.removeObserver(observer)
         }
     }
+
+    // MARK: - DEBUG Boot Scene (R4 §F-8 — 스크린샷 자동화 전용)
+    #if DEBUG
+    /// GANHO_BOOT_SCENE 환경변수 → 씬 직행. 미해당 문자열은 nil → 기본 StartScene 폴백.
+    /// String 분기는 if-나열 — switch default 금지 규칙 준수 (SPEC §F-8).
+    private static func debugBootScene(named name: String) -> SKScene? {
+        if name == "characterSelect" {
+            return CharacterSelectScene.newCharacterSelectScene()
+        }
+        if name == "skillBriefing" {
+            return SkillBriefingScene.newSkillBriefingScene(characterID: .jung)
+        }
+        if name == "difficultySelect" {
+            return DifficultySelectScene.newDifficultySelectScene(characterID: .kim)
+        }
+        if name == "startLogin" {
+            return StartScene.newStartScene(openLoginChoiceOnEntry: true)
+        }
+        return nil
+    }
+    #endif
 
     // MARK: - Orientation
 

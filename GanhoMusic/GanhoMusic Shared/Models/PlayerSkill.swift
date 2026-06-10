@@ -74,7 +74,7 @@ extension PlayerSkill {
         }
     }
 
-    /// Phase 10-1c — 스킬 설명 화면(SkillExplanationScene)에서 표시되는 본문 텍스트.
+    /// Phase 10-1c — 스킬 브리핑 화면(SkillBriefingScene)에서 표시되는 본문 텍스트.
     /// 효과·조건·쿨다운을 한 문단으로 요약. displayName(짧은 단어)과 분리 — 같은 스킬의 *다른 시점* 표현.
     /// `.none`은 빈 문자열 — 김간호는 스킬 설명 씬 자체를 스킵하므로 호출되지 않음(graceful default).
     var fullDescription: String {
@@ -119,7 +119,7 @@ extension PlayerSkill {
 
     /// 카드 우상단 CD 미니칩 라벨. 정확한 초 단위가 아닌 *위계 신호*.
     /// 스킬 없음(.none) → "∞", 그 외 → "1회".
-    /// (정확한 초는 SkillExplanationScene 메타 칩이 담당.)
+    /// (정확한 초는 SkillBriefingScene 칩이 담당.)
     /// switch default 미사용 — 5 case exhaustive.
     var cooldownText: String {
         switch self {

@@ -6,6 +6,8 @@
 //  primary(coral 면+ink900 글자) / secondary(ink700 면+textHi) / ghost(보더만+textHi).
 //  눌림(0.06s linear): 콘텐츠 y −2pt(섀도 고정 → 시각 오프셋 3→1) + 표면 어둡게.
 //  발화: uiTap SFX + 주입 햅틱(옵셔널 — HapticsManager 싱글톤화 금지, SPEC 불일치 기록 12) + onTap.
+//  R4 정비(§F-6): ghost 영구 투명 faceNode 생성 생략(faceNode 옵셔널화 — R3 P2 ①) +
+//  primary 액센트 주입(면+섀도 색 쌍 — DifficultySelect 시작 버튼 소비).
 //
 
 import SpriteKit
@@ -27,9 +29,14 @@ final class PixelButtonNode: SKNode {
     private let haptics: HapticsManager?
     /// 눌림 이동 대상 (면 + 보더 + 라벨). 섀도는 고정 — 시각 오프셋 3→1 자동 성립.
     private let contentNode = SKNode()
-    private let faceNode: SKSpriteNode
+    /// R4 — ghost는 면 자체를 만들지 않는다 (영구 투명 노드 생성 생략 — R3 P2 ①).
+    private let faceNode: SKSpriteNode?
     private let borderNode: SKShapeNode?
+    /// R4 — primary 액센트 주입 시 색 교체 대상 (ghost는 섀도도 없음 — nil).
+    private var shadowNode: SKSpriteNode?
     private var isPressed = false
+    /// R4 — primary 액센트 오버라이드 (면, 섀도/눌림면 색 쌍). nil = 기존 coral/coralDeep.
+    private var primaryAccent: (face: UIColor, shadow: UIColor)?
 
     /// 내부 적층 — 섀도(0) < 콘텐츠(1: 면 < 보더 < 라벨).
     private enum InnerZ {
@@ -54,8 +61,13 @@ final class PixelButtonNode: SKNode {
         self.visualSize = size
         self.haptics = haptics
 
-        faceNode = SKSpriteNode(color: Self.faceColor(variant: variant, pressed: false),
-                                size: size)
+        switch variant {
+        case .primary, .secondary:
+            faceNode = SKSpriteNode(color: Self.faceColor(variant: variant, pressed: false),
+                                    size: size)
+        case .ghost:
+            faceNode = nil   // 보더+라벨만 — 투명 면 좀비 생성 0 (R4 §F-6)
+        }
         switch variant {
         case .primary:
             borderNode = nil
@@ -65,6 +77,13 @@ final class PixelButtonNode: SKNode {
                                                                  pressed: false))
         }
         super.init()
+
+        #if DEBUG
+        // P2 ② 배선 — 눌림 섀도 시각 오프셋 정합: |하드섀도 y| − 눌림 하강 = 1 (문서화 상수 검증).
+        assert(abs(UILayout.v3HardShadowOffset.dy) - UILayout.v3ButtonPressOffsetY
+                == UILayout.v3ButtonPressedShadowGap,
+               "v3ButtonPressedShadowGap 정합 위반 — 하드섀도/눌림 토큰을 함께 수정하라")
+        #endif
 
         isUserInteractionEnabled = true
         buildHierarchy(title: title)
@@ -91,14 +110,16 @@ final class PixelButtonNode: SKNode {
                                       y: UILayout.v3HardShadowOffset.dy)
             shadow.zPosition = InnerZ.shadow
             addChild(shadow)
+            shadowNode = shadow
         }
 
         contentNode.zPosition = InnerZ.content
         addChild(contentNode)
 
-        // ghost 면은 faceColor가 투명 — 시각 기여 0 (보더만 변형), 구조 일관성 유지.
-        faceNode.zPosition = InnerZ.face
-        contentNode.addChild(faceNode)
+        if let faceNode = faceNode {
+            faceNode.zPosition = InnerZ.face
+            contentNode.addChild(faceNode)
+        }
 
         if let borderNode = borderNode {
             borderNode.zPosition = InnerZ.border
@@ -128,12 +149,30 @@ final class PixelButtonNode: SKNode {
         return border
     }
 
+    // MARK: - Primary Accent (R4 §F-6 — DifficultySelect 시작 버튼이 소비)
+    /// primary 변형의 면/섀도 색 쌍 교체. 기본값은 coral/coralDeep — 기존 호출부 무변경.
+    /// secondary/ghost에는 의미 없음 — primary 외 호출은 무시 (시각 일관성 보호).
+    func setPrimaryAccent(face: UIColor, shadow: UIColor) {
+        guard variant == .primary else { return }
+        primaryAccent = (face, shadow)
+        faceNode?.color = currentFaceColor(pressed: isPressed)
+        shadowNode?.color = shadow
+    }
+
+    /// 액센트 오버라이드 반영 면색 — primary 눌림은 섀도(Deep)색 면.
+    private func currentFaceColor(pressed: Bool) -> UIColor {
+        if variant == .primary, let accent = primaryAccent {
+            return pressed ? accent.shadow : accent.face
+        }
+        return Self.faceColor(variant: variant, pressed: pressed)
+    }
+
     // MARK: - Variant Colors (토큰 경유 — 03_UI §5)
     private static func faceColor(variant: Variant, pressed: Bool) -> UIColor {
         switch variant {
         case .primary:   return pressed ? Palette.coralDeep : Palette.coral
         case .secondary: return pressed ? Palette.ink600 : Palette.ink700
-        case .ghost:     return Palette.ink900.withAlphaComponent(0)
+        case .ghost:     return Palette.ink900.withAlphaComponent(0)   // 미사용 — 면 미생성 (R4)
         }
     }
 
@@ -175,7 +214,7 @@ final class PixelButtonNode: SKNode {
         contentNode.removeAction(forKey: Self.pressActionKey)
         contentNode.run(SKAction.moveTo(y: targetY, duration: FeelTuning.Motion.buttonPress),
                         withKey: Self.pressActionKey)
-        faceNode.color = Self.faceColor(variant: variant, pressed: pressed)
+        faceNode?.color = currentFaceColor(pressed: pressed)
         borderNode?.strokeColor = Self.borderColor(variant: variant, pressed: pressed)
     }
 

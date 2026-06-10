@@ -88,23 +88,6 @@ enum ZOrder {
     /// 토스트 zPosition. scorePopupZPosition(50)과 동급 — *지역* 시그널 군집 통일.
     static let toastZPosition: CGFloat = 50
 
-    // MARK: - Start Scene Visual (Phase 10-2 · 병동의 새벽 톤)
-    /// StartScene 비주얼 리스킨. 그라데이션 배경 + 음표 파티클 + 제목 글로우 + 카드 spring + 버튼 pulse + 전환 잔향.
-    /// 본 섹션은 *추가만* — 기존 상수 변경 0건.
-
-    /// 그라데이션 배경 zPosition. overlayBackground(-10)보다 아래.
-    static let startSceneGradientZPosition: CGFloat = -20
-    /// 음표 파티클 zPosition. overlayBackground(-10)보다 위, overlayPanel(-5)보다 아래.
-    /// 패널 위로 음표가 *튀어나오지 않게* 의도적 후방 배치.
-    static let startSceneMusicNoteZPosition: CGFloat = -15
-
-    // MARK: - Login Choice Overlay
-    static let loginChoiceOverlayZPosition: CGFloat = 520
-    static let loginChoiceDimZPosition: CGFloat = -1
-    static let loginChoicePanelZPosition: CGFloat = 0
-    static let loginChoiceLabelZPosition: CGFloat = 1
-    static let loginChoiceButtonZPosition: CGFloat = 2
-
     // MARK: - Account Menu Overlay
     static let accountMenuOverlayZPosition: CGFloat = 500
     static let accountMenuDimZPosition: CGFloat = -1
@@ -134,14 +117,6 @@ enum ZOrder {
     static let diplomaCornerDecoZPosition: CGFloat = 0.8
     /// 도장 zPosition. 라벨(1) 위.
     static let diplomaStampZPosition: CGFloat = 1.2
-
-    // MARK: - NurseAvatarNode (StartScene 좌측 김간호 큰 그림)
-    /// zPosition — 배경(-20/-15)·타이틀(0~5)·시작버튼(100) 사이의 8 — 시작버튼과 음표보다 아래.
-    static let nurseAvatarZPosition: CGFloat = 8
-
-    // MARK: - CharacterFaceNode (CharacterSelectScene 5장 카드 위 얼굴)
-    /// 5장 카드 위 얼굴 노드의 zPosition. 글래스 컨테이너(90) < 카드(100) < CharacterFaceNode(105) < 색 점/태그(110).
-    static let characterFaceZPosition: CGFloat = 105
 
     // MARK: - Sprint 7 Phase G · Player Facing (4방향 child)
     /// PlayerNode 자체 텍스처(zPos 0) 위에 face child를 얹기 위한 작은 양수 zPosition.
@@ -198,11 +173,7 @@ enum ZOrder {
 
     // MARK: - Sprint 2 Character Account Home
 
-    static let characterHomeBackgroundZPosition: CGFloat = -20
-    static let characterHomePanelZPosition: CGFloat = 90
     static let characterHomeCharacterZPosition: CGFloat = 130
-    static let characterHomeMenuZPosition: CGFloat = 160
-    static let characterHomeButtonZPosition: CGFloat = 170
 }
 
 // MARK: - R3 디자인 시스템 v3 "Night Shift" Layer (03_UI §4)

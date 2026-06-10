@@ -34,19 +34,10 @@ enum UILayout {
     static let ingameHUDReadableAlpha: CGFloat = 0.92
     static let ingameControlReadableAlpha: CGFloat = 0.78
     static let ingameSafeControlPadding: CGFloat = 18
-    static let startSceneAvatarCompactScale: CGFloat = 0.82
-    static let difficultyCompactWidthThreshold: CGFloat = 860
-    static let difficultyCompactScale: CGFloat = 0.82
     static let resultPanelHorizontalPadding: CGFloat = 48
     static let resultPanelCompactScale: CGFloat = 0.86
     static let primaryButtonTextHorizontalPadding: CGFloat = 36
     static let primaryButtonArrowReservedWidth: CGFloat = 48
-    static let startSceneAvatarReservedWidth: CGFloat = 300
-    static let startSceneCompactTitleOffsetY: CGFloat = 36
-    static let startSceneMinTitleAvatarGap: CGFloat = 28
-    static let difficultySelectColumnMinGap: CGFloat = 24
-    static let difficultySelectMinimumLayoutScale: CGFloat = 0.72
-    static let skillExplanationMinimumLayoutScale: CGFloat = 0.74
     static let resultPanelVerticalSafePadding: CGFloat = 40
     static let resultRewardPulseDelay: TimeInterval = 0.3
     static let resultButtonCompactScale: CGFloat = 0.82
@@ -105,16 +96,6 @@ enum UILayout {
     static let resultStatsFontSize: CGFloat = 16
     /// ResultScene PLAYS/TOTAL 라벨 y 오프셋. best(0)와 prompt(-80) 사이 균등 배치(-40).
     static let resultStatsOffsetY: CGFloat = -40
-
-    // MARK: - Character Card (Phase 5-1)
-    /// 선택되지 않은 카드 알파. 선택 카드(1.0)와 시각 대비.
-    static let characterCardDeselectedAlpha: CGFloat = 0.5
-    /// Phase 5-5 — 선택된 카드 확대 배율. 1.0 기본에서 1.08배. 인접 카드 spacing(10pt)와 검증:
-    /// 48 × 1.08 = 51.84 → 측면 +1.92 → 갭 8.08pt 유지(겹침 없음).
-    static let characterCardSelectedScale: CGFloat = 1.08
-    /// Phase 5-5 — 선택/해제 시 scale 보간 시간 (초). 탭 응답성 고려 짧게.
-    /// promptLabel 깜빡임(0.6)과 달리 1회 트랜지션 — repeatForever 아님.
-    static let characterCardScaleDuration: TimeInterval = 0.10
 
     // MARK: - Result Character (Phase 5-7)
     /// Phase 5-7 — ResultScene 캐릭터 이름 라벨 폰트 크기 (pt). best(22)와 동급.
@@ -270,22 +251,6 @@ enum UILayout {
     static let hudSkillSlotRingLineWidth: CGFloat = 2
 
     // MARK: - Start Scene (Phase 10-1a)
-    /// 게임 톤 소개 본문 — 스토리 박스 본문. GDD §1·§3 정착 텍스트.
-    /// 호출부 리터럴 노출 금지 — 단일 진실 원천.
-    static let startSceneStoryText: String =
-        "실습 중 마음에 떠오른 멜로디를 45초 안에 모아 보세요. 수간호사 눈을 피하는 게 핵심."
-    /// 부제 라벨 폰트 크기 (pt). titleFontSize(36)과 titlePromptFontSize(18) 사이.
-    static let startSceneSubtitleFontSize: CGFloat = 16
-    /// 부제 라벨 y 오프셋. titleLabelOffsetY(120) 바로 아래에 위치.
-    static let startSceneSubtitleOffsetY: CGFloat = 80
-    /// 상단 BEST/PLAYS 라인 y 오프셋. 패널 위쪽 상단 라인.
-    static let startSceneBestPlaysTopMargin: CGFloat = 180
-    /// BEST/PLAYS 라벨 좌우 간격 (pt). frame.midX 기준 ±값으로 가로 2개 배치.
-    static let startSceneBestPlaysSpacing: CGFloat = 80
-    /// 스토리 박스 y 오프셋. 패널 정중앙(부제 아래/난이도 위).
-    static let startSceneStoryBoxOffsetY: CGFloat = 0
-    /// 시작 버튼 y 오프셋. 패널 하단(난이도 카드 +80 아래쪽으로 충분히 떨어진 위치).
-    static let startSceneStartButtonOffsetY: CGFloat = -180
 
     /// 스토리 박스 가로 (pt). uiPanelCharacterMaxWidth(480)보다 살짝 좁아 패널 안 내부 여백 확보.
     static let storyBoxWidth: CGFloat = 440
@@ -309,106 +274,12 @@ enum UILayout {
     /// 보조 버튼 폰트 크기 (pt). 주요(18)보다 작음.
     static let backButtonFontSize: CGFloat = 14
 
-    // MARK: - Character Select Scene (Phase 10-1b)
-    /// 화면 헤더 텍스트 — "함께할 친구를 골라요". 호출부 리터럴 노출 금지.
-    static let characterSelectHeaderText: String = "함께할 친구를 골라요"
-    /// 헤더 폰트 크기 (pt). titleFontSize(36)보다 작음 — 부분 화면 헤더 톤.
-    static let characterSelectHeaderFontSize: CGFloat = 22
-    /// 헤더 y 오프셋. 패널 상단 부근.
-    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(170).
-    static let characterSelectHeaderOffsetY: CGFloat = 170
-    /// 캐릭터 카드 행 y 오프셋. 헤더 아래 적당한 간격.
-    static let characterSelectCardOffsetY: CGFloat = 30
-    /// 태그 라벨 폰트 크기 (pt). characterCardWidth(48) 안에 1~5자 작은 태그.
-    static let characterSelectTagFontSize: CGFloat = 10
-    /// 태그 라벨 y 오프셋 (카드 *외부*, 카드 위치 기준). 카드 아래쪽 -45pt.
-    static let characterSelectTagOffsetY: CGFloat = -60
-    /// 버튼 행 y 오프셋. 카드 아래 충분한 간격.
-    static let characterSelectButtonRowOffsetY: CGFloat = -160
-    /// 두 버튼 좌우 간격 (pt). frame.midX 기준 ±(spacing/2).
-    static let characterSelectButtonSpacing: CGFloat = 200
-
-    // MARK: - Skill Explanation Scene (Phase 10-1c)
-    /// 화면 헤더 텍스트 — "스킬을 익혀요". 호출부 리터럴 노출 금지.
-    static let skillExplanationHeaderText: String = "스킬을 익혀요"
-    /// 헤더 폰트 크기 (pt). characterSelectHeaderFontSize(22)와 동급 — 시각 일관성.
-    static let skillExplanationHeaderFontSize: CGFloat = 22
-    /// 헤더 y 오프셋.
-    static let skillExplanationHeaderOffsetY: CGFloat = 140
-    /// 큰 아바타 가로 (pt). PixelSpriteRenderer 16×20 픽셀 텍스처를 7.5배 확대 표현.
-    static let skillExplanationAvatarWidth: CGFloat = 120
-    /// 큰 아바타 세로 (pt). 픽셀 비율 유지(16:20 ≈ 4:5).
-    static let skillExplanationAvatarHeight: CGFloat = 150
-    /// 아바타 x 오프셋. frame.midX 기준 왼쪽.
-    static let skillExplanationAvatarOffsetX: CGFloat = -160
-    /// 아바타 y 오프셋. 화면 중앙 살짝 위.
-    static let skillExplanationAvatarOffsetY: CGFloat = 20
-    /// 스킬명 라벨 폰트 크기 (pt). 큰 강조 — *주인공* 정보.
-    static let skillExplanationSkillNameFontSize: CGFloat = 28
-    /// 스킬명 x 오프셋. 아바타 옆 오른쪽 영역.
-    static let skillExplanationSkillNameOffsetX: CGFloat = 80
-    /// 스킬 설명 박스 x 오프셋. 스킬명과 동일 — 우측 정렬.
-    static let skillExplanationStoryBoxOffsetX: CGFloat = 80
-    /// 스킬 설명 박스 y 오프셋. 스킬명 아래.
-    static let skillExplanationStoryBoxOffsetY: CGFloat = 0
-    /// 버튼 행 y 오프셋. 패널 하단.
-    static let skillExplanationButtonRowOffsetY: CGFloat = -160
-
     // MARK: - Start Scene Visual (Phase 10-2 · 병동의 새벽 톤)
 
-    /// 음표 파티클 동시 표시 상한. 성능 가드.
-    static let musicNoteEmitterMaxConcurrent: Int = 15
-    /// 음표 스폰 주기 (초). 너무 잦으면 산만, 너무 적으면 휑함.
-    static let musicNoteEmitterSpawnInterval: TimeInterval = 0.5
-    /// 음표 글리프 폰트 크기 (pt). 살짝 큰 18pt — 시각 인지성 + 우아함.
-    static let musicNoteEmitterFontSize: CGFloat = 18
-    /// 음표 한 개가 화면 하단 → 상단 통과까지 걸리는 시간 (초). 8s — 느릿한 부유감.
-    static let musicNoteEmitterRiseDuration: TimeInterval = 8.0
-    /// 음표 fade-in 시간 (초).
-    static let musicNoteEmitterFadeInDuration: TimeInterval = 0.5
-    /// 음표 fade-out 시간 (초). 상승 종료 직전.
-    static let musicNoteEmitterFadeOutDuration: TimeInterval = 1.0
-    /// 음표 최대 알파. 0.7 — 배경 위에 *떠 있는* 톤.
-    static let musicNoteEmitterMaxAlpha: CGFloat = 0.7
-    /// 음표 초기 y 위치 (씬 하단 기준 offset, pt). 화면 아래에서 시작해 자연스럽게 등장.
-    static let musicNoteEmitterStartYOffset: CGFloat = -20
-    /// 음표 상승 종료 y 마진 (씬 상단 위로 추가 이동량, pt).
-    static let musicNoteEmitterRiseEndYMargin: CGFloat = 40
-    /// 음표 좌우 흔들림 범위 (절대값, pt). 자연스러운 부유 표현.
-    static let musicNoteEmitterDriftRange: CGFloat = 30
 
     /// 제목 글로우 SKEffectNode CIGaussianBlur 반경 (pt).
     static let titleGlowBlurRadius: CGFloat = 8.0
 
-    /// 난이도 카드 선택 시 spring overshoot scale. 1.12 → settle 1.08.
-    static let difficultyCardSpringOvershootScale: CGFloat = 1.12
-    /// spring phase 1 (overshoot)까지 걸리는 시간 (초). easeOut.
-    static let difficultyCardSpringPhase1Duration: TimeInterval = 0.18
-    /// spring phase 2 (settle)까지 걸리는 시간 (초). easeInEaseOut.
-    static let difficultyCardSpringPhase2Duration: TimeInterval = 0.12
-
-    /// 난이도 카드 살구 링 글로우 패딩 (pt). 카드 외곽보다 살짝 큰 capsule.
-    static let difficultyCardRingGlowPadding: CGFloat = 10
-    /// 링 글로우 stroke 두께 (pt).
-    static let difficultyCardRingGlowLineWidth: CGFloat = 2
-    /// 링 글로우 glow 폭 (pt). SKShapeNode glowWidth.
-    static let difficultyCardRingGlowWidth: CGFloat = 6
-    /// 링 글로우 fade-in 시간 (초). 선택 시 자연스러운 빛 띄움.
-    static let difficultyCardRingGlowFadeInDuration: TimeInterval = 0.2
-    /// 링 글로우 fade-out 시간 (초). 해제 시 빠른 정리.
-    static let difficultyCardRingGlowFadeOutDuration: TimeInterval = 0.1
-
-    /// 시작 버튼 pulse 최소 scale. 호흡 들이마시는 톤.
-    static let startButtonPulseScaleMin: CGFloat = 0.98
-    /// 시작 버튼 pulse 최대 scale. 호흡 내쉬는 톤.
-    static let startButtonPulseScaleMax: CGFloat = 1.02
-    /// 시작 버튼 pulse 반주기 (초). 1.0초 × 2 = 2초 1주기 — 심호흡 리듬.
-    static let startButtonPulseHalfDuration: TimeInterval = 1.0
-
-    /// 씬 전환 시 카드/스토리/버튼 슬라이드업 거리 (pt). 살짝만 — 연결감 위주.
-    static let startSceneExitSlideDistance: CGFloat = 30
-    /// 슬라이드업 + fadeOut 지속시간 (초). presentScene 전 prelude.
-    static let startSceneExitSlideDuration: TimeInterval = 0.2
 
     // MARK: - v2 Components (Sprint 1)
 
@@ -468,7 +339,6 @@ enum UILayout {
     static let primaryButtonArrowLabelFontSize: CGFloat = 14
 
     // MARK: - Tone Down Controls
-    static let menuAmbientNotesEnabled: Bool = false
     static let menuControlFillAlpha: CGFloat = 0.94
     static let menuControlStrokeAlpha: CGFloat = 0.20
     static let menuControlLineWidth: CGFloat = 1
@@ -480,52 +350,7 @@ enum UILayout {
     // DESIGN_RENEWAL_REQUEST.md §4.1 + mockups/main-screen-v2.html.
     // 본 섹션은 *추가만* — 기존 startScene* 상수(Phase 10-1a/10-2)는 미사용 상태가 되어도 *유지*.
 
-    /// StartScene 타이틀 1행("김간호는") 폰트 크기(pt). §4.1 = 44pt navyDeep.
-    static let startSceneTitleLine1FontSize: CGFloat = 44
-    /// StartScene 타이틀 2행("음악박사 ♪") 폰트 크기(pt). §4.1 = 56pt coralPrimary.
-    static let startSceneTitleLine2FontSize: CGFloat = 56
-    /// StartScene 태그라인 폰트 크기(pt). Gowun Dodum body 톤.
-    static let startSceneTaglineFontSize: CGFloat = 13
-    /// StartScene 태그라인 자동 줄바꿈 폭(pt). preferredMaxLayoutWidth.
-    static let startSceneTaglineMaxWidth: CGFloat = 240
-    /// StartScene 타이틀 블록 우측 마진(pt). frame.maxX - margin이 우측 정렬 기준.
-    static let startSceneTitleBlockRightMargin: CGFloat = 64
-    /// StartScene 타이틀 블록 y 오프셋(pt). frame.midY + offset.
-    static let startSceneTitleBlockOffsetY: CGFloat = 60
-    /// StartScene 2행 사이 줄간 y 간격(pt). titleLine1 → titleLine2.
-    static let startSceneTitleLineSpacing: CGFloat = 58
-    /// StartScene AccentLine 타이틀 블록 위 y 오프셋(pt). 타이틀1 위 +24.
-    static let startSceneAccentLineAboveTitleOffset: CGFloat = 36
-    /// StartScene 태그라인 타이틀2 아래 y 오프셋(pt).
-    static let startSceneTaglineBelowTitleOffset: CGFloat = -48
 
-    /// StartScene BEST/PLAYS 알약 폭(pt). §4.1 = 96.
-    static let startSceneStatPillWidth: CGFloat = 96
-    /// StartScene BEST/PLAYS 알약 높이(pt).
-    static let startSceneStatPillHeight: CGFloat = 28
-    /// StartScene 알약 좌우 마진(pt). frame.minX/maxX 기준 안쪽 거리.
-    static let startSceneStatPillSideMargin: CGFloat = 60
-    /// StartScene 알약 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
-    static let startSceneStatPillTopMargin: CGFloat = 30
-    static let startSceneAuthStatusPillWidth: CGFloat = 138
-    static let startSceneAuthButtonPillWidth: CGFloat = 118
-    static let startSceneAuthPillHeight: CGFloat = 28
-    static let startSceneAuthPillGap: CGFloat = 10
-    static let startSceneAuthAboveStartButton: CGFloat = 60
-    static let startSceneAuthManagePillWidth: CGFloat = 70
-    static let startSceneAccountChipWidth: CGFloat = 144
-    static let startSceneAccountChipHeight: CGFloat = 30
-    static let startSceneAccountChipRightInset: CGFloat = 36
-    static let startSceneAccountChipTopInset: CGFloat = 34
-    /// 시작 버튼을 기존 하단 안전영역 앵커에서 위로 올리는 양(pt). 아래에 들어갈 연동 caption(높이+gap)을 흡수한다.
-    /// caption("Apple 연동됨")에 더 가깝게 붙도록 축소.
-    static let startSceneStartButtonLift: CGFloat = 18
-    /// "Apple 연동됨" plain 텍스트 폰트 크기(pt). 기존 pill 대비 작게 — 조용한 상태 표시.
-    static let startSceneAuthCaptionFontSize: CGFloat = 13
-    /// 시작 버튼 하단 ~ 연동 caption 중심 간격(pt). menuCompactScale 적용.
-    static let startSceneAuthCaptionGap: CGFloat = 12
-    /// 연동 caption 탭 히트 영역 패딩(pt). 작은 글자라 텍스트 bbox만으로는 탭이 좁아 inset으로 확장.
-    static let startSceneAuthCaptionHitPadding: CGFloat = 10
     static let authGuestStatusText: String = "게스트 기록"
     static let authLinkedStatusText: String = "Apple 연동됨"
     static let authLocalFallbackStatusText: String = "로컬 플레이 가능"
@@ -538,54 +363,10 @@ enum UILayout {
     static let authActionCancelledText: String = "취소했어요"
     static let authActionFailedText: String = "잠시 후 다시 시도"
     static let authStatusMessageDuration: TimeInterval = 1.6
-    static let authStatusMessageActionKey: String = "authStatusMessage"
 
     // MARK: - Login Choice Overlay
-    static let loginChoiceDimAlpha: CGFloat = 0.48
-    static let loginChoicePanelFillAlpha: CGFloat = 0.92
-    static let loginChoicePanelStrokeAlpha: CGFloat = 0.55
-    static let loginChoicePanelWidth: CGFloat = 580
-    static let loginChoicePanelCompactWidth: CGFloat = 492
-    static let loginChoicePanelHeight: CGFloat = 338
-    static let loginChoicePanelCornerRadius: CGFloat = 20
-    static let loginChoicePanelLineWidth: CGFloat = 1
-    static let loginChoiceTitleFontSize: CGFloat = 28
-    static let loginChoiceBodyFontSize: CGFloat = 15
-    static let loginChoiceStatusFontSize: CGFloat = 13
-    static let loginChoiceBodyWidth: CGFloat = 292
-    static let loginChoiceButtonWidth: CGFloat = 140
-    static let loginChoiceCancelButtonWidth: CGFloat = 82
-    static let loginChoiceButtonHeight: CGFloat = 32
-    static let loginChoiceButtonGap: CGFloat = 12
-    static let loginChoiceHeroFrameWidth: CGFloat = 164
-    static let loginChoiceHeroFrameHeight: CGFloat = 204
-    static let loginChoiceHeroFrameCornerRadius: CGFloat = 18
-    static let loginChoiceHeroFrameOffsetX: CGFloat = -172
-    static let loginChoiceHeroPortraitMaxSize = CGSize(width: 118, height: 172)
-    static let loginChoiceHeroCaptionOffsetY: CGFloat = -124
-    static let loginChoiceHeroCaptionFontSize: CGFloat = 13
-    static let loginChoiceContentOffsetX: CGFloat = 94
-    static let loginChoiceTitleOffsetY: CGFloat = 112
-    static let loginChoiceBodyOffsetY: CGFloat = 72
-    static let loginChoiceCardWidth: CGFloat = 286
-    static let loginChoiceCardHeight: CGFloat = 58
-    static let loginChoiceCardGap: CGFloat = 14
-    static let loginChoiceCardCornerRadius: CGFloat = 14
-    static let loginChoiceCardLineWidth: CGFloat = 1
-    static let loginChoiceCardTitleFontSize: CGFloat = 17
-    static let loginChoiceCardSubtitleFontSize: CGFloat = 12
-    static let loginChoiceCardFirstOffsetY: CGFloat = 16
-    static let loginChoiceCardTitleOffsetY: CGFloat = 10
-    static let loginChoiceCardSubtitleOffsetY: CGFloat = -12
-    static let loginChoiceCancelButtonOffsetY: CGFloat = -124
-    static let loginChoiceStatusOffsetY: CGFloat = -150
     static let loginChoiceTitleText: String = "계정 접속"
     static let loginChoiceBodyText: String = "Apple 계정으로 기록을 붙잡거나, 게스트 기록으로 바로 병동에 들어갑니다."
-    static let loginChoiceHeroCaptionText: String = "김간호 기본 프로필"
-    static let loginChoiceGuestCardTitleText: String = "게스트 기록"
-    static let loginChoiceGuestCardSubtitleText: String = "이 기기 안에서 바로 시작"
-    static let loginChoiceAppleCardTitleText: String = "Apple 계정"
-    static let loginChoiceAppleCardSubtitleText: String = "재실행해도 내 기록 유지"
     static let loginChoiceGuestButtonText: String = "게스트로 시작"
     static let loginChoiceAppleButtonText: String = "Apple로 연동"
     static let loginChoiceCancelButtonText: String = "취소"
@@ -597,8 +378,6 @@ enum UILayout {
     static let loginChoiceAppleTimeoutText: String = "Apple 로그인이 지연돼요"
     static let loginChoiceAppleConfigurationText: String = "Apple 로그인 설정을 확인해 주세요"
     static let loginChoiceAppleCredentialText: String = "Apple 인증 정보를 다시 확인해 주세요"
-    static let loginChoiceStatusMessageDuration: TimeInterval = 1.6
-    static let loginChoiceStatusMessageActionKey: String = "loginChoiceStatusMessage"
 
     // MARK: - Overlay Action Button
     static let overlayButtonShadowOffsetY: CGFloat = 0
@@ -753,132 +532,6 @@ enum UILayout {
     /// 기존 `profileDetailAvatarOptionSelectedFillAlpha`(0.88)는 레거시 크림슨용 값이라 보존하고,
     /// 코랄 v2 선택 패드는 더 가벼운 별도 투명도로 분리한다.
     static let profileDetailAvatarOptionSelectedCoralFillAlpha: CGFloat = 0.22
-
-    // MARK: - Sprint 2 · CharacterSelectScene v2 Layout
-    // DESIGN_RENEWAL_REQUEST.md §4.2 + mockups/character-select-v2.html.
-
-    /// 헤더 부제(Gowun Dodum) 폰트 크기(pt). §4.2 = 12pt navyMuted.
-    static let characterSelectHeaderSubFontSize: CGFloat = 12
-    /// 헤더 부제 텍스트.
-    static let characterSelectHeaderSubText: String = "친구마다 다른 스킬과 이동속도를 가져요"
-    /// 헤더 부제 y 오프셋(pt). headerLabel 아래 -22.
-    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(-22).
-    static let characterSelectHeaderSubOffsetY: CGFloat = -22
-    /// 헤더 AccentLine y 오프셋(pt). headerLabel 위 +24.
-    /// Sprint 10.6 — V10 도입으로 본 씬 미사용. 회귀 안전망으로 값 보존(24).
-    static let characterSelectAccentLineOffsetY: CGFloat = 24
-
-    /// 뒤로 GlassPill 텍스트.
-    /// Sprint 6 — 흐름 재편: 캐릭터 선택의 직전 단계가 StartScene(메인)으로 바뀜.
-    /// 난이도 결정은 5단계 흐름의 *마지막*(DifficultySelectScene)으로 이동했으므로
-    /// "← 난이도 다시"가 의미적으로 깨진다 — 텍스트만 "← 메인"으로 교체. 상수 이름 보존.
-    static let characterSelectBackPillText: String = "← 메인"
-    /// 뒤로 GlassPill 폭(pt).
-    static let characterSelectBackPillWidth: CGFloat = 120
-    /// 뒤로 GlassPill 높이(pt).
-    static let characterSelectBackPillHeight: CGFloat = 28
-    /// 난이도 칩 본 라벨 텍스트.
-    static let characterSelectDifficultyChipLabel: String = "현재 난이도"
-    /// Top bar 좌우 마진(pt). frame.minX/maxX 기준.
-    static let characterSelectTopBarMarginX: CGFloat = 40
-    /// Top bar 상단 마진(pt). frame.maxY 기준 아래쪽 거리.
-    static let characterSelectTopBarMarginY: CGFloat = 30
-
-    /// 카드 외곽 글래스 컨테이너 폭(pt). Sprint 7+ — 110 → 156 (카드 확대에 동기).
-    /// characterCardWidth(76) + 좌우 inset 40 = 156. 카드 위 글래스 띠 두께 보존.
-    static let characterCardGlassWidth: CGFloat = 156
-    /// 카드 외곽 글래스 컨테이너 높이(pt). Sprint 7+ — 140 → 204 (카드 확대에 동기).
-    /// characterCardHeight(104) + 상하 inset 100 = 204. 라벨/태그 공간 확보.
-    static let characterCardGlassHeight: CGFloat = 204
-    /// 카드 외곽 글래스 cornerRadius(pt).
-    static let characterCardGlassCornerRadius: CGFloat = 18
-    /// 카드 외곽 글래스 fill 알파(흰색).
-    static let characterCardGlassFillAlpha: CGFloat = 0.65
-    /// 카드 우상단 색 점 반지름(pt). §4.2 = 4 (지름 8).
-    static let characterCardColorDotRadius: CGFloat = 4
-    /// 카드 색 점 카드 외곽으로부터 우측 inset(pt).
-    static let characterCardColorDotInsetX: CGFloat = 14
-    /// 카드 색 점 카드 외곽으로부터 상단 inset(pt).
-    static let characterCardColorDotInsetY: CGFloat = 14
-    /// 카드 외곽 글래스 선택 시 scale.
-    static let characterCardGlassSelectedScale: CGFloat = 1.08
-    /// 카드 외곽 글래스 선택 시 y 오프셋(pt). 살짝 위로 떠오름.
-    static let characterCardGlassSelectedYOffset: CGFloat = 12
-    /// 카드 외곽 글래스 선택 시 stroke 두께(pt).
-    static let characterCardGlassSelectedStrokeWidth: CGFloat = 2
-    /// 카드 외곽 글래스 scale 액션 duration(초).
-    static let characterCardGlassScaleDuration: TimeInterval = 0.18
-
-    /// 하단 스킬 정보 칩 y 오프셋(pt). frame.midY 기준.
-    static let characterSelectSkillInfoOffsetY: CGFloat = -100
-    /// confirm 버튼 y 오프셋(pt). frame.midY 기준.
-    static let characterSelectConfirmButtonOffsetY: CGFloat = -180
-
-    // MARK: - Sprint 2 · SkillExplanationScene v2 Layout
-    // DESIGN_RENEWAL_REQUEST.md §4.3 + mockups/skill-explanation-v2.html.
-
-    /// 헤더 부제 텍스트.
-    static let skillExplanationHeaderSubText: String = "한 번만 익히면 충분해요. 바로 시작할 수 있어요"
-    /// 헤더 부제 폰트 크기(pt).
-    static let skillExplanationHeaderSubFontSize: CGFloat = 12
-    /// 헤더 AccentLine y 오프셋(pt). headerLabel 위 +24.
-    static let skillExplanationAccentLineOffsetY: CGFloat = 24
-    /// 헤더 부제 y 오프셋(pt). headerLabel 아래 -22.
-    static let skillExplanationHeaderSubOffsetY: CGFloat = -22
-
-    /// Top bar 뒤로 GlassPill 텍스트.
-    static let skillExplanationBackPillText: String = "← 캐릭터 다시"
-    /// Top bar 뒤로 GlassPill 폭(pt).
-    static let skillExplanationBackPillWidth: CGFloat = 130
-    /// Top bar 뒤로 GlassPill 높이(pt).
-    static let skillExplanationBackPillHeight: CGFloat = 28
-    /// Top bar 브레드크럼 칩 뱃지 텍스트("스킬").
-    static let skillExplanationBreadcrumbBadge: String = "스킬"
-    /// Top bar 좌우 마진(pt).
-    static let skillExplanationTopBarMarginX: CGFloat = 40
-    /// Top bar 상단 마진(pt).
-    static let skillExplanationTopBarMarginY: CGFloat = 30
-
-    /// 좌측 아바타 글래스 카드 폭(pt). §4.3 = 180.
-    static let skillExplanationAvatarCardWidth: CGFloat = 180
-    /// 좌측 아바타 글래스 카드 높이(pt).
-    static let skillExplanationAvatarCardHeight: CGFloat = 200
-    /// 좌측 아바타 글래스 카드 cornerRadius(pt).
-    static let skillExplanationAvatarCardCornerRadius: CGFloat = 24
-    /// 아바타 카드 fill 알파.
-    static let skillExplanationAvatarCardFillAlpha: CGFloat = 0.85
-    /// 아바타 카드 stroke 알파(코랄).
-    static let skillExplanationAvatarCardStrokeAlpha: CGFloat = 0.3
-    /// 아바타 카드 stroke 두께(pt).
-    static let skillExplanationAvatarCardStrokeWidth: CGFloat = 2
-    /// 아바타 카드 y 오프셋(pt). frame.midY 기준.
-    static let skillExplanationAvatarCardOffsetY: CGFloat = 0
-    /// 아바타 이름 뱃지(코랄 알약) y 오프셋(pt). 카드 안 상단.
-    static let skillExplanationAvatarNameBadgeOffsetY: CGFloat = 90
-    /// 아바타 이름 뱃지 폰트 크기(pt).
-    static let skillExplanationAvatarNameBadgeFontSize: CGFloat = 12
-    /// 아바타 이름 뱃지 폭(pt).
-    static let skillExplanationAvatarNameBadgeWidth: CGFloat = 80
-    /// 아바타 이름 뱃지 높이(pt).
-    static let skillExplanationAvatarNameBadgeHeight: CGFloat = 24
-    /// 아바타 role 라벨 y 오프셋(pt). 카드 아래.
-    static let skillExplanationAvatarRoleOffsetY: CGFloat = -110
-    /// 아바타 role 라벨 폰트 크기(pt).
-    static let skillExplanationAvatarRoleFontSize: CGFloat = 11
-    /// 아바타 속도 칩 y 오프셋(pt). role 아래.
-    static let skillExplanationAvatarSpeedChipOffsetY: CGFloat = -130
-
-    /// 우측 스킬명/스탯 칩 영역 x 오프셋(pt). frame.midX 기준 우측.
-    static let skillExplanationMetaLabelOffsetX: CGFloat = 80
-
-    /// 인용 박스 cornerRadius(pt).
-    static let skillExplanationQuoteBoxCornerRadius: CGFloat = 14
-    /// 인용 박스 fill 알파(흰색).
-    static let skillExplanationQuoteBoxFillAlpha: CGFloat = 0.55
-    /// 인용 박스 본문 폰트 크기(pt).
-    static let skillExplanationQuoteBoxFontSize: CGFloat = 14
-    /// 인용 박스 본문 좌우 패딩(pt). preferredMaxLayoutWidth = boxWidth - padding*2.
-    static let skillExplanationQuoteBoxHorizontalPadding: CGFloat = 28
 
     // MARK: - Sprint 3 · v2 Game Visual
     // DESIGN_RENEWAL_REQUEST.md §4.4 + mockups/game-map-v2.html.
@@ -1036,165 +689,6 @@ enum UILayout {
         CGPoint(x: -180, y:   0)
     ]
 
-    // MARK: - Sprint 6 · 흐름 재편 + 캐릭터 얼굴 + 메인 캐릭터
-    // SPRINT_6_REQUEST.md §2~3 + SPEC.md "기능 상세" 1~7.
-    // 본 섹션은 *추가만* — 기존 상수 hex/값 0건 변경 (characterSelectBackPillText 1줄만 위에서 값 교체).
-    // 흐름: Start → Character → (Skill) → Difficulty → Game. .kim은 Skill 스킵.
-
-    // MARK: - NurseAvatarNode (StartScene 좌측 김간호 큰 그림)
-    /// 김간호 큰 그림 전체 scale. mockup viewBox(-150 -160 300 360) 기준 width 240px 정도.
-    /// 본 노드 내부 좌표는 SVG에서 그대로 코드화 → 외부에서 xScale/yScale로 최종 크기 미세 조정.
-    static let nurseAvatarScale: CGFloat = 0.7
-    /// StartScene에서 NurseAvatarNode 좌측 6% 위치 — frame.minX 기준 +offset.
-    static let nurseAvatarOffsetX: CGFloat = 180
-    /// StartScene에서 NurseAvatarNode 바닥 정렬 — frame.midY 기준 +offset(음수: 아래로).
-    static let nurseAvatarOffsetY: CGFloat = -40
-    /// 외곽선(stroke) 라인 두께. SVG `stroke-width="4"`를 그대로 옮긴 값.
-    static let nurseAvatarOutlineWidth: CGFloat = 4
-    /// 헤드폰 밴드 라인 두께. SVG `stroke-width="10"`.
-    static let nurseAvatarHeadphoneBandWidth: CGFloat = 10
-    /// 팔 라인 두께(피부톤). SVG `stroke-width="20"`.
-    static let nurseAvatarArmWidth: CGFloat = 20
-
-    // MARK: - CharacterFaceNode (CharacterSelectScene 5장 카드 위 얼굴)
-    /// 카드 안에서 얼굴 차지 비율 — Sprint 7+ — 0.55 → 0.82 (카드 확대에 동기).
-    /// 카드(76×104)와 글래스(156×204) 확대에 맞춰 얼굴도 키워 시인성 강화.
-    static let characterFaceScale: CGFloat = 0.82
-    /// 카드 중심에서 얼굴 y 오프셋 — 라벨(이름·태그)과 겹치지 않도록 +6~+10. (OPEN_QUESTION OQ-1)
-    static let characterFaceOffsetYWithinCard: CGFloat = 8
-    /// 얼굴 베이스 머리 타원 가로 반지름.
-    static let characterFaceHeadRadiusX: CGFloat = 32
-    /// 얼굴 베이스 머리 타원 세로 반지름.
-    static let characterFaceHeadRadiusY: CGFloat = 34
-    /// 얼굴 외곽선 두께. mockup `stroke-width="2.5"`.
-    static let characterFaceOutlineWidth: CGFloat = 2.5
-    /// 얼굴 부속(눈/입/볼) stroke 두께. mockup `stroke-width="2"~"3"` 평균.
-    static let characterFaceDetailLineWidth: CGFloat = 2.5
-
-    // MARK: - DifficultySelectScene (신규 5단계 흐름 마지막)
-    /// 헤더 텍스트.
-    static let difficultySelectHeaderText: String = "난이도를 골라요"
-    /// 헤더 폰트 크기(pt). characterSelect/skillExplanation 헤더(22)와 동급 톤.
-    static let difficultySelectHeaderFontSize: CGFloat = 26
-    /// 헤더 y offset — frame.midY 기준.
-    static let difficultySelectHeaderOffsetY: CGFloat = 140
-    /// 헤더 부제 텍스트.
-    static let difficultySelectHeaderSubText: String = "한 번만 정해두면 충분해요"
-    /// 헤더 부제 폰트 크기(pt).
-    static let difficultySelectHeaderSubFontSize: CGFloat = 12
-    /// 헤더 부제 y offset — 헤더 라벨 기준.
-    static let difficultySelectHeaderSubOffsetY: CGFloat = -22
-    /// 헤더 위 AccentLine y offset.
-    static let difficultySelectAccentLineOffsetY: CGFloat = 24
-
-    // 백버튼 (스킬 다시 또는 캐릭터 다시 — characterID에 따라 분기)
-    /// 스킬 보유 캐릭터(.jung/.geon/.im/.lee) 백버튼 텍스트.
-    static let difficultySelectBackPillTextSkill: String = "← 스킬 다시"
-    /// 김간호(.kim) 백버튼 텍스트 — 스킬 화면을 스킵했으므로 직전이 캐릭터 선택.
-    static let difficultySelectBackPillTextCharacter: String = "← 캐릭터 다시"
-    /// 백 GlassPill 폭.
-    static let difficultySelectBackPillWidth: CGFloat = 130
-    /// 백 GlassPill 높이.
-    static let difficultySelectBackPillHeight: CGFloat = 28
-
-    // 브레드크럼 칩
-    /// 브레드크럼 칩 라벨 — 캐릭터 · 스킬 + [난이도] 뱃지.
-    /// 김간호는 스킬 화면을 스킵했지만 시각 일관성을 위해 라벨 텍스트 그대로 유지.
-    static let difficultySelectBreadcrumbLabel: String = "캐릭터 · 스킬"
-    /// 브레드크럼 칩 뱃지 — 코랄 뱃지에 표시되는 "현재 위치".
-    static let difficultySelectBreadcrumbBadge: String = "난이도"
-
-    // 상단 바 margin
-    static let difficultySelectTopBarMarginX: CGFloat = 40
-    static let difficultySelectTopBarMarginY: CGFloat = 30
-
-    // 좌측 캐릭터 요약 카드
-    /// 좌측 요약 카드 폭(pt).
-    static let difficultySelectSummaryCardWidth: CGFloat = 200
-    /// 좌측 요약 카드 높이(pt).
-    static let difficultySelectSummaryCardHeight: CGFloat = 260
-    /// 좌측 요약 카드 cornerRadius(pt).
-    static let difficultySelectSummaryCardCornerRadius: CGFloat = 22
-    /// 좌측 요약 카드 배경 fill alpha(흰색).
-    static let difficultySelectSummaryCardFillAlpha: CGFloat = 0.85
-    /// 좌측 요약 카드 stroke alpha(코랄).
-    static let difficultySelectSummaryCardStrokeAlpha: CGFloat = 0.3
-    /// 좌측 요약 카드 stroke 두께.
-    static let difficultySelectSummaryCardStrokeWidth: CGFloat = 2
-
-    /// 요약 카드 안 이름 뱃지 폭(pt).
-    static let difficultySelectSummaryNameBadgeWidth: CGFloat = 90
-    /// 요약 카드 안 이름 뱃지 높이(pt).
-    static let difficultySelectSummaryNameBadgeHeight: CGFloat = 24
-    /// 요약 카드 안 이름 뱃지 폰트 크기(pt).
-    static let difficultySelectSummaryNameBadgeFontSize: CGFloat = 12
-    /// 요약 카드 중심에서 이름 뱃지 y offset(상단으로 +).
-    static let difficultySelectSummaryNameBadgeOffsetY: CGFloat = 110
-    /// 요약 카드 안 미니 아바타(CharacterFaceNode) scale.
-    static let difficultySelectSummaryFaceScale: CGFloat = 0.65
-    /// 요약 카드 중심에서 미니 아바타 y offset.
-    static let difficultySelectSummaryFaceOffsetY: CGFloat = 30
-    /// 요약 카드 안 스킬명 라벨 폰트 크기(pt).
-    static let difficultySelectSummarySkillFontSize: CGFloat = 14
-    /// 요약 카드 중심에서 스킬명 라벨 y offset(하단으로 -).
-    static let difficultySelectSummarySkillOffsetY: CGFloat = -50
-    /// 요약 카드 "스킬 없음" 라벨(김간호용).
-    static let difficultySelectSummarySkillNoneText: String = "스킬 없음"
-    /// 요약 카드 안 속도 칩 폭(pt).
-    static let difficultySelectSummarySpeedChipWidth: CGFloat = 100
-    /// 요약 카드 안 속도 칩 높이(pt).
-    static let difficultySelectSummarySpeedChipHeight: CGFloat = 22
-    /// 요약 카드 안 속도 칩 폰트 크기(pt).
-    static let difficultySelectSummarySpeedChipFontSize: CGFloat = 11
-    /// 요약 카드 안 속도 칩 fill alpha(민트 톤).
-    static let difficultySelectSummarySpeedChipFillAlpha: CGFloat = 0.4
-    /// 요약 카드 중심에서 속도 칩 y offset.
-    static let difficultySelectSummarySpeedChipOffsetY: CGFloat = -80
-
-    // 우측 난이도 3장
-    /// 우측 난이도 3장 그룹의 중심 x offset(frame.midX 기준).
-    static let difficultySelectDifficultyRowOffsetX: CGFloat = 110
-    /// 우측 난이도 3장 그룹의 중심 y offset(frame.midY 기준).
-    static let difficultySelectDifficultyRowOffsetY: CGFloat = -10
-
-    // 시작 버튼
-    /// 시작 버튼 텍스트.
-    static let difficultySelectStartButtonText: String = "시작"
-
-    // MARK: - Sprint 7 · 잘림 해소 + 카드 시인성 강화 (Visual-3)
-    //
-    // SafeArea 마운트(GameViewController)로 4개 메뉴 씬 가장자리 잘림 해소 +
-    // DifficultyCardNode 1.4배 확장 + descriptionLabel 추가 + 미선택 시각 강화 +
-    // CharacterSelectScene 카드 여백 확대 + 지그재그 y 오프셋.
-    //
-    // 모든 신규 상수는 `*V3` 접미사. 기존 상수는 값 변경 없음(다른 사용처 회귀 방지).
-
-    // --- DifficultyCardNode v3 ---
-    /// Sprint 7 — v3 카드 코너 반경(20pt). 캡슐 → 둥근 사각형 톤. height/2(41)보다 작아 카드 인상.
-    static let difficultyCardCornerRadius: CGFloat = 20
-    /// Sprint 7 — v3 카드 stroke 두께(1.5pt).
-    static let difficultyCardStrokeLineWidth: CGFloat = 1.5
-
-    /// Sprint 7 — v3 미선택 카드 알파(0.78). 기존 characterCardDeselectedAlpha(0.5) 대비 +0.28
-    /// — 흐림 해소 핵심 수치.
-    static let difficultyCardDeselectedAlpha: CGFloat = 0.78
-    /// Sprint 7 — v3 미선택 fill alpha — id.color × 0.08. 살짝 깔리는 톤.
-    static let difficultyCardDeselectedFillAlpha: CGFloat = 0.08
-    /// Sprint 7 — v3 미선택 stroke alpha — id.color × 0.4. 미선택도 색 대비 명확.
-    static let difficultyCardDeselectedStrokeAlpha: CGFloat = 0.4
-    /// Sprint 7 — v3 선택 fill alpha — id.color × 0.2. 기존 Phase 8-3 값 유지.
-    static let difficultyCardSelectedFillAlpha: CGFloat = 0.2
-
-    /// Sprint 7 — v3 descriptionLabel 폰트 크기(10pt). 한 줄 풀이.
-    static let difficultyCardDescriptionFontSize: CGFloat = 10
-
-    // --- DifficultySelectScene v3 ---
-    /// Sprint 7 — v3 좌측 summary 카드 offsetX(-260). 기존 -220 대비 -40 좌측 추가 이동
-    /// — 우측 3장 카드가 112×3+22×2=380pt로 커지면서 시각 균형 보정.
-    static let difficultySelectSummaryCardOffsetX: CGFloat = -260
-
-    // --- CharacterSelectScene v3 ---
-
     // MARK: - Adaptive Layout (Sprint 7+ · 디바이스 대응 · iPhone SE ~ Pro Max)
     /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
     /// SceneSafeArea.insets(for:).bottom + adaptiveBottomMargin = 노드 y 최소값.
@@ -1204,172 +698,9 @@ enum UILayout {
     /// 화면 좌우 안전 마진(노치/Dynamic Island 영역 회피).
     /// Landscape에서 노치가 한쪽(또는 양쪽)을 침범 — 카드 spacing 계산의 입력값.
     static let adaptiveHorizontalMargin: CGFloat = 20
-    /// StartScene 시작 버튼 — 화면 하단(safeArea.bottom) 기준 안쪽 거리.
-    /// frame.minY + safe.bottom + startButtonBottomInset = startButton.y.
-    static let startButtonBottomInset: CGFloat = 64
     /// ResultScene 두 버튼(공유/다시시작) — 화면 하단(safeArea.bottom) 기준 안쪽 거리.
     /// frame.minY + safe.bottom + resultButtonBottomInset = button.y.
     static let resultButtonBottomInset: CGFloat = 56
-    /// CharacterSelect 카드 spacing 최소값(28pt) — 가장 좁은 디바이스(iPhone SE) 보장.
-    /// 카드 76 × 5장 + 28 × 4 spacing = 492pt — SE 가로(667pt safeArea 후) 안에 안전 수용.
-    static let characterSelectMinCardSpacing: CGFloat = 28
-    /// CharacterSelect 카드 spacing 최대값(56pt) — Pro Max에서 과도하게 벌어지지 않도록 clamp.
-    /// 카드 76 × 5장 + 56 × 4 spacing = 604pt — Pro Max 가로(900+pt)에서 자연 균형.
-    static let characterSelectMaxCardSpacing: CGFloat = 56
-    /// CharacterSelect 확인 버튼 — adaptiveBottomMargin 위에 추가로 띄울 버튼 자체 높이 보정.
-    /// PrimaryButton의 시각적 중앙을 카드 줄과 충분히 분리하기 위한 미세 inset.
-    /// Sprint 10 — 40 → 64 (+24). 버튼이 safeArea 가장자리에 너무 붙어 답답하던 시각 결함 해소.
-    static let characterSelectConfirmButtonBottomInset: CGFloat = 64
-    /// CharacterSelect 스킬 정보 칩 — 확인 버튼 위쪽 상대 간격.
-    static let characterSelectSkillInfoChipAbove: CGFloat = 36
-
-    // MARK: - Sprint 7 Phase A · CharacterCard v3 (NIKKE 4:5)
-    //
-    // 카드 폭 160 / 높이 200 / cornerRadius 22 / gap 22 — NIKKE 식 세로 4:5 카드.
-    // 카드 내부에 5요소(속성 헥사·등급 배지·CD 미니칩·얼굴·이름+속도)를 위계 있게 배치.
-    // 선택 상태는 v2 scale 1.08 + 코랄 stroke에 *하단 코랄 radial glow + 상단 "선택됨" 알약* 추가.
-    //
-    // 모든 신규 상수는 `*V3` 접미사 또는 v3 의도값. 기존 v2 상수(characterCardWidth 76,
-    // characterCardHeight 104, characterCardGlassWidth 156, characterCardGlassHeight 204,
-    // characterCardSelectedScale 1.08, characterCardScaleDuration 0.10)는 값 변경 0.
-
-    /// v3 카드 폭(160pt). 기존 characterCardWidth(76) 대비 +84. 4:5 세로 비율 carrier.
-    static let characterCardWidth: CGFloat = 160
-    /// v3 카드 높이(200pt). 폭 160 × 1.25 = 200 → 4:5 비율.
-    static let characterCardHeight: CGFloat = 200
-    /// v3 카드 cornerRadius(22pt). NIKKE 식 부드러운 둥금.
-    static let characterCardCornerRadius: CGFloat = 22
-
-    // --- 속성 헥사 아이콘 (좌상단) ---
-    /// 헥사 outer radius(원에 외접) — 14pt → 28pt 헥사 폭.
-    static let characterCardElementHexRadius: CGFloat = 14
-    /// 헥사 stroke(흰색 1.5pt) — 카드 배경(반투명 화이트)과 분리.
-    static let characterCardElementHexStrokeWidth: CGFloat = 1.5
-    /// 카드 좌상단 코너 inset (x, y) — 헥사 중심 좌표 계산에 사용.
-    static let characterCardElementHexInsetX: CGFloat = 18
-    static let characterCardElementHexInsetY: CGFloat = 18
-    /// 헥사 안 이모지 폰트 크기(pt). 헥사 폭 28의 약 57% — 시각 균형.
-    static let characterCardElementSymbolFontSize: CGFloat = 16
-
-    // --- 등급 로마숫자 배지 (좌하단) ---
-    /// 배지 크기(26×18pt) — Jua 11pt 한 자리 로마숫자 수용.
-    static let characterCardRarityBadgeWidth: CGFloat = 26
-    static let characterCardRarityBadgeHeight: CGFloat = 18
-    /// 배지 cornerRadius(8pt) — 부드럽지만 사각.
-    static let characterCardRarityBadgeCornerRadius: CGFloat = 8
-    /// 배지 fill alpha — navyDeep × 0.85.
-    static let characterCardRarityBadgeFillAlpha: CGFloat = 0.85
-    /// 카드 좌하단 코너 inset (x, y) — 배지 중심 좌표.
-    static let characterCardRarityBadgeInsetX: CGFloat = 22
-    static let characterCardRarityBadgeInsetY: CGFloat = 22
-    /// 배지 라벨 폰트 크기(pt).
-    static let characterCardRarityBadgeFontSize: CGFloat = 11
-
-    // --- CD 미니칩 (우상단) ---
-    /// 칩 높이(16pt) — 자동 폭(라벨 너비 + padding).
-    static let characterCardCDChipHeight: CGFloat = 16
-    /// 칩 좌우 패딩(8pt).
-    static let characterCardCDChipHorizontalPadding: CGFloat = 8
-    /// 칩 fill — coralLight × 0.85.
-    static let characterCardCDChipFillAlpha: CGFloat = 0.85
-    /// 칩 라벨 폰트 크기(pt).
-    static let characterCardCDChipFontSize: CGFloat = 9
-    /// 카드 우상단 코너 inset (x, y).
-    static let characterCardCDChipInsetX: CGFloat = 16
-    static let characterCardCDChipInsetY: CGFloat = 18
-
-    // --- 이름 + 속도 (하단) ---
-    /// 이름 라벨 폰트 크기(pt). Jua, navyDeep.
-    static let characterCardNameFontSize: CGFloat = 15
-    /// 이름 라벨 y offset (카드 하단 기준 + 28).
-    static let characterCardNameOffsetY: CGFloat = 28
-    /// 속도 칩 라벨 폰트 크기(pt). Gowun Dodum, scrubMint.
-    static let characterCardSpeedFontSize: CGFloat = 10
-    /// 속도 칩 y offset (카드 하단 기준 + 12 — 이름 아래).
-    static let characterCardSpeedOffsetY: CGFloat = 12
-
-    // --- 선택 상태 강화 (Phase A) ---
-    /// 코랄 glow y offset (카드 하단 기준 -12 — 카드 아래로 살짝 새어 나옴).
-    static let characterCardSelectedGlowOffsetY: CGFloat = -12
-    /// 코랄 glow 알파(0.45).
-    static let characterCardSelectedGlowAlpha: CGFloat = 0.45
-
-    /// "선택됨" 알약 폭(60pt) / 높이(20pt). Jua 10pt 흰색 "선택됨" 수용.
-    static let characterCardSelectedPillWidth: CGFloat = 60
-    static let characterCardSelectedPillHeight: CGFloat = 20
-    /// 알약 라벨 폰트 크기(pt).
-    static let characterCardSelectedPillFontSize: CGFloat = 10
-    /// 알약 텍스트.
-    static let characterCardSelectedPillText: String = "선택됨"
-    /// 알약 y offset (카드 상단 기준 +14 — 카드 위로 솟음).
-    static let characterCardSelectedPillOffsetY: CGFloat = 14
-
-    // --- 스킬 패널 폭 축소 (Phase A) ---
-    /// 하단 스킬 정보 칩 최대 폭(320pt). v2 무한 → v3 320 clamp.
-    /// 5장 카드 총 폭(160×5 + 22×4 = 888pt)과 시각적 분리.
-    static let characterSelectSkillInfoMaxWidth: CGFloat = 320
-
-    // MARK: - Sprint 7 Phase B · Skill Explanation v3 (겹침 해소 + 호흡)
-    // SPRINT_7_REQUEST.md §3.2 — 본문 폭 47%→52%, 인용 보더 3px→4px,
-    // 메타칩 gap 8→10, 버튼 gap 12→18. 기존 v2 상수는 값 유지(회귀 0).
-
-    /// 인용 박스 좌측 코랄 보더 굵기(pt) — v2 3 → v3 4.
-    static let skillExplanationQuoteBoxBorderWidth: CGFloat = 4
-
-    /// 메타 칩 3개(CD/범위/발동) 사이 간격(pt) — v2 8 → v3 10.
-    static let skillExplanationStatChipSpacing: CGFloat = 10
-
-    // MARK: - Sprint 10.9 · Skill Explanation Modern Briefing V4
-    /// 우측 스킬 정보를 하나의 브리핑 패널로 묶어 요소 밀집감을 낮춘다.
-    static let skillExplanationBriefingPanelWidth: CGFloat = 410
-    static let skillExplanationBriefingPanelHeight: CGFloat = 218
-    static let skillExplanationBriefingPanelCornerRadius: CGFloat = 26
-    static let skillExplanationBriefingPanelFillAlpha: CGFloat = 0.74
-    static let skillExplanationBriefingPanelStrokeAlpha: CGFloat = 0.18
-    static let skillExplanationBriefingPanelTextInsetX: CGFloat = 30
-    static let skillExplanationBriefingPanelOffsetY: CGFloat = -4
-    static let skillExplanationSkillNameOffsetY: CGFloat = 72
-    static let skillExplanationQuoteBoxWidth: CGFloat = 350
-    static let skillExplanationQuoteBoxHeight: CGFloat = 88
-    static let skillExplanationQuoteBoxOffsetY: CGFloat = 4
-    static let skillExplanationStatChipRowOffsetY: CGFloat = -78
-    static let skillExplanationButtonRightPanelGap: CGFloat = 34
-    static let skillExplanationAvatarCardOffsetX: CGFloat = -230
-    static let skillExplanationBriefingPanelOffsetX: CGFloat = 128
-
-    // MARK: - Sprint 7 Phase C · Difficulty hierarchy v3
-    //
-    // 난이도 3장 카드에 *색 위계*를 부여하고 선택 카드를 시선 자석으로 만든다.
-    // 카드 헤더 22pt → 30pt + 카드별 stroke 외곽선 / 선택 시 +8pt 상승 + radial glow /
-    // 시작 버튼 뒤 halo SKShape 부착.
-    //
-    // 모든 신규 상수는 `*PhaseC` 또는 명시적 의도값 접미사. 기존 V3 상수
-    // (difficultyCardDeselectedAlpha, DeselectedFillAlphaV3, DeselectedStrokeAlphaV3,
-    // SelectedFillAlphaV3, StrokeLineWidthV3, NameFontSizeV3 등)는 값 변경 0.
-
-    /// Phase C — 카드 헤더(이름 라벨) 폰트 크기(30pt). 기존 V3 22pt → +8.
-    /// nameLabelStroke / nameLabel 2개 라벨로 stroke 외곽선 표현.
-    static let difficultyCardNameFontSizePhaseC: CGFloat = 30
-    /// Phase C — 카드 헤더 stroke 굵기(1pt). nameLabelStroke 폰트 = 30 + 1×2 = 32pt
-    /// 베이스 라벨로 stroke 효과 근사. SKLabelNode는 stroke 직접 미지원.
-    static let difficultyCardNameStrokeWidthPhaseC: CGFloat = 1.0
-
-    /// Phase C — 선택 카드 상승 거리(+8pt). mockup `transform: translateY(-8px)` 대응.
-    /// 미세 상승 — *시선 자석* 효과의 핵심 수치. liftCurrentOffset 증분 추적으로 누적 방지.
-    static let difficultyCardSelectedLiftY: CGFloat = 8
-    /// Phase C — 선택 카드 상승 액션 지속 시간(0.18s). spring overshoot phase1과 동일 톤.
-    static let difficultyCardSelectedLiftDuration: TimeInterval = 0.18
-
-    /// Phase C — 선택 카드 뒤 radial glow 폭(158pt). 카드 폭 112 대비 ×1.41.
-    /// mockup .diff-card::before 158 × 116.
-    static let difficultyCardSelectedGlowWidthPhaseC: CGFloat = 158
-    /// Phase C — 선택 카드 뒤 radial glow 높이(116pt). 카드 높이 82 대비 ×1.41.
-    static let difficultyCardSelectedGlowHeightPhaseC: CGFloat = 116
-    /// Phase C — 선택 카드 뒤 radial glow alpha(0.80). 시선 자석 강도.
-    static let difficultyCardSelectedGlowAlphaPhaseC: CGFloat = 0.80
-    /// Phase C — 선택 카드 뒤 radial glow spread(12pt). SKShapeNode.glowWidth로 근사 —
-    /// 진정한 Gaussian blur는 SpriteKit 미지원, mockup `filter: blur(20px)` 근사 보정.
-    static let difficultyCardSelectedGlowSpreadPhaseC: CGFloat = 12
 
     // MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene
     //
@@ -1438,10 +769,6 @@ enum UILayout {
     static let scoreboardCellGap: CGFloat = 4
     /// 행 헤더 폭(60pt). mini face(32px) + 약칭(1자).
     static let scoreboardRowHeaderWidth: CGFloat = 60
-
-    // ScoreboardScene — 미니 얼굴 (CharacterFaceNode.mini)
-    /// 행 헤더 미니 얼굴 setScale 배율(0.47 ≈ 32/68 — CharacterFaceNode 기본 ~68 → ~32pt).
-    static let scoreboardMiniFaceScale: CGFloat = 0.47
 
     // ScoreboardScene — 셀 라벨 폰트
     /// 셀 점수 폰트 크기(Jua 18pt navy).
@@ -1528,38 +855,6 @@ enum UILayout {
     /// 매트릭스 zone 헤더 시각 무게를 데이터 셀(18pt)과 균형화. cellWidth(80) 안에 안전.
     static let scoreboardColumnHeaderFontSize: CGFloat = 16
 
-    // MARK: - Sprint 8 Phase B · Character Select 스와이프 페이지 V4
-    //
-    // 5장 카드 동시 노출(폭 912pt > 화면 844pt) → 중앙 1장 + 양옆 반쯤 보이는 2장으로 전환.
-    // V3 카드 폭(160) / 높이(200) / cornerRadius(22) 등 시각 토큰은 byte-identical 보존.
-    // 본 V4 상수는 *위치/scale/alpha 산출식*에만 사용.
-
-    // MARK: - Sprint 8 Phase D · Difficulty Card V4
-    //
-    // V3 카드(112×82) 좁아 한글 텍스트 2~3줄 줄바꿈 답답 → V4 130×200 + line height 1.4.
-    // V3 색 위계(EasyMint/MidGold/HardCoral)는 byte-identical 보존.
-    // 적용 위치: DifficultyCardNode(카드 본체 size + 내부 layout) + DifficultySelectScene.layoutDifficultyCards
-    // (width/spacing 교체). V3 상수(difficultyCardWidthV3=112, HeightV3=82, SpacingV3=22,
-    //  SubtitleFontSizeV3=12, SubtitleOffsetYV3=4, StrokeLineWidthV3=1.5)는 byte-identical 보존 —
-    // 사용처만 V4로 교체.
-
-    /// Phase D 카드 폭(130pt). V3=112.
-    static let difficultyCardWidth: CGFloat = 130
-    /// Phase D 카드 높이(200pt). V3=82.
-    static let difficultyCardHeight: CGFloat = 200
-    /// Phase D 카드 사이 spacing(22pt). V3 SpacingV3와 동일 — V4 알리아스.
-    static let difficultyCardGap: CGFloat = 22
-    /// Phase D 카드 내부 top/bottom padding(14pt). V3는 명시 상수 없음(8pt 추정).
-    static let difficultyCardPadding: CGFloat = 14
-    /// Phase D 부제 ↔ 보조 라벨 사이 vertical gap(10pt). V3=4pt(SubtitleOffsetYV3).
-    static let difficultyCardSubtitleGap: CGFloat = 10
-    /// Phase D 헤더(하/중/상) ↔ 부제 사이 gap(12pt). V3=6pt 추정.
-    static let difficultyCardHeaderGap: CGFloat = 12
-    /// Phase D 보조 라벨 line height multiplier(1.4). V3=1.15. attributedString paragraphStyle 사용.
-    static let difficultyCardSubtitleLineHeight: CGFloat = 1.4
-    /// Phase D 보조 라벨 fontSize(12pt). V3=12pt와 동일 — V4 알리아스(명시화).
-    static let difficultyCardSubtitleFontSize: CGFloat = 12
-
     // MARK: - Sprint 7 Phase F · Villain Visual V3
     //
     // 4종 빌런 시각 강화 V3 상수 묶음. **모든 좌표/크기는 부모 SKSpriteNode 중심(0,0) 기준**이며
@@ -1624,37 +919,6 @@ enum UILayout {
     static let sergeantChevronHeight: CGFloat = 2.5
     /// chevron 선 굵기(1.0pt) — 골드 stroke.
     static let sergeantChevronLineWidth: CGFloat = 1.0
-
-    // MARK: - Sprint 7 Phase G · Player Facing (4방향 child)
-    //
-    // PlayerNode가 4 CharacterFaceNode child를 미리 부착해두고 isHidden 토글로 즉시 전환.
-    // CharacterFaceNode 본래 좌표계(±50)와 PlayerNode 시각 크기(32×40)의 정합용.
-
-    /// PlayerNode 4 CharacterFaceNode child의 scale (0.5).
-    /// CharacterFaceNode head ellipse는 ±32~±34 좌표계 → 0.5 → ±16~±17pt 폭, player visual 32×40과 자연 정합.
-    static let playerFaceChildScale: CGFloat = 0.5
-
-    // MARK: - Sprint 9 Phase A · Character Select V9
-    //
-    // 카드 외부에 부착되던 알약/글로우/얼굴을 카드 내부 inset 좌표로 재배치.
-    // 좌우 GlassPill 화살표 2개 신규. 카드 y 비율을 0.50 → 0.44로 살짝 낮춰 헤더↔카드 24pt 호흡 확보.
-    // V3/V4 기존 상수는 모두 *값 보존*(다른 사용처 참조 가능성 + 회귀 안전망) — V9 신규만 추가.
-
-    /// "선택됨" 알약 — 카드 상단 *내부* inset(top 기준 16pt 안쪽). AS-IS: halfH + 14 (외부).
-    static let characterCardSelectedPillInsetTop: CGFloat = 16
-    /// 코랄 glow — 카드 하단 *내부* inset(bottom 기준 22pt 안쪽). AS-IS: -halfH + (-12) (외부).
-    static let characterCardSelectedGlowInsetBottom: CGFloat = 22
-    /// 코랄 glow 폭 — 카드 폭에 맞춤(cardWidthV3 - 8 = 152pt). AS-IS: 224 (카드 폭 1.4배 외부).
-    static let characterCardSelectedGlowWidth: CGFloat = 152
-    /// 코랄 glow 높이 — 36pt. AS-IS: 60.
-    static let characterCardSelectedGlowHeight: CGFloat = 36
-
-    // MARK: - Sprint 9 Phase B · Player FullBody V9
-    //
-    // 인게임 풀바디 캐릭터를 "2칸(64pt)" 안에 들이기 위한 path 자체 축소 + scale 보정.
-    // V4 상수(playerFullBodyScaleV4 = 0.35)는 *값 보존* — 다른 사용처 참조 가능성 + 회귀 안전망.
-    // PixelSprite 본체는 PlayerNode.attachFullBody 끝에서 color=.clear + colorBlendFactor=1.0 패턴으로 시각 차단.
-    // physicsBody / velocity / 이동 로직 0줄 변경 — 순수 시각 layer.
 
     // MARK: - Sprint 9 Phase D · Result V4 Spacing
     // V3 좌표(headerChip+115 / accentLine+148 / title+85 / subtitle+58 / score-2 / divider-78)는 위쪽 5단의
@@ -1780,187 +1044,38 @@ enum UILayout {
     static let characterSwipeCardAlphaSide: CGFloat = 0.24
 
     // MARK: - Sprint 2 Character Account Home
-    static let characterHomeHeaderText: String = "캐릭터 홈"
-    static let characterHomeHeaderSubText: String = "계정 기록을 보고 바로 시작해요"
-    static let characterHomeStartButtonText: String = "시작"
-    static let characterHomeBackButtonText: String = "← 첫 화면"
-    static let characterHomeMenuCharacterText: String = "캐릭터 선택"
-    static let characterHomeMenuProfileText: String = "개인프로필"
-    static let characterHomeMenuAchievementsText: String = "업적"
-    static let characterHomeMenuRecordsText: String = "기록"
     static let characterHomeAppleFallbackNameText: String = "Apple 플레이어"
     static let characterHomeGuestNameText: String = "게스트 플레이어"
     static let characterHomeLocalNameText: String = "로컬 플레이어"
     static let characterHomeAppleProfileSubText: String = "Apple 계정으로 기록을 이어가요"
     static let characterHomeGuestProfileSubText: String = "이 기기 안에 기록이 저장돼요"
     static let characterHomeLocalProfileSubText: String = "로컬 기록으로 바로 플레이 가능"
-    static let characterHomeNoRecordText: String = "기록 없음"
     static let characterHomeAchievedText: String = "달성"
     static let characterHomeLockedText: String = "잠김"
     static let characterHomeUnlockedText: String = "해금됨"
     static let characterHomeUnlockRequirementSuffix: String = "25점 달성 후 해금"
     static let characterHomeLockedStartFeedbackText: String = "아직 시작할 수 없어요"
-    static let characterHomeProfileTitleText: String = "개인프로필"
-    static let characterHomeAchievementTitleText: String = "업적"
-    static let characterHomeRecordTitleText: String = "난이도별 기록"
-    static let characterHomeGraduationLabelText: String = "졸업장"
-    static let characterHomeSelectedGraduateText: String = "선택 캐릭터 수료"
-    static let characterHomeSelectedLockedText: String = "선택 캐릭터 미수료"
     static let characterHomePlayCountLabelText: String = "플레이"
     static let characterHomeBestScoreLabelText: String = "최고점"
     static let characterHomeTotalScoreLabelText: String = "누적점수"
     static let characterHomePointSuffixText: String = "점"
     static let characterHomePlaySuffixText: String = "회"
-    static let characterHomeTargetPrefixText: String = "목표"
-    static let characterHomeSkillPrefixText: String = "스킬"
-    static let characterHomeSkillNoneText: String = "스킬 없음"
-    static let characterHomeSpeedPrefixText: String = "속도"
-    static let characterHomeMultiplierSeparatorText: String = "×"
-    static let characterHomeSkillSeparatorText: String = "·"
-    static let characterHomeTextJoinSeparator: String = " "
-    static let characterHomeSingleDecimalFormat: String = "%.1f"
-    static let characterHomeDoubleDecimalFormat: String = "%.2f"
-    static let characterHomeLeftArrowText: String = "‹"
-    static let characterHomeRightArrowText: String = "›"
 
-    static let characterHomeHeaderFontSize: CGFloat = 24
-    static let characterHomeHeaderSubFontSize: CGFloat = 12
-    static let characterHomeTopBarInsetX: CGFloat = 34
-    static let characterHomeTopBarInsetY: CGFloat = 28
-    static let characterHomeHeaderLeftGap: CGFloat = 22
-    static let characterHomeHeaderSubOffsetY: CGFloat = -21
-    static let characterHomeAccentLineOffsetY: CGFloat = 19
-    static let characterHomeBackButtonWidth: CGFloat = 106
-    static let characterHomeBackButtonHeight: CGFloat = 30
-    static let characterHomeArrowPillWidth: CGFloat = 54
-    static let characterHomeAccountChipWidth: CGFloat = 150
 
-    static let characterHomeProfilePanelWidth: CGFloat = 210
-    static let characterHomeProfilePanelHeight: CGFloat = 268
-    static let characterHomeProfilePanelLeftInset: CGFloat = 30
-    static let characterHomeProfilePanelTopInset: CGFloat = 84
-    static let characterHomeStageWidth: CGFloat = 420
-    static let characterHomeStageMinimumWidth: CGFloat = 326
-    static let characterHomeStageHeight: CGFloat = 352
-    static let characterHomeStageCenterOffsetX: CGFloat = -106
-    static let characterHomeStageCenterYRatio: CGFloat = 0.52
-    static let characterHomeCompactStageCenterOffsetX: CGFloat = -6
-    static let characterHomeCompactStageCenterYRatio: CGFloat = 0.56
-    static let characterHomePortraitMaxWidth: CGFloat = 174
-    static let characterHomePortraitMaxHeight: CGFloat = 232
-    static let characterHomePortraitBottomInset: CGFloat = 66
-    static let characterHomePortraitColumnOffsetX: CGFloat = 88
-    static let characterHomeInfoColumnOffsetX: CGFloat = 28
-    static let characterHomeStageInfoMaxWidth: CGFloat = 162
-    static let characterHomeInfoNameOffsetY: CGFloat = 104
-    static let characterHomeInfoSkillOffsetY: CGFloat = 58
-    static let characterHomeInfoSpeedOffsetY: CGFloat = -42
-    static let characterHomeArrowOutsideGap: CGFloat = 12
-    static let characterHomeDetailPanelWidth: CGFloat = 230
-    static let characterHomeDetailPanelHeight: CGFloat = 204
-    static let characterHomeAchievementPanelHeight: CGFloat = 134
-    static let characterHomeDetailPanelGap: CGFloat = 14
-    static let characterHomeMenuButtonWidth: CGFloat = 150
-    static let characterHomeMenuButtonHeight: CGFloat = 34
-    static let characterHomeMenuGap: CGFloat = 10
-    static let characterHomeMenuRightInset: CGFloat = 28
-    static let characterHomeMenuBottomInset: CGFloat = 20
-    static let characterHomeMenuCenterYOffset: CGFloat = 10
-    static let characterHomeRailButtonSize: CGFloat = 44
-    static let characterHomeRailGap: CGFloat = 10
-    static let characterHomeRailBottomInset: CGFloat = 18
-    static let characterHomeArrowButtonSize: CGFloat = 60
-    static let characterHomeArrowInsetX: CGFloat = 28
-    static let characterHomeStartButtonBottomInset: CGFloat = 22
-    static let characterHomeBottomStartButtonAboveMenu: CGFloat = 12
-    static let characterHomeBottomReservedAreaGap: CGFloat = 12
-    static let characterHomePanelHorizontalInset: CGFloat = 16
-    static let characterHomePanelVerticalInset: CGFloat = 16
-    static let characterHomePanelTitleFontSize: CGFloat = 16
     static let characterHomePanelBodyFontSize: CGFloat = 12
-    static let characterHomePanelSmallFontSize: CGFloat = 10
-    static let characterHomePanelMetricFontSize: CGFloat = 11
-    static let characterHomePanelValueFontSize: CGFloat = 19
-    static let characterHomeProfileStatusChipWidth: CGFloat = 122
-    static let characterHomeProfileStatusChipHeight: CGFloat = 24
-    static let characterHomeProfileMetricGap: CGFloat = 46
-    static let characterHomeStageNameFontSize: CGFloat = 30
-    static let characterHomeStageSkillFontSize: CGFloat = 14
-    static let characterHomeStageSpeedFontSize: CGFloat = 11
-    static let characterHomeStageNameTopInset: CGFloat = 40
-    static let characterHomeStageSkillGap: CGFloat = 30
-    static let characterHomeStageSpeedChipWidth: CGFloat = 112
-    static let characterHomeStageSpeedChipHeight: CGFloat = 24
     static let characterHomeMenuFontSize: CGFloat = 13
-    static let characterHomeRailFontSize: CGFloat = 11
-    static let characterHomeRecordRowHeight: CGFloat = 42
-    static let characterHomeAchievementBadgeHeight: CGFloat = 24
-    static let characterHomeAchievementBadgeGap: CGFloat = 8
 
-    static let characterHomePanelCornerRadius: CGFloat = 18
     static let characterHomePanelLineWidth: CGFloat = 1.2
     static let characterHomePanelFillAlpha: CGFloat = 0.74
     static let characterHomePanelStrokeAlpha: CGFloat = 0.34
     static let characterHomePanelFocusedStrokeAlpha: CGFloat = 0.42
-    static let characterHomeFocusedScale: CGFloat = 1.0
-    static let characterHomeUnfocusedAlpha: CGFloat = 0.72
-    static let characterHomeStageShadowWidth: CGFloat = 260
-    static let characterHomeStageShadowHeight: CGFloat = 38
-    static let characterHomeStageShadowAlpha: CGFloat = 0.12
     static let characterHomePortraitBreathScale: CGFloat = 1.025
     static let characterHomePortraitBreathDuration: TimeInterval = 1.2
-    static let characterHomeFocusAnimationDuration: TimeInterval = 0.16
-    static let characterHomeRailSelectedScale: CGFloat = 1.1
-    static let characterHomeRailDeselectedAlpha: CGFloat = 0.58
     static let characterHomeLockedPortraitAlpha: CGFloat = 0.48
-    static let characterHomeLockedStartButtonAlpha: CGFloat = 0.52
-    static let characterHomeRoughTapZoneRatio: CGFloat = 0.35
-    static let characterHomeLockedFeedbackDuration: TimeInterval = 1.2
     static let characterHomePortraitBreathActionKey: String = "characterHomePortraitBreath"
-    static let characterHomeSectionFocusActionKey: String = "characterHomeSectionFocus"
-    static let characterHomeRailFocusActionKey: String = "characterHomeRailFocus"
 
     static let characterHomeSwipeThreshold: CGFloat = 44
-    static let characterHomeBottomMenuWidthThreshold: CGFloat = 900
-    static let characterHomeCompactHeightThreshold: CGFloat = 460
     static let characterHomeDefaultIndex: Int = 0
-    static let characterHomeCompactScale: CGFloat = 0.74
-    static let characterHomeBottomMenuScale: CGFloat = 0.86
-    static let characterHomeSingleDecimalScale: CGFloat = 10
-    static let characterHomeSpeedFormatEpsilon: CGFloat = 0.001
-
-    // MARK: - DifficultySelect V5 (좌측 카드 풀바디 픽셀화 + 헤더↔카드 호흡 확보)
-    //
-    // SkillExplanationScene와 동일한 풀바디 픽셀 스프라이트(PixelSpriteRenderer + PNG fallback)로
-    // 좌측 미니 카드 아바타를 통일하고, 헤더(난이도를 골라요)와 카드 윗선이 거의 맞붙어 보이는 답답함을
-    // 해소하기 위해 카드 전체를 30pt 하방 이동. 시작 버튼도 좌측 카드 bottom과의 충돌 + 화면 하단
-    // 클램프를 추가해 안전 배치한다.
-    //
-    // 기존 V3/V4 토큰(difficultySelectSummaryCardOffsetY=-10, difficultySelectStartButtonOffsetY=-160,
-    // difficultyCardWidth/HeightV4/GapV4 등)은 *byte-identical 보존* — 다른 사용처 회귀 위험 0.
-
-    /// V5 좌측 요약 카드 y offset (-40pt). 기존 V3(-10) 대비 -30pt 하방 이동 →
-    /// 카드 top = midY+90 ↔ 헤더 baseY(midY+140)와 50pt 호흡 확보(사용자 답답함 해소).
-    /// 카드 내부 4개 노드(NameBadge/Face/Skill/SpeedChip)는 baseY 기준 상대 OffsetY라
-    /// 자동으로 30pt 함께 하방 이동 — 추가 수정 0줄.
-    static let difficultySelectSummaryCardOffsetY: CGFloat = -40
-
-    /// V5 시작 버튼 y offset (-200pt). 기존 V3(-160) 대비 -40pt 하방 — "살짝" 톤 유지하되
-    /// 좌측 카드 bottom(midY-170)과 36pt 호흡 보장. layoutStartButton()에서 V3/V4/V5 산식 중
-    /// 가장 작은 y(가장 아래) 채택 → V5 좌측 카드 산식 결과(-230)가 dominant.
-    /// 그 후 화면 하단 safe margin 클램프 적용.
-    static let difficultySelectStartButtonOffsetY: CGFloat = -200
-
-    /// V5 시작 버튼 ↔ 카드 bottom 호흡 거리(36pt). V4와 동값이나 *V5 의미 단위 분리* —
-    /// 좌측 카드 bottom 산식에서도 이 값을 동일하게 사용해 좌/우 카드 모두 36pt 호흡 보장.
-    static let difficultySelectStartButtonBreathingGap: CGFloat = 36
-
-    // MARK: - DifficultySelect V6 (캐릭터 프리뷰 aspect-fit)
-    /// V6 좌측 요약 카드 안 풀바디 픽셀/PNG 프리뷰 최대 가로. 원본 texture 비율 유지용 max bounds.
-    static let difficultySelectSummaryFullBodyMaxWidth: CGFloat = 92
-
-    /// V6 좌측 요약 카드 안 풀바디 픽셀/PNG 프리뷰 최대 세로. 정사각 강제 size 대신 aspect-fit에 사용.
-    static let difficultySelectSummaryFullBodyMaxHeight: CGFloat = 118
 
     // MARK: - Sprint V6 — ResultScene + ScoreboardScene 호흡 정리
     //

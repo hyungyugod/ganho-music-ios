@@ -10,14 +10,16 @@
 | R1 | 엔진 코어 | ✅ 합격 | 8.6/10 | 2 | 2026-06-10 |
 | R2 | 게임필 (juice) | ✅ 합격 | 9.45/10 | 2 | 2026-06-10 |
 | R3 | 디자인 시스템 v3 인프라 | ✅ 합격 | 9.4/10 | 1 | 2026-06-10 |
-| R4 | 메뉴 씬 재구축 | ⏳ 대기 | - | 0 | - |
-| R5 | 결과·기록·프로필 재구축 | 🔒 미착수 | - | 0 | - |
+| R4 | 메뉴 씬 재구축 | ✅ 합격 | 9.1/10 | 2 | 2026-06-10 |
+| R5 | 결과·기록·프로필 재구축 | ⏳ 대기 | - | 0 | - |
 | R6 | 메타 시스템 | 🔒 미착수 | - | 0 | - |
 | R7 | 페이싱·콘텐츠 튜닝 | 🔒 미착수 | - | 0 | - |
 | R8 | 통합 QA·릴리즈 준비 | 🔒 미착수 | - | 0 | - |
 
 ## 진행 로그
 
+- 2026-06-10 **R4 합격 (2회차, 가중 9.1/10)** — 메뉴 4씬 v3 "Night Shift" 전면 재구축: 신규 11·수정 17·삭제 12파일(+2,789/−7,696). Start(히어로+로그인 다이얼로그 v3화, +Auth 분리)·CharacterSelect(+Layout/+Overlays/+Account 3분할, PixelCharacterCardNode 신설)·SkillBriefing(SkillExplanationScene 리네임 재작성)·DifficultySelect 전부 R3 Pixel 컴포넌트·토큰 경유로 재구축, v2 씬 상수 457건 정리. **마스터플랜 §4 R4 게이트 전수 충족**: CharacterFaceNode·NurseAvatarNode 참조 0건 실증 후 파일 삭제(+v2 노드 9종 동반 삭제: CharacterCard/DifficultyCard/CharacterHomeMenu/LoginChoiceOverlay→LoginChoiceDialogNode 대체 등)·v2 카툰 토큰 참조 0건·씬별 스크린샷 5장 visual-qa/refactor-r4/ 저장(노드 수 48~123 ≤250·60fps, evaluator 육안 재검증). 픽셀 포트레이트 신설(PixelPortraitSprite·PixelHeroSprite — PixelSprite/PixelPalette 기존 데이터 byte-equal, 신규 추가만). R3 이관 P2 3건 해소(ghost faceNode 생성 생략·미사용 토큰 2건 배선/주석 확정·다이얼로그 스크린샷 확보, 눌림·디졸브 중간 프레임은 simctl 한계로 R5+ 수동 권장 유지). Debug·Release 둘 다 BUILD SUCCEEDED(선행 픽스 회귀 0). QA 이력: 1회차 합격선 8.6이나 P1 2건(전환 경로 isTransitioning 가드 5곳 누락 — 멀티터치 이중 present 가능 / SELF_CHECK 게이트 4 주장-실측 불일치) → Case A 외과수술(가드 5곳 결합형 추가 — 순증 0줄로 300줄 게이트 유지, LoginChoiceOverlay 잔존 주석 2건 제거로 0건 실현) → 2회차 9.1(패턴 9.5/기능 9.5/성능 9.0/시각 8.5/안정성 9.0, P0·P1 0). P2 잔여 2건 R5 이관: 히어로 실효 해상도·블링크 alpha 경합.
+- 2026-06-10 **R4 이관 기록 (generator 기재 — SPEC §주의사항 9 의무)**: ① §C-8 — 일시정지·인게임 HUD의 v2 컴포넌트 잔존(PrimaryButtonNode=GameScene 일시정지 2곳 / DarkContextChipNode=SkillButtonNode·RunButtonNode+Result·Scoreboard / GlassPillNode=Result·Scoreboard·AccountMenuOverlay / OverlayActionButtonNode=ProfileDetailOverlay / BackButtonNode=인스턴스화 0이나 R5 재구축 검토 대상) — 03_UI에 재구축 Phase 미지정 → **R8 감사 결정 사항**. 파일 삭제는 참조 0 충족 시 R5+. ② P2 잔여 — 버튼 눌림 상태·픽셀 디졸브 중간 프레임 스크린샷은 simctl 터치 주입 불가로 미확보 → **R5+ 수동 확인 권장**. ③ `Palette.menuSolidBackgroundColor`(ganhoPaper) — Result/Scoreboard가 사용 중 → **R5 재구축 시 삭제 후보**. ④ UILayout에 R4 무관 기존 미사용 상수 잔존(adaptive*·authManage* 등 — R4가 만든 0참조가 아니라 그 이전부터 미사용) → **R8 감사에서 일괄 처분**.
 - 2026-06-10 설계서 v3 작성 완료 (refactor/00~03 + AGENT_PROMPT). R0 대기.
 - 2026-06-10 **R4 선행 픽스 (R3 이관 이슈 해소)** — ObjectPool Release 옵티마이저 SIGSEGV 우회: 명시적 빈 `@inline(never) deinit` 추가(+7/-0, ObjectPool.swift 1파일 한정). 원인 = 파일에 명시적 deinit이 없어 컴파일러 자동 생성 제네릭 소멸자(레이아웃 제약 T 특수화)를 SILPerformanceInliner가 인라인 시도하다 SIGSEGV — attribute로 인라인 봉인. Debug·Release 둘 다 BUILD SUCCEEDED(evaluator clean 전체 재컴파일 직접 검증, SIGSEGV 마커 0). 호출부 6지점 diff 0·기존 본문 삽입만·QA 10.0(P0·P1 0). **아카이브 차단 해제.**
 - 2026-06-10 **R0 합격 (1회차, 가중 9.0/10)** — GameConfig.swift(3,869줄) 소멸 → Config 7분할(GameplayTuning/FeelTuning/UILayout/Palette보류·Typography/ZOrder/StorageKeys 등), 호출부 111파일 갱신. 버전 suffix 309건 박멸(삭제 157·개명 152). 삭제 목록 9항 처리(CharacterFullBodyNode·GradientBackgroundNode 파일 삭제, ResultScene 좀비 라벨 7종, ColorTokens 미참조 27토큰, .codex/). PixelCharacterAnimating 프로토콜 추출(4노드, 중복 1벌화). UserDefaults 키 15종 StorageKeys 이동(byte-equal). 값 보존 전수 대조: 라이브 상수 변경 0건. P2 잔여: 전 씬 터치 주행 미실증(터치 자동화 부재) — R1 진입 전 수동 1회 권장.

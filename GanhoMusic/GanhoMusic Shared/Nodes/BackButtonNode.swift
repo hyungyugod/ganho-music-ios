@@ -8,7 +8,7 @@
 //  PrimaryButtonNode와 형태는 동일하지만 *시각 위계*가 한 단계 아래 —
 //  크림(ganhoPaper) α=0.82 fill + 코랄 2px stroke + 입체 그림자 + ganhoNavyDeep 라벨로
 //  *조용하지만 또렷한 보조 액션*임을 전달(묶음 A 어포던스 3계층의 Secondary 톤 통일).
-//  CharacterSelectScene/SkillExplanationScene의 "← 난이도 다시" / "← 캐릭터 다시" 두 곳에서 사용.
+//  과거 메뉴 씬들이 사용 — R4 후 메뉴 4씬은 PixelButtonNode ghost로 이행 (R5+ 잔존 사용처 검토 대상).
 //
 //  주의: GlassPillNode 인스턴스를 *직접 사용하지 않는다*. init 시그니처 / name="backButton"이
 //  호출부 가드라 컨테이너 교체 시 회귀 위험 — 내부 시각만 GlassPill 톤을 흉내내는 패턴.

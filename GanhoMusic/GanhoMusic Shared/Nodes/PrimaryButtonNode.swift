@@ -5,16 +5,16 @@
 //  Phase 10-1a · 주요 액션 버튼 — 캡슐 모양 + 라벨, contains(_:) hit-test
 //  Sprint 1 · v2 Design System 리스타일 — 내부 시각만 코랄 + 그림자 + 화살표 + Jua로 교체.
 //
-//  CharacterCardNode / DifficultyCardNode 패턴 답습 — 부모 = 좌표·name, 자식 = 시각.
+//  부모 = 좌표·name, 자식 = 시각 패턴.
 //  init 시그니처 / 타입 이름 / name="primaryButton" / zPosition=100 / 크기 상수 모두 보존 —
-//  StartScene·CharacterSelectScene·SkillExplanationScene 호출부 컴파일 그대로.
+//  잔존 호출부(GameScene 일시정지) 컴파일 그대로 — 메뉴 4씬은 R4에서 PixelButtonNode로 이행.
 //
 
 import SpriteKit
 
 /// 주요 액션 버튼(시작·이 친구로 시작 등). PhysicsBody 0 — 순수 시각 + hit test 대상.
 /// 자식: shadow → background → arrowCircle → arrowLabel → textLabel.
-/// 캡슐 모양: cornerRadius = height/2 → border-radius:999 동일 효과 (DifficultyCardNode 8-3 패턴).
+/// 캡슐 모양: cornerRadius = height/2 → border-radius:999 동일 효과 (8-3 패턴).
 final class PrimaryButtonNode: SKNode {
 
     // MARK: - Properties
@@ -112,7 +112,7 @@ final class PrimaryButtonNode: SKNode {
         arrowLabel.zPosition = 2
     }
 
-    /// 텍스트 라벨 스타일 — 캡슐 정중앙. CharacterCardNode.configureLabel과 동형 패턴.
+    /// 텍스트 라벨 스타일 — 캡슐 정중앙.
     private func configureTextLabel(text: String) {
         textLabel.text = text
         textLabel.fontSize = UILayout.primaryButtonFontSize

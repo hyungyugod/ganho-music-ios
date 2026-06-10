@@ -71,6 +71,9 @@ extension Typography {
         }
 
         // 03_UI §3 표 그대로 — 7토큰.
+        /// 로고타입 — StartScene 1줄 로고 전용 (Galmuri14 52pt).
+        /// R4 신설 — 03_UI §6-1 수치 그대로 (SPEC §C-10: §3 표에 52pt 토큰 부재 → 추가만).
+        static let logo = Token(fontName: galmuri14, size: 52)
         /// 씬 타이틀·verdict (Galmuri14 44pt).
         static let display = Token(fontName: galmuri14, size: 44)
         /// 카드 제목·점수 (Galmuri14 30pt).

@@ -201,8 +201,11 @@ final class ScoreboardScene: SKScene {
         }
 
         // 행 헤더 5개 — 미니 얼굴 + 약칭(이름 첫 글자).
+        // R4 §F-7 — 24×24 픽셀 포트레이트 (기존 mini 표시 폭 ~32pt 유지, 위치 함수 그대로).
         for (row, charID) in characters.enumerated() {
-            let face = CharacterFaceNode.mini(id: charID)
+            let face = SKSpriteNode(texture: PixelPortraitSprite.texture(for: charID))
+            face.size = CGSize(width: UILayout.R4.scoreboardPortraitSide,
+                               height: UILayout.R4.scoreboardPortraitSide)
             face.zPosition = 6
             face.position = rowHeaderFacePosition(row: row)
             matrixContainer.addChild(face)

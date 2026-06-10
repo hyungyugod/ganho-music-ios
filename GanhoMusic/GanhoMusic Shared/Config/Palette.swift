@@ -157,4 +157,14 @@ extension Palette {
         case .hard:   return coral
         }
     }
+
+    /// 난이도 하드섀도(Deep) 매핑 — `difficulty(_:)`의 짝 (R4 §F-4 시작 버튼 면/섀도 색 쌍).
+    /// switch exhaustive — default 금지.
+    static func difficultyDeep(_ d: Difficulty) -> UIColor {
+        switch d {
+        case .easy:   return mintDeep
+        case .normal: return goldDeep
+        case .hard:   return coralDeep
+        }
+    }
 }

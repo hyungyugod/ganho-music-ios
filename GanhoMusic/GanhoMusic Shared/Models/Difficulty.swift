@@ -53,7 +53,7 @@ enum Difficulty: String, CaseIterable {
     }
 
     /// Sprint 7 — 카드에 부착되는 한 줄 풀이. subtitle보다 길고 *경험의 톤*을 전달.
-    /// DifficultyCardNode의 descriptionLabel에만 사용 — 게임 로직 분기 0, 순수 시각 라벨용.
+    /// 순수 시각 라벨용 — 게임 로직 분기 0. (v2 난이도 카드 시절 도입 — R4 후 비표시 보존값.)
     /// `: CustomStringConvertible` 채택은 *하지 않는다* — `String(describing:)` 동작 변경
     /// 회귀를 막기 위함(SPEC §주의사항 4).
     var description: String {
@@ -80,7 +80,7 @@ enum Difficulty: String, CaseIterable {
     //
     // 카드 자체의 *색 위계* 표현용 4 lookup. 기존 `.color`(.ganhoMint / .ganhoYellowF /
     // .ganhoBloodAccent)는 그대로 보존 — 다른 사용처(예: 점 dot)의 색이 회귀하지 않도록 분리.
-    // 본 lookup은 DifficultyCardNode init/setSelected에서만 사용. 게임 로직 분기 0.
+    // 본 lookup은 시각 전용(현 사용처: ScoreboardScene cardStrokeColor). 게임 로직 분기 0.
     // 3 case exhaustive switch — default 미사용으로 enum 확장 시 컴파일 가드 보장.
 
     /// Sprint 7 Phase C — 카드 그라데이션 상단 색(밝은 톤). 카드 fill의 주 색상.
