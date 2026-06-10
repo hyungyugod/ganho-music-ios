@@ -55,7 +55,11 @@ final class StartScene: BaseMenuScene {
         setupHero()
         setupTapToStart()
         layoutAll()
-        runStaggeredAppear([logoLabel, heroSprite, tapToStartLabel].compactMap { $0 })
+        let appearNodes = [logoLabel, heroSprite, tapToStartLabel].compactMap { $0 }
+        runStaggeredAppear(appearNodes)
+        // R5(R4 P2 이관) — 블링크는 staggered 등장(alpha 구동)이 끝난 뒤 시작:
+        // 한 시점에 tapToStartLabel의 alpha를 구동하는 액션 ≤ 1 (경합 해소).
+        scheduleTapToStartBlink(afterAppearCount: appearNodes.count)
         loadInitialAuthState()
     }
 
@@ -75,7 +79,7 @@ final class StartScene: BaseMenuScene {
         layoutProfileChip()
     }
 
-    // MARK: - Logo (§F-1 — v2 2-라인 타이틀·태그라인·AccentLine 폐기)
+    // MARK: - Logo (§F-1 — v2 2-라인 타이틀·태그라인·액센트 라인 폐기)
     private func setupLogo() {
         logoLabel.text = UILayout.R4.startLogoText
         logoLabel.fontSize = Typography.V3.logo.size
@@ -121,8 +125,12 @@ final class StartScene: BaseMenuScene {
     }
 
     private func layoutHero() {
+        // R5(R4 P2 이관) — 실효 배율 정수 스냅: 3(기본 셀) × compactScale(비정수)을 그대로 곱하면
+        // 픽셀 셀 폭이 불균일해진다. 실효 셀(pt)을 정수로 반올림한 뒤 역산 배율을 적용 (.nearest 유지).
         let scale = menuCompactScale()
-        heroSprite?.setScale(scale)
+        let snappedCell = max(UILayout.R5.startHeroMinPixelCell,
+                              (UILayout.R4.startHeroPixelScale * scale).rounded())
+        heroSprite?.setScale(snappedCell / UILayout.R4.startHeroPixelScale)
         heroSprite?.position = CGPoint(
             x: frame.midX.rounded(),
             y: (frame.midY + UILayout.R4.startHeroCenterYOffset * scale).rounded()
@@ -130,6 +138,7 @@ final class StartScene: BaseMenuScene {
     }
 
     // MARK: - Tap To Start (§F-1 — 1.2s 블링크 시각 펄스)
+    /// R5(R4 P2 이관) — 블링크를 여기서 즉시 시작하지 않는다 (staggered appear와 alpha 경합).
     private func setupTapToStart() {
         tapToStartLabel.text = UILayout.R4.startTapToStartText
         tapToStartLabel.fontSize = Typography.V3.body.size
@@ -137,13 +146,26 @@ final class StartScene: BaseMenuScene {
         tapToStartLabel.horizontalAlignmentMode = .center
         tapToStartLabel.verticalAlignmentMode = .center
         tapToStartLabel.zPosition = ZOrder.Layer.hud
+        addChild(tapToStartLabel)
+    }
+
+    /// staggered 등장 완료 시점(마지막 인덱스 stagger + appear 길이) 이후 블링크 시작.
+    /// wait는 alpha 비구동 — 시작 후에는 블링크만 alpha를 구동한다 (withKey 멱등).
+    private func scheduleTapToStartBlink(afterAppearCount count: Int) {
+        let appearDone = FeelTuning.Motion.appearStagger * TimeInterval(max(0, count - 1))
+            + FeelTuning.Motion.appear
         let half = FeelTuning.R4.tapToStartBlinkCycle / 2
         let blink = SKAction.sequence([
             SKAction.fadeAlpha(to: FeelTuning.R4.tapToStartBlinkLowAlpha, duration: half),
             SKAction.fadeAlpha(to: 1.0, duration: half)
         ])
-        tapToStartLabel.run(SKAction.repeatForever(blink), withKey: Self.blinkActionKey)
-        addChild(tapToStartLabel)
+        tapToStartLabel.run(
+            SKAction.sequence([
+                SKAction.wait(forDuration: appearDone),
+                SKAction.repeatForever(blink)
+            ]),
+            withKey: Self.blinkActionKey
+        )
     }
 
     private func layoutTapToStart() {
@@ -156,12 +178,24 @@ final class StartScene: BaseMenuScene {
         )
     }
 
-    // MARK: - Profile Chip (§F-1 — 연동 시에만 add, 탭 → 프로필 진입 보존)
+    // MARK: - Profile Chip (§F-1 노출 정책 유지 — 연동 시에만 add, 탭 → 프로필 진입 보존)
+    /// R5(03_UI §8) — 아이콘 슬롯(선호 캐릭터 24×24 포트레이트) + "Lv.{n} {칭호}" 확장.
+    /// Lv·칭호는 기존 영속값(StatisticsRepository.totalScore)에서 MetaProgression 파생 — 신규 저장 0.
     func refreshProfileChip() {
         if canUseAppleLinkedSession {
             guard profileChip == nil else { return }
-            let chip = PixelChipNode(text: UILayout.authLinkedStatusText,
-                                     style: .accent(Palette.gold))
+            let scope = AccountProgressScopeProvider.current(authProfile: currentAuthProfile)
+            let preferredID = CharacterPreferenceRepository.scoped(scope: scope).current
+            let icon = SKSpriteNode(texture: PixelPortraitSprite.texture(for: preferredID))
+            icon.size = CGSize(width: UILayout.R5.startProfileChipIconSide,
+                               height: UILayout.R5.startProfileChipIconSide)
+            let xp = StatisticsRepository().current.totalScore
+            let level = MetaProgression.level(forXP: xp)
+            let chip = PixelChipNode(
+                text: "\(UILayout.R5.resultLevelLabelPrefix)\(level) \(MetaProgression.title(forLevel: level))",
+                style: .accent(Palette.gold),
+                icon: icon
+            )
             chip.zPosition = ZOrder.Layer.hud
             profileChip = chip
             addChild(chip)

@@ -420,8 +420,6 @@ enum GameplayTuning {
     static let characterUnlockRequiredScore: Int = 25
     /// 캐릭터 홈 잠김 설명 문구.
     static let characterUnlockRequirementText: String = "이전 캐릭터로 25점 달성"
-    /// Sprint 2 — 결과 화면 목표 근접 판정 비율. target의 80% 이상이면 "거의 왔다".
-    static let goalNearRatio: Double = 0.8
 
     // MARK: - Pixel Sprite (Phase 8-1)
     /// 16×20 픽셀 스프라이트의 점(pt) 단위 확대 배율. 화면에서 32×40pt로 보이도록 2배 확대.

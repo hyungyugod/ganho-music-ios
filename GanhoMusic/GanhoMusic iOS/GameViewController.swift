@@ -95,6 +95,31 @@ class GameViewController: UIViewController {
         if name == "startLogin" {
             return StartScene.newStartScene(openLoginChoiceOnEntry: true)
         }
+        // R5 — ResultScene은 파라미터 주입 씬: 스크린샷용 샘플 파라미터 직행 (기능 10).
+        // 수치는 DEBUG 전용 표본 픽스처 — 릴리즈 경로 0 변화 (#if DEBUG 격리).
+        if name == "resultSuccess" {
+            return ResultScene.newResultScene(
+                score: 87, bestScore: 87, isNewBest: true,
+                stats: GameStats(playCount: 12, totalScore: 1_843),
+                characterID: .kim, difficulty: .normal,
+                maxCombo: 12, notesCollected: 34
+            )
+        }
+        if name == "resultFail" {
+            return ResultScene.newResultScene(
+                score: 41, bestScore: 62, isNewBest: false,
+                stats: GameStats(playCount: 5, totalScore: 412),
+                characterID: .jung, difficulty: .normal,
+                maxCombo: 6, notesCollected: 21
+            )
+        }
+        if name == "scoreboard" {
+            return ScoreboardScene.newScoreboardScene()
+        }
+        // R5 — 프로필 다이얼로그 직행 (openProfileOnEntry — simctl 터치 주입 불가 우회).
+        if name == "characterSelectProfile" {
+            return CharacterSelectScene.newCharacterSelectScene(openProfileOnEntry: true)
+        }
         return nil
     }
     #endif

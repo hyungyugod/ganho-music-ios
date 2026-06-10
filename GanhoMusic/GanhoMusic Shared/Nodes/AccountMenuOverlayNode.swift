@@ -2,7 +2,12 @@
 //  AccountMenuOverlayNode.swift
 //  GanhoMusic Shared
 //
-//  StartScene 위에서 로그아웃/계정 삭제 확인을 처리하는 SpriteKit 오버레이.
+//  R5 재구성 — PixelDialogNode 기반 계정 메뉴 (로그아웃/계정 삭제 확인/busy).
+//  공개 계약 byte-호환: AccountMenuOverlayMode·AccountMenuAction·init·update×2·action(at:) —
+//  호출측(CharacterSelectScene touchesBegan → action(at:) 라우팅, +Overlays show/hide) 변경 0.
+//  터치 함정 해소: PixelDialogNode·PixelButtonNode의 isUserInteractionEnabled를 꺼서
+//  씬 touchesBegan 라우팅 계약을 보존한다 (SPEC §주의사항 1 — Firebase 경로 동작 필수).
+//  모드 전환 = 노드 재구성 (busy=버튼 제거, 복귀=재생성) — v2의 숨김 토글 패턴 소멸 (좀비 0).
 //
 
 import SpriteKit
@@ -24,49 +29,27 @@ enum AccountMenuAction {
 final class AccountMenuOverlayNode: SKNode {
 
     // MARK: - Properties
-    private let dimNode = SKShapeNode()
-    private let panelNode = SKShapeNode()
-    private let titleLabel = SKLabelNode(fontNamed: Typography.fontDisplay)
-    private let bodyLabel = SKLabelNode(fontNamed: Typography.fontBody)
-    private let appleButton = GlassPillNode(
-        text: UILayout.authAppleButtonText,
-        size: CGSize(
-            width: UILayout.accountMenuButtonWidth,
-            height: UILayout.accountMenuButtonHeight
-        )
-    )
-    private let signOutButton = GlassPillNode(
-        text: UILayout.accountMenuSignOutText,
-        size: CGSize(
-            width: UILayout.accountMenuButtonWidth,
-            height: UILayout.accountMenuButtonHeight
-        )
-    )
-    private let deleteButton = GlassPillNode(
-        text: UILayout.accountMenuDeleteText,
-        size: CGSize(
-            width: UILayout.accountMenuButtonWidth,
-            height: UILayout.accountMenuButtonHeight
-        )
-    )
-    private let cancelButton = GlassPillNode(
-        text: UILayout.accountMenuCancelText,
-        size: CGSize(
-            width: UILayout.accountMenuCancelButtonWidth,
-            height: UILayout.accountMenuButtonHeight
-        )
-    )
+    private let dialog: PixelDialogNode
+    private let titleLabel = SKLabelNode(fontNamed: Typography.V3.h2.fontName)
+    private let bodyLabel = SKLabelNode(fontNamed: Typography.V3.caption.fontName)
+    /// 현재 모드의 (버튼, 액션) 쌍 — 모드 전환마다 전부 재구성 (좀비 0).
+    private var buttonTargets: [(node: PixelButtonNode, action: AccountMenuAction)] = []
     private var mode: AccountMenuOverlayMode
     private var isAppleLinked: Bool
+    /// 화면 크기 변화 감지 — 같은 크기 재호출(모드 전환)에서 등장 애니 재생 방지.
+    private var lastSceneSize: CGSize = .zero
 
     // MARK: - Init
     init(sceneSize: CGSize, isAppleLinked: Bool, mode: AccountMenuOverlayMode) {
         self.mode = mode
         self.isAppleLinked = isAppleLinked
+        self.dialog = PixelDialogNode(panelSize: UILayout.R5.accountDialogPanelSize)
         super.init()
         name = "accountMenuOverlay"
         zPosition = ZOrder.accountMenuOverlayZPosition
-        configureNodes()
+        // 터치 함정 해소 — 다이얼로그가 터치를 삼키면 씬의 action(at:) 라우팅이 죽는다.
+        dialog.isUserInteractionEnabled = false
+        configureStaticLabels()
         update(sceneSize: sceneSize, isAppleLinked: isAppleLinked, mode: mode)
     }
 
@@ -75,46 +58,25 @@ final class AccountMenuOverlayNode: SKNode {
     }
 
     // MARK: - Configure
-    private func configureNodes() {
-        dimNode.fillColor = UIColor.ganhoNavyDeep.withAlphaComponent(UILayout.accountMenuDimAlpha)
-        dimNode.strokeColor = .clear
-        dimNode.lineWidth = 0
-        dimNode.zPosition = ZOrder.accountMenuDimZPosition
-        addChild(dimNode)
-
-        panelNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.accountMenuPanelFillAlpha)
-        panelNode.strokeColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.accountMenuPanelStrokeAlpha)
-        panelNode.lineWidth = UILayout.accountMenuPanelLineWidth
-        panelNode.zPosition = ZOrder.accountMenuPanelZPosition
-        addChild(panelNode)
-
-        titleLabel.fontSize = UILayout.accountMenuTitleFontSize
-        titleLabel.fontColor = .ganhoNavyDeep
+    private func configureStaticLabels() {
+        titleLabel.fontSize = Typography.V3.h2.size
+        titleLabel.fontColor = Palette.textHi
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = ZOrder.accountMenuLabelZPosition
-        addChild(titleLabel)
+        titleLabel.position = CGPoint(x: 0, y: UILayout.R5.accountDialogTitleOffsetY)
+        dialog.contentNode.addChild(titleLabel)
 
-        bodyLabel.fontSize = UILayout.accountMenuBodyFontSize
-        bodyLabel.fontColor = .ganhoNavyMuted
+        bodyLabel.fontSize = Typography.V3.caption.size
+        bodyLabel.fontColor = Palette.textLo
         bodyLabel.horizontalAlignmentMode = .center
         bodyLabel.verticalAlignmentMode = .center
         bodyLabel.numberOfLines = 0
-        bodyLabel.preferredMaxLayoutWidth = UILayout.accountMenuBodyWidth
-        bodyLabel.zPosition = ZOrder.accountMenuLabelZPosition
-        addChild(bodyLabel)
-
-        [appleButton, signOutButton, deleteButton, cancelButton].forEach { button in
-            button.zPosition = ZOrder.accountMenuButtonZPosition
-            addChild(button)
-        }
-
-        // 계정 삭제만 destructive 톤(딥코랄 + 흰 글자)으로 위험 액션을 시각 분리.
-        // setText(_:)가 fontColor 미변경이라 confirmDelete 모드("삭제")에서도 톤 유지.
-        deleteButton.applyDestructiveStyle()
+        bodyLabel.preferredMaxLayoutWidth = UILayout.R5.accountDialogBodyMaxWidth
+        bodyLabel.position = CGPoint(x: 0, y: UILayout.R5.accountDialogBodyOffsetY)
+        dialog.contentNode.addChild(bodyLabel)
     }
 
-    // MARK: - Update
+    // MARK: - Update (공개 계약 — 시그니처 byte-호환)
     func update(sceneSize: CGSize, isAppleLinked: Bool, mode: AccountMenuOverlayMode) {
         self.mode = mode
         self.isAppleLinked = isAppleLinked
@@ -128,41 +90,16 @@ final class AccountMenuOverlayNode: SKNode {
 
     private func update(sceneSize: CGSize) {
         position = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2)
-        updateDimPath(sceneSize: sceneSize)
-        updatePanelPath(sceneSize: sceneSize)
+        if sceneSize != lastSceneSize {
+            lastSceneSize = sceneSize
+            // 딤 커버 재설정 + 등장 — present는 멱등 (크기 변화·최초 1회만, 모드 전환 시 재생 0).
+            dialog.present(in: self, screenSize: sceneSize)
+        }
         updateText()
-        layoutContent()
+        rebuildButtons()
     }
 
-    private func updateDimPath(sceneSize: CGSize) {
-        let rect = CGRect(
-            x: -sceneSize.width / 2,
-            y: -sceneSize.height / 2,
-            width: sceneSize.width,
-            height: sceneSize.height
-        )
-        dimNode.path = CGPath(rect: rect, transform: nil)
-    }
-
-    private func updatePanelPath(sceneSize: CGSize) {
-        let panelWidth = sceneSize.width < UILayout.compactNarrowWidth
-            ? UILayout.accountMenuPanelCompactWidth
-            : UILayout.accountMenuPanelWidth
-        let panelSize = CGSize(width: panelWidth, height: UILayout.accountMenuPanelHeight)
-        let rect = CGRect(
-            x: -panelSize.width / 2,
-            y: -panelSize.height / 2,
-            width: panelSize.width,
-            height: panelSize.height
-        )
-        panelNode.path = CGPath(
-            roundedRect: rect,
-            cornerWidth: UILayout.accountMenuPanelCornerRadius,
-            cornerHeight: UILayout.accountMenuPanelCornerRadius,
-            transform: nil
-        )
-    }
-
+    /// 카피는 기존 UILayout.accountMenu*/auth* 텍스트 상수 재사용 (R4 §E-9 패턴).
     private func updateText() {
         switch mode {
         case .menu:
@@ -170,99 +107,77 @@ final class AccountMenuOverlayNode: SKNode {
             bodyLabel.text = isAppleLinked
                 ? UILayout.accountMenuLinkedBodyText
                 : UILayout.accountMenuGuestBodyText
-            appleButton.setText(UILayout.authAppleButtonText)
-            deleteButton.setText(UILayout.accountMenuDeleteText)
         case .confirmDelete:
             titleLabel.text = UILayout.accountMenuConfirmTitleText
             bodyLabel.text = UILayout.accountMenuConfirmBodyText
-            deleteButton.setText(UILayout.accountMenuConfirmDeleteText)
         case .busy:
             titleLabel.text = UILayout.accountMenuBusyTitleText
             bodyLabel.text = UILayout.accountMenuBusyBodyText
-            deleteButton.setText(UILayout.accountMenuConfirmDeleteText)
         }
-        signOutButton.setText(UILayout.accountMenuSignOutText)
-        cancelButton.setText(UILayout.accountMenuCancelText)
     }
 
-    private func layoutContent() {
-        titleLabel.position = CGPoint(x: 0, y: UILayout.accountMenuTitleOffsetY)
-        bodyLabel.position = CGPoint(x: 0, y: UILayout.accountMenuBodyOffsetY)
+    // MARK: - Buttons (모드 전환 = 전부 재구성 — LoginChoiceDialogNode 패턴, isHidden 게이트 0)
+    private func rebuildButtons() {
+        for target in buttonTargets {
+            target.node.removeFromParent()
+        }
+        buttonTargets = []
 
+        let specs = buttonSpecs()
+        guard !specs.isEmpty else { return }
+        let gap = UILayout.R5.accountDialogButtonGap
+        let total = specs.reduce(0) { $0 + $1.size.width } + gap * CGFloat(specs.count - 1)
+        var cursorX = -total / 2
+        for spec in specs {
+            let button = PixelButtonNode(title: spec.title,
+                                         variant: spec.variant,
+                                         size: spec.size)
+            // 씬 touchesBegan → action(at:) 라우팅 보존 — 버튼 자체 터치 처리 차단.
+            button.isUserInteractionEnabled = false
+            button.position = CGPoint(x: (cursorX + spec.size.width / 2).rounded(),
+                                      y: UILayout.R5.accountDialogButtonRowY)
+            dialog.contentNode.addChild(button)
+            buttonTargets.append((node: button, action: spec.action))
+            cursorX += spec.size.width + gap
+        }
+    }
+
+    /// 모드별 버튼 구성. 삭제 = primary(coral 면) — destructive 위계 유지.
+    private func buttonSpecs() -> [(title: String, variant: PixelButtonNode.Variant,
+                                    size: CGSize, action: AccountMenuAction)] {
+        let buttonSize = UILayout.R5.accountDialogButtonSize
+        let cancelSize = UILayout.R5.accountDialogCancelButtonSize
         switch mode {
         case .menu:
-            let buttons = menuButtons()
-            setButtonsHidden(buttonsToShow: buttons.map { $0.node })
-            layoutButtons(buttons)
-        case .confirmDelete:
-            let buttons = [
-                (node: deleteButton, width: UILayout.accountMenuButtonWidth),
-                (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
-            ]
-            setButtonsHidden(buttonsToShow: buttons.map { $0.node })
-            layoutButtons(buttons)
-        case .busy:
-            setButtonsHidden(buttonsToShow: [])
-        }
-    }
-
-    private func menuButtons() -> [(node: GlassPillNode, width: CGFloat)] {
-        if isAppleLinked {
+            let accountAction: (title: String, variant: PixelButtonNode.Variant,
+                                size: CGSize, action: AccountMenuAction) = isAppleLinked
+                ? (UILayout.accountMenuSignOutText, .secondary, buttonSize, .signOut)
+                : (UILayout.authAppleButtonText, .secondary, buttonSize, .linkApple)
             return [
-                (node: signOutButton, width: UILayout.accountMenuButtonWidth),
-                (node: deleteButton, width: UILayout.accountMenuButtonWidth),
-                (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
+                accountAction,
+                (UILayout.accountMenuDeleteText, .primary, buttonSize,
+                 .requestDeleteConfirmation),
+                (UILayout.accountMenuCancelText, .ghost, cancelSize, .cancel)
             ]
-        }
-
-        return [
-            (node: appleButton, width: UILayout.accountMenuButtonWidth),
-            (node: deleteButton, width: UILayout.accountMenuButtonWidth),
-            (node: cancelButton, width: UILayout.accountMenuCancelButtonWidth)
-        ]
-    }
-
-    private func setButtonsHidden(buttonsToShow: [GlassPillNode]) {
-        let allButtons = [appleButton, signOutButton, deleteButton, cancelButton]
-        allButtons.forEach { button in
-            button.isHidden = !buttonsToShow.contains(where: { $0 === button })
+        case .confirmDelete:
+            return [
+                (UILayout.accountMenuConfirmDeleteText, .primary, buttonSize, .confirmDelete),
+                (UILayout.accountMenuCancelText, .ghost, cancelSize, .cancel)
+            ]
+        case .busy:
+            return []   // busy = 버튼 제거 (재구성으로 소멸 — isHidden 아님)
         }
     }
 
-    private func layoutButtons(_ buttons: [(node: GlassPillNode, width: CGFloat)]) {
-        guard !buttons.isEmpty else { return }
-        let gapTotal = UILayout.accountMenuButtonGap * CGFloat(max(0, buttons.count - 1))
-        let totalWidth = buttons.reduce(CGFloat.zero) { result, item in
-            result + item.width
-        } + gapTotal
-        var currentX = -totalWidth / 2
-
-        for item in buttons {
-            item.node.position = CGPoint(
-                x: currentX + item.width / 2,
-                y: UILayout.accountMenuButtonOffsetY
-            )
-            currentX += item.width + UILayout.accountMenuButtonGap
-        }
-    }
-
-    // MARK: - Action
+    // MARK: - Action (공개 계약 — 씬 좌표 location → 버튼 hit-test)
     func action(at location: CGPoint) -> AccountMenuAction? {
         guard !isHidden, mode != .busy else { return nil }
         guard let parent = parent else { return nil }
-        let localLocation = convert(location, from: parent)
-
-        if cancelButton.contains(localLocation) {
-            return .cancel
-        }
-        if deleteButton.contains(localLocation) {
-            return mode == .confirmDelete ? .confirmDelete : .requestDeleteConfirmation
-        }
-        if !appleButton.isHidden, appleButton.contains(localLocation) {
-            return .linkApple
-        }
-        if !signOutButton.isHidden, signOutButton.contains(localLocation) {
-            return .signOut
+        // 버튼은 dialog.contentNode 자식 — contains는 부모 좌표계 점을 받으므로 거기로 변환.
+        let local = dialog.contentNode.convert(location, from: parent)
+        for target in buttonTargets where target.node.contains(local) {
+            ChiptuneSynth.shared.play(.uiTap)   // 씬 라우팅 경로라 버튼 자체 SFX 미발화 — 등가 보강
+            return target.action
         }
         return nil
     }

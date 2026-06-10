@@ -16,6 +16,11 @@ final class ScoreSystem {
     private(set) var score: Int = 0
     /// 현재 콤보 (연속 수집 카운트).
     private(set) var combo: Int = 0
+    /// R5 — 이번 판 수집 수 (ResultScene ♪ 칩 표시 전용 — 점수·콤보 로직 분기 0).
+    /// recordNoteHit 1회당 +1 — 변기 보너스는 recordNoteHit 2회 경유로 자연 +2.
+    /// `recordCharmedNoteHit`(매혹 F 변환)은 카운트 제외 — 콤보 시스템(recordNoteHit)을 경유한
+    /// "음표 수집"만 센다. 매혹 변환은 콤보 0 점수 전용 경로라 음표 수집으로 보지 않는다.
+    private(set) var notesCollected: Int = 0
     /// 마지막 수집 시각. 콤보 윈도우 만료 검사에 사용. 0 = "아직 수집 0건".
     private var lastCollectAt: TimeInterval = 0
 
@@ -40,6 +45,7 @@ final class ScoreSystem {
             gain = GameplayTuning.scorePerNote            // 1 (combo < 3)
         }
         score += gain
+        notesCollected += 1   // R5 — 표시 전용 카운트 (점수·콤보 로직 무변경)
         lastCollectAt = now
         return gain
     }
@@ -78,6 +84,7 @@ final class ScoreSystem {
     func reset() {
         score = 0
         combo = 0
+        notesCollected = 0
         lastCollectAt = 0
     }
 }

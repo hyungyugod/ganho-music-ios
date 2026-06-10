@@ -48,23 +48,8 @@ enum DeviceLayoutProfile {
         }
     }
 
-    var resultMaxContentWidth: CGFloat {
-        switch self {
-        case .phoneCompact, .phoneRegular:
-            return .greatestFiniteMagnitude
-        case .padLandscape:
-            return UILayout.ipadResultMaxContentWidth
-        }
-    }
-
-    var scoreboardMaxContentWidth: CGFloat {
-        switch self {
-        case .phoneCompact, .phoneRegular:
-            return .greatestFiniteMagnitude
-        case .padLandscape:
-            return UILayout.ipadScoreboardMaxContentWidth
-        }
-    }
+    // R5 — result/scoreboard 전용 콘텐츠 폭 lookup 2종 삭제 (참조 0 실증 — 기능 9).
+    // 두 씬은 BaseMenuScene.menuSafeInsets()(menuMaxContentWidth)로 통일.
 
     // MARK: - Ingame Layout
 

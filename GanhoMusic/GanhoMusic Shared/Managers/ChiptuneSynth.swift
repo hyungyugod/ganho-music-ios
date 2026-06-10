@@ -39,6 +39,10 @@ final class ChiptuneSynth {
         /// 씬 전환 — square 상행 스윕 A4→A5, 120ms.
         /// 02_GAME_FEEL §6 표 외 신규 — 03_UI §9 전환 SFX 요구 (R3 SceneRouter 전용).
         case sceneTransition
+        /// 결과 verdict 도장 — square+noise 하강 180→55Hz, 250ms (R5 — 03_UI §7 시퀀스 0.0s).
+        case resultStamp
+        /// 점수 카운트업 틱 — square C5 + step×2반음(0...7단), 30ms (R5 — §7 0.4s, 단계 발화 전용).
+        case scoreTick(step: Int)
     }
 
     private enum Waveform {
@@ -95,12 +99,17 @@ final class ChiptuneSynth {
     private func prerenderAllVoices() {
         var voices: [Voice] = [.toiletCollect, .comboMilestone, .comboBreak,
                                .hit, .uiTap, .countdownTick, .countdownGo,
-                               .sceneTransition]   // R3 — 사전 렌더 누락 시 무음 (SPEC 주의사항 5)
+                               .sceneTransition,
+                               .resultStamp]   // R5 — 사전 렌더 누락 시 무음 (R3 컨벤션 동일)
         for semitone in 0...FeelTuning.sfxCollectPitchMaxSemitone {
             voices.append(.noteCollect(semitoneOffset: semitone))
         }
         for index in 0..<3 {
             voices.append(.starReveal(index: index))
+        }
+        // R5 — 카운트업 틱 8단 (FeelTuning.R5.sfxScoreTickStepCount — 0.8s ÷ 8 = 100ms 간격 근거).
+        for step in 0..<FeelTuning.R5.sfxScoreTickStepCount {
+            voices.append(.scoreTick(step: step))
         }
         for voice in voices {
             buffers[voice] = renderBuffer(for: voice)
@@ -157,6 +166,19 @@ final class ChiptuneSynth {
                                to: frequency(midi: FeelTuning.sfxMidiA5),
                                duration: FeelTuning.sfxSceneTransitionDuration,
                                waveform: .square, noiseMix: 0)
+        case .resultStamp:
+            // R5 — verdict 도장 (03_UI §7 0.0s). square+noise 저음 하강 — "쾅" 임팩트 단발.
+            return renderGlide(from: FeelTuning.R5.sfxResultStampStartFrequency,
+                               to: FeelTuning.R5.sfxResultStampEndFrequency,
+                               duration: FeelTuning.R5.sfxResultStampDuration,
+                               waveform: .square,
+                               noiseMix: FeelTuning.R5.sfxResultStampNoiseMix)
+        case .scoreTick(let step):
+            // R5 — 카운트업 틱 (03_UI §7 0.4s). C5에서 단계당 온음(2반음) 상행 — 피치 점진 상승.
+            let clamped = min(max(step, 0), FeelTuning.R5.sfxScoreTickStepCount - 1)
+            let midi = FeelTuning.sfxMidiC5 + clamped * FeelTuning.R5.sfxScoreTickSemitonePerStep
+            return renderTones([(frequency(midi: midi), FeelTuning.R5.sfxScoreTickDuration)],
+                               waveform: .square)
         }
     }
 

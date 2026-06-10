@@ -70,6 +70,14 @@
 		AB40F1B00000000000000001 /* FeelTuning+R4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000001 /* FeelTuning+R4.swift */; };
 		AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000002 /* UILayout+R4.swift */; };
 		AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000003 /* PixelPortraitSprite.swift */; };
+		AB50F1B00000000000000001 /* MetaProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000001 /* MetaProgression.swift */; };
+		AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000002 /* UILayout+R5.swift */; };
+		AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000003 /* FeelTuning+R5.swift */; };
+		AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000004 /* ResultScene+Reveal.swift */; };
+		AB50F1B00000000000000005 /* ResultScene+Build.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000005 /* ResultScene+Build.swift */; };
+		AB50F1B00000000000000006 /* ScoreboardScene+Table.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000006 /* ScoreboardScene+Table.swift */; };
+		AB50F1B00000000000000007 /* ResultReturnContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000007 /* ResultReturnContext.swift */; };
+		AB50F1B00000000000000008 /* ProfileDetailOverlayNode+Content.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000008 /* ProfileDetailOverlayNode+Content.swift */; };
 		AB40F1B00000000000000004 /* PixelHeroSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000004 /* PixelHeroSprite.swift */; };
 		AB40F1B00000000000000005 /* PixelCharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000005 /* PixelCharacterCardNode.swift */; };
 		AB40F1B00000000000000006 /* LoginChoiceDialogNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000006 /* LoginChoiceDialogNode.swift */; };
@@ -101,11 +109,8 @@
 		A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004B /* ProfessorNode.swift */; };
 		A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004C /* StethoscopeNode.swift */; };
 		A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */; };
-		A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004F /* BackButtonNode.swift */; };
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
-		A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000056 /* GlassPillNode.swift */; };
-		A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000057 /* AccentLineNode.swift */; };
 		A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000058 /* DarkContextChipNode.swift */; };
 		A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000059 /* PauseButtonNode.swift */; };
 		A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000072 /* DifficultySelectScene.swift */; };
@@ -133,7 +138,6 @@
 		AA1200000000000000000001 /* RunButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100000000000000000001 /* RunButtonNode.swift */; };
 		AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000001 /* AccountMenuOverlayNode.swift */; };
 		B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */; };
-		B2C0F1B00000000000000103 /* CharacterPortraitNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */; };
 		B8316D45F22D4F7DA0B204B7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 961C7E8E394A42E688745446 /* FirebaseCore */; };
 		EE2000000000000000000001 /* AccountProgressScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000001 /* AccountProgressScope.swift */; };
 		EE2000000000000000000002 /* CharacterUnlockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1000000000000000000002 /* CharacterUnlockState.swift */; };
@@ -149,7 +153,6 @@
 		FB2000000000000000000007 /* CloudProgressRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000007 /* CloudProgressRepository.swift */; };
 		FB2000000000000000000008 /* CloudSaveCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000008 /* CloudSaveCoordinator.swift */; };
 		FB2000000000000000000009 /* FirebaseAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1000000000000000000009 /* FirebaseAuthManager.swift */; };
-		OA2000000000000000000001 /* OverlayActionButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA1000000000000000000001 /* OverlayActionButtonNode.swift */; };
 		PA2000000000000000000001 /* ProfileAvatarSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000001 /* ProfileAvatarSelection.swift */; };
 		PA2000000000000000000002 /* ProfileAvatarRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000002 /* ProfileAvatarRepository.swift */; };
 		PA2000000000000000000003 /* ProfileAvatarViewNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = PA1000000000000000000003 /* ProfileAvatarViewNode.swift */; };
@@ -219,6 +222,14 @@
 		AB40F1A00000000000000001 /* FeelTuning+R4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R4.swift"; sourceTree = "<group>"; };
 		AB40F1A00000000000000002 /* UILayout+R4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R4.swift"; sourceTree = "<group>"; };
 		AB40F1A00000000000000003 /* PixelPortraitSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPortraitSprite.swift; sourceTree = "<group>"; };
+		AB50F1A00000000000000001 /* MetaProgression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetaProgression.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000002 /* UILayout+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R5.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000003 /* FeelTuning+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R5.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000004 /* ResultScene+Reveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+Reveal.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000005 /* ResultScene+Build.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+Build.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000006 /* ScoreboardScene+Table.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreboardScene+Table.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000007 /* ResultReturnContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultReturnContext.swift"; sourceTree = "<group>"; };
+		AB50F1A00000000000000008 /* ProfileDetailOverlayNode+Content.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileDetailOverlayNode+Content.swift"; sourceTree = "<group>"; };
 		AB40F1A00000000000000004 /* PixelHeroSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelHeroSprite.swift; sourceTree = "<group>"; };
 		AB40F1A00000000000000005 /* PixelCharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterCardNode.swift; sourceTree = "<group>"; };
 		AB40F1A00000000000000006 /* LoginChoiceDialogNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginChoiceDialogNode.swift; sourceTree = "<group>"; };
@@ -250,11 +261,8 @@
 		A1C0F1A0000000000000004B /* ProfessorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessorNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004C /* StethoscopeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StethoscopeNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButtonNode.swift; sourceTree = "<group>"; };
-		A1C0F1A0000000000000004F /* BackButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000056 /* GlassPillNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassPillNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000057 /* AccentLineNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentLineNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000058 /* DarkContextChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkContextChipNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000059 /* PauseButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000072 /* DifficultySelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultySelectScene.swift; sourceTree = "<group>"; };
@@ -282,7 +290,6 @@
 		AA1100000000000000000001 /* RunButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunButtonNode.swift; sourceTree = "<group>"; };
 		AC0000000000000000000001 /* AccountMenuOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuOverlayNode.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSnapshot.swift; sourceTree = "<group>"; };
-		B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPortraitNode.swift; sourceTree = "<group>"; };
 		C75D46292FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D463A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C75D464A2FA627C20016BB86 /* GanhoMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GanhoMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -300,7 +307,6 @@
 		FB1000000000000000000007 /* CloudProgressRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProgressRepository.swift; sourceTree = "<group>"; };
 		FB1000000000000000000008 /* CloudSaveCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSaveCoordinator.swift; sourceTree = "<group>"; };
 		FB1000000000000000000009 /* FirebaseAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAuthManager.swift; sourceTree = "<group>"; };
-		OA1000000000000000000001 /* OverlayActionButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayActionButtonNode.swift; sourceTree = "<group>"; };
 		PA1000000000000000000001 /* ProfileAvatarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarSelection.swift; sourceTree = "<group>"; };
 		PA1000000000000000000002 /* ProfileAvatarRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarRepository.swift; sourceTree = "<group>"; };
 		PA1000000000000000000003 /* ProfileAvatarViewNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarViewNode.swift; sourceTree = "<group>"; };
@@ -450,6 +456,9 @@
 				AB30F1A00000000000000001 /* FeelTuning+R3.swift */,
 				AB40F1A00000000000000001 /* FeelTuning+R4.swift */,
 				AB40F1A00000000000000002 /* UILayout+R4.swift */,
+				AB50F1A00000000000000001 /* MetaProgression.swift */,
+				AB50F1A00000000000000002 /* UILayout+R5.swift */,
+				AB50F1A00000000000000003 /* FeelTuning+R5.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -495,16 +504,12 @@
 				A1C0F1A0000000000000004B /* ProfessorNode.swift */,
 				A1C0F1A0000000000000004C /* StethoscopeNode.swift */,
 				A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */,
-				A1C0F1A0000000000000004F /* BackButtonNode.swift */,
 				AC0000000000000000000001 /* AccountMenuOverlayNode.swift */,
-				OA1000000000000000000001 /* OverlayActionButtonNode.swift */,
-				A1C0F1A00000000000000056 /* GlassPillNode.swift */,
-				A1C0F1A00000000000000057 /* AccentLineNode.swift */,
 				A1C0F1A00000000000000058 /* DarkContextChipNode.swift */,
 				A1C0F1A00000000000000059 /* PauseButtonNode.swift */,
-				B2C0F1A00000000000000103 /* CharacterPortraitNode.swift */,
 				PA1000000000000000000003 /* ProfileAvatarViewNode.swift */,
 				PA1000000000000000000004 /* ProfileDetailOverlayNode.swift */,
+				AB50F1A00000000000000008 /* ProfileDetailOverlayNode+Content.swift */,
 				A1C0F1A00000000000000075 /* SergeantParkNode.swift */,
 				A1C0F1A00000000000000078 /* MapNode.swift */,
 				A1C0F1A00000000000000079 /* WallTileNode.swift */,
@@ -545,11 +550,14 @@
 			isa = PBXGroup;
 			children = (
 				A1C0F1A00000000000000012 /* ResultScene.swift */,
+				AB50F1A00000000000000004 /* ResultScene+Reveal.swift */,
+				AB50F1A00000000000000005 /* ResultScene+Build.swift */,
 				A1C0F1A00000000000000050 /* StartScene.swift */,
 				A1C0F1A000000000000000F0 /* BaseMenuScene.swift */,
 				A1C0F1A00000000000000051 /* CharacterSelectScene.swift */,
 				A1C0F1A00000000000000072 /* DifficultySelectScene.swift */,
 				A1C0F1A00000000000000074 /* ScoreboardScene.swift */,
+				AB50F1A00000000000000006 /* ScoreboardScene+Table.swift */,
 				AB30F1A00000000000000002 /* SceneRouter.swift */,
 				AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */,
 				AB40F1A00000000000000007 /* SkillBriefingScene.swift */,
@@ -598,6 +606,7 @@
 				A1C0F1A00000000000000042 /* PixelSprite.swift */,
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
 				AB40F1A00000000000000003 /* PixelPortraitSprite.swift */,
+				AB50F1A00000000000000007 /* ResultReturnContext.swift */,
 				AB40F1A00000000000000004 /* PixelHeroSprite.swift */,
 				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
 				A1C0F1A00000000000000076 /* Direction.swift */,
@@ -922,6 +931,14 @@
 				AB40F1B00000000000000001 /* FeelTuning+R4.swift in Sources */,
 				AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */,
 				AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */,
+				AB50F1B00000000000000001 /* MetaProgression.swift in Sources */,
+				AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */,
+				AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */,
+				AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */,
+				AB50F1B00000000000000005 /* ResultScene+Build.swift in Sources */,
+				AB50F1B00000000000000006 /* ScoreboardScene+Table.swift in Sources */,
+				AB50F1B00000000000000007 /* ResultReturnContext.swift in Sources */,
+				AB50F1B00000000000000008 /* ProfileDetailOverlayNode+Content.swift in Sources */,
 				AB40F1B00000000000000004 /* PixelHeroSprite.swift in Sources */,
 				AB40F1B00000000000000005 /* PixelCharacterCardNode.swift in Sources */,
 				AB40F1B00000000000000006 /* LoginChoiceDialogNode.swift in Sources */,
@@ -962,15 +979,11 @@
 				A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */,
 				A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */,
 				A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */,
-				A1C0F1B0000000000000004F /* BackButtonNode.swift in Sources */,
 				AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */,
 				B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */,
-				B2C0F1B00000000000000103 /* CharacterPortraitNode.swift in Sources */,
 				A1C0F1B00000000000000050 /* StartScene.swift in Sources */,
 				A1C0F1B000000000000000F0 /* BaseMenuScene.swift in Sources */,
 				A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */,
-				A1C0F1B00000000000000056 /* GlassPillNode.swift in Sources */,
-				A1C0F1B00000000000000057 /* AccentLineNode.swift in Sources */,
 				A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */,
 				A1C0F1B00000000000000059 /* PauseButtonNode.swift in Sources */,
 				A1C0F1B00000000000000072 /* DifficultySelectScene.swift in Sources */,
@@ -1008,7 +1021,6 @@
 				PA2000000000000000000002 /* ProfileAvatarRepository.swift in Sources */,
 				PA2000000000000000000003 /* ProfileAvatarViewNode.swift in Sources */,
 				PA2000000000000000000004 /* ProfileDetailOverlayNode.swift in Sources */,
-				OA2000000000000000000001 /* OverlayActionButtonNode.swift in Sources */,
 				PN2000000000000000000001 /* ProfileNameEditRequest.swift in Sources */,
 				FB2000000000000000000006 /* PendingCloudScoreRepository.swift in Sources */,
 				FB2000000000000000000007 /* CloudProgressRepository.swift in Sources */,

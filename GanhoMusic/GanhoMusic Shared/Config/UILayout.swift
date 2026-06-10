@@ -24,8 +24,6 @@ enum UILayout {
     static let compactNarrowLayoutScale: CGFloat = 0.92
     static let ipadMenuLayoutScale: CGFloat = 1.08
     static let ipadMenuMaxContentWidth: CGFloat = 1060
-    static let ipadResultMaxContentWidth: CGFloat = 980
-    static let ipadScoreboardMaxContentWidth: CGFloat = 1060
     static let ipadIngameHUDScale: CGFloat = 1.08
     static let ipadIngameControlScale: CGFloat = 1.15
     static let ipadIngameTopButtonScale: CGFloat = 1.12
@@ -34,122 +32,12 @@ enum UILayout {
     static let ingameHUDReadableAlpha: CGFloat = 0.92
     static let ingameControlReadableAlpha: CGFloat = 0.78
     static let ingameSafeControlPadding: CGFloat = 18
-    static let resultPanelHorizontalPadding: CGFloat = 48
-    static let resultPanelCompactScale: CGFloat = 0.86
     static let primaryButtonTextHorizontalPadding: CGFloat = 36
     static let primaryButtonArrowReservedWidth: CGFloat = 48
-    static let resultPanelVerticalSafePadding: CGFloat = 40
-    static let resultRewardPulseDelay: TimeInterval = 0.3
-    static let resultButtonCompactScale: CGFloat = 0.82
-    static let resultButtonMinimumGap: CGFloat = 8
-    static let resultButtonCompactGap: CGFloat = 10
-    static let resultLegacyStatTitleGap: CGFloat = 14
-
-    // MARK: - Sprint V7 — ResultScene Wide Layout
-    static let resultWidePanelMaxWidth: CGFloat = 760
-    static let resultWidePanelMinWidth: CGFloat = 560
-    static let resultWidePanelHeight: CGFloat = 360
-    static let resultWidePanelHorizontalPadding: CGFloat = 36
-    static let resultWidePanelVerticalPadding: CGFloat = 28
-    static let resultWidePanelSafeGap: CGFloat = 18
-    static let resultWideColumnInset: CGFloat = 42
-    static let resultWideColumnGap: CGFloat = 44
-    static let resultWideScoreColumnRatio: CGFloat = 0.48
-    static let resultWideGoalColumnRatio: CGFloat = 0.52
-    static let resultWideTopInset: CGFloat = 42
-    static let resultWideTitleBelowTop: CGFloat = 32
-    static let resultWideScoreBelowTop: CGFloat = 122
-    static let resultWideStatsBottomInset: CGFloat = 36
-    static let resultWideStatSpacingX: CGFloat = 58
-    static let resultWideGoalDividerWidth: CGFloat = 220
-    static let resultWideScoreNoteGap: CGFloat = 18
-    static let resultWideButtonBottomInset: CGFloat = 30
-    static let resultWideButtonGap: CGFloat = 18
-    static let resultWideCompactScale: CGFloat = 0.82
-    static let resultWideNarrowScale: CGFloat = 0.9
 
     // MARK: - HUD (Phase 2-4)
     /// HUD 알파 (반투명, 가독성 우선). D-Pad 0.3보다 큼.
     static let hudAlpha: CGFloat = 0.85
-
-    // MARK: - Result Scene (Phase 3-3)
-    /// ResultScene "GAME OVER" 라벨 폰트 크기 (pt).
-    static let resultTitleFontSize: CGFloat = 32
-    /// ResultScene 점수 라벨 폰트 크기 (pt).
-    static let resultScoreFontSize: CGFloat = 24
-    /// ResultScene "TAP TO RETURN" 라벨 폰트 크기 (pt).
-    static let resultPromptFontSize: CGFloat = 16
-    /// ResultScene 안내 라벨 y 오프셋. frame.midY 기준 아래쪽.
-    /// Phase 3-4 — bestLabel(-20)과 간격 확보 위해 -50 → -60.
-    /// Phase 3-5 — statsLabel(-40)과 간격 확보 위해 -60 → -80.
-    static let resultPromptOffsetY: CGFloat = -80
-
-    // MARK: - High Score (Phase 3-4)
-    /// ResultScene BEST 라벨 폰트 크기 (pt). 점수 라벨(24)보다 작고 안내 라벨(16)보다 큼.
-    static let resultBestFontSize: CGFloat = 22
-    /// ResultScene BEST 라벨 y 오프셋. score(+20)와 prompt(-60) 사이 가운데.
-    /// Phase 3-5 — score(+40)/statsLabel(-40) 사이 가운데로 -20 → 0.
-    static let resultBestOffsetY: CGFloat = 0
-
-    // MARK: - Statistics (Phase 3-5)
-    /// ResultScene PLAYS/TOTAL 라벨 폰트 크기 (pt). prompt(16)와 동급으로 보조 정보 톤.
-    static let resultStatsFontSize: CGFloat = 16
-    /// ResultScene PLAYS/TOTAL 라벨 y 오프셋. best(0)와 prompt(-80) 사이 균등 배치(-40).
-    static let resultStatsOffsetY: CGFloat = -40
-
-    // MARK: - Result Character (Phase 5-7)
-    /// Phase 5-7 — ResultScene 캐릭터 이름 라벨 폰트 크기 (pt). best(22)와 동급.
-    /// title(32) > character(22) = best(22) > score(24)... 위계 — title 강조 유지.
-    static let resultCharacterFontSize: CGFloat = 22
-    /// Phase 5-7 — ResultScene 캐릭터 라벨 y 오프셋. title(+80) 위쪽에 배치.
-    /// 5라벨 균등 40 간격(+80/+40/0/-40/-80) 깨지 않게 *위로* 35pt 추가.
-    /// "정간호 / GAME OVER / 🎵 N / BEST / PLAYS / TAP" 위→아래 흐름.
-    static let resultCharacterOffsetY: CGFloat = 115
-
-    // MARK: - Sprint 10 Phase I — 원본 수치 봉인 (game.js L101~L105 1:1)
-    /// ResultScene 난이도 라벨 y 오프셋 (pt). characterLabel(115) 더 위쪽 — "난이도: 상" / "🎮 김간호" / "GAME OVER" 톤.
-    static let resultDifficultyOffsetY: CGFloat = 155
-    /// ResultScene 난이도 라벨 폰트 크기 (pt). resultStats(16)와 동급 — 보조 정보 톤.
-    static let resultDifficultyFontSize: CGFloat = 18
-
-    // MARK: - Diploma (Phase 7-4)
-    /// Sprint 2 — 결과 목표 판정 라벨 폰트 크기.
-    static let resultGoalLabelFontSize: CGFloat = 15
-    /// Sprint 2 — 결과 목표 보조 요약 라벨 폰트 크기.
-    static let resultGoalSummaryFontSize: CGFloat = 12
-    /// Sprint 2 — 결과 목표 판정 y 오프셋. 큰 점수 아래, divider 위 영역.
-    static let resultGoalJudgementOffsetY: CGFloat = -30
-    /// Sprint 2 — 이번 판 요약 y 오프셋.
-    static let resultGoalSummaryOffsetY: CGFloat = -52
-    static let resultGoalAchievedTitle: String = "목표 달성"
-    static let resultGoalNearTitle: String = "거의 왔다"
-    static let resultGoalRetryTitle: String = "다시 박자 잡기"
-    static let resultGoalNextComboText: String = "다음 판은 콤보 20까지"
-    static let resultGoalGapPrefix: String = "다음 목표까지"
-    static let resultGoalPointSuffix: String = "점"
-    static let resultGoalTargetPrefix: String = "목표"
-    static let resultGoalRoundPrefix: String = "이번 판"
-    static let resultGoalDifficultySuffix: String = "난이도"
-
-    // MARK: - Result Verdict (성공/실패 큰 판정)
-    /// 결과 verdict 성공 텍스트. finalScore >= target일 때 우측 컬럼 머리글.
-    static let resultVerdictSuccessText: String = "성공"
-    /// 결과 verdict 실패 텍스트. finalScore < target일 때 우측 컬럼 머리글.
-    static let resultVerdictFailureText: String = "실패"
-    /// 성공 시 verdict 아래 한 줄 격려 문구. gap 점수 대신 보여 다음 도전을 권한다.
-    static let resultVerdictSuccessSubText: String = "좋아요! 더 높이 가볼까요?"
-    /// 실패 gap 문구 접미. "{gap}점" + 이 접미 = "{gap}점 더 모아야 해요".
-    static let resultVerdictFailureGapSuffix: String = " 더 모아야 해요"
-    /// 큰 verdict 폰트 크기. 기존 보조 라벨(15pt) 대비 약 3배로 "성공/실패"를 즉각 전달.
-    static let resultVerdictFontSize: CGFloat = 44
-    /// V1 — verdict 머리글 y(우측 컬럼 topY 기준 아래). 큰 폰트를 topY 가까이 두고 아래로 펼친다.
-    static let resultVerdictBelowTop: CGFloat = 56
-    /// V1 — verdict ↓ summary 세로 간격. verdict 큰 폰트 높이 + 여백 이상으로 겹침 0 보장.
-    static let resultVerdictSummaryGap: CGFloat = 60
-    /// V1 — verdict ↓ nextGoal 세로 간격. summary 아래로 한 줄 더 내린다.
-    static let resultVerdictNextGoalGap: CGFloat = 88
-    /// V1 — verdict ↓ divider 세로 간격. nextGoal 아래에서 우측 컬럼을 마무리한다.
-    static let resultVerdictDividerGap: CGFloat = 114
 
     // MARK: - Firebase Auth / Cloud Save
     static let profileNameEditDisplayNameUserInfoKey: String = "profileNameEditDisplayName"
@@ -214,24 +102,6 @@ enum UILayout {
     /// 패널/카드 보더 line-width 1px
     static let uiPanelLineWidth: CGFloat = 1
 
-    // MARK: - Result Scene UI (Phase 8-4)
-    /// 원본 #overlayEnd .game-overlay__panel--end (game.css L877-906) 1:1 매핑.
-    /// 반투명 검정 배경(.ganhoUIOverlayBg) + 가운데 380 너비 카드 패널(.ganhoUIBgCard) + 점수 40pt 코럴 serif.
-    /// 라벨 위치는 *기존 유지*, 시각 토큰만 갈아 끼움(Phase 8-4 SPEC).
-
-    /// 카드 패널 max-width — 원본 380px
-    static let resultPanelMaxWidth: CGFloat = 380
-    /// 카드 패널 height (pt) — 모바일 풀스크린 비율에 맞춰. 라벨 6개(+155 ~ -80)가 패널 안에 들어가도록 560.
-    static let resultPanelHeight: CGFloat = 560
-    /// 점수 라벨 font-size — 원본 14px text-muted (.game-overlay__score)
-    static let resultScoreLabelFontSize: CGFloat = 14
-    /// 베스트 record font-size — 원본 12px brand (.game-overlay__record)
-    static let resultRecordFontSize: CGFloat = 12
-    /// 통계 라벨 font-size — 원본 11px upper case (.game-overlay__stats li label)
-    static let resultStatsLabelFontSize: CGFloat = 11
-    /// 통계 값 font-size — 원본 16px tabular (.game-overlay__stats li b, end-scope 15)
-    static let resultStatsValueFontSize: CGFloat = 16
-
     // MARK: - HUD Layout (Phase 8-5)
     /// 원본 .game-hud (game.css L232-289) 상단 가로 슬롯 배치 1:1 매핑.
     /// 좌상단 세로 스택 → 상단 중앙 가로 4슬롯(TIME / SCORE / COMBO / PLAYER) 재구성.
@@ -282,31 +152,9 @@ enum UILayout {
 
 
     // MARK: - v2 Components (Sprint 1)
-
-    /// GlassPillNode 배경 크림(ganhoPaper) α. 묶음 A 어포던스 강화 — 0.55 → 0.82로 불투명 상향.
-    /// "버튼인지 글자인지" 헷갈리던 흰 알약을 또렷한 크림 표면으로.
+    // R5 — v2 알약/액션 버튼 계열 상수는 참조 0 실증 후 삭제. 아래 한 개만 잔존:
+    // ProfileNameEditor(UIKit 모달)의 필드/버튼 배경 α 현역 사용 — R8 리네임 감사 후보.
     static let glassPillFillAlpha: CGFloat = 0.94
-    /// GlassPillNode stroke α — 살짝의 외곽선. (코랄 테두리 전환 후에도 다른 참조 보호 위해 유지.)
-    static let glassPillStrokeAlpha: CGFloat = 0.20
-    /// GlassPillNode 가우시안 블러 반경. §3.3.B = radius 12.
-    static let glassPillBlurRadius: CGFloat = 0
-    /// GlassPillNode 라벨 폰트 크기.
-    static let glassPillFontSize: CGFloat = 14
-
-    // GlassPill 어포던스 강화 (묶음 A) — Secondary 버튼 3계층 입체화.
-    /// 코랄 테두리 두께(pt). 흰·크림 알약에도 "버튼임"을 전달하는 또렷한 경계.
-    static let glassPillBorderWidth: CGFloat = 1
-    /// 입체 그림자 노드 y 오프셋(pt). 음수 = 아래로 떨궈 떠 있는 느낌.
-    static let glassPillShadowOffsetY: CGFloat = 0
-    /// 입체 그림자 노드 알파. ganhoCoralShadow 위에 곱해 은은한 그림자.
-    static let glassPillShadowAlpha: CGFloat = 0
-    /// destructive 톤(계정 삭제) fill 불투명. 딥코랄을 거의 꽉 차게.
-    static let glassPillDestructiveFillAlpha: CGFloat = 0.92
-
-    /// AccentLineNode 가로 길이(pt). §3.3.C = 32.
-    static let accentLineWidth: CGFloat = 32
-    /// AccentLineNode 두께(pt). §3.3.C = 3.
-    static let accentLineHeight: CGFloat = 3
 
     /// DarkContextChipNode 배경 navy α. §3.3.D = 0.92.
     static let darkContextChipBgAlpha: CGFloat = 0.92
@@ -380,50 +228,9 @@ enum UILayout {
     static let loginChoiceAppleCredentialText: String = "Apple 인증 정보를 다시 확인해 주세요"
 
     // MARK: - Overlay Action Button
-    static let overlayButtonShadowOffsetY: CGFloat = 0
-    static let overlayButtonPressedOffsetY: CGFloat = 0
-    static let overlayButtonPressDuration: TimeInterval = 0.08
-    static let overlayButtonPressActionKey: String = "overlayButtonPress"
-    /// 오버레이 버튼 테두리 두께(pt). 묶음 A — secondary 코랄 2px 테두리 가시성 위해 1 → 2.
-    /// primary는 stroke가 clear라 영향 없음, destructive는 코랄딥 테두리라 OK.
-    static let overlayButtonLineWidth: CGFloat = 1
     static let overlayButtonDisabledAlpha: CGFloat = 0.48
-    static let overlayButtonTitleFontSize: CGFloat = 16
-    static let overlayButtonSubtitleFontSize: CGFloat = 11
-    static let overlayButtonSingleTitleFontSize: CGFloat = 15
-    static let overlayButtonTextLeftInset: CGFloat = 46
-    static let overlayButtonTextRightInset: CGFloat = 14
-    static let overlayButtonIconRadius: CGFloat = 13
-    static let overlayButtonIconOffsetX: CGFloat = 20
-    static let overlayButtonTitleOffsetY: CGFloat = 8
-    static let overlayButtonSubtitleOffsetY: CGFloat = -11
-    static let overlayButtonSingleTitleOffsetY: CGFloat = 0
-    static let overlayButtonHighlightHeight: CGFloat = 3
-    static let overlayButtonHighlightAlpha: CGFloat = 0
-    static let overlayButtonCornerRadius: CGFloat = 12
-    static let overlayButtonDefaultIconText: String = "♪"
-    static let overlayButtonSecondaryIconText: String = "·"
-    static let overlayButtonDestructiveIconText: String = "!"
 
     // MARK: - Account Menu Overlay
-    static let accountMenuDimAlpha: CGFloat = 0.48
-    static let accountMenuPanelFillAlpha: CGFloat = 0.88
-    static let accountMenuPanelStrokeAlpha: CGFloat = 0.35
-    static let accountMenuPanelWidth: CGFloat = 420
-    static let accountMenuPanelHeight: CGFloat = 226
-    static let accountMenuPanelCompactWidth: CGFloat = 360
-    static let accountMenuPanelCornerRadius: CGFloat = 20
-    static let accountMenuPanelLineWidth: CGFloat = 1
-    static let accountMenuTitleFontSize: CGFloat = 22
-    static let accountMenuBodyFontSize: CGFloat = 15
-    static let accountMenuBodyWidth: CGFloat = 340
-    static let accountMenuTitleOffsetY: CGFloat = 76
-    static let accountMenuBodyOffsetY: CGFloat = 22
-    static let accountMenuButtonOffsetY: CGFloat = -72
-    static let accountMenuButtonHeight: CGFloat = 30
-    static let accountMenuButtonWidth: CGFloat = 98
-    static let accountMenuCancelButtonWidth: CGFloat = 82
-    static let accountMenuButtonGap: CGFloat = 10
     static let accountMenuMenuTitleText: String = "계정 관리"
     static let accountMenuLinkedBodyText: String = "Apple 계정으로 기록을 동기화 중입니다.\n로그아웃해도 기기 기록은 남습니다."
     static let accountMenuGuestBodyText: String = "현재 게스트 기록으로 플레이 중입니다.\n삭제해도 기기 최고점과 통계는 남습니다."
@@ -453,47 +260,6 @@ enum UILayout {
     static let profileAvatarSummarySize = CGSize(width: 58, height: 58)
 
     // MARK: - Profile Detail Overlay
-    static let profileDetailDimAlpha: CGFloat = 0.50
-    static let profileDetailPanelFillAlpha: CGFloat = 0.94
-    static let profileDetailPanelStrokeAlpha: CGFloat = 0.35
-    static let profileDetailPanelWidth: CGFloat = 560
-    static let profileDetailPanelCompactWidth: CGFloat = 480
-    static let profileDetailPanelHeight: CGFloat = 326
-    static let profileDetailPanelCornerRadius: CGFloat = 18
-    static let profileDetailPanelLineWidth: CGFloat = 1
-    static let profileDetailPanelHorizontalInset: CGFloat = 26
-    static let profileDetailPanelTopInset: CGFloat = 26
-    static let profileDetailAvatarSize = CGSize(width: 74, height: 74)
-    static let profileDetailHeaderTextGap: CGFloat = 22
-    static let profileDetailTitleOffsetY: CGFloat = 18
-    static let profileDetailBodyBelowTitleGap: CGFloat = 28
-    static let profileDetailTitleFontSize: CGFloat = 22
-    static let profileDetailBodyFontSize: CGFloat = 12
-    static let profileDetailBodyWidth: CGFloat = 300
-    static let profileDetailMetricWidth: CGFloat = 104
-    static let profileDetailMetricGap: CGFloat = 14
-    static let profileDetailMetricTitleOffsetY: CGFloat = 48
-    static let profileDetailMetricValueOffsetY: CGFloat = 20
-    static let profileDetailMetricTitleFontSize: CGFloat = 12
-    static let profileDetailMetricValueFontSize: CGFloat = 20
-    static let profileDetailButtonWidth: CGFloat = 98
-    static let profileDetailWideButtonWidth: CGFloat = 126
-    static let profileDetailButtonHeight: CGFloat = 30
-    static let profileDetailButtonGap: CGFloat = 12
-    static let profileDetailFirstButtonRowOffsetY: CGFloat = -72
-    static let profileDetailSecondButtonRowOffsetY: CGFloat = -118
-    static let profileDetailBottomButtonOffsetY: CGFloat = -118
-    static let profileDetailAvatarOptionSize = CGSize(width: 74, height: 98)
-    static let profileDetailAvatarOptionPortraitSize = CGSize(width: 50, height: 62)
-    static let profileDetailAvatarOptionGap: CGFloat = 8
-    static let profileDetailAvatarOptionCornerRadius: CGFloat = 12
-    static let profileDetailAvatarOptionFillAlpha: CGFloat = 0.82
-    static let profileDetailAvatarOptionSelectedFillAlpha: CGFloat = 0.88
-    static let profileDetailAvatarOptionSelectedLineWidth: CGFloat = 2
-    static let profileDetailAvatarOptionPortraitOffsetY: CGFloat = 2
-    static let profileDetailAvatarOptionLabelOffsetY: CGFloat = 36
-    static let profileDetailAvatarOptionLabelFontSize: CGFloat = 12
-    static let profileDetailAvatarOptionsOffsetY: CGFloat = -18
     static let profileDetailTitleText: String = "개인프로필"
     static let profileDetailChooseAvatarText: String = "초상화 변경"
     static let profileDetailChoosePhotoText: String = "사진 선택"
@@ -528,10 +294,6 @@ enum UILayout {
     static let summaryMetricDividerLineWidth: CGFloat = 0.8
     /// statusChip 코랄 채움 투명도(v2 톤).
     static let summaryStatusChipFillAlpha: CGFloat = 0.92
-    /// ProfileDetail 아바타 옵션 선택 코랄 패드 투명도(v2 톤 — 부드러운 코랄 배경).
-    /// 기존 `profileDetailAvatarOptionSelectedFillAlpha`(0.88)는 레거시 크림슨용 값이라 보존하고,
-    /// 코랄 v2 선택 패드는 더 가벼운 별도 투명도로 분리한다.
-    static let profileDetailAvatarOptionSelectedCoralFillAlpha: CGFloat = 0.22
 
     // MARK: - Sprint 3 · v2 Game Visual
     // DESIGN_RENEWAL_REQUEST.md §4.4 + mockups/game-map-v2.html.
@@ -642,53 +404,6 @@ enum UILayout {
     /// 외곽 보더 SKShapeNode cornerRadius(pt).
     static let outerWallBorderCornerRadius: CGFloat = 18
 
-    // MARK: - Sprint 5 · ResultScene v2 Layout
-
-    // ResultScene v2 카드 패널
-    /// 결과 카드 v2 cornerRadius(pt). mockup border-radius: 22.
-    static let resultCardCornerRadius: CGFloat = 22
-
-    // ResultScene v2 라벨 오프셋
-    /// 타이틀 폰트 크기(pt). mockup .title-game-over = 30.
-    static let resultCardTitleFontSize: CGFloat = 30
-    /// 점수 숫자 폰트 크기(pt). mockup .score-num = 64.
-    static let resultScoreNumFontSize: CGFloat = 64
-    /// divider 폭 비율(카드 폭 대비). mockup width: 60%.
-    static let resultDividerWidthRatio: CGFloat = 0.6
-    /// stat 값(PLAYS/TOTAL 숫자) 폰트 크기(pt). mockup .stat-num = 14.
-    static let resultStatValueFontSize: CGFloat = 14
-    /// stat 타이틀("PLAYS"/"TOTAL") 폰트 크기(pt). mockup .stats-row = 11.
-    static let resultStatTitleFontSize: CGFloat = 11
-    /// 공유 GlassPill 폭(pt).
-    static let resultShareButtonWidth: CGFloat = 100
-    /// 공유 GlassPill 높이(pt).
-    static let resultShareButtonHeight: CGFloat = 36
-    /// 공유 presenter 탐색 실패 시 ResultScene에 표시할 scene-local 토스트 문구.
-    static let resultShareFailureToastText: String = "공유 시트를 열 수 없어요"
-    /// 공유 실패 토스트 폰트 크기(pt).
-    static let resultShareToastFontSize: CGFloat = 16
-    /// 공유 실패 토스트의 공유 버튼 기준 y 오프셋(pt).
-    static let resultShareToastOffsetY: CGFloat = 46
-    /// 공유 실패 토스트 유지 시간(초).
-    static let resultShareToastDuration: TimeInterval = 1.1
-    /// 공유 실패 토스트 fade in/out 길이(초).
-    static let resultShareToastFadeDuration: TimeInterval = 0.18
-    /// iPad popover anchor non-zero rect 한 변 길이(pt).
-    static let resultSharePopoverAnchorSize: CGFloat = 2
-    /// 공유 이미지 캡처를 시도할 최소 view 한 변 길이(pt).
-    static let resultShareImageMinimumSide: CGFloat = 1
-
-    // ResultScene v2 sparkle 5발 좌표
-    /// 신기록 시 카드 주변에 emit되는 SparkleEffectNode 5개의 (frame.midX, frame.midY) 기준 오프셋.
-    /// mockup VARIANT B의 sparkle s1~s5 위치를 카드 중심 기준으로 환산.
-    static let resultSparklePositions: [CGPoint] = [
-        CGPoint(x: -150, y:  60),
-        CGPoint(x:  130, y:  40),
-        CGPoint(x: -110, y: -40),
-        CGPoint(x:  140, y: -60),
-        CGPoint(x: -180, y:   0)
-    ]
-
     // MARK: - Adaptive Layout (Sprint 7+ · 디바이스 대응 · iPhone SE ~ Pro Max)
     /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
     /// SceneSafeArea.insets(for:).bottom + adaptiveBottomMargin = 노드 y 최소값.
@@ -698,162 +413,10 @@ enum UILayout {
     /// 화면 좌우 안전 마진(노치/Dynamic Island 영역 회피).
     /// Landscape에서 노치가 한쪽(또는 양쪽)을 침범 — 카드 spacing 계산의 입력값.
     static let adaptiveHorizontalMargin: CGFloat = 20
-    /// ResultScene 두 버튼(공유/다시시작) — 화면 하단(safeArea.bottom) 기준 안쪽 거리.
-    /// frame.minY + safe.bottom + resultButtonBottomInset = button.y.
-    static let resultButtonBottomInset: CGFloat = 56
 
-    // MARK: - Sprint 7 Phase D · ResultScene v3 + ScoreboardScene
-    //
-    // 결과창 시각 정보 5요소(♪·점수·SCORE 라벨·BEST 칩·캐릭터/난이도)가 같은 좌표 근처에
-    // 몰리던 V2 문제를 해소. V3는 점수가 시각 주인공이 되도록 ♪를 24pt로 줄이고,
-    // SCORE 라벨을 점수 아래로, BEST를 점수 우측 GlassPill로 분리하며, headerChip은
-    // 타이틀 위로 끌어올린다. "📊 기록 보기" GlassPill 신규로 ScoreboardScene 진입.
-    //
-    // V2 상수는 *모두 보존* — bestLabel/scoreSubLabel/divider/playsValueLabel 등 노드 트리는
-    // alpha=0 차단으로 살아 있고, 좌표 시프트만 V3 상수로 한다.
-
-    // ResultScene V3 — 점수 좌측 ♪ 아이콘 (scoreLabel과 분리)
-    /// scoreLabel("♪ 0")의 ♪를 제거 → 좌측 별도 라벨 24pt 부착. 점수가 시각 주인공.
-    static let resultScoreNoteIconFontSize: CGFloat = 24
-    /// scoreLabel.position.x 기준 ♪ 라벨 x 오프셋(좌측 -60). 점수 중심에서 살짝 좌측.
-    static let resultScoreNoteIconOffsetX: CGFloat = -60
-
-    // ResultScene V3 — BEST GlassPill (bestLabel 시각 대체)
-    /// BEST GlassPill 폭(120pt). "🏆 BEST 999" / "★ NEW BEST!" 두 텍스트 모두 수용.
-    static let resultBestPillWidth: CGFloat = 120
-    /// BEST GlassPill 높이(28pt). 점수 옆에 nestled.
-    static let resultBestPillHeight: CGFloat = 28
-    static let resultBestPillTopGap: CGFloat = 48
-    static let resultBestPillBottomGap: CGFloat = 18
-
-    // ResultScene BEST pill 수직 리듬 (신규 / V11)
-
-    // ResultScene BEST pill 우상단 재배치 (신규 / V12)
-    /// BEST pill 중심 x를 rightColumnX에서 우측으로 미는 보정량(pt). 좌상단 headerChip과 대칭.
-    /// accentLine(panelCenter.x 가로선)·goal 라벨(rightColumnX 정렬)과 시각 여유를 확보한다.
-    static let resultBestPillTopOffsetX: CGFloat = 34
-    /// BEST pill 중심 y를 topY에서 아래로 내리는 보정량(pt). accentLine 가로선과 시각 겹침을 피한다.
-    /// 헤더 행과 거의 같은 높이이되 미세하게 아래로 떨어뜨려 가로선 위에 pill이 또렷이 얹힌다.
-    static let resultBestPillTopBelowTop: CGFloat = 4
-
-    // ResultScene V3 — headerChip · title · subtitle · accentLine 위로 올림
-
-    // ResultScene V3 — SCORE 라벨 점수 아래로
-
-    // ResultScene V3 — divider · stat 라벨 위로 끌어올림 (bestLabel V2 자리 채움)
-
-    // ResultScene V3 — Scoreboard 진입 GlassPill ("📊 기록 보기")
-    /// 기록 보기 GlassPill 폭(110pt). shareButton(100) + 미세 여유 — 본문 4글자.
-    static let resultScoreboardButtonWidth: CGFloat = 110
-    /// 기록 보기 GlassPill 텍스트. 이모지 + 한글 4자.
-    static let resultScoreboardButtonText: String = "📊 기록 보기"
-    static let resultMainButtonWidth: CGFloat = 96
-    static let resultMainButtonText: String = "캐릭터 홈"
-
-    // ResultScene V3 — BEST GlassPill 텍스트 분기
-    /// 일반 분기 BEST 칩 텍스트 prefix("🏆 BEST"). 뒤에 ` \(bestScore)` 합성.
-    static let resultBestPillTextNormal: String = "🏆 BEST"
-    /// 신기록 분기 BEST 칩 텍스트("★ NEW BEST!").
-    static let resultBestPillTextNew: String = "★ NEW BEST!"
-
-    // ScoreboardScene — 15셀 매트릭스 기본
-    /// 매트릭스 가로 셀 수(3 = 하/중/상).
-    static let scoreboardMatrixColumnCount: Int = 3
-    /// 매트릭스 세로 셀 수(5 = 5 캐릭터).
-    static let scoreboardMatrixRowCount: Int = 5
-    /// 셀 폭(80pt). 3자리 숫자 + 미세 여유.
-    static let scoreboardCellWidth: CGFloat = 80
-    /// 셀 높이(36pt). Jua 18pt + 패딩.
-    static let scoreboardCellHeight: CGFloat = 36
-    /// 셀 사이 가로/세로 간격(4pt). mockup grid-gap.
-    static let scoreboardCellGap: CGFloat = 4
-    /// 행 헤더 폭(60pt). mini face(32px) + 약칭(1자).
-    static let scoreboardRowHeaderWidth: CGFloat = 60
-
-    // ScoreboardScene — 셀 라벨 폰트
-    /// 셀 점수 폰트 크기(Jua 18pt navy).
-    static let scoreboardCellScoreFontSize: CGFloat = 18
-    /// 빈 셀 "—" 폰트 크기(Gowun Dodum 14pt 회색).
-    static let scoreboardCellEmptyFontSize: CGFloat = 14
-    /// 빈 셀 텍스트("—" em dash).
-    static let scoreboardCellEmptyText: String = "—"
-    /// 빈 셀 alpha(0.4 — 회색 톤).
-    static let scoreboardCellEmptyAlpha: CGFloat = 0.4
-
-    // ScoreboardScene — 헤더 라벨
-    /// 행 헤더 약칭(1자) 폰트 크기.
-    static let scoreboardRowHeaderShortNameFontSize: CGFloat = 13
-
-    // ScoreboardScene — ★ 마커
-    /// ★ 텍스트.
-    static let scoreboardStarMarkerText: String = "★"
-    /// ★ 폰트 크기(12pt).
-    static let scoreboardStarMarkerFontSize: CGFloat = 12
-    /// ★ 셀 중심 기준 x 오프셋(+28pt — 셀 우상단).
-    static let scoreboardStarMarkerOffsetX: CGFloat = 28
-    /// ★ 셀 중심 기준 y 오프셋(+12pt — 셀 우상단).
-    static let scoreboardStarMarkerOffsetY: CGFloat = 12
-
-    // ScoreboardScene — 헤더 + stat + 백 버튼
-    /// 타이틀 y 오프셋(+95pt — frame.midY 기준 위쪽).
-    static let scoreboardTitleOffsetY: CGFloat = 95
-    /// 타이틀 폰트 크기(Jua 30pt — 결과창 타이틀과 동급).
-    static let scoreboardTitleFontSize: CGFloat = 30
-    /// 부제 y 오프셋(+72pt).
-    static let scoreboardSubtitleOffsetY: CGFloat = 72
-    /// 부제 폰트 크기(Gowun Dodum 12pt).
-    static let scoreboardSubtitleFontSize: CGFloat = 12
-    /// 부제 텍스트.
-    static let scoreboardSubtitleText: String = "캐릭터·난이도별 최고점수"
-    /// 타이틀 텍스트.
+    // MARK: - Scoreboard 카피 (R5 — v2 레이아웃 수치 전부 삭제, 재사용 카피 텍스트만 잔존)
+    /// 테이블 패널 헤더 제목 텍스트.
     static let scoreboardTitleText: String = "기록 보기"
-    /// AccentLine y 오프셋(+130pt — 타이틀 위쪽 강조).
-    static let scoreboardAccentLineOffsetY: CGFloat = 130
-
-    /// 백 버튼 GlassPill 폭(110pt).
-    static let scoreboardBackButtonWidth: CGFloat = 110
-    /// 백 버튼 GlassPill 높이(36pt).
-    static let scoreboardBackButtonHeight: CGFloat = 36
-    /// 백 버튼 텍스트("← 결과로").
-    static let scoreboardBackButtonText: String = "← 결과로"
-    /// 백 버튼 좌측 inset(safeArea 추가 +20pt).
-    static let scoreboardBackButtonInsetX: CGFloat = 20
-    /// 백 버튼 상단 inset(safeArea 추가 +32pt — 화면 상단에서 떨어뜨림).
-    static let scoreboardBackButtonInsetY: CGFloat = 32
-
-    /// 브레드크럼 DarkContextChip 우측 inset.
-    static let scoreboardBreadcrumbInsetX: CGFloat = 20
-    /// 브레드크럼 상단 inset.
-    static let scoreboardBreadcrumbInsetY: CGFloat = 32
-    /// 브레드크럼 라벨 텍스트.
-    static let scoreboardBreadcrumbText: String = "캐릭터별 기록"
-
-    /// stat 라벨 frame.midY 기준 y 오프셋(-150pt — 매트릭스 아래).
-    static let scoreboardStatOffsetY: CGFloat = -150
-    /// stat 라벨 폰트 크기(Gowun Dodum 12pt).
-    static let scoreboardStatFontSize: CGFloat = 12
-
-    // MARK: - Sprint 8 — Layout V4 (겹침 해소 + 카드 확대)
-    //
-    // Phase A — Scoreboard zone 분리(타이틀 zone / 매트릭스 zone / stat zone).
-    // V3 상수(~40개)는 byte-identical 보존. V4 상수는 *덧셈/교체* 형태로만 사용.
-
-    // Phase A — Scoreboard
-    /// 타이틀 zone을 매트릭스 zone과 분리하기 위한 추가 상향 오프셋(+40pt).
-    /// 타이틀·부제 y 좌표에 더해, 우상단 GlassPill·매트릭스 첫 행과의 0px 겹침 보장.
-    static let scoreboardTitleYOffset: CGFloat = 40
-
-    /// 열 헤더(하/중/상) ↔ 매트릭스 첫 데이터 행 사이 추가 gap(18pt).
-    /// V3의 scoreboardCellGap(4pt)이 너무 좁아 헤더와 본문이 한 덩어리로 보이던 문제 해소.
-    static let scoreboardHeaderRowGap: CGFloat = 18
-
-    /// 데이터 행 사이 vertical pitch(38pt). 행 사이 호흡 확보.
-    /// V3의 (cellHeight 36 + cellGap 4) = 40pt 대비 -2pt — 행 간격을 조금 좁혀 매트릭스 총 높이 감소.
-    static let scoreboardCellPitchY: CGFloat = 38
-
-    /// 열 헤더(하/중/상) 폰트 크기 V4(16pt). V3(15pt)에서 1pt 상향.
-    /// 매트릭스 zone 헤더 시각 무게를 데이터 셀(18pt)과 균형화. cellWidth(80) 안에 안전.
-    static let scoreboardColumnHeaderFontSize: CGFloat = 16
 
     // MARK: - Sprint 7 Phase F · Villain Visual V3
     //
@@ -919,14 +482,6 @@ enum UILayout {
     static let sergeantChevronHeight: CGFloat = 2.5
     /// chevron 선 굵기(1.0pt) — 골드 stroke.
     static let sergeantChevronLineWidth: CGFloat = 1.0
-
-    // MARK: - Sprint 9 Phase D · Result V4 Spacing
-    // V3 좌표(headerChip+115 / accentLine+148 / title+85 / subtitle+58 / score-2 / divider-78)는 위쪽 5단의
-    // 시각 호흡이 6~28pt에 그쳐 답답했다. V4는 위 묶음 전체를 +20~30pt 끌어올려 각 행 사이 호흡 ≥ 24pt를 확보,
-    // 동시에 score(+6) ↔ divider(-68) gap을 74pt로 키워 "정체성 정보(위)"와 "통계(아래)"를 두 묶음으로 분리한다.
-    // V3 상수는 값 보존 — 다른 곳 참조 가능성 + 회귀 안전망.
-    /// SCORE 라벨 y 오프셋 V4(+6). V3 -2 대비 +8pt 위 — divider와 74pt 이격해 위/아래 묶음 분리.
-    static let resultScoreOffsetY: CGFloat = 6
 
     // MARK: - Design Sprint 1 Ingame Readability
     static let ingameObjectHaloAlpha: CGFloat = 0.28
@@ -1027,17 +582,6 @@ enum UILayout {
     static let dpadLeftIconText: String = "<"
     static let dpadRightIconText: String = ">"
 
-    // MARK: - Sprint 10.6 · Result Visual Hierarchy V10
-    /// divider alpha V10(0.7). stat 묶음 시각 일관성 — fillColor가 navyDeep*0.18이라 0.7 곱하면 ≈0.126.
-    static let resultDividerAlpha: CGFloat = 0.7
-
-    // MARK: - 4-Bug Fix Sprint · V11 Layout Constants
-    // 기존 상수(V4/V9/V10) 보존 — 호출부 교체만.
-
-    /// ResultScene titleLabel y 오프셋 V11(+90pt). V4=100 → -10pt 내려 scoreLabel 상단과 간격 확보.
-    /// 기존 resultTitleOffsetYV4(100)는 값 보존.
-    static let resultTitleOffsetY: CGFloat = 90
-
     // MARK: - Sprint 10.7 · CharacterSelect Hero Carousel V12
     static let characterSwipeCardScaleCenter: CGFloat = 1.14
     static let characterSwipeCardScaleSide: CGFloat = 0.72
@@ -1077,32 +621,6 @@ enum UILayout {
     static let characterHomeSwipeThreshold: CGFloat = 44
     static let characterHomeDefaultIndex: Int = 0
 
-    // MARK: - Sprint V6 — ResultScene + ScoreboardScene 호흡 정리
-    //
-    // ScoreboardScene: 부제(midY+112)와 매트릭스 열 헤더(midY+110) 겹침 해소를 위해
-    //   매트릭스 zone을 -30pt 시프트하고, 행 헤더 미니 얼굴↔약칭 간격(22→32pt) 및
-    //   매트릭스↔stat gap(24→40pt)을 확대해 빽빽함을 해소한다.
-    // ResultScene: "SCORE" 캡션(scoreSubLabel) 시각 차단 + PLAYS/TOTAL 4라벨 alpha 회복(0.45→0.75)
-    //   + divider y 추가 하강(-68→-80) + 하단 3버튼 X 간격 확대로 군더더기 정리.
-    // 기존 V3/V4/V10/V11 토큰은 *값 byte-identical 보존* — 사용처(scene 본문)만 V6 토큰 참조로 교체.
-
-    // --- ScoreboardScene V6 ---
-    /// V6 — 매트릭스 zone -30pt 시프트. 부제(midY+112)와 열 헤더(midY+110) 겹침 해소.
-    /// V3 scoreboardMatrixOffsetY(+10)는 byte-identical 보존.
-    static let scoreboardMatrixOffsetY: CGFloat = -20
-
-    /// V6 — 행 헤더 미니 얼굴↔약칭 X 거리. V3 22pt → 32pt. face=-16, name=+16.
-    /// V3 scoreboardRowHeaderShortNameOffsetX(22pt) byte-identical 보존.
-    static let scoreboardRowHeaderShortNameOffsetX: CGFloat = 32
-
-    /// V6 — 매트릭스 마지막 행 ↔ stat 라벨 거리. V4 24pt → 40pt.
-    /// V4 scoreboardStatBottomGapV4(24pt) byte-identical 보존.
-    static let scoreboardStatBottomGap: CGFloat = 40
-
-    // --- ResultScene V6 ---
-    /// V6 — PLAYS/TOTAL stat 4라벨 alpha. V10(0.45) → V6(0.75) 명료성 회복.
-    /// V10 resultStatAlphaV10(0.45) byte-identical 보존.
-    static let resultStatAlpha: CGFloat = 0.75
 }
 
 // MARK: - R3 디자인 시스템 v3 "Night Shift" (03_UI §4·§5)

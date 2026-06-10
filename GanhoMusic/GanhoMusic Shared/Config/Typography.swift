@@ -74,6 +74,9 @@ extension Typography {
         /// 로고타입 — StartScene 1줄 로고 전용 (Galmuri14 52pt).
         /// R4 신설 — 03_UI §6-1 수치 그대로 (SPEC §C-10: §3 표에 52pt 토큰 부재 → 추가만).
         static let logo = Token(fontName: galmuri14, size: 52)
+        /// verdict 스탬프 — ResultScene "졸업!/유급…" 전용 (Galmuri14 56pt).
+        /// R5 신설 — 03_UI §7 "display 56pt" (SPEC 기능 2: V3.display 44pt와 별도 신규 토큰).
+        static let verdict = Token(fontName: galmuri14, size: 56)
         /// 씬 타이틀·verdict (Galmuri14 44pt).
         static let display = Token(fontName: galmuri14, size: 44)
         /// 카드 제목·점수 (Galmuri14 30pt).

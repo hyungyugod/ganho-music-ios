@@ -2,7 +2,9 @@
 //  ProfileAvatarViewNode.swift
 //  GanhoMusic Shared
 //
-//  캐릭터 초상화와 커스텀 사진을 동일한 프로필 프레임으로 렌더링한다.
+//  R5 — 캐릭터 포트레이트(PixelPortraitSprite)와 커스텀 사진을 같은 v3 프레임으로 렌더.
+//  프레임 톤: ink800 면 + line500 2px 보더 + gold 액센트 모서리 탭 (직각 — 패널만 라운드 허용).
+//  커스텀 사진 경로(SKCropNode aspect-fill)는 기능 보존 — ProfileAvatarRepository API 무변경.
 //
 
 import SpriteKit
@@ -11,16 +13,33 @@ import UIKit
 final class ProfileAvatarViewNode: SKNode {
 
     // MARK: - Properties
-    private let frameNode = SKShapeNode()
-    private var portraitNode: CharacterPortraitNode?
+    private let faceNode = SKSpriteNode(color: Palette.ink800, size: .zero)
+    private let borderNode = SKShapeNode()
+    /// 좌상단 gold 액센트 탭 — v3 프레임 시그니처 (4×16 바, PixelPanel 헤더 액센트 동형).
+    private let accentNode = SKSpriteNode(color: Palette.gold, size: .zero)
+    private var portraitNode: SKSpriteNode?
     private var photoNode: SKSpriteNode?
     private var cropNode: SKCropNode?
+
+    /// 내부 적층 — 면(0) < 콘텐츠(1) < 보더/액센트(2).
+    private enum InnerZ {
+        static let face: CGFloat = 0
+        static let content: CGFloat = 1
+        static let chrome: CGFloat = 2
+    }
 
     // MARK: - Init
     override init() {
         super.init()
-        frameNode.zPosition = ZOrder.profileAvatarFrameZPosition
-        addChild(frameNode)
+        faceNode.zPosition = InnerZ.face
+        addChild(faceNode)
+        borderNode.fillColor = .clear
+        borderNode.strokeColor = Palette.line500
+        borderNode.lineWidth = UILayout.v3BorderWidth
+        borderNode.zPosition = InnerZ.chrome
+        addChild(borderNode)
+        accentNode.zPosition = InnerZ.chrome
+        addChild(accentNode)
     }
 
     @available(*, unavailable, message: "Use init() instead.")
@@ -28,7 +47,7 @@ final class ProfileAvatarViewNode: SKNode {
         return nil
     }
 
-    // MARK: - Update
+    // MARK: - Update (공개 시그니처 유지 — 호출측 변경 0)
     func update(snapshot: ProfileAvatarSnapshot,
                 repository: ProfileAvatarRepository,
                 size: CGSize) {
@@ -42,41 +61,34 @@ final class ProfileAvatarViewNode: SKNode {
         }
 
         let characterID = snapshot.selectedID.characterID ?? .kim
-        addPortrait(characterID: characterID, size: size)
+        addPortrait(characterID: characterID)
     }
 
     private func updateFrame(size: CGSize) {
-        frameNode.path = CGPath(
-            roundedRect: CGRect(
-                x: -size.width / 2,
-                y: -size.height / 2,
-                width: size.width,
-                height: size.height
-            ),
-            cornerWidth: UILayout.profileAvatarFrameCornerRadius,
-            cornerHeight: UILayout.profileAvatarFrameCornerRadius,
+        faceNode.size = size
+        borderNode.path = CGPath(
+            rect: CGRect(x: (-size.width / 2).rounded(),
+                         y: (-size.height / 2).rounded(),
+                         width: size.width.rounded(),
+                         height: size.height.rounded()),
             transform: nil
         )
-        // v2 톤: 어두운 네이비+골드 → 밝은 크림+코랄 (Summary·Detail 양쪽 자동 일관 적용)
-        frameNode.fillColor = UIColor.ganhoPaper.withAlphaComponent(UILayout.profileAvatarFrameFillAlpha)
-        frameNode.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(UILayout.profileAvatarFrameStrokeAlpha)
-        frameNode.lineWidth = UILayout.profileAvatarFrameLineWidth
+        accentNode.size = CGSize(width: UILayout.Space.s4, height: UILayout.Space.s16)
+        accentNode.position = CGPoint(
+            x: (-size.width / 2 + UILayout.Space.s4 / 2).rounded(),
+            y: (size.height / 2 - UILayout.Space.s16 / 2 - UILayout.Space.s4).rounded()
+        )
     }
 
+    /// 커스텀 사진 — SKCropNode aspect-fill (v2 기능 보존, 마스크만 v3 직각).
     private func addPhoto(texture: SKTexture, size: CGSize) {
         let crop = SKCropNode()
-        let mask = SKShapeNode(
-            rectOf: size,
-            cornerRadius: UILayout.profileAvatarFrameCornerRadius
-        )
-        mask.fillColor = .white
-        mask.strokeColor = .clear
+        let mask = SKSpriteNode(color: .white, size: size)
         crop.maskNode = mask
-        crop.zPosition = ZOrder.profileAvatarContentZPosition
+        crop.zPosition = InnerZ.content
 
         let node = SKSpriteNode(texture: texture)
         node.size = aspectFill(textureSize: texture.size(), targetSize: size)
-        node.zPosition = ZOrder.profileAvatarContentZPosition
         crop.addChild(node)
 
         cropNode = crop
@@ -84,14 +96,12 @@ final class ProfileAvatarViewNode: SKNode {
         addChild(crop)
     }
 
-    private func addPortrait(characterID: CharacterID, size: CGSize) {
-        let contentSize = CGSize(
-            width: max(0, size.width - UILayout.profileAvatarContentInset * 2),
-            height: max(0, size.height - UILayout.profileAvatarContentInset * 2)
-        )
-        let node = CharacterPortraitNode(characterID: characterID, maxSize: contentSize)
-        node.position = CGPoint(x: 0, y: -contentSize.height / 2)
-        node.zPosition = ZOrder.profileAvatarContentZPosition
+    /// 캐릭터 포트레이트 — 24×24 ×2 = 48pt 정수 배율 (.nearest는 PixelSpriteRenderer 보장).
+    private func addPortrait(characterID: CharacterID) {
+        let node = SKSpriteNode(texture: PixelPortraitSprite.texture(for: characterID))
+        node.size = CGSize(width: UILayout.R5.profileAvatarContentSide,
+                           height: UILayout.R5.profileAvatarContentSide)
+        node.zPosition = InnerZ.content
         portraitNode = node
         addChild(node)
     }

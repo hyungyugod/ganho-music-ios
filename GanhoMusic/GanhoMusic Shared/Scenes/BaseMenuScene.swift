@@ -2,9 +2,9 @@
 //  BaseMenuScene.swift
 //  GanhoMusic Shared
 //
-//  메뉴 씬 공용 베이스. 4개 씬(Start/CharacterSelect/SkillBriefing/DifficultySelect)이
-//  공유하는 v3 야간 병동 배경(NightShiftBackdropNode) + staggered 등장 모션 + safe area helper.
-//  ResultScene/ScoreboardScene은 비상속 (R5 범위) — 대상 외.
+//  메뉴 씬 공용 베이스. 6개 씬(Start/CharacterSelect/SkillBriefing/DifficultySelect/
+//  Result/Scoreboard)이 공유하는 v3 야간 병동 배경(NightShiftBackdropNode) +
+//  staggered 등장 모션 + safe area helper. (Result/Scoreboard는 R5에서 상속 합류.)
 //  R4 — v2 단색(ganhoPaper) 배경 폐기 → ink900 + 스타필드 + 심전도 (03_UI §4).
 //
 

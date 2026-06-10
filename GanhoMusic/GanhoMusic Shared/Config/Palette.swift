@@ -30,9 +30,6 @@ enum Palette {
     /// (was #13111a 다크 차콜 — Sprint 3에서 v2 디자인 시스템 통합)
     static let checkerboardFloorBHex: String = "#FFDFC8"
 
-    // MARK: - Tone Down Controls
-    static let menuSolidBackgroundColor: UIColor = .ganhoPaper
-
     // MARK: - Sprint 5 · ResultScene v2 Layout
     /// 우드컷 도트 색 hex. mockup #FFEDC6 (종이 농염).
     static let diplomaDotHex: String = "#FFEDC6"

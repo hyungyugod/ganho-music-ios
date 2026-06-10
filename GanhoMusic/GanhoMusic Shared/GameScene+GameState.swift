@@ -218,10 +218,13 @@ extension GameScene {
                 progress: cloudProgress
             )
         }
+        // R5 — characterID 직접 전달(역추론 우회 소멸) + maxCombo/notesCollected 추가 (§7 칩 2개).
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
-            characterName: characterID.displayName,
+            characterID: characterID,
             difficulty: difficulty,
+            maxCombo: maxComboThisRun,
+            notesCollected: scoreSystem.notesCollected,
             isNewGraduation: isNewGraduation,
             graduatedAt: graduatedAt
         )
