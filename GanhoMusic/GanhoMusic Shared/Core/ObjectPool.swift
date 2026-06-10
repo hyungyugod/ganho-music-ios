@@ -39,6 +39,13 @@ final class ObjectPool<T: SKNode & Poolable> {
         self.factory = factory
     }
 
+    /// Release SILPerformanceInliner SIGSEGV 우회 (R3 QA 이관 이슈).
+    /// 레이아웃 제약 제네릭(T: SKNode & Poolable)의 자동 생성 소멸자를 옵티마이저가
+    /// 인라인하려다 `isCallerAndCalleeLayoutConstraintsCompatible`에서 크래시하므로
+    /// 인라인 시도 자체를 봉인. 본문이 빈 이유: storage/factory 해제는 ARC 몫이고
+    /// 이 deinit은 attribute 부착점일 뿐 — 런타임 의미 변화 0.
+    @inline(never) deinit {}
+
     /// didMove 직후 1회 예열 — 첫 스폰 웨이브의 생성 스파이크 제거.
     /// 보관 수가 이미 count 이상이면 noop(멱등).
     func preheat(count: Int) {
