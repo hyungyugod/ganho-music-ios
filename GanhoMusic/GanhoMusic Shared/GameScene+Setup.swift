@@ -56,6 +56,26 @@ extension GameScene {
         worldNode.addChild(floor)
     }
 
+    // MARK: - Directors (R2)
+    /// 게임필 director/controller 3종 배선 + 걷기 먼지 풀 예열. didMove에서 1회 호출 (setupCamera 이후 —
+    /// CameraDirector가 cameraNode의 초기 위치(맵 중앙)를 basePosition으로 캡처).
+    func setupDirectors() {
+        hitstop.configure(worldNode: worldNode, physicsWorld: physicsWorld)
+        cameraDirector.configure(
+            cameraNode: cameraNode,
+            targetProvider: { [weak self] in self?.player.position ?? .zero },
+            viewportProvider: { [weak self] in self?.size ?? .zero }
+        )
+        effectDirector.configure(
+            worldNode: worldNode,
+            cameraNode: cameraNode,
+            viewportProvider: { [weak self] in self?.size ?? .zero },
+            skill: characterID.skill,
+            signatureColor: Palette.character(characterID)
+        )
+        walkDustPool.preheat(count: FeelTuning.walkDustPoolPreheatCount)
+    }
+
     // MARK: - Entity Pools + Registry (R1)
     /// 풀 4종 예열 + SpawnSystem 풀·레지스트리 배선. didMove에서 1회 호출.
     /// 예열 수치는 GameplayTuning 상수(12/16/6/8 — 설계서 01 §8 그대로).
@@ -151,6 +171,21 @@ extension GameScene {
         player.wallRectProvider = { [weak self] rect in
             return self?.wallRects(intersecting: rect) ?? []
         }
+        // R2 — 속도 곡선 progress 주입 (spawnSystem progressProvider 패턴 답습 —
+        // PlayerNode가 gameDuration을 직접 알 필요 없음).
+        player.progressProvider = { [weak self] in
+            guard let self = self else { return 0 }
+            return CGFloat(1.0 - self.remainingTime / GameplayTuning.gameDuration)
+        }
+        // R2 — 걷기 먼지: 4걸음마다 풀 경유 WalkDustNode attach (update 내 신규 할당 0).
+        player.onWalkStepDust = { [weak self] feetPosition in
+            guard let self = self else { return }
+            let dust = self.walkDustPool.obtain()
+            dust.recycleHandler = { [weak self] node in self?.walkDustPool.recycle(node) }
+            dust.position = feetPosition
+            self.worldNode.addChild(dust)
+            dust.play()
+        }
         worldNode.addChild(player)
     }
 
@@ -213,6 +248,10 @@ extension GameScene {
         enemy.projectileCountProvider = { [weak self] in
             return self?.registry.projectiles.count ?? 0
         }
+        // R2 — 발사 시점 콜백: soft 셰이크 + 근거리 텔레그래프 햅틱 (02 §3·§6 매핑).
+        enemy.onFired = { [weak self] origin in
+            self?.playTelegraphFireFeedback(from: origin)
+        }
         worldNode.addChild(enemy)
     }
 
@@ -253,6 +292,10 @@ extension GameScene {
         }
         node.stethoscopeCountProvider = { [weak self] in
             return self?.registry.stethoscopes.count ?? 0
+        }
+        // R2 — 투척 시점 콜백: soft 셰이크 + 근거리 텔레그래프 햅틱 (EnemyNode.onFired 동형).
+        node.onFired = { [weak self] origin in
+            self?.playTelegraphFireFeedback(from: origin)
         }
         // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
         // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
@@ -389,6 +432,9 @@ extension GameScene {
     /// 3) 화면 우측에서 들어와 중앙에서 8초 머무름 → 좌측으로 퇴장 → 자가 소멸
     /// gameState 전환 없음 — 컷씬 노드는 cameraNode 자식(zPos 300) 위에 깔리고 게임은 계속 진행.
     func spawnSergeantPark() {
+        // R2 — 박병장 등장 줌 펄스 1.0→0.97→1.0 (0.5s, 02 §3) — *거물 등장*의 무게감.
+        cameraDirector.zoomPulse(to: FeelTuning.sergeantZoomPulseScale,
+                                 duration: FeelTuning.sergeantZoomPulseDuration)
         // 컷씬 먼저 → 콜백에서 본 노드 부착. [weak self] 캡처 — 컷씬 진행 중 씬 전환 가능성 대비.
         presentSergeantParkIntro { [weak self] in
             guard let self = self else { return }
@@ -455,8 +501,8 @@ extension GameScene {
         let hapticGap = SKAction.wait(forDuration: FeelTuning.sergeantParkIntroHapticGap)
         overlay.run(.sequence([haptic1, hapticGap, haptic2]))
 
-        // (2) 카메라 쉐이크 — cameraNode에 직접 run(자가 원위치 복귀).
-        cameraNode.run(CameraShakeAction.make())
+        // (2) 카메라 쉐이크 — R2: CameraDirector 감쇠 셰이크 (구 SKAction 셰이크 빌더 삭제).
+        cameraDirector.shake(.medium)
 
         // (3) 등장 플래시 — HitFlashNode 재사용(붉은 풀스크린, 자가 소멸). 컷씬 전용 zPos로 overlay 위에.
         let flash = HitFlashNode()

@@ -185,7 +185,12 @@ final class MapNode: SKNode {
             attachWallTile(col: col, row: convertOrigRowToIOS(hWallOrigR), breakable: true)
         }
         // 세로벽 — door 1칸은 *건너뜀* (원본 m[doorR][c]=0). 내부 방 벽이므로 breakable: true.
+        // R2 — 가로벽과 겹치는 모서리 셀(원본 m[r][c]=1 단일 셀)의 이중 부착 제거 — 같은 셀에
+        // 동일 타일 2장이 쌓이던 순수 낭비 (시각·물리 동일, hard 평시 노드 게이트 기여).
         for origR in vWallOrigRStart...vWallOrigREnd where origR != doorOrigR {
+            if origR == hWallOrigR && vWallCol >= hWallColStart && vWallCol <= hWallColEnd {
+                continue
+            }
             attachWallTile(col: vWallCol, row: convertOrigRowToIOS(origR), breakable: true)
         }
     }

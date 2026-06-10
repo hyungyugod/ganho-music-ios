@@ -53,6 +53,22 @@ enum Palette {
         red: 0xFF / 255.0, green: 0x6F / 255.0, blue: 0xA8 / 255.0, alpha: 1.0
     )
 
+    // MARK: - R2 캐릭터 시그니처 컬러 (02_GAME_FEEL §9 — PixelPalette 전용 키 추출값, SPEC §기능 9 고정)
+    /// 캐릭터별 대표색. R2 사용처: skillSignature 파티클. R4 사용처: 선택창 글로우.
+    /// switch exhaustive — default 금지 (신규 캐릭터 추가 시 컴파일러가 매핑 강제).
+    static func character(_ id: CharacterID) -> UIColor {
+        switch id {
+        case .kim:  return UIColor(hex: "#5a4230")   // ganhoPixelBunShadow 'b' — 번머리 브라운
+        case .jung: return UIColor(hex: "#c44a3d")   // ganhoPixelHatJung 'Z' — 러닝캡 적홍
+        case .geon: return UIColor(hex: "#8a5a32")   // ganhoPixelBookCover 'O' — 책 표지 브라운
+        case .im:   return UIColor(hex: "#ff9db0")   // ganhoPixelCatEar 'T' — 고양이귀 핑크
+        case .lee:  return UIColor(hex: "#b07a58")   // ganhoPixelDogEar 'D' — 강아지귀 탠
+        }
+    }
+
+    /// R2 — comboAura 10+ 단계 색 (violet 토큰 부재로 신설, SPEC §문서-코드 불일치 6 제안값).
+    static let comboAuraViolet: UIColor = UIColor(hex: "#9B5DE5")
+
     // MARK: - Design Sprint 1 Ingame Readability
     static let ingameFloorAHex: String = "#494E78"
     static let ingameFloorBHex: String = "#2C2E4A"

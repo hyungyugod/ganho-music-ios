@@ -187,6 +187,15 @@ enum ZOrder {
     /// 살짝 덮되 카운트다운/플래시는 안 가림.
     static let tensionVignetteZPosition: CGFloat = 110
 
+    // MARK: - R2 게임필 (juice)
+    /// 인게임 파티클 이미터 zPosition (worldNode 소속 — collectBurst/comboAura/deathBurst/
+    /// toiletSplash/skillSignature). sparkle(30)과 동급 — Player/Enemy(5) 위, HUD(100) 아래.
+    static let ingameParticleZPosition: CGFloat = 30
+    /// milestoneConfetti zPosition (cameraNode 소속 — 화면 고정). HUD(100) 위, BREAK(140) 아래.
+    static let milestoneConfettiZPosition: CGFloat = 130
+    /// 걷기 먼지 zPosition (worldNode 소속). 바닥(-100)·벽(-50 계층) 위, Player(0) 아래.
+    static let walkDustZPosition: CGFloat = -1
+
     // MARK: - Sprint 2 Character Account Home
 
     static let characterHomeBackgroundZPosition: CGFloat = -20

@@ -12,9 +12,9 @@ import AVFoundation
 import UIKit  // Phase 6-7 — UIApplication.*Notification 사용
 
 /// 배경음악 재생을 캡슐화한 매니저. Bundle에 bgm.m4a가 있을 때만 활성화.
-/// 없으면 player = nil, 모든 메서드 noop. AudioManager(.ambient)와의 카테고리 분리도
-/// 음원 존재 여부를 트리거로 함 — 음원 없으면 .ambient 유지(회귀 0).
-/// Spring 비유: AudioManager / HapticsManager와 동급의 @Service 빈.
+/// 없으면 player = nil, 모든 메서드 noop. ChiptuneSynth(.ambient — R2부터 SFX 담당)와의
+/// 카테고리 분리도 음원 존재 여부를 트리거로 함 — 음원 없으면 .ambient 유지(회귀 0).
+/// Spring 비유: ChiptuneSynth / HapticsManager와 동급의 @Service 빈.
 final class BGMPlayer {
 
     // MARK: - Properties

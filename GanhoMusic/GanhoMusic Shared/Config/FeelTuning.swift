@@ -71,14 +71,8 @@ enum FeelTuning {
     static let sparkleEndScale: CGFloat = 0.2
 
     // MARK: - Hit Feedback (Phase 6-9)
-    /// 카메라 셰이크 진폭 (pt). 좌우 한 방향 이동량. 6~10pt 범위에서 8 채택.
-    /// 너무 크면 어지러움, 너무 작으면 안 보임. 학생 머리 *띵* 흔들림.
-    static let cameraShakeAmplitude: CGFloat = 8
-    /// 카메라 좌우 흔들림 반복 횟수. 6회 → 좌·우·좌·우·좌·우 (마지막 원위치 별도).
-    /// 총 모션 = stepDuration × (count + 1).
-    static let cameraShakeStepCount: Int = 6
-    /// 카메라 셰이크 한 스텝 길이 (초). 6 × 0.04 + 0.04 = 0.28초 ≈ haptics.heavy 체감 길이.
-    static let cameraShakeStepDuration: TimeInterval = 0.04
+    // R2 — 구 cameraShakeAmplitude/StepCount/StepDuration 3종은 구 셰이크 SKAction 빌더 삭제와 함께 제거.
+    // 셰이크 v2(soft/medium/strong 감쇠형)는 FeelTuning+R2.swift가 단일 진실 원천.
     /// 피격 플래시 alpha 피크 (0~1). 0.55 = 반투명 빨강 — 시야 차단 방지, *맞았다* 명확.
     static let hitFlashPeakAlpha: CGFloat = 0.55
     /// 피격 플래시 fadeIn 길이 (초). 빠르게 등장 — *번쩍* 임팩트.
@@ -333,7 +327,7 @@ enum FeelTuning {
     static let diplomaBodyWidthRatio: CGFloat = 0.7
 
     // MARK: - Skill (Phase 9-5)
-    static let skillEffectLineWidth: CGFloat = 3
+    // R2 — skillEffectLineWidth(트레일 선폭)는 spawnSkillTrail 삭제(이미터 대체)와 함께 제거.
     static let skillEffectRingLineWidth: CGFloat = 3
     static let skillEffectStrokeAlpha: CGFloat = 0.85
     static let skillEffectFillAlpha: CGFloat = 0.12

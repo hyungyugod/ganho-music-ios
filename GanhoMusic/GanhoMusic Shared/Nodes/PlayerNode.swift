@@ -29,7 +29,28 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     // MARK: - Properties
     /// 현재 이동 방향 (단위 벡터). 외부에서 set, 내부에서 read.
     /// .zero이면 정지.
-    var currentDirection: CGVector = .zero
+    /// R2 — zero↔nonzero 전이 감지(didSet)로 스쿼시&스트레치 발화 (02_GAME_FEEL §5).
+    /// 발화 대상은 시각 자식(pixelSpriteChild) — physicsBody/이동 로직 무관.
+    var currentDirection: CGVector = .zero {
+        didSet {
+            let wasMoving = hypot(oldValue.dx, oldValue.dy)
+                >= GameplayTuning.dpadInputSnapEpsilon
+            let isMovingNow = hypot(currentDirection.dx, currentDirection.dy)
+                >= GameplayTuning.dpadInputSnapEpsilon
+            guard wasMoving != isMovingNow else { return }
+            playMoveSquash(starting: isMovingNow)
+        }
+    }
+
+    /// R2 — 게임 진행률(0~1) provider. GameScene+Setup이 주입(spawnSystem provider 패턴 답습).
+    /// 속도 곡선: 유효 base = lerp(baseSpeedStart, baseSpeedEnd, t). 미주입 시 0 → 시작 속도 고정.
+    var progressProvider: () -> CGFloat = { 0 }
+
+    /// R2 — 걷기 먼지 요청 훅. walk frame 토글 4회마다 발밑 좌표로 1회 발화.
+    /// GameScene+Setup이 [weak self] 클로저 주입 — 풀 경유 WalkDustNode attach.
+    var onWalkStepDust: ((CGPoint) -> Void)?
+    private var walkToggleCount = 0
+    private var lastAppliedWalkFrame: PixelFrame = .idle
 
     /// Phase 5-3 — 외부(GameScene)가 setupPlayer에서 주입하는 속도 배율.
     /// 기본 1.0이라 *주입 전*에도 안전(.kim과 동일 속도). update(deltaTime:)에서 곱셈으로 적용.
@@ -49,8 +70,8 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     /// Phase 7-1 — 난이도별 시작 속도 (pt/s). default = GameplayTuning.playerBaseSpeed → apply 누락 시 graceful fallback(easy 동작).
     /// update(deltaTime:)에서 speedMultiplier와 곱해져 최종 속도 산출.
     var baseSpeedStart: CGFloat = GameplayTuning.playerBaseSpeed
-    /// Phase 7-1 — 난이도별 끝 속도 (pt/s). 본 sprint는 *시작값만* 적용 — 미리 저장만(주의사항 7).
-    /// R2에서 속도 곡선으로 활성화 (그랜드 리팩토링 v3 로드맵 — 삭제 금지).
+    /// R2 — 속도 곡선 끝 속도 (pt/s) = baseSpeedStart × playerSpeedEndMultiplier(1.15).
+    /// 45초 경과율 t에 따라 lerp(baseSpeedStart, baseSpeedEnd, t) 선형 보간 (02_GAME_FEEL §5).
     var baseSpeedEnd: CGFloat = GameplayTuning.playerBaseSpeed
 
     /// Phase 9-5 — 무적 플래그. true면 ContactRouter 콜백(enemy/projectile) 본문에서 즉시 return.
@@ -159,13 +180,11 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     /// Phase 7-1 — 난이도 정체성 단일 진입점.
     /// dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
     /// `apply(_ characterID:)`와 *서로 다른 프로퍼티*를 set하므로 호출 순서 무관 (주의사항 1).
-    /// 일관성을 위해 GameScene+Setup에서 character 먼저 → difficulty 나중 순서로 호출.
-    /// Sprint 10 Phase A — 본 메서드 0줄 변경(SPEC §8.12).
+    /// R2 — 끝 속도는 시작 속도 종속(×1.15) — 02_GAME_FEEL §5 (구 420/500/500 dict 대체).
     func apply(_ difficulty: Difficulty) {
         let start = GameplayTuning.playerSpeedStartByDifficulty[difficulty] ?? GameplayTuning.playerBaseSpeed
-        let end = GameplayTuning.playerSpeedEndByDifficulty[difficulty] ?? GameplayTuning.playerBaseSpeed
         baseSpeedStart = start * GameplayTuning.playerSpeedRuntimeMultiplier
-        baseSpeedEnd = end * GameplayTuning.playerSpeedRuntimeMultiplier
+        baseSpeedEnd = baseSpeedStart * GameplayTuning.playerSpeedEndMultiplier
     }
 
     func updateNearMissWarning(closestProjectileDistance distance: CGFloat?,
@@ -261,7 +280,10 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         let movementModeScale = isRunning
             ? GameplayTuning.playerRunSpeedScale
             : GameplayTuning.playerWalkSpeedScale
-        let speed = baseSpeedStart * speedMultiplier * movementModeScale
+        // R2 — 속도 곡선: 45초 경과율 t에 따라 base를 start→end(×1.15) 선형 보간 (02 §5).
+        let curveT = min(1, max(0, progressProvider()))
+        let effectiveBase = baseSpeedStart + (baseSpeedEnd - baseSpeedStart) * curveT
+        let speed = effectiveBase * speedMultiplier * movementModeScale
         let velocity = CGVector(
             dx: currentDirection.dx * speed,
             dy: currentDirection.dy * speed
@@ -608,6 +630,7 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
 
     /// 현재 pixelDirection + pixelFrame 조합 텍스처를 본체(self)와 자식 pixelSpriteChild 양쪽에 set.
     /// 텍스처는 TextureAtlasStore 캐시에서 가져오므로 매 호출 재생성 없음 — 변화 없는 프레임은 노드가 noop 처리.
+    /// R2 — walk frame 토글(step1↔step2 전환) 4회마다 걷기 먼지 훅 1회 발화 (02 §5).
     func applyPixelTexture() {
         let tex = TextureAtlasStore.characterTexture(
             id: currentCharacterID,
@@ -616,6 +639,47 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         )
         texture = tex                  // 본체(placeholder) 값 정합 유지
         pixelSpriteChild?.texture = tex
+
+        // 걷기 먼지 카운트 — 본 훅은 frame *변경 순간*에만 호출됨(tickWalkFrame 시맨틱).
+        // idle 복귀는 토글로 세지 않음 — "걸음"만 카운트.
+        if pixelFrame != .idle, pixelFrame != lastAppliedWalkFrame {
+            walkToggleCount += 1
+            if walkToggleCount >= FeelTuning.walkDustStepInterval {
+                walkToggleCount = 0
+                let feet = CGPoint(
+                    x: position.x,
+                    y: position.y
+                        - GameplayTuning.playerHeight * GameplayTuning.pixelSpriteScale / 2
+                        + FeelTuning.walkDustFootOffsetY
+                )
+                onWalkStepDust?(feet)
+            }
+        }
+        lastAppliedWalkFrame = pixelFrame
+    }
+
+    // MARK: - Squash & Stretch (R2 — 02_GAME_FEEL §5)
+    /// 이동 시작 시 (0.92x, 1.08y) 0.08s → 복원, 정지 시 반대 (1.08x, 0.92y) → 복원.
+    /// 적용 대상은 시각 자식(pixelSpriteChild) — physicsBody/hitbox 무관. withKey 멱등.
+    func playMoveSquash(starting: Bool) {
+        guard let child = pixelSpriteChild else { return }
+        let scaleX = starting ? FeelTuning.squashMoveScaleX : FeelTuning.squashMoveScaleY
+        let scaleY = starting ? FeelTuning.squashMoveScaleY : FeelTuning.squashMoveScaleX
+        let squash = Tween.curved(
+            SKAction.scaleX(to: scaleX, y: scaleY, duration: FeelTuning.squashDuration),
+            .easeOutCubic
+        )
+        let restore = Tween.curved(
+            SKAction.scaleX(to: 1, y: 1, duration: FeelTuning.squashDuration),
+            .easeOutBack
+        )
+        child.run(.sequence([squash, restore]), withKey: FeelTuning.squashActionKey)
+    }
+
+    /// 변기(+2) 수집 임팩트 스쿼시 — 히트스톱(0.03s)과 짝 (02 §2 동반 연출).
+    /// 정지 스쿼시와 동형(납작 → 복원) — 별도 수치 신설 없이 일관 톤.
+    func playImpactSquash() {
+        playMoveSquash(starting: false)
     }
 
     // MARK: - Texture Refresh

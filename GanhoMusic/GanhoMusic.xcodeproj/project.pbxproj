@@ -45,11 +45,18 @@
 		A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000023 /* CharacterCardNode.swift */; };
 		A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };
 		A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000025 /* HapticsManager.swift */; };
-		A1C0F1B00000000000000026 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000026 /* AudioManager.swift */; };
 		A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000027 /* BGMPlayer.swift */; };
 		A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000028 /* SparkleEffectNode.swift */; };
 		A1C0F1B00000000000000029 /* HitFlashNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000029 /* HitFlashNode.swift */; };
-		A1C0F1B00000000000000030 /* CameraShakeAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000030 /* CameraShakeAction.swift */; };
+		AB20F1B00000000000000001 /* Tween.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000001 /* Tween.swift */; };
+		AB20F1B00000000000000002 /* HitstopController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000002 /* HitstopController.swift */; };
+		AB20F1B00000000000000003 /* CameraDirector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000003 /* CameraDirector.swift */; };
+		AB20F1B00000000000000004 /* EffectDirector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000004 /* EffectDirector.swift */; };
+		AB20F1B00000000000000005 /* ChiptuneSynth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000005 /* ChiptuneSynth.swift */; };
+		AB20F1B00000000000000006 /* WalkDustNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000006 /* WalkDustNode.swift */; };
+		AB20F1B00000000000000007 /* FeelTuning+R2.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000007 /* FeelTuning+R2.swift */; };
+		AB20F1B00000000000000008 /* TextureAtlasStore+R2.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000008 /* TextureAtlasStore+R2.swift */; };
+		AB20F1B00000000000000009 /* TextureAtlasStore+Props.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000009 /* TextureAtlasStore+Props.swift */; };
 		A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000031 /* ComboPopupNode.swift */; };
 		A1C0F1B00000000000000088 /* MilestoneBannerNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */; };
 		A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000032 /* ComboBreakNode.swift */; };
@@ -177,11 +184,18 @@
 		A1C0F1A00000000000000023 /* CharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000025 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000026 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000027 /* BGMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BGMPlayer.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000028 /* SparkleEffectNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleEffectNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000029 /* HitFlashNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitFlashNode.swift; sourceTree = "<group>"; };
-		A1C0F1A00000000000000030 /* CameraShakeAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraShakeAction.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000001 /* Tween.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tween.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000002 /* HitstopController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitstopController.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000003 /* CameraDirector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDirector.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000004 /* EffectDirector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectDirector.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000005 /* ChiptuneSynth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChiptuneSynth.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000006 /* WalkDustNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkDustNode.swift; sourceTree = "<group>"; };
+		AB20F1A00000000000000007 /* FeelTuning+R2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R2.swift"; sourceTree = "<group>"; };
+		AB20F1A00000000000000008 /* TextureAtlasStore+R2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextureAtlasStore+R2.swift"; sourceTree = "<group>"; };
+		AB20F1A00000000000000009 /* TextureAtlasStore+Props.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextureAtlasStore+Props.swift"; sourceTree = "<group>"; };
 		A1C0F1A00000000000000031 /* ComboPopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboPopupNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneBannerNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboBreakNode.swift; sourceTree = "<group>"; };
@@ -409,6 +423,7 @@
 			children = (
 				C0F1A0DE0000000000000001 /* GameplayTuning.swift */,
 				C0F1A0DE0000000000000002 /* FeelTuning.swift */,
+				AB20F1A00000000000000007 /* FeelTuning+R2.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -427,6 +442,7 @@
 		A1C0F1570000000000000007 /* Nodes */ = {
 			isa = PBXGroup;
 			children = (
+				AB20F1A00000000000000006 /* WalkDustNode.swift */,
 				A1C0F1550000000000000005 /* PlayerNode.swift */,
 				A1C0F1560000000000000006 /* DPadNode.swift */,
 				A1C0F1580000000000000008 /* NoteNode.swift */,
@@ -499,7 +515,9 @@
 				A1C0F15C000000000000000C /* SpawnSystem.swift */,
 				A1C0F15E000000000000000E /* ContactRouter.swift */,
 				A1C0F15F000000000000000F /* ScoreSystem.swift */,
-				A1C0F1A00000000000000030 /* CameraShakeAction.swift */,
+				AB20F1A00000000000000002 /* HitstopController.swift */,
+				AB20F1A00000000000000003 /* CameraDirector.swift */,
+				AB20F1A00000000000000004 /* EffectDirector.swift */,
 				A1C0F1A00000000000000046 /* SkillSystem.swift */,
 			);
 			name = Systems;
@@ -580,7 +598,7 @@
 			isa = PBXGroup;
 			children = (
 				A1C0F1A00000000000000025 /* HapticsManager.swift */,
-				A1C0F1A00000000000000026 /* AudioManager.swift */,
+				AB20F1A00000000000000005 /* ChiptuneSynth.swift */,
 				A1C0F1A00000000000000027 /* BGMPlayer.swift */,
 				FB1000000000000000000008 /* CloudSaveCoordinator.swift */,
 				FB1000000000000000000009 /* FirebaseAuthManager.swift */,
@@ -595,6 +613,7 @@
 				C0F1A0DE0000000000000009 /* EntityRegistry.swift */,
 				C0F1A0DE000000000000000A /* ObjectPool.swift */,
 				C0F1A0DE000000000000000B /* FrameStats.swift */,
+				AB20F1A00000000000000001 /* Tween.swift */,
 			);
 			name = Core;
 			path = "GanhoMusic Shared/Core";
@@ -604,6 +623,8 @@
 			isa = PBXGroup;
 			children = (
 				C0F1A0DE000000000000000C /* TextureAtlasStore.swift */,
+				AB20F1A00000000000000008 /* TextureAtlasStore+R2.swift */,
+				AB20F1A00000000000000009 /* TextureAtlasStore+Props.swift */,
 			);
 			name = Rendering;
 			path = "GanhoMusic Shared/Rendering";
@@ -842,11 +863,18 @@
 				A1C0F1B00000000000000022 /* CharacterID.swift in Sources */,
 				A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */,
 				A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,
-				A1C0F1B00000000000000026 /* AudioManager.swift in Sources */,
 				A1C0F1B00000000000000027 /* BGMPlayer.swift in Sources */,
 				A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */,
 				A1C0F1B00000000000000029 /* HitFlashNode.swift in Sources */,
-				A1C0F1B00000000000000030 /* CameraShakeAction.swift in Sources */,
+				AB20F1B00000000000000001 /* Tween.swift in Sources */,
+				AB20F1B00000000000000002 /* HitstopController.swift in Sources */,
+				AB20F1B00000000000000003 /* CameraDirector.swift in Sources */,
+				AB20F1B00000000000000004 /* EffectDirector.swift in Sources */,
+				AB20F1B00000000000000005 /* ChiptuneSynth.swift in Sources */,
+				AB20F1B00000000000000006 /* WalkDustNode.swift in Sources */,
+				AB20F1B00000000000000007 /* FeelTuning+R2.swift in Sources */,
+				AB20F1B00000000000000008 /* TextureAtlasStore+R2.swift in Sources */,
+				AB20F1B00000000000000009 /* TextureAtlasStore+Props.swift in Sources */,
 				A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */,
 				A1C0F1B00000000000000088 /* MilestoneBannerNode.swift in Sources */,
 				A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */,

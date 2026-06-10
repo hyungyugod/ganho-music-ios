@@ -87,6 +87,26 @@ final class NoteNode: SKSpriteNode, Poolable {
         run(.sequence([wait, fade, recycle]), withKey: UILayout.noteLifetimeActionKey)
     }
 
+    // MARK: - Collect Pop (R2 — 02_GAME_FEEL §5)
+    /// 수집 콜백 진입 즉시 호출 — 1.15배 팝 후 소멸(풀 회수).
+    /// **이중 가산 금지(P0)**: contactTestBitMask를 즉시 0으로 차단해 팝 연출 동안 contact 재발 방지
+    /// (registry unregister는 호출부 GameScene+Contact 책임 — 자석/순회 즉시 제외).
+    /// 회수는 팝 종료 후 SKAction 경유 — 충돌 델리게이트 내 즉시 removeFromParent 금지 규칙 준수.
+    func beginCollectPop() {
+        physicsBody?.contactTestBitMask = 0
+        removeAction(forKey: UILayout.noteLifetimeActionKey)
+        removeAction(forKey: UILayout.noteBobActionKey)
+        let pop = Tween.curved(
+            SKAction.scale(to: FeelTuning.noteCollectPopScale,
+                           duration: FeelTuning.noteCollectPopDuration),
+            .easeOutBack
+        )
+        let fade = SKAction.fadeOut(withDuration: FeelTuning.noteCollectPopDuration)
+        let recycle = SKAction.run { [weak self] in self?.requestRecycle() }
+        run(.sequence([.group([pop, fade]), recycle]),
+            withKey: UILayout.noteCollectPopActionKey)
+    }
+
     // MARK: - Poolable (R1)
     /// 회수 단일 진입점 — TTL 만료 등 노드 자신이 시작하는 회수가 이 메서드로 수렴.
     func requestRecycle() {
@@ -101,12 +121,14 @@ final class NoteNode: SKSpriteNode, Poolable {
     /// (init과 동일하게 phase 랜덤 — 재사용 노드도 신품과 같은 분산 정책).
     /// R1 2회차 — halo/sparkle이 텍스처에 베이크돼 자식 0개: 자식 리셋 항목 자체가 없음
     /// (베이크 전에도 두 자식은 정적이라 리셋 코드 0건이었음 — 본체 상태 복원만으로 신품 동등).
+    /// R2 — 수집 팝의 contact 차단(contactTestBitMask=0)을 원상 복원 (신품 시맨틱).
     func resetForReuse() {
         removeAllActions()
         alpha = 1
         setScale(1)
         position = .zero
         physicsBody?.velocity = .zero
+        physicsBody?.contactTestBitMask = PhysicsCategory.player
         startBobbing()
     }
 }

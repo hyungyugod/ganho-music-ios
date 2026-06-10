@@ -38,6 +38,13 @@ class GameScene: SKScene {
     let scoreSystem = ScoreSystem()       // Phase 2-12 — 점수 / 콤보 책임 분리
     let skillSystem = SkillSystem()       // Phase 9-5 — 캐릭터별 스킬 시스템
 
+    // R2 — 게임필 director/controller 3종. 전부 씬 인스턴스 소유 (static 금지 — R1 패턴 동일).
+    // 배선(worldNode/physicsWorld/cameraNode 주입)은 GameScene+Setup.setupDirectors가 didMove 1회 수행.
+    let hitstop = HitstopController()         // 히트스톱 — speed/isPaused + 파이프라인 스킵 (02 §2)
+    let cameraDirector = CameraDirector()     // 카메라 v2 — 보간 추적/셰이크/줌/킥 (02 §3)
+    let effectDirector = EffectDirector()     // 파티클 6종 — 풀링/캡 8/우선순위 (02 §4)
+    let walkDustPool = ObjectPool<WalkDustNode> { WalkDustNode() }   // 걷기 먼지 (02 §5 — 비이미터)
+
     // R1 — 엔진 코어. registry는 동적 엔티티 3종의 카운트/순회 캐시, 풀 4종은 생성/파괴 반복 평탄화.
     // 전부 씬 인스턴스 소유 — static 금지(씬 해제와 함께 소멸, stale scene 참조 차단).
     // 배선(예열·provider 주입)은 GameScene+Setup.setupEntityPools가 didMove에서 1회 수행.
@@ -69,8 +76,8 @@ class GameScene: SKScene {
     let accountScope: AccountProgressScope
     let perDiffRepo: PerDifficultyScoreRepository
     let graduationRepo: GraduationRepository
-    let haptics = HapticsManager()              // Phase 6-1 — 손맛 강화 (Manager 패턴 첫 등장)
-    let audio   = AudioManager()                // Phase 6-2 — 사운드 손맛 (Manager 패턴 두 번째 적용)
+    let haptics = HapticsManager()              // Phase 6-1 / R2 — CoreHaptics v2 + UIImpact 폴백
+    let synth   = ChiptuneSynth.shared          // R2 — 칩튠 SFX 신스 (구 AudioManager 시스템 사운드 전폐)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
 
     // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
@@ -169,6 +176,7 @@ class GameScene: SKScene {
         setupEntityPools()   // R1 — 풀 예열(12/16/6/8) + SpawnSystem 풀·레지스트리 배선 (didMove 1회)
         setupPlayer()        // PlayerNode를 worldNode 자식으로
         setupCamera()        // cameraNode (1-2 그대로)
+        setupDirectors()     // R2 — hitstop/cameraDirector/effectDirector 배선 + 먼지 풀 예열
         setupDPad()          // 1-3 신설 — DPadNode를 cameraNode 자식으로
         setupHUD()           // Phase 2-4 신설 — HUDNode를 cameraNode 좌상단에
         setupEnemy()         // Phase 2-6 신설 — EnemyNode를 worldNode 자식으로
@@ -189,18 +197,30 @@ class GameScene: SKScene {
         resetCutsceneStateAndShowIntro()
     }
 
-    // MARK: - Game Loop (R1 — 명시 파이프라인)
+    // MARK: - Game Loop (R1 — 명시 파이프라인 / R2 — 히트스톱·카메라 v2·자석)
     /// 02_GAME_FEEL §1 파이프라인 고정:
-    /// **input → player → AI → projectiles → collisions(콜백) → effects → camera → HUD → registry.compact()**
+    /// **input → player(+자석) → AI → projectiles → collisions(콜백) → effects → camera → HUD → registry.compact()**
     /// 기존 폴링(콤보 만료/스킬/배너/tension/끊김)은 의미가 보존되는 단계에 배속 —
     /// 동일 프레임 내 상대 순서 불변 조건(tickComboExpiry → 끊김 폴링, 카메라는 player 이후,
     /// HUD는 점수/시간 확정 이후, compact 항상 마지막)을 지킨다.
+    /// R2 — 히트스톱 tick은 상태 가드 *이전*(프레임 준비 구역): 게임오버 히트스톱(상태가 이미
+    /// .gameOver)도 램프가 진행돼야 한다. 동결 중에는 파이프라인 전체 스킵(remainingTime 포함 동결).
     override func update(_ currentTime: TimeInterval) {
         // ── 프레임 준비 (파이프라인 진입 전 공통 가드 — 시맨틱 변경 금지 구역) ──
         // 첫 프레임 처리
         if lastUpdateTime == 0 { lastUpdateTime = currentTime }
         let dt = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
+
+        // R2 — 히트스톱 tick (상태 가드 이전). true = 동결 중 → 이번 프레임 전체 스킵.
+        if hitstop.tick(dt: dt) { return }
+
+        // R2 — 게임오버 연출 구간(지연 전환 0.9s): 셰이크/킥/deathBurst가 보이도록
+        // 카메라만 계속 갱신. 게임플레이 파이프라인은 진행하지 않는다.
+        if gameState == .gameOver {
+            cameraDirector.update(dt: dt)
+            return
+        }
 
         // 상태 가드 — playing이 아니면 입력/이동/카메라 모두 정지
         guard gameState == .playing else { return }
@@ -220,7 +240,7 @@ class GameScene: SKScene {
         // ── input: 콤보 윈도우/스킬 상태 확정 → D-Pad 입력 위임 ──
         updateInputPhase(dt: dt, currentTime: currentTime)
 
-        // ── player: dt 보간 이동 + wall-slide + 걷기 프레임 ──
+        // ── player: dt 보간 이동 + wall-slide + 걷기 프레임 + 수집 자석(말미) ──
         updatePlayerPhase(dt: dt)
 
         // ── AI: 수간호사 상태 머신 / 석조무사·이교수 패트롤 시각 / 박병장 데뷔 폴링 ──
@@ -232,11 +252,11 @@ class GameScene: SKScene {
         // ── collisions: SpriteKit physics 콜백(ContactRouter.didBegin)이 본 update 밖에서
         //    담당 — 점수/회수는 GameScene+Contact 콜백으로 발화 (명시적 빈 슬롯). ──
 
-        // ── effects: 배너/긴박감/위험 경고 — 게임 수치를 바꾸지 않는 시각·청각 레이어 ──
+        // ── effects: 배너/긴박감/위험 경고/콤보 오라 — 게임 수치를 바꾸지 않는 시각·청각 레이어 ──
         updateEffectsPhase()
 
-        // ── camera: player 갱신 이후 follow + 맵 클램프 ──
-        updateCameraFollow()
+        // ── camera: player 갱신 이후 — CameraDirector 단일 기록(보간→클램프→셰이크/킥 합성) ──
+        updateCameraFollow(dt: dt)
 
         // ── HUD: 점수/시간 확정 이후 표시 + 콤보 끊김 폴링 ──
         updateHUDPhase()
@@ -274,7 +294,7 @@ class GameScene: SKScene {
         }
     }
 
-    /// player 단계 — PlayerNode 자체 dt 보간 이동(wall-slide 포함) + 픽셀 걷기 프레임.
+    /// player 단계 — PlayerNode 자체 dt 보간 이동(wall-slide 포함) + 픽셀 걷기 프레임 + 수집 자석.
     private func updatePlayerPhase(dt: TimeInterval) {
         // PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
         // 돌진 중에는 currentDirection이 zero로 유지되어 velocity 0 — SKAction.move만 위치 변경.
@@ -287,6 +307,28 @@ class GameScene: SKScene {
         let velocity = player.movementVelocity
         let isMoving = abs(velocity.dx) > 0.1 || abs(velocity.dy) > 0.1
         player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
+
+        // R2 — 수집 자석 (player 단계 말미): 32px 내 음표를 0.08s 흡인 곡선으로 끌어당김.
+        // **판정 불변** — 수집은 여전히 physics contact가 결정 (자석은 위치만 이동, 02 §5).
+        updateNoteMagnet(dt: dt)
+    }
+
+    /// R2 — 수집 자석. registry.notes 순회(동시 캡 ≤10 — R1 인프라)로 매 프레임 거리 검사.
+    /// 스킬 끌어오기(bookClubRallyPull) 진행 중인 음표는 제외 — 두 위치 제어의 경합 차단.
+    /// update 내 힙 할당 0 — 배열 스냅샷 없이 직접 순회(위치만 변경, 등록 변형 없음).
+    private func updateNoteMagnet(dt: TimeInterval) {
+        let radius = FeelTuning.noteMagnetRadius
+        let radiusSquared = radius * radius
+        let pull = CGFloat(min(1, dt / FeelTuning.noteMagnetDuration))
+        let playerPosition = player.position
+        for note in registry.notes {
+            let dx = playerPosition.x - note.position.x
+            let dy = playerPosition.y - note.position.y
+            guard dx * dx + dy * dy <= radiusSquared else { continue }
+            guard note.action(forKey: GameplayTuning.bookClubRallyPullActionKey) == nil else { continue }
+            note.position.x += dx * pull
+            note.position.y += dy * pull
+        }
     }
 
     /// AI 단계 — 적 NPC 갱신 + hard 박병장 데뷔 폴링(적 등장 = AI 책임).
@@ -315,7 +357,7 @@ class GameScene: SKScene {
         professor?.updatePixelAnimation(deltaTime: dt)
     }
 
-    /// effects 단계 — 점수 배너/5초 긴박감/위험 경고. 전부 게임 수치 무변경 시각·청각 레이어.
+    /// effects 단계 — 점수 배너/5초 긴박감/위험 경고/콤보 오라. 전부 게임 수치 무변경 시각·청각 레이어.
     private func updateEffectsPhase() {
         // 점수 마일스톤 안내 배너 — 게임을 멈추지 않는 순수 시각 격려.
         // 점수는 콤보당 +1~+4로 *비연속* 증가하므로 정확값에 안 멈춰도 누락되지 않게 '>=' 교차로 판정.
@@ -327,6 +369,9 @@ class GameScene: SKScene {
         // 위험 경고는 밸런스 수치를 바꾸지 않는 시각 레이어다. 생성은 setup/발사 시점,
         // 여기서는 거리 기반 alpha/펄스만 갱신해 노드 churn을 막는다. (R1: registry 순회)
         updateDangerWarnings()
+
+        // R2 — comboAura 폴링: 콤보 ≥5 동안 플레이어 발밑 상승 입자, <5 복귀·끊김 시 즉시 회수.
+        effectDirector.updateComboAura(combo: scoreSystem.combo, playerPosition: player.position)
     }
 
     /// HUD 단계 — 점수/시간 확정 이후 표시 + 콤보 끊김 폴링(tickComboExpiry 이후 상대 순서 보존).
@@ -404,11 +449,13 @@ class GameScene: SKScene {
             let remaining = max(0, target - score)
             let text = "\(remaining)" + FeelTuning.milestoneHalfSuffix
             MilestoneBannerNode.spawn(text: text, parent: cameraNode)
+            effectDirector.milestoneConfetti()
         }
         // B(10점 남음): target - milestoneNearTargetRemaining.
         if !nearTargetMilestoneShown, score >= target - FeelTuning.milestoneNearTargetRemaining {
             nearTargetMilestoneShown = true
             MilestoneBannerNode.spawn(text: FeelTuning.milestoneNearText, parent: cameraNode)
+            effectDirector.milestoneConfetti()
         }
     }
 

@@ -153,8 +153,8 @@ final class ResultScene: SKScene {
 
     /// Phase 6-15 — 신기록 진입 시 heavy 햅틱 발화 (도달의 무게감).
     private let haptics = HapticsManager()
-    /// Phase 6-15 — 신기록 진입 시 NewMail 사운드 발화 (긍정·묵직).
-    private let audio = AudioManager()
+    /// R2 — 구 AudioManager(시스템 사운드) 전폐 → 칩튠 신스 공유 인스턴스 (마일스톤 voice 등가).
+    private let synth = ChiptuneSynth.shared
 
     // MARK: - Factory
     /// 점수/최고 점수/신기록 여부/누적 통계를 주입받아 ResultScene 인스턴스 생성. .resizeFill로 view 크기에 자동 맞춤.
@@ -1254,8 +1254,8 @@ final class ResultScene: SKScene {
     private func revealNewBest() {
         // 1) 촉각: heavy = 도달의 무게감. ResultScene 새 인스턴스라 endGame heavy와 톤 충돌 없음.
         haptics.heavy()
-        // 2) 청각: NewMail 1025 — 긍정·묵직. 6-11/6-13 재사용으로 신규 SFX 0건.
-        audio.play(.comboMilestoneStrong)
+        // 2) 청각: R2 — 칩튠 마일스톤 voice (triangle 아르페지오 — 구 NewMail 시스템 사운드 등가).
+        synth.play(.comboMilestone)
         // 3) 시각: fade-in + scale pulse. group으로 동시 실행.
         let fadeIn = SKAction.fadeIn(withDuration: FeelTuning.newBestFadeInDuration)
         let scaleUp = SKAction.scale(

@@ -22,12 +22,14 @@ extension GameScene {
             if let projectile = node as? FProjectileNode, projectile.isEnchanted {
                 self.scoreSystem.recordCharmedNoteHit()
                 self.haptics.light()
-                self.audio.play(.noteCollected)
+                self.synth.play(.noteCollect(semitoneOffset: 0))
                 self.deferRemoveAfterContact(projectile)
                 return
             }
             if self.player.isInvulnerable { return }
-            self.playFatalProjectileHitFeedback()
+            // R2 — 투사체 진행 방향으로 방향성 킥 (0벡터면 enemy→player 폴백).
+            let velocity = node.physicsBody?.velocity ?? .zero
+            self.playFatalProjectileHitFeedback(projectileVelocity: velocity)
             self.checkAndTriggerComboBreak()
             self.endGame()
         }
@@ -40,16 +42,14 @@ extension GameScene {
             guard let self = self else { return }
             let gainedPoints = self.scoreSystem.recordNoteHit(at: self.lastUpdateTime)
             let currentCombo = self.scoreSystem.combo
-            self.playNoteCollectFeedback(gainedPoints: gainedPoints, combo: currentCombo)
+            self.playNoteCollectFeedback(combo: currentCombo)
 
-            let sparkleOrigin = note.position
-            let sparkle = SparkleEffectNode(context: .ingame)
-            sparkle.position = sparkleOrigin
-            self.worldNode.addChild(sparkle)
-            sparkle.emit()
+            // R2 — SparkleEffectNode(수집당 노드 9개) → EffectDirector.collectBurst (이미터 풀).
+            let burstOrigin = note.position
+            self.effectDirector.collectBurst(at: burstOrigin)
 
             // R1 — 점수 팝업 풀 경유 (obtain→addChild→animate→풀 회수).
-            ScorePopupNode.spawn(at: sparkleOrigin,
+            ScorePopupNode.spawn(at: burstOrigin,
                                  gainedPoints: gainedPoints,
                                  parent: self.worldNode,
                                  pool: self.scorePopupPool)
@@ -63,7 +63,15 @@ extension GameScene {
                 self.cameraNode.addChild(popup)
                 popup.animate()
             }
-            self.deferRemoveAfterContact(note)
+            // R2 — 수집 팝(1.15배 후 소멸) + 이중 가산 차단(P0): 콜백 진입 즉시
+            // contactTestBitMask 차단(beginCollectPop) + registry unregister(자석/순회 즉시 제외).
+            // 회수는 팝 종료 후 SKAction 경유 — 델리게이트 내 즉시 removeFromParent 금지 유지.
+            if let noteNode = note as? NoteNode {
+                self.registry.unregister(noteNode)
+                noteNode.beginCollectPop()
+            } else {
+                self.deferRemoveAfterContact(note)
+            }
         }
 
         contactRouter.onStoneGuardContact = { [weak self] in
@@ -76,7 +84,9 @@ extension GameScene {
                 self.deferRemoveAfterContact(node)
                 return
             }
-            self.playStethoscopeHitFeedback()
+            // R2 — medium 셰이크 + 방향성 킥 + 히트스톱 0.10s (동결 — 게임오버 아님).
+            let velocity = node.physicsBody?.velocity ?? .zero
+            self.playStethoscopeHitFeedback(stethoscopeVelocity: velocity)
             ToastLabelNode.spawn(text: GameplayTuning.stethoscopeToastText,
                                  at: self.player.position,
                                  parent: self.worldNode)
@@ -96,7 +106,7 @@ extension GameScene {
             guard let self = self else { return }
             self.scoreSystem.recordCharmedNoteHit()
             self.haptics.light()
-            self.audio.play(.noteCollected)
+            self.synth.play(.noteCollect(semitoneOffset: 0))
             self.deferRemoveAfterContact(node)
         }
 
@@ -109,12 +119,12 @@ extension GameScene {
             let toiletOrigin = toilet.position
             let gains = self.scoreSystem.recordToiletBonus(at: self.lastUpdateTime)
             let currentCombo = self.scoreSystem.combo
-            self.playNoteCollectFeedback(gainedPoints: gains.max() ?? GameplayTuning.scorePerNote, combo: currentCombo)
+            self.playToiletCollectFeedback(combo: currentCombo)
 
-            let sparkle = SparkleEffectNode(context: .ingame)
-            sparkle.position = toiletOrigin
-            self.worldNode.addChild(sparkle)
-            sparkle.emit()
+            // R2 — 변기 수집: SparkleEffectNode → toiletSplash + 히트스톱 0.03s + 플레이어 스쿼시 (02 §2).
+            self.effectDirector.toiletSplash(at: toiletOrigin)
+            self.requestHitstop(freeze: FeelTuning.hitstopToiletCollect)
+            self.player.playImpactSquash()
 
             ToastLabelNode.spawn(text: FeelTuning.toiletToastText,
                                  at: toiletOrigin,

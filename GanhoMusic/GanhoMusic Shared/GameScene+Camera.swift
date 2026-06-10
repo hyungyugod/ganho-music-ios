@@ -2,38 +2,16 @@
 //  GameScene+Camera.swift
 //  GanhoMusic Shared
 //
-//  Camera follow and map-edge clamp logic for GameScene.
+//  Camera follow — R2부터 CameraDirector 위임 (02_GAME_FEEL §3).
+//  지수 보간 추적 + 맵 클램프(기존 halfW/halfH·중앙 폴백 시맨틱 보존) + 셰이크/킥 합성은
+//  CameraDirector.update(dt:)가 cameraNode.position의 단일 기록 지점.
 //
 
 import SpriteKit
 
 // MARK: - Camera Follow
 extension GameScene {
-    func updateCameraFollow() {
-        let halfW = size.width * cameraNode.xScale / 2
-        let halfH = size.height * cameraNode.yScale / 2
-        let worldW = GameplayTuning.mapWidth
-        let worldH = GameplayTuning.mapHeight
-
-        let lowerX = halfW
-        let upperX = worldW - halfW
-        let lowerY = halfH
-        let upperY = worldH - halfH
-
-        let targetX: CGFloat
-        if upperX < lowerX {
-            targetX = worldW / 2
-        } else {
-            targetX = max(lowerX, min(upperX, player.position.x))
-        }
-
-        let targetY: CGFloat
-        if upperY < lowerY {
-            targetY = worldH / 2
-        } else {
-            targetY = max(lowerY, min(upperY, player.position.y))
-        }
-
-        cameraNode.position = CGPoint(x: targetX, y: targetY)
+    func updateCameraFollow(dt: TimeInterval) {
+        cameraDirector.update(dt: dt)
     }
 }

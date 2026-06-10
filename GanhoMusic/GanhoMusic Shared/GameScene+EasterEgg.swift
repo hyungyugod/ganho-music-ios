@@ -61,6 +61,9 @@ extension GameScene {
         let waitPurge = SKAction.wait(forDuration: FeelTuning.bombFlashDelay)
         let attachPurge = SKAction.run { [weak self] in
             self?.spawnSystem.purgeAllF()
+            // R2 — 폭탄 섬광 시점(bombFlashDelay 도달 = fadeIn 시작) 히트스톱 0.12s (02 §2).
+            // 일시정지 중이면 requestHitstop 가드가 무시 (cameraNode 액션은 일시정지에도 진행됨).
+            self?.requestHitstop(freeze: FeelTuning.hitstopBombFlash)
         }
         cameraNode.run(.sequence([waitPurge, attachPurge]))
     }

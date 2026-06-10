@@ -40,6 +40,10 @@ final class SkillSystem {
     /// .zero면 기본 우측(1, 0). 발동 시점에만 캡처되므로 매 프레임 갱신은 GameScene이 담당.
     private var lastDirection: CGVector = CGVector(dx: 1, dy: 0)
 
+    /// R2 — 0.1s 입력 버퍼. 쿨다운 잔여 ≤ skillInputBufferWindow일 때의 탭을 보관,
+    /// update에서 쿨다운 0 도달 시 1회 자동 발동 (소비 즉시 false — 멱등).
+    private var isActivationBuffered = false
+
     // MARK: - Configuration
     /// GameScene이 didMove/startGameProperly에서 1회 호출.
     /// scene = 본체, skill = characterID.skill.
@@ -50,6 +54,7 @@ final class SkillSystem {
         self.cooldownRemaining = 0
         self.durationRemaining = 0
         self.usedThisGame = false
+        self.isActivationBuffered = false
     }
 
     // MARK: - Update Loop
@@ -75,15 +80,28 @@ final class SkillSystem {
            let normalized = normalizedDirection(dpadDir) {
             lastDirection = normalized
         }
+
+        // R2 — 입력 버퍼 소비: 쿨다운 0 도달 프레임에 보관된 탭을 1회 자동 발동.
+        if isActivationBuffered, cooldownRemaining <= 0 {
+            isActivationBuffered = false
+            tryActivate()
+        }
     }
 
     // MARK: - Activation Entry Point
     /// 사용자 1탭 시 SkillButtonNode가 호출. 가드 통과 시 스킬별 본체로 분기.
-    /// 3중 가드: (1) .none 차단 / (2) 쿨다운 잔여 시 차단 / (3) usedThisGame 차단.
+    /// 3중 가드: (1) .none 차단 / (2) 쿨다운 잔여 시 차단(버퍼 윈도우면 보관) / (3) usedThisGame 차단.
     func tryActivate() {
         guard activeSkill != .none else { return }
-        guard cooldownRemaining <= 0 else { return }
         guard !(activeSkill.oncePerGame && usedThisGame) else { return }
+        if cooldownRemaining > 0 {
+            // R2 — 쿨다운 종료 직전(≤0.1s) 입력은 버퍼 보관 → update가 0 도달 시 자동 발동.
+            if cooldownRemaining <= GameplayTuning.skillInputBufferWindow {
+                isActivationBuffered = true
+            }
+            return
+        }
+        isActivationBuffered = false
 
         switch activeSkill {
         case .none:
@@ -97,6 +115,10 @@ final class SkillSystem {
         case .taiwanTrip:
             performTaiwanTrip()
         }
+
+        // R2 — 공통 발동 피드백: medium 셰이크 + 햅틱 0.8/1.0 (02 §3·§6 매핑).
+        scene?.cameraDirector.shake(.medium)
+        scene?.haptics.skillActivate()
 
         // 발동 직후 쿨다운/지속시간 set. oncePerGame은 usedThisGame로 영구 차단.
         cooldownRemaining = activeSkill.cooldown
@@ -185,7 +207,9 @@ final class SkillSystem {
                                    color: .ganhoBloodAccent)
         // (생존) 착지 주변 F 원형 정화 — corridor 밖까지.
         clearProjectiles(near: end, radius: GameplayTuning.dashClimbLandingPurgeRadius)
-        spawnSkillTrail(from: start, to: end, color: .ganhoBloodAccent, parent: scene.worldNode)
+        // R2 — skillSignature 후방 트레일 (정간호 시그니처 색). 구 SKShapeNode 트레일은
+        // 이미터와 동형 중복이라 제거 (SPEC §기능 9 — 노드 수 절감).
+        scene.effectDirector.skillSignature(.dashClimb, from: start, to: end)
 
         // 무적 + 이동.
         player.currentDirection = .zero
@@ -201,8 +225,8 @@ final class SkillSystem {
                 color: .ganhoBloodAccent,
                 parent: scene.worldNode
             )
-            scene.cameraNode.run(CameraShakeAction.make())   // 타격감: 화면 진동
-            scene.haptics.heavy()                              // 타격감: 헤비 햅틱
+            scene.cameraDirector.shake(.medium)   // R2 — 착지 진동 (스킬 매핑 medium)
+            scene.haptics.heavy()                  // 타격감: 헤비 햅틱
         }
         // (생존) 무적 연장: 착지 후 바로 끄지 않고 dashClimbLandingInvulnerableExtra초 더 유지 후 해제.
         let extendInvuln = SKAction.wait(forDuration: GameplayTuning.dashClimbLandingInvulnerableExtra)
@@ -285,9 +309,8 @@ final class SkillSystem {
                        radius: radius * GameplayTuning.bookClubRallyOuterRingRatio,
                        color: .ganhoCyanBeat,
                        parent: world)
-        scene.haptics.heavy()
-        // (선택) 카메라 펄스 — 발동당 1회만(변위 누적 방지).
-        scene.cameraNode.run(CameraShakeAction.make())
+        // R2 — skillSignature 수렴 입자 (건간호 시그니처 색). 셰이크/햅틱은 tryActivate 공통 피드백.
+        scene.effectDirector.skillSignature(.bookClubRally, from: center, to: center)
 
         // (점수+시각) 음표 흡수 + A아이템 흡수는 pullCollectibles로 일원화 + 반짝이 다수.
         pullCollectibles(near: center, radius: radius, includeAItems: true, color: .ganhoMint)
@@ -419,8 +442,8 @@ final class SkillSystem {
                        radius: GameplayTuning.charmStudentRingRadius * GameplayTuning.charmStudentOuterRingRatio,
                        color: .ganhoCoralPrimary,
                        parent: world)                              // 하트펄스 톤 2겹
-        scene.cameraNode.run(CameraShakeAction.make())             // 화면 전체 진동
-        scene.haptics.medium()
+        // R2 — skillSignature 상승 하트 입자 (임간호 시그니처 핑크). 셰이크/햅틱은 공통 피드백.
+        scene.effectDirector.skillSignature(.charmStudent, from: center, to: center)
     }
 
     // MARK: - 4. Taiwan Trip (이간호)
@@ -457,8 +480,8 @@ final class SkillSystem {
                          includeAItems: false,
                          color: .ganhoCyanBeat)
         clearProjectiles(near: targetPosition, radius: GameplayTuning.taiwanTripLandingPurgeRadius)
-        scene.cameraNode.run(CameraShakeAction.make())   // 기존 유지
-        scene.haptics.heavy()                              // 타격감 추가
+        // R2 — skillSignature 출발·도착 쌍둥이 burst (이간호 시그니처 색). 셰이크는 공통 피드백.
+        scene.effectDirector.skillSignature(.taiwanTrip, from: start, to: targetPosition)
 
         // 무적 + 깜빡임. 동시에 set/clear.
         player.isInvulnerable = true
@@ -632,22 +655,7 @@ final class SkillSystem {
     }
 
     // MARK: - Skill Visual Helpers
-    private func spawnSkillTrail(from start: CGPoint, to end: CGPoint, color: UIColor, parent: SKNode) {
-        let path = CGMutablePath()
-        path.move(to: start)
-        path.addLine(to: end)
-        let trail = SKShapeNode(path: path)
-        trail.name = "skillTrail"
-        trail.strokeColor = color.withAlphaComponent(FeelTuning.skillEffectStrokeAlpha)
-        trail.lineWidth = FeelTuning.skillEffectLineWidth
-        trail.fillColor = .clear
-        trail.zPosition = ZOrder.skillEffectZPosition
-        parent.addChild(trail)
-        trail.run(.sequence([
-            .fadeOut(withDuration: FeelTuning.skillEffectFadeDuration),
-            .removeFromParent()
-        ]))
-    }
+    // R2 — 구 spawnSkillTrail(SKShapeNode 선분)은 skillSignature 트레일 이미터와 동형 중복 → 삭제.
 
     private func spawnSkillRing(at position: CGPoint,
                                 radius: CGFloat,

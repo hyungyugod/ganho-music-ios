@@ -56,6 +56,9 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
     /// 활성 청진기 수 provider (registry.stethoscopes.count). 구 enumerate 카운트의 대체.
     /// 미주입 fallback 0 — 동시 캡이 안 걸리지만 본 게임 경로에선 GameScene+Setup이 항상 주입.
     var stethoscopeCountProvider: () -> Int = { 0 }
+    /// R2 — 청진기 투척(텔레그래프 확정 후 fan 실발사) 시점 콜백. 인자 = 발사원 위치.
+    /// EnemyNode.onFired와 동형 — GameScene+Setup이 [weak self] 캡처로 주입.
+    var onFired: ((CGPoint) -> Void)?
 
     // MARK: - Init
     init() {
@@ -258,6 +261,10 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
                 dy: unitY * GameplayTuning.stethoscopeSpeed
             )
             world.addChild(steth)
+        }
+        // R2 — 다발(fan) 1사이클당 발사 콜백 1회.
+        if !angles.isEmpty {
+            onFired?(position)
         }
     }
 

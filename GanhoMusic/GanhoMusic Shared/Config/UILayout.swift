@@ -1744,6 +1744,8 @@ enum UILayout {
     static let noteReadableSparkleOffsetRatio: CGFloat = 0.45
     static let noteBobActionKey: String = "noteBob"
     static let noteLifetimeActionKey: String = "noteLifetime"
+    /// R2 — 수집 팝(1.15배 후 소멸) SKAction 키. withKey 멱등.
+    static let noteCollectPopActionKey: String = "noteCollectPop"
     static let projectileDangerHaloRadius: CGFloat = 18
     static let projectileDangerHaloAlpha: CGFloat = 0.32
     static let projectileOutlineWidth: CGFloat = 2

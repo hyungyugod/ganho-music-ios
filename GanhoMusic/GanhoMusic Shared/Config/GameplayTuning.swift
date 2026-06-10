@@ -270,12 +270,11 @@ enum GameplayTuning {
     static let playerSpeedStartByDifficulty: [Difficulty: CGFloat] = [
         .easy: 280, .normal: 320, .hard: 320
     ]
-    /// 난이도별 플레이어 끝 속도 (pt/s). 원본 game.js L101~L105 DIFFICULTY.maxSpeed × SCALE(2).
-    /// Sprint 10 Phase I — 210/250/250 → 420/500/500으로 ×2 SCALE 보정 (원본 1:1).
-    /// 단일 진실 원천: docs/ORIGINAL_GAME_ANALYSIS.md L938~L951.
-    static let playerSpeedEndByDifficulty: [Difficulty: CGFloat] = [
-        .easy: 420, .normal: 500, .hard: 500
-    ]
+    /// R2 — 플레이어 속도 곡선 종속 배율. baseSpeedEnd = baseSpeedStart × 1.15 (02_GAME_FEEL §5).
+    /// 구 playerSpeedEndByDifficulty(420/500/500 — 원본 maxSpeed × SCALE 2, Sprint 10 Phase I)는
+    /// 종속 +50%로 02 명세 ×1.15를 크게 초과해 dict 자체를 본 배율로 대체 (dead 상수 잔존 금지).
+    /// 원본 420/500/500 재도입은 R7 페이싱 재조정에서 사용자 승인 후 검토 (SPEC §문서-코드 불일치 3).
+    static let playerSpeedEndMultiplier: CGFloat = 1.15
     /// 난이도별 동시 음표 최대 수. Sprint tuning — 화면에 목표가 더 자주 보이도록 전체 밀도 상향.
     static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [
         .easy: 10, .normal: 9, .hard: 9
@@ -457,6 +456,9 @@ enum GameplayTuning {
     /// 4 스킬(정/건/임/이) + 김간호는 *스킬 없음*(정공법 정체성).
 
     // 공통 — SkillButtonNode (우하단 1탭 발동)
+    /// R2 — 스킬 버튼 입력 버퍼 (초). 쿨다운 잔여 ≤ 이 값일 때의 탭을 보관했다가
+    /// 쿨다운 0 도달 프레임에 1회 자동 발동 (02_GAME_FEEL §5 — 쿨다운 종료 직전 입력 허용).
+    static let skillInputBufferWindow: TimeInterval = 0.1
     /// 스킬 버튼 반지름 (pt). D-Pad 한 변(44)과 시각 균형.
     static let skillButtonRadius: CGFloat = 32
     /// 버튼 우측 가장자리에서의 안쪽 마진 (pt). cameraNode 자식 좌표계 기준.

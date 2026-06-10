@@ -74,12 +74,10 @@ enum TextureAtlasStore {
         return texture
     }
 
-    // MARK: - Items (음표 / F / A / 청진기 — 구 init마다 반복 렌더분의 캐시화)
+    // MARK: - Items (음표 / A — 구 init마다 반복 렌더분의 캐시화)
+    // R2 — F/청진기 단품 캐시는 베이크 캐시(fProjectileBakedCache 외 2종)로 대체.
     private static var noteCache: SKTexture?
-    private static var fProjectileNormalCache: SKTexture?
-    private static var fProjectileEnchantedCache: SKTexture?
     private static var aItemCache: SKTexture?
-    private static var stethoscopeCache: SKTexture?
 
     /// 음표 베이크 텍스처 한 변(pt) — halo 스트로크 바깥끝(반경 + lineWidth/2)이 정확히 담기는 크기.
     /// NoteNode sprite size와 베이크 캔버스가 이 단일 식을 공유해 크기 드리프트를 차단한다.
@@ -136,20 +134,6 @@ enum TextureAtlasStore {
         return texture
     }
 
-    /// F 투사체 12×12 — 원색(빨강 Palette.fProjectileColor)/매혹(분홍 Palette.aItemColor) 2종.
-    static func fProjectileTexture(enchanted: Bool) -> SKTexture {
-        if enchanted {
-            if let cached = fProjectileEnchantedCache { return cached }
-            let texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.aItemColor)
-            fProjectileEnchantedCache = texture
-            return texture
-        }
-        if let cached = fProjectileNormalCache { return cached }
-        let texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.fProjectileColor)
-        fProjectileNormalCache = texture
-        return texture
-    }
-
     /// A 아이템 12×12 (분홍).
     static func aItemTexture() -> SKTexture {
         if let cached = aItemCache { return cached }
@@ -158,13 +142,8 @@ enum TextureAtlasStore {
         return texture
     }
 
-    /// 청진기 14×8.
-    static func stethoscopeTexture() -> SKTexture {
-        if let cached = stethoscopeCache { return cached }
-        let texture = PixelSpriteRenderer.stethoscopeTexture()
-        stethoscopeCache = texture
-        return texture
-    }
+    // R2 베이크(F/청진기 가독성 통합·파티클 텍셀·걷기 먼지·병원 소품)는 TextureAtlasStore+R2.swift —
+    // 본 파일 300줄 분리 규칙 준수. 캐시는 그 파일의 file-private 보관소(R2BakeCache)가 담당.
 
     // MARK: - Environment (R1 신규 — 바닥 1노드화 + 벽 타일 베이크)
     private static var checkerboardFloorCache: SKTexture?

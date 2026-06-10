@@ -66,6 +66,10 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
     /// R1 — 활성 F 수 provider (registry.projectiles.count). 구 enumerate 카운트(update 경로!)의 대체.
     /// 미주입 fallback 0 — 동시 캡이 안 걸리지만 본 게임 경로에선 GameScene+Setup이 항상 주입.
     var projectileCountProvider: () -> Int = { 0 }
+    /// R2 — 발사(텔레그래프 확정 후 burst 실발사) 시점 콜백. 인자 = 발사원 위치.
+    /// GameScene+Setup이 [weak self] 캡처로 주입 — soft 셰이크 + 근거리 텔레그래프 햅틱.
+    /// GameScene 직접 참조 금지 — 기존 provider 주입 패턴 답습.
+    var onFired: ((CGPoint) -> Void)?
 
     /// 난이도별 burst 카운트. apply에서 set. easy=1, normal=3, hard=4.
     var burstCount: Int = 1
@@ -241,6 +245,8 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         proximityWarning.update(distanceToPlayer: distance, profile: profile)
     }
 
+    /// R2 — 매혹 시각 노드는 *발동 중에만* 트리에 부착 (구 alpha=0 상시 부착 = 좀비 패턴 금지 위반 +
+    /// hard 평시 노드 게이트). 노드 구성은 init 1회 — attach/detach만 updateCharmVisual이 담당.
     private func setupCharmAura() {
         charmAura.name = "charmAura"
         charmAura.zPosition = 24
@@ -248,14 +254,12 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         charmAura.lineWidth = 2
         charmAura.strokeColor = Palette.aItemColor.withAlphaComponent(0.88)
         charmAura.fillColor = Palette.aItemColor.withAlphaComponent(0.12)
-        addChild(charmAura)
     }
 
     private func setupCharmHeartEyes() {
         charmHeartEyes.name = "charmHeartEyes"
         charmHeartEyes.zPosition = 30
         charmHeartEyes.alpha = 0
-        addChild(charmHeartEyes)
 
         let eyeY = GameplayTuning.enemyHeight * GameplayTuning.pixelSpriteScale * 0.08
         let eyeGap = GameplayTuning.enemyWidth * GameplayTuning.pixelSpriteScale * 0.18
@@ -277,6 +281,9 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         charmAura.removeAllActions()
         charmHeartEyes.removeAllActions()
         if isActive {
+            // R2 — 발동 순간 attach (구 상시 부착 + alpha 토글 대체. 펄스 수치는 기존 그대로).
+            if charmAura.parent == nil { addChild(charmAura) }
+            if charmHeartEyes.parent == nil { addChild(charmHeartEyes) }
             charmAura.alpha = 1
             charmHeartEyes.alpha = 1
             let heartPulse = SKAction.sequence([
@@ -296,10 +303,11 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
             charmAura.run(.repeatForever(auraPulse), withKey: "charmAuraPulse")
             charmHeartEyes.run(.repeatForever(heartPulse), withKey: "charmHeartPulse")
         } else {
+            // R2 — 기존 0.12s 페이드 잔향 유지 후 detach (alpha 0 잔존 금지 — 좀비 패턴 차단).
             charmAura.setScale(1.0)
-            charmAura.run(.fadeOut(withDuration: 0.12))
+            charmAura.run(.sequence([.fadeOut(withDuration: 0.12), .removeFromParent()]))
             charmHeartEyes.setScale(1.0)
-            charmHeartEyes.run(.fadeOut(withDuration: 0.12))
+            charmHeartEyes.run(.sequence([.fadeOut(withDuration: 0.12), .removeFromParent()]))
         }
     }
 
@@ -444,6 +452,10 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
                 f.physicsBody?.velocity = velocity
                 world.addChild(f)
             }
+        }
+        // R2 — 실발사 1회당 발사 콜백 1회 (burst 묶음 단위 — 발수와 무관).
+        if !anglesToFire.isEmpty {
+            onFired?(position)
         }
         clearPendingShotPlan()
     }

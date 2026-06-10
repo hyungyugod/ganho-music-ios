@@ -26,12 +26,14 @@ extension GameScene {
         cameraNode.addChild(node)
         node.start(
             onTick: { [weak self] _ in
-                self?.haptics.light()
+                guard let self = self else { return }
+                self.haptics.light()                  // 미매핑 이벤트 — 기존 강도 등가 유지
+                self.synth.play(.countdownTick)       // R2 — square A4 50ms (02 §6)
             },
             onGo: { [weak self] in
                 guard let self = self else { return }
                 self.haptics.heavy()
-                self.audio.play(.comboMilestoneStrong)
+                self.synth.play(.countdownGo)         // R2 — square A5 200ms (02 §6)
             },
             onComplete: { [weak self] in
                 guard let self = self else { return }

@@ -18,7 +18,8 @@ extension GameScene {
         layoutRunButton()
         layoutHUDSkillSlot()
         layoutPauseButton()
-        updateCameraFollow()
+        // R2 — 줌/크기 변경 직후 즉시 클램프 스냅 (구 updateCameraFollow 절대 대입 시맨틱).
+        cameraDirector.snapToClampedTarget()
     }
 
     func layoutCameraZoom() {
