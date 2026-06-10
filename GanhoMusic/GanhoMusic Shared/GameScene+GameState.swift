@@ -153,7 +153,7 @@ extension GameScene {
 
         guard let view = self.view else { return }
         let scene = CharacterSelectScene.newCharacterSelectScene()
-        view.presentScene(scene, transition: .fade(withDuration: FeelTuning.sceneTransitionDuration))
+        SceneRouter.present(scene, on: view, route: .backward)
     }
 
     func endGame() {
@@ -230,8 +230,8 @@ extension GameScene {
         // 지연 노드는 cameraNode — worldNode 비소속이라 히트스톱 일시정지 영향 0 (asyncAfter 금지).
         let wait = SKAction.wait(forDuration: FeelTuning.gameOverTransitionDelay)
         let present = SKAction.run { [weak view] in
-            view?.presentScene(resultScene,
-                               transition: .fade(withDuration: FeelTuning.sceneTransitionDuration))
+            guard let view = view else { return }
+            SceneRouter.present(resultScene, on: view, route: .forward)
         }
         cameraNode.run(.sequence([wait, present]))
     }

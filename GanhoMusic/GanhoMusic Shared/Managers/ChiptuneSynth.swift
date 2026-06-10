@@ -36,6 +36,9 @@ final class ChiptuneSynth {
         case countdownTick
         /// 카운트다운 GO — square A5, 200ms.
         case countdownGo
+        /// 씬 전환 — square 상행 스윕 A4→A5, 120ms.
+        /// 02_GAME_FEEL §6 표 외 신규 — 03_UI §9 전환 SFX 요구 (R3 SceneRouter 전용).
+        case sceneTransition
     }
 
     private enum Waveform {
@@ -91,7 +94,8 @@ final class ChiptuneSynth {
     // MARK: - Pre-render (콤보 피치 13단 포함 전 변형)
     private func prerenderAllVoices() {
         var voices: [Voice] = [.toiletCollect, .comboMilestone, .comboBreak,
-                               .hit, .uiTap, .countdownTick, .countdownGo]
+                               .hit, .uiTap, .countdownTick, .countdownGo,
+                               .sceneTransition]   // R3 — 사전 렌더 누락 시 무음 (SPEC 주의사항 5)
         for semitone in 0...FeelTuning.sfxCollectPitchMaxSemitone {
             voices.append(.noteCollect(semitoneOffset: semitone))
         }
@@ -147,6 +151,12 @@ final class ChiptuneSynth {
         case .countdownGo:
             return renderTones([(frequency(midi: FeelTuning.sfxMidiA5),
                                  FeelTuning.sfxCountdownGoDuration)], waveform: .square)
+        case .sceneTransition:
+            // R3 — 02 §6 표 외 신규 (03_UI §9 전환 SFX). square 상행 글라이드 A4→A5 — "앞으로 나아가는" 톤.
+            return renderGlide(from: frequency(midi: FeelTuning.sfxMidiA4),
+                               to: frequency(midi: FeelTuning.sfxMidiA5),
+                               duration: FeelTuning.sfxSceneTransitionDuration,
+                               waveform: .square, noiseMix: 0)
         }
     }
 

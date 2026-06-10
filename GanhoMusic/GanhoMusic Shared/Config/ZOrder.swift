@@ -204,3 +204,24 @@ enum ZOrder {
     static let characterHomeMenuZPosition: CGFloat = 160
     static let characterHomeButtonZPosition: CGFloat = 170
 }
+
+// MARK: - R3 디자인 시스템 v3 "Night Shift" Layer (03_UI §4)
+//
+// R3 신설 — 신규 v3 컴포넌트 전용. 기존 노드 마이그레이션은 R4·R5(씬 재구축)·R8(감사).
+// 기존 상수(오버레이 z 500~540 등)는 무변경 — v3 토큰은 *추가만* (R3 합격 게이트).
+extension ZOrder {
+    /// v3 적층 11층 — 전 v3 컴포넌트가 이 토큰만 사용.
+    enum Layer {
+        static let bg: CGFloat = 0
+        static let floor: CGFloat = 10
+        static let props: CGFloat = 20
+        static let collectibles: CGFloat = 30
+        static let characters: CGFloat = 40
+        static let projectiles: CGFloat = 50
+        static let effects: CGFloat = 60
+        static let vignette: CGFloat = 80
+        static let hud: CGFloat = 100
+        static let overlay: CGFloat = 200
+        static let transition: CGFloat = 300
+    }
+}

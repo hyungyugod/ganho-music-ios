@@ -38,8 +38,18 @@ class GameViewController: UIViewController {
         // view.safeAreaInsets를 받아 노드 배치 시 회피해야 한다.
 
         // Phase 10-1a — 첫 진입은 StartScene (구 TitleScene → 4단계 분리 시작점).
+        // R3 — DEBUG 한정 PixelKit 갤러리 부팅 분기 (SPEC 기능 7). 환경변수만 사용 —
+        // UserDefaults 미사용(키 불변 조건 회피). 릴리즈 빌드 동작 영향 0 (#if DEBUG 격리).
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["PIXELKIT_GALLERY"] == "1" {
+            skView.presentScene(PixelKitGalleryScene.newGalleryScene())
+        } else {
+            skView.presentScene(StartScene.newStartScene())
+        }
+        #else
         let scene = StartScene.newStartScene()
         skView.presentScene(scene)
+        #endif
 
         skView.ignoresSiblingOrder = true
         skView.isMultipleTouchEnabled = true

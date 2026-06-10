@@ -1010,8 +1010,7 @@ final class ResultScene: SKScene {
     private func transitionToCharacterHome(in view: SKView) {
         isTransitioning = true
         let characterHome = CharacterSelectScene.newCharacterSelectScene()
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(characterHome, transition: fade)
+        SceneRouter.present(characterHome, on: view, route: .backward)
     }
 
     private func transitionToScoreboard(in view: SKView) {
@@ -1034,8 +1033,7 @@ final class ResultScene: SKScene {
             lastUpdatedKey: lastUpdatedKey,
             returnContext: ctx
         )
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(scoreboard, transition: fade)
+        SceneRouter.present(scoreboard, on: view, route: .forward)
     }
 
     private func transitionToRetryGame(in view: SKView) {
@@ -1046,8 +1044,7 @@ final class ResultScene: SKScene {
         let characterID = inferredCharacterID
             ?? CharacterPreferenceRepository.scoped(scope: scope).current
         let gameScene = GameScene.newGameScene(characterID: characterID, difficulty: difficulty)
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(gameScene, transition: fade)
+        SceneRouter.present(gameScene, on: view, route: .intoGame)
     }
 
     private func presentShareSheet() {

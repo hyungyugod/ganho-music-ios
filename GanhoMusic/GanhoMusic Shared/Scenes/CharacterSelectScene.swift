@@ -1477,8 +1477,7 @@ final class CharacterSelectScene: BaseMenuScene {
         guard let view = self.view else { return }
         isTransitioning = true
         let scene = StartScene.newStartScene(openLoginChoiceOnEntry: openLoginChoiceOnEntry)
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(scene, transition: fade)
+        SceneRouter.present(scene, on: view, route: .backward)
     }
 
     private func transitionToNext() {
@@ -1489,18 +1488,17 @@ final class CharacterSelectScene: BaseMenuScene {
         }
         isTransitioning = true
         preferenceRepo.save(selectedCharacterID)
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         switch selectedCharacterID {
         case .kim:
             let scene = DifficultySelectScene.newDifficultySelectScene(
                 characterID: selectedCharacterID
             )
-            view.presentScene(scene, transition: fade)
+            SceneRouter.present(scene, on: view, route: .forward)
         case .jung, .geon, .im, .lee:
             let scene = SkillExplanationScene.newSkillExplanationScene(
                 characterID: selectedCharacterID
             )
-            view.presentScene(scene, transition: fade)
+            SceneRouter.present(scene, on: view, route: .forward)
         }
     }
 

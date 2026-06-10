@@ -101,3 +101,60 @@ extension UIColor {
     /// (픽셀 오버레이 lookup용) — Difficulty/Brand 토큰 분리 규칙 동형.
     static let ganhoPixelWarning = UIColor(hex: "#FFD23F")
 }
+
+// MARK: - R3 디자인 시스템 v3 "Night Shift" (03_UI §2)
+//
+// 사용 규칙: v3 UI에서 hex 직접 사용 금지 — 반드시 Palette 토큰 경유.
+// SKEffectNode 블러 글로우 금지(성능) — 액센트색 alpha 0.30 사각 1장 (glowAlpha/glowScale).
+// 기존 v2 상수는 무변경 — v3 토큰은 *추가만* (R3 합격 게이트).
+extension Palette {
+    // 잉크 베이스 (다크) — 씬 배경 → 패널 → 카드/버튼 표면 → 눌림 표면 순.
+    /// 씬 배경. ★표 설계서 주장(구 ganhoUIBg)과 달리 코드에 전례 없음 — 신규 값 (SPEC 불일치 기록 2).
+    static let ink900: UIColor = UIColor(hex: "#0F0E15")
+    /// 패널 배경.
+    static let ink800: UIColor = UIColor(hex: "#171A26")
+    /// 카드·버튼 표면.
+    static let ink700: UIColor = UIColor(hex: "#232838")
+    /// 호버/눌림 표면.
+    static let ink600: UIColor = UIColor(hex: "#2E3447")
+    /// 기본 보더 2px.
+    static let line500: UIColor = UIColor(hex: "#3A4154")
+
+    // 텍스트
+    /// 주 텍스트 ★(ganhoPixelHudWhite #FFFCE0 계승).
+    static let textHi: UIColor = UIColor(hex: "#FFFCE0")
+    /// 보조 텍스트.
+    static let textLo: UIColor = UIColor(hex: "#9BA3B8")
+
+    // 액센트 — 코랄(브랜드·위험·hard) / 골드(점수·별·normal) / 민트(성공·심전도·easy) / 바이올렛(스킬·레어·콤보 10+)
+    /// 브랜드·위험·hard ★(ganhoPixelHudCoral 계승).
+    static let coral: UIColor = UIColor(hex: "#FF6E5A")
+    /// coral 하드섀도 ★(ganhoCoralShadow/ganhoPixelHatJung 계승).
+    static let coralDeep: UIColor = UIColor(hex: "#C44A3D")
+    /// 점수·별·normal ★(ganhoPixelHudYellow/ganhoYellowF 계승).
+    static let gold: UIColor = UIColor(hex: "#FFD23F")
+    /// gold 하드섀도.
+    static let goldDeep: UIColor = UIColor(hex: "#B8941F")
+    /// 성공·심전도·easy.
+    static let mint: UIColor = UIColor(hex: "#4ADEC0")
+    /// mint 하드섀도.
+    static let mintDeep: UIColor = UIColor(hex: "#2A9D85")
+    /// 스킬·레어·콤보 10+. 기존 comboAuraViolet(#9B5DE5)와 별개 신규 토큰 — 공존 (SPEC 불일치 기록 3).
+    static let violet: UIColor = UIColor(hex: "#8C7BFF")
+
+    // 글로우 규칙 (03_UI §2) — SKEffectNode 블러 금지: 액센트색 alpha 0.30 사각 1장, 노드 뒤 1.4배.
+    /// 글로우 사각 alpha.
+    static let glowAlpha: CGFloat = 0.30
+    /// 글로우 사각 크기 배율 (노드 대비).
+    static let glowScale: CGFloat = 1.4
+
+    /// 난이도 매핑 (03_UI §2) — easy=mint / normal=gold / hard=coral.
+    /// switch exhaustive — default 금지 (`Palette.character(_:)`와 동형).
+    static func difficulty(_ d: Difficulty) -> UIColor {
+        switch d {
+        case .easy:   return mint
+        case .normal: return gold
+        case .hard:   return coral
+        }
+    }
+}

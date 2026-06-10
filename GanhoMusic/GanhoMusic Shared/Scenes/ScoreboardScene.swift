@@ -500,8 +500,7 @@ final class ScoreboardScene: SKScene {
         } else {
             nextScene = StartScene.newStartScene()
         }
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(nextScene, transition: fade)
+        SceneRouter.present(nextScene, on: view, route: .backward)
     }
 }
 

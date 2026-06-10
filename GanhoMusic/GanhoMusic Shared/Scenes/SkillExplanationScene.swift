@@ -608,8 +608,7 @@ final class SkillExplanationScene: BaseMenuScene {
         guard let view = self.view else { return }
         isTransitioning = true
         let scene = CharacterSelectScene.newCharacterSelectScene()
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(scene, transition: fade)
+        SceneRouter.present(scene, on: view, route: .backward)
     }
 
     /// Sprint 6 — 다음 단계는 GameScene이 아니라 DifficultySelectScene.
@@ -620,7 +619,6 @@ final class SkillExplanationScene: BaseMenuScene {
         let scene = DifficultySelectScene.newDifficultySelectScene(
             characterID: characterID
         )
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(scene, transition: fade)
+        SceneRouter.present(scene, on: view, route: .forward)
     }
 }

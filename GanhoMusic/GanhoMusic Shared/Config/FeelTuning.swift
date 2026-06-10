@@ -12,9 +12,8 @@ import CoreGraphics
 /// 게임필(연출) 튜닝 상수 네임스페이스 — 화면 연출 타이밍·강도·문구·SKAction 키.
 /// case 없는 enum: 인스턴스화 차단 (왜: R2 게임필 튜닝의 단일 진입점 확보).
 enum FeelTuning {
-    // MARK: - Scene Transition (Phase 3-1+2)
-    /// 씬 전환 fade 길이 (초). TitleScene ↔ GameScene 양방향 공용.
-    static let sceneTransitionDuration: TimeInterval = 0.4
+    // (구 sceneTransitionDuration(fade 0.4)은 R3에서 SceneRouter + Motion.sceneTransition(push 0.35)으로
+    //  전면 대체 — 참조 0건 확인 후 삭제. SPEC 불일치 기록 7.)
 
     // MARK: - Airforce Easter Egg (Phase 4-3)
     /// 비행기 좌→우 가로지르기 duration (초). 너무 빠르면 못 보고, 너무 느리면 게임 방해.

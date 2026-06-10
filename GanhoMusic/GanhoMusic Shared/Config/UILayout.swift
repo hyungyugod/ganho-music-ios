@@ -1989,3 +1989,78 @@ enum UILayout {
     /// V10 resultStatAlphaV10(0.45) byte-identical 보존.
     static let resultStatAlpha: CGFloat = 0.75
 }
+
+// MARK: - R3 디자인 시스템 v3 "Night Shift" (03_UI §4·§5)
+//
+// 간격 스케일 + 형태 메트릭. 기존 v2 상수 무변경 — v3 토큰은 *추가만* (R3 합격 게이트).
+// 신규 Pixel 컴포넌트(Nodes/UI/)는 이 토큰만 사용 — 매직 넘버 0.
+extension UILayout {
+    /// 간격 스케일 7단 — 4pt 그리드 (03_UI §4).
+    enum Space {
+        static let s4: CGFloat = 4
+        static let s8: CGFloat = 8
+        static let s12: CGFloat = 12
+        static let s16: CGFloat = 16
+        static let s24: CGFloat = 24
+        static let s32: CGFloat = 32
+        static let s48: CGFloat = 48
+    }
+
+    // MARK: v3 형태 메트릭 (03_UI §4)
+    /// 기본 보더 두께 (line500). 강조 시 액센트색 — 두께는 동일.
+    static let v3BorderWidth: CGFloat = 2
+    /// 하드섀도 오프셋 — 우하단 (x+0, y-3) 단색 Deep 계열, 블러 0.
+    static let v3HardShadowOffset: CGVector = CGVector(dx: 0, dy: -3)
+    /// 패널 코너 반경 — 픽셀 컨셉 직각 기본, *패널만* 4pt 라운드 허용.
+    static let v3PanelCornerRadius: CGFloat = 4
+    /// 최소 터치 영역 한 변 (시각 높이가 작아도 히트 영역 확장).
+    static let v3MinTouchSide: CGFloat = 44
+    /// 화면 가장자리 여백 (+safe area).
+    static let v3ScreenEdgeInset: CGFloat = 24
+    /// 요소 간 최소 간격.
+    static let v3MinElementGap: CGFloat = 12
+
+    // MARK: v3 버튼 (03_UI §5 PixelButtonNode)
+    /// 눌림 시 콘텐츠 y 하강 거리 (pt). 섀도는 고정 — 시각 오프셋 3→1 자동 성립.
+    static let v3ButtonPressOffsetY: CGFloat = 2
+    /// 눌림 시 섀도 시각 오프셋 (pt) = |하드섀도 y(-3)| − 눌림 하강(2).
+    static let v3ButtonPressedShadowGap: CGFloat = 1
+
+    // MARK: v3 진행바 (03_UI §5 PixelProgressBarNode)
+    /// 세그먼트 블록 폭 (px).
+    static let v3ProgressSegmentWidth: CGFloat = 8
+    /// 세그먼트 간격 (px).
+    static let v3ProgressSegmentGap: CGFloat = 1
+
+    // MARK: v3 카드 (03_UI §5 PixelCardNode)
+    /// 선택 시 카드 확대 배율 (easeOutBack 0.18s — FeelTuning.Motion.cardSelect).
+    static let v3CardSelectedScale: CGFloat = 1.04
+
+    // MARK: v3 다이얼로그 (03_UI §5 PixelDialogNode)
+    /// 풀스크린 딤 alpha (ink900).
+    static let v3DialogDimAlpha: CGFloat = 0.6
+
+    // MARK: v3 칩 (설계서 외 보조 수치 — SPEC 주의사항 9 재량)
+    /// 칩 높이 (caption 13pt + 상하 여백).
+    static let v3ChipHeight: CGFloat = 24
+    /// 칩 좌우 패딩 (Space.s8과 동치 — 의미 분리 토큰).
+    static let v3ChipPaddingX: CGFloat = 8
+    /// 칩 아이콘 슬롯 ↔ 텍스트 간격.
+    static let v3ChipIconGap: CGFloat = 4
+
+    // MARK: v3 픽셀 디졸브 (03_UI §9 — SceneRouter intoGame)
+    /// 디졸브 체커 블록 한 변 (pt) — "8px 블록 체커 페이드".
+    static let v3DissolveBlockSide: CGFloat = 8
+
+    // MARK: v3 공통 배경 (03_UI §4 NightShiftBackdropNode)
+    /// 스타필드 점 개수.
+    static let v3BackdropStarCount: Int = 40
+    /// 스타필드 점 한 변 (px).
+    static let v3BackdropStarSide: CGFloat = 2
+    /// 하단 심전도 라인 alpha (mint).
+    static let v3BackdropEKGAlpha: CGFloat = 0.12
+    /// 심전도 라인의 화면 하단으로부터의 y 오프셋 (pt) — 보조 수치 재량.
+    static let v3BackdropEKGBottomOffset: CGFloat = 56
+    /// 심전도 라인 두께 (px) — 픽셀 톤 2px 통일.
+    static let v3BackdropEKGLineWidth: CGFloat = 2
+}

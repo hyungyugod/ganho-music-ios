@@ -57,6 +57,17 @@
 		AB20F1B00000000000000007 /* FeelTuning+R2.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000007 /* FeelTuning+R2.swift */; };
 		AB20F1B00000000000000008 /* TextureAtlasStore+R2.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000008 /* TextureAtlasStore+R2.swift */; };
 		AB20F1B00000000000000009 /* TextureAtlasStore+Props.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB20F1A00000000000000009 /* TextureAtlasStore+Props.swift */; };
+		AB30F1B00000000000000001 /* FeelTuning+R3.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000001 /* FeelTuning+R3.swift */; };
+		AB30F1B00000000000000002 /* SceneRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000002 /* SceneRouter.swift */; };
+		AB30F1B00000000000000003 /* PixelKitGalleryScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */; };
+		AB30F1B00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift */; };
+		AB30F1B00000000000000005 /* PixelPanelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000005 /* PixelPanelNode.swift */; };
+		AB30F1B00000000000000006 /* PixelButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000006 /* PixelButtonNode.swift */; };
+		AB30F1B00000000000000007 /* PixelChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000007 /* PixelChipNode.swift */; };
+		AB30F1B00000000000000008 /* PixelProgressBarNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000008 /* PixelProgressBarNode.swift */; };
+		AB30F1B00000000000000009 /* PixelCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A00000000000000009 /* PixelCardNode.swift */; };
+		AB30F1B0000000000000000A /* PixelDialogNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A0000000000000000A /* PixelDialogNode.swift */; };
+		AB30F1B0000000000000000B /* NightShiftBackdropNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */; };
 		A1C0F1B00000000000000031 /* ComboPopupNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000031 /* ComboPopupNode.swift */; };
 		A1C0F1B00000000000000088 /* MilestoneBannerNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */; };
 		A1C0F1B00000000000000032 /* ComboBreakNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000032 /* ComboBreakNode.swift */; };
@@ -196,6 +207,17 @@
 		AB20F1A00000000000000007 /* FeelTuning+R2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R2.swift"; sourceTree = "<group>"; };
 		AB20F1A00000000000000008 /* TextureAtlasStore+R2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextureAtlasStore+R2.swift"; sourceTree = "<group>"; };
 		AB20F1A00000000000000009 /* TextureAtlasStore+Props.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextureAtlasStore+Props.swift"; sourceTree = "<group>"; };
+		AB30F1A00000000000000001 /* FeelTuning+R3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R3.swift"; sourceTree = "<group>"; };
+		AB30F1A00000000000000002 /* SceneRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneRouter.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelKitGalleryScene.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+Transition.swift"; sourceTree = "<group>"; };
+		AB30F1A00000000000000005 /* PixelPanelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPanelNode.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000006 /* PixelButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelButtonNode.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000007 /* PixelChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelChipNode.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000008 /* PixelProgressBarNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelProgressBarNode.swift; sourceTree = "<group>"; };
+		AB30F1A00000000000000009 /* PixelCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCardNode.swift; sourceTree = "<group>"; };
+		AB30F1A0000000000000000A /* PixelDialogNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelDialogNode.swift; sourceTree = "<group>"; };
+		AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightShiftBackdropNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000031 /* ComboPopupNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboPopupNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000088 /* MilestoneBannerNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneBannerNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000032 /* ComboBreakNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComboBreakNode.swift; sourceTree = "<group>"; };
@@ -306,6 +328,9 @@
 				"GameScene+Layout.swift",
 				"GameScene+MovementInput.swift",
 				"GameScene+Setup.swift",
+				"Resources/Fonts/Galmuri11.ttf",
+				"Resources/Fonts/Galmuri14.ttf",
+				"Resources/Fonts/Galmuri9.ttf",
 				"Resources/Fonts/GowunDodum-Regular.ttf",
 				"Resources/Fonts/Jua-Regular.ttf",
 				"Resources/Fonts/NotoSansKR-Bold.ttf",
@@ -424,6 +449,7 @@
 				C0F1A0DE0000000000000001 /* GameplayTuning.swift */,
 				C0F1A0DE0000000000000002 /* FeelTuning.swift */,
 				AB20F1A00000000000000007 /* FeelTuning+R2.swift */,
+				AB30F1A00000000000000001 /* FeelTuning+R3.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -504,6 +530,7 @@
 				A1C0F1A0000000000000007F /* MidCutsceneNode.swift */,
 				A1C0F1A00000000000000080 /* IntroVillainCutsceneNode.swift */,
 				A1C0F1A00000000000000082 /* TensionVignetteNode.swift */,
+				AB30F1C00000000000000001 /* UI */,
 			);
 			name = Nodes;
 			path = "GanhoMusic Shared/Nodes";
@@ -534,6 +561,8 @@
 				A1C0F1A00000000000000052 /* SkillExplanationScene.swift */,
 				A1C0F1A00000000000000072 /* DifficultySelectScene.swift */,
 				A1C0F1A00000000000000074 /* ScoreboardScene.swift */,
+				AB30F1A00000000000000002 /* SceneRouter.swift */,
+				AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */,
 			);
 			name = Scenes;
 			path = "GanhoMusic Shared/Scenes";
@@ -619,6 +648,21 @@
 			path = "GanhoMusic Shared/Core";
 			sourceTree = "<group>";
 		};
+		AB30F1C00000000000000001 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				AB30F1A00000000000000005 /* PixelPanelNode.swift */,
+				AB30F1A00000000000000006 /* PixelButtonNode.swift */,
+				AB30F1A00000000000000007 /* PixelChipNode.swift */,
+				AB30F1A00000000000000008 /* PixelProgressBarNode.swift */,
+				AB30F1A00000000000000009 /* PixelCardNode.swift */,
+				AB30F1A0000000000000000A /* PixelDialogNode.swift */,
+				AB30F1A0000000000000000B /* NightShiftBackdropNode.swift */,
+			);
+			name = UI;
+			path = UI;
+			sourceTree = "<group>";
+		};
 		A1C0F2000000000000000019 /* Rendering */ = {
 			isa = PBXGroup;
 			children = (
@@ -635,6 +679,7 @@
 			children = (
 				C75D46202FA627C10016BB86 /* GanhoMusic Shared */,
 				A1C0F1A00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift */,
+				AB30F1A00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift */,
 				A1C0F1500000000000000000 /* Config */,
 				A1C0F1570000000000000007 /* Nodes */,
 				A1C0F1C00000000000000012 /* Scenes */,
@@ -867,6 +912,17 @@
 				A1C0F1B00000000000000028 /* SparkleEffectNode.swift in Sources */,
 				A1C0F1B00000000000000029 /* HitFlashNode.swift in Sources */,
 				AB20F1B00000000000000001 /* Tween.swift in Sources */,
+				AB30F1B00000000000000001 /* FeelTuning+R3.swift in Sources */,
+				AB30F1B00000000000000002 /* SceneRouter.swift in Sources */,
+				AB30F1B00000000000000003 /* PixelKitGalleryScene.swift in Sources */,
+				AB30F1B00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift in Sources */,
+				AB30F1B00000000000000005 /* PixelPanelNode.swift in Sources */,
+				AB30F1B00000000000000006 /* PixelButtonNode.swift in Sources */,
+				AB30F1B00000000000000007 /* PixelChipNode.swift in Sources */,
+				AB30F1B00000000000000008 /* PixelProgressBarNode.swift in Sources */,
+				AB30F1B00000000000000009 /* PixelCardNode.swift in Sources */,
+				AB30F1B0000000000000000A /* PixelDialogNode.swift in Sources */,
+				AB30F1B0000000000000000B /* NightShiftBackdropNode.swift in Sources */,
 				AB20F1B00000000000000002 /* HitstopController.swift in Sources */,
 				AB20F1B00000000000000003 /* CameraDirector.swift in Sources */,
 				AB20F1B00000000000000004 /* EffectDirector.swift in Sources */,

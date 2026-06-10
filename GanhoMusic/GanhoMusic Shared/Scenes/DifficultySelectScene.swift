@@ -561,16 +561,15 @@ final class DifficultySelectScene: BaseMenuScene {
     private func transitionBack() {
         guard let view = self.view else { return }
         isTransitioning = true
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
         switch characterID {
         case .kim:
             let scene = CharacterSelectScene.newCharacterSelectScene()
-            view.presentScene(scene, transition: fade)
+            SceneRouter.present(scene, on: view, route: .backward)
         case .jung, .geon, .im, .lee:
             let scene = SkillExplanationScene.newSkillExplanationScene(
                 characterID: characterID
             )
-            view.presentScene(scene, transition: fade)
+            SceneRouter.present(scene, on: view, route: .backward)
         }
     }
 
@@ -583,7 +582,6 @@ final class DifficultySelectScene: BaseMenuScene {
             characterID: characterID,
             difficulty: selectedDifficulty
         )
-        let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-        view.presentScene(gameScene, transition: fade)
+        SceneRouter.present(gameScene, on: view, route: .intoGame)
     }
 }

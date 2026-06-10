@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreGraphics
+import UIKit   // R3 — v3 폰트 fallback 해석(UIFont 존재 검사). 합격 기준상 유일 허용 기존 줄 인접 추가.
 
 /// 전역 타이포그래피 토큰 — 폰트 패밀리 이름과 라벨 스케일 한계.
 /// case 없는 enum: 인스턴스화 차단 (왜: 폰트 교체를 한 줄 변경으로 봉인).
@@ -54,4 +55,77 @@ enum Typography {
     /// 인게임 픽셀 톤 폰트(Menlo-Bold). pixelOverlayFontName/pixelCutsceneFontName와 동일 값이나
     /// *의미 분리* — HUD/이펙트 lookup 전용 별도 상수. 미래 PressStart2P 도입 시 한 줄 교체 안전.
     static let fontPixel: String = "Menlo-Bold"
+}
+
+// MARK: - R3 디자인 시스템 v3 "Night Shift" (03_UI §3)
+//
+// 픽셀 한글 폰트 Galmuri 도입 + fallback 체인. 기존 v2 상수(fontDisplay/fontBody/…)는 무변경.
+// 인게임 HUD의 Menlo→Galmuri 교체는 R7로 이연 (SPEC 불일치 기록 9) — R3는 토큰 정의까지만.
+extension Typography {
+    /// v3 타입 토큰 — 토큰당 (fontName, size). 폰트 이름은 앱 수명 동안 정적 1회 해석.
+    enum V3 {
+        /// (폰트 이름, 크기) 쌍 — SKLabelNode(fontNamed: token.fontName) + fontSize = token.size.
+        struct Token {
+            let fontName: String
+            let size: CGFloat
+        }
+
+        // 03_UI §3 표 그대로 — 7토큰.
+        /// 씬 타이틀·verdict (Galmuri14 44pt).
+        static let display = Token(fontName: galmuri14, size: 44)
+        /// 카드 제목·점수 (Galmuri14 30pt).
+        static let h1 = Token(fontName: galmuri14, size: 30)
+        /// 섹션 제목 (Galmuri11 22pt).
+        static let h2 = Token(fontName: galmuri11, size: 22)
+        /// 본문·버튼 (Galmuri11 17pt).
+        static let body = Token(fontName: galmuri11, size: 17)
+        /// 칩·메타 (Galmuri9 13pt).
+        static let caption = Token(fontName: galmuri9, size: 13)
+        /// 긴 설명문 예외 — 스킬 인용문 등 2줄+ (GowunDodum 16pt). 체인 불필요 — 번들 보장 폰트.
+        static let prose = Token(fontName: Typography.fontBody, size: 16)
+        /// 인게임 점수 (Galmuri14 40pt). 실제 HUD 배선은 R7.
+        static let hudScore = Token(fontName: galmuri14, size: 40)
+
+        /// 줄간 — 폰트 크기 × 1.45 (03_UI §3).
+        static let lineHeightMultiplier: CGFloat = 1.45
+
+        // MARK: fallback 해석 (03_UI §3 — Galmuri → DungGeunMo → 번들 보장 폰트)
+        // PostScript 이름은 2026-06-10 quiple/galmuri dist ttf에서 실측: "Galmuri14-Regular" 등
+        // (full name "Galmuri14 Regular"). 최종 단계 Jua-Regular는 번들 보장 — 시스템 폰트 노출 0 (§11).
+
+        /// Galmuri14 계열 해석 결과 (display/h1/hudScore).
+        static let galmuri14: String = resolveFontName(
+            candidates: ["Galmuri14-Regular", "Galmuri14", "DungGeunMo"],
+            bundleGuaranteedFallback: Typography.fontDisplay
+        )
+        /// Galmuri11 계열 해석 결과 (h2/body).
+        static let galmuri11: String = resolveFontName(
+            candidates: ["Galmuri11-Regular", "Galmuri11", "DungGeunMo"],
+            bundleGuaranteedFallback: Typography.fontDisplay
+        )
+        /// Galmuri9 계열 해석 결과 (caption).
+        static let galmuri9: String = resolveFontName(
+            candidates: ["Galmuri9-Regular", "Galmuri9", "DungGeunMo"],
+            bundleGuaranteedFallback: Typography.fontDisplay
+        )
+
+        /// UIFont 존재 검사용 임시 크기 — 어떤 양수든 동작(이름 조회 목적).
+        private static let fontProbeSize: CGFloat = 17
+
+        /// 후보를 순서대로 UIFont(name:size:) 검사해 첫 가용 이름 채택 — 정적 1회 해석.
+        /// 전부 실패 시 번들 보장 폰트로 종착 (시스템 폰트 노출 없음 — §11).
+        private static func resolveFontName(candidates: [String],
+                                            bundleGuaranteedFallback: String) -> String {
+            for name in candidates where UIFont(name: name, size: fontProbeSize) != nil {
+                #if DEBUG
+                print("[Typography.V3] 폰트 해석: \(candidates.first ?? "?") → \(name)")
+                #endif
+                return name
+            }
+            #if DEBUG
+            print("[Typography.V3] 폰트 해석 실패 — fallback: \(bundleGuaranteedFallback)")
+            #endif
+            return bundleGuaranteedFallback
+        }
+    }
 }

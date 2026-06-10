@@ -575,8 +575,7 @@ final class StartScene: BaseMenuScene {
             let nextScene = CharacterSelectScene.newCharacterSelectScene(
                 openProfileOnEntry: openProfileOnEntry
             )
-            let fade = SKTransition.fade(withDuration: FeelTuning.sceneTransitionDuration)
-            view.presentScene(nextScene, transition: fade)
+            SceneRouter.present(nextScene, on: view, route: .forward)
         }
         run(SKAction.sequence([wait, present]))
 
