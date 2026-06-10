@@ -21,6 +21,14 @@ final class ScoreSystem {
     /// `recordCharmedNoteHit`(매혹 F 변환)은 카운트 제외 — 콤보 시스템(recordNoteHit)을 경유한
     /// "음표 수집"만 센다. 매혹 변환은 콤보 0 점수 전용 경로라 음표 수집으로 보지 않는다.
     private(set) var notesCollected: Int = 0
+    /// R6 §F9 — 콤보 윈도우 만료로 콤보가 0으로 끊긴 횟수 (표시·메타 전용, 점수·콤보 로직 분기 0).
+    /// tickComboExpiry의 0화 시점에서만 +1 — F 피격 경로는 즉시 게임 종료라 본 카운터 비대상.
+    private(set) var comboBreaks: Int = 0
+    /// R6 §F9 — 이번 판 변기 보너스 수집 수 (toilet_maniac 업적 판정 전용).
+    private(set) var toiletsCollected: Int = 0
+    /// R6 §F7 황금 변기 — 변기 점수 가산 배율 (기본 1 = 기존 동작 byte-동일).
+    /// 설정값이라 reset() 비대상 — GameScene이 모디파이어 배선 시 1회 set.
+    var toiletScoreScale: Int = 1
     /// 마지막 수집 시각. 콤보 윈도우 만료 검사에 사용. 0 = "아직 수집 0건".
     private var lastCollectAt: TimeInterval = 0
 
@@ -55,6 +63,7 @@ final class ScoreSystem {
     func tickComboExpiry(currentTime: TimeInterval) {
         if combo > 0, currentTime - lastCollectAt > GameplayTuning.comboWindow {
             combo = 0
+            comboBreaks += 1   // R6 — 끊김 카운트 (full_combo_graduation 판정 전용, 로직 분기 0)
         }
     }
 
@@ -77,14 +86,26 @@ final class ScoreSystem {
     func recordToiletBonus(at now: TimeInterval) -> [Int] {
         let firstGain = recordNoteHit(at: now)
         let secondGain = recordNoteHit(at: now)
+        toiletsCollected += 1   // R6 — 변기 수집 카운트 (표시·메타 전용)
+        // R6 §F7 황금 변기 배율 훅 (SPEC 승인 — 본 함수의 "직접 score set 금지" 원칙의 명시 예외):
+        // 콤보 증가는 recordNoteHit 2회 그대로(기존 +2 유지), *점수 가산분만* (scale-1)배 추가.
+        // 기본 scale=1이면 아래 분기 미진입 — 기존 동작 byte-동일.
+        if toiletScoreScale > 1 {
+            let extra = (firstGain + secondGain) * (toiletScoreScale - 1)
+            score += extra
+            return [firstGain * toiletScoreScale, secondGain * toiletScoreScale]
+        }
         return [firstGain, secondGain]
     }
 
     /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).
+    /// toiletScoreScale은 설정값이라 비대상 (모디파이어 배선이 씬 수명과 동행).
     func reset() {
         score = 0
         combo = 0
         notesCollected = 0
+        comboBreaks = 0
+        toiletsCollected = 0
         lastCollectAt = 0
     }
 }

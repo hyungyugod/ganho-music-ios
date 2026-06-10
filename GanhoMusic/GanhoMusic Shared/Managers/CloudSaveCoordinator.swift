@@ -95,7 +95,18 @@ final class CloudSaveCoordinator {
             let graduationRepository = GraduationRepository.scoped(scope: scope)
             let didMergeScores = scoreRepository.mergeMax(progress.typedPerDifficultyScores)
             let didMergeGraduations = graduationRepository.mergeEarliest(progress.typedGraduations)
-            return didMergeScores || didMergeGraduations ? .merged : .skipped
+            // R6 §F4 — 메타 머지: 별 셀 max / 업적 합집합(이른 날짜) / 일일 합집합 / 카운터 max.
+            // 실패해도 로컬 우선 — meta 부재(구버전 문서)는 nil 분기로 자연 skip.
+            let metaRepository = MetaProgressRepository.scoped(scope: scope)
+            metaRepository.ensureMigrated()
+            var didMergeMeta = false
+            if let cloudMeta = progress.meta {
+                didMergeMeta = metaRepository.merge(cloudMeta: cloudMeta)
+            }
+            // 머지 후 점수 기반 별 재파생 max 1회 (§F2 갱신 지점 ② — 클라우드 신점수 → 별 동기).
+            let didReapplyStars = metaRepository.reapplyStarRatchet(scores: scoreRepository.current)
+            return didMergeScores || didMergeGraduations || didMergeMeta || didReapplyStars
+                ? .merged : .skipped
         } catch {
             return .failed
         }
@@ -133,7 +144,8 @@ final class CloudSaveCoordinator {
             highScore: HighScoreRepository().current,
             stats: StatisticsRepository().current,
             perDifficultyScores: PerDifficultyScoreRepository.scoped(scope: scope).current,
-            graduations: GraduationRepository.scoped(scope: scope).current
+            graduations: GraduationRepository.scoped(scope: scope).current,
+            meta: MetaProgressRepository.scoped(scope: scope).cloudMeta()   // R6 §F4
         )
     }
 }

@@ -193,7 +193,10 @@ extension GameScene {
 
         perDiffRepo.record(characterID: characterID, difficulty: difficulty, score: score)
         var isNewGraduation = false
-        if GameScene.isGraduated(characterID: characterID, scores: perDiffRepo) {
+        // R6 — 졸업 판정도 effectiveTarget 경유 (음표 러시 판에서 "유급" verdict + 졸업장 모순 차단).
+        if GameScene.isGraduated(characterID: characterID, scores: perDiffRepo,
+                                 effectiveTarget: effectiveTargetScore,
+                                 playedDifficulty: difficulty) {
             isNewGraduation = graduationRepo.record(characterID: characterID, date: Date())
         }
         let graduatedAt = graduationRepo.graduatedAt(characterID: characterID)
@@ -210,7 +213,8 @@ extension GameScene {
             highScore: bestScore,
             stats: stats,
             perDifficultyScores: perDiffRepo.current,
-            graduations: graduationRepo.current
+            graduations: graduationRepo.current,
+            meta: metaRepo.cloudMeta()   // R6 §F4 — 이번 판 메타는 다음 flush/sync가 운반 (SPEC 순서 계약)
         )
         Task {
             await CloudSaveCoordinator.shared.saveGameResult(
@@ -218,6 +222,23 @@ extension GameScene {
                 progress: cloudProgress
             )
         }
+        // R6 §F9 — 기존 저장 5종(highScore→stats→perDiff→graduation→cloud) *직후* 메타 기록 1회.
+        // 즉시 실행 구간 — 0.9s 지연 블록 밖 (앱 강제 종료 시 유실 방지, SPEC §주의사항 3).
+        let runSummary = RunSummary(
+            characterID: characterID,
+            difficulty: difficulty,
+            score: score,
+            maxCombo: maxComboThisRun,
+            comboBreaks: scoreSystem.comboBreaks,
+            notesCollected: scoreSystem.notesCollected,
+            toiletsCollected: scoreSystem.toiletsCollected,
+            skillActivations: skillSystem.activationCount,
+            sergeantParkAppeared: sergeantParkDebuted || airforceTriggered,
+            dailyModifier: dailyModifier,
+            effectiveTarget: effectiveTargetScore,
+            playedDayKey: DailyChallenge.todayKey()
+        )
+        let runMeta = metaRepo.recordRun(runSummary)
         // R5 — characterID 직접 전달(역추론 우회 소멸) + maxCombo/notesCollected 추가 (§7 칩 2개).
         let resultScene = ResultScene.newResultScene(
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
@@ -226,7 +247,8 @@ extension GameScene {
             maxCombo: maxComboThisRun,
             notesCollected: scoreSystem.notesCollected,
             isNewGraduation: isNewGraduation,
-            graduatedAt: graduatedAt
+            graduatedAt: graduatedAt,
+            runMeta: runMeta
         )
         // R2 — 게임오버 연출 지연 전환 (SPEC §문서-코드 불일치 7): 저장/클라우드/Result 파라미터
         // 로직은 위에서 전부 즉시 수행(0줄 변경) — presentScene만 0.9s 지연.
@@ -239,11 +261,16 @@ extension GameScene {
         cameraNode.run(.sequence([wait, present]))
     }
 
+    /// R6 — 이번 판 난이도는 effectiveTarget(음표 러시 ×1.3 포함)으로 판정, 나머지는 라이브 목표.
+    /// 일반 판은 effectiveTarget == 라이브 목표라 기존 로직과 byte-동일 (max는 방어적).
     private static func isGraduated(characterID: CharacterID,
-                                    scores repo: PerDifficultyScoreRepository) -> Bool {
+                                    scores repo: PerDifficultyScoreRepository,
+                                    effectiveTarget: Int,
+                                    playedDifficulty: Difficulty) -> Bool {
         let targets = GameplayTuning.targetScoreByDifficulty
         for difficulty in Difficulty.allCases {
-            let target = targets[difficulty] ?? Int.max
+            let base = targets[difficulty] ?? Int.max
+            let target = difficulty == playedDifficulty ? max(base, effectiveTarget) : base
             if repo.best(characterID: characterID, difficulty: difficulty) < target {
                 return false
             }

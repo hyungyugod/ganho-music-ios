@@ -45,10 +45,16 @@ extension CharacterSelectScene {
         defaults.set(true, forKey: scope.migrationStorageKey)
     }
 
+    /// R6 §F3 — 언락 판정용 총 별 (보유 별 0~45). 호출 시점 1회 읽기 — setup 경로 전용.
+    func currentTotalStarsForUnlock() -> Int {
+        return MetaProgressRepository.scoped(scope: accountScope).totalStars
+    }
+
     func rebuildUnlockStates() {
         unlockStates = CharacterUnlockRules.states(
             graduations: graduationRepo.current,
-            scores: perDifficultyScoreRepo.current
+            scores: perDifficultyScoreRepo.current,
+            totalStars: currentTotalStarsForUnlock()   // R6 — 별 기반 OR 합류
         )
     }
 
@@ -58,7 +64,8 @@ extension CharacterSelectScene {
         }
         let fallback = CharacterUnlockRules.firstUnlockedCharacter(
             graduations: graduationRepo.current,
-            scores: perDifficultyScoreRepo.current
+            scores: perDifficultyScoreRepo.current,
+            totalStars: currentTotalStarsForUnlock()
         )
         preferenceRepo.save(fallback)
         return fallback
@@ -116,7 +123,8 @@ extension CharacterSelectScene {
             ?? CharacterUnlockRules.state(
                 for: characterID,
                 graduations: graduationRepo.current,
-                scores: perDifficultyScoreRepo.current
+                scores: perDifficultyScoreRepo.current,
+                totalStars: currentTotalStarsForUnlock()
             )
         let records = Difficulty.allCases.map { difficulty in
             CharacterHomeSnapshot.Record(

@@ -76,6 +76,8 @@ class GameScene: SKScene {
     let accountScope: AccountProgressScope
     let perDiffRepo: PerDifficultyScoreRepository
     let graduationRepo: GraduationRepository
+    // R6 §F2/F9 — 메타 영속 계층 (perDiffRepo와 동일 스코프). endGame 1회만 기록 — update 경로 I/O 0.
+    let metaRepo: MetaProgressRepository
     let haptics = HapticsManager()              // Phase 6-1 / R2 — CoreHaptics v2 + UIImpact 폴백
     let synth   = ChiptuneSynth.shared          // R2 — 칩튠 SFX 신스 (구 AudioManager 시스템 사운드 전폐)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
@@ -141,19 +143,34 @@ class GameScene: SKScene {
     /// 노드/시스템 apply(_:) 호출에 사용. 한 판 안에서 불변(`let`).
     /// macOS/tvOS GameViewController 호출은 default 인자(`.easy`)로 자동 호환 → 회귀 0.
     let difficulty: Difficulty
+    /// R6 §F7 — 이번 판 일일 모디파이어. nil = 일반 판 (기존 동작 byte-동일). 한 판 안에서 불변(`let`).
+    /// factory 기본 인자가 DailyChallengeSession에서 해석 — 명시 주입 가능 형태 유지 (테스트·부팅 분기).
+    let dailyModifier: DailyModifier?
+
+    /// R6 §F1/F7 — 이번 판 실효 목표의 *단일 공급점*. 음표 러시면 ×1.3 ceil, 아니면 라이브 목표.
+    /// 마일스톤 배너·졸업 판정·RunSummary·ResultScene verdict가 전부 이 값 경유 (모순 0 계약).
+    var effectiveTargetScore: Int {
+        let base = GameplayTuning.targetScoreByDifficulty[difficulty]
+            ?? GameplayTuning.targetScoreByDifficultyFallback
+        guard dailyModifier == .noteRush else { return base }
+        return Int((Double(base) * MetaTuning.noteRushTargetMultiplier).rounded(.up))
+    }
 
     // MARK: - Init
     /// Phase 7-1 — characterID + difficulty 주입형 init. newGameScene factory가 호출.
     /// Swift 규칙: stored property(`self.characterID`/`self.difficulty`) 초기화 → 그 다음 `super.init`.
-    init(size: CGSize, characterID: CharacterID, difficulty: Difficulty) {
+    init(size: CGSize, characterID: CharacterID, difficulty: Difficulty,
+         dailyModifier: DailyModifier? = nil) {
         self.characterID = characterID
         self.difficulty = difficulty
+        self.dailyModifier = dailyModifier
         let scope = AccountProgressScopeProvider.current(
             authProfile: AuthProfileRepository().current
         )
         self.accountScope = scope
         self.perDiffRepo = PerDifficultyScoreRepository.scoped(scope: scope)
         self.graduationRepo = GraduationRepository.scoped(scope: scope)
+        self.metaRepo = MetaProgressRepository.scoped(scope: scope)
         super.init(size: size)
     }
 
@@ -163,8 +180,14 @@ class GameScene: SKScene {
 
     // MARK: - Factory
     /// Phase 7-1 — characterID + difficulty 둘 다 default 인자. TitleScene만 두 인자 모두 명시 → 회귀 0.
-    class func newGameScene(characterID: CharacterID = .kim, difficulty: Difficulty = .easy) -> GameScene {
-        let scene = GameScene(size: CGSize(width: 1024, height: 768), characterID: characterID, difficulty: difficulty)
+    /// R6 — dailyModifier 기본 인자 = DailyChallengeSession 경유 (armed 상태·dayKey 검증 자동).
+    /// macOS/tvOS의 무인자 newGameScene() 호출도 기본 인자로 그대로 호환 (SPEC §주의사항 6).
+    /// 재도전(retry)도 같은 factory 경유라 armed 상태가 자연 유지 — 자정 경과 시 자동 해제.
+    class func newGameScene(characterID: CharacterID = .kim,
+                            difficulty: Difficulty = .easy,
+                            dailyModifier: DailyModifier? = DailyChallengeSession.shared.activeModifier()) -> GameScene {
+        let scene = GameScene(size: CGSize(width: 1024, height: 768), characterID: characterID,
+                              difficulty: difficulty, dailyModifier: dailyModifier)
         scene.scaleMode = .resizeFill   // Phase 1-3 핫픽스: scene size를 view 크기에 자동 맞춤 — D-Pad가 viewport 안에 들어오게 함
         return scene
     }
@@ -186,6 +209,7 @@ class GameScene: SKScene {
         setupRunButton()     // Sprint 11 — SkillButton 왼쪽 hold-to-run 버튼
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
         setupPauseButton()   // Sprint 3 — PauseButtonNode를 cameraNode 우상단에 (시각 placeholder)
+        setupDailyModifier() // R6 §F7 — 모디파이어 배선 (속도/쿨다운/배율/비네트/HUD 표식). nil이면 noop
         #if DEBUG
         setupFrameStats()    // R1 — DEBUG 전용 진단 라벨 (릴리즈 빌드 코드·노드 0)
         #endif
@@ -437,8 +461,8 @@ class GameScene: SKScene {
     /// 각 마일스톤은 멱등 Bool로 한 판 1회만 spawn(가드 통과 시에만 addChild → 매 프레임 생성 0).
     /// A/B는 독립 `if`라 같은 프레임 동시 충족 시에도 둘 다 안전하게 발화(겹쳐도 자가 소멸).
     private func updateScoreMilestoneBanners() {
-        let target = GameplayTuning.targetScoreByDifficulty[difficulty]
-            ?? GameplayTuning.targetScoreByDifficultyFallback
+        // R6 — 음표 러시 판은 실효 목표(×1.3) 경유 — 배너 문구와 verdict 기준 일치 (단일 공급점).
+        let target = effectiveTargetScore
         let score = scoreSystem.score
         // A(절반): ceil(target/2). target ≥ 40이라 항상 절반 < (target-10) → A가 먼저.
         let halfThreshold = Int((Double(target) / 2.0).rounded(.up))

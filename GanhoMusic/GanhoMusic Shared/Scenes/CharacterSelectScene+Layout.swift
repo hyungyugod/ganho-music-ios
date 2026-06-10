@@ -60,7 +60,8 @@ extension CharacterSelectScene {
                 ?? CharacterUnlockRules.state(
                     for: id,
                     graduations: graduationRepo.current,
-                    scores: perDifficultyScoreRepo.current
+                    scores: perDifficultyScoreRepo.current,
+                    totalStars: currentTotalStarsForUnlock()   // R6 §F3 — 별 기반 OR 합류
                 )
             let card = PixelCharacterCardNode(
                 characterID: id,

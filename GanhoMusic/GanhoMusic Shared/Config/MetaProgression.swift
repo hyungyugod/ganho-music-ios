@@ -2,10 +2,10 @@
 //  MetaProgression.swift
 //  GanhoMusic Shared
 //
-//  R5 — 메타 진행(별·레벨·칭호) 표시 전용 파생 함수. R6 메타 시스템의 선행 기반.
-//  수치는 02_GAME_FEEL §7-1(별 임계)·§7-2(레벨 테이블) 표를 byte-수치 그대로 복사 — 임의 변경 금지.
-//  R5는 영속화 0 — 별/레벨은 기존 저장값(PerDifficultyScore·GameStats.totalScore)에서 순수 파생만.
-//  UserDefaults 신규 키 0개 (불변 조건 2). R6가 이 표·함수를 그대로 소비하고 영속화만 추가한다.
+//  R5 — 메타 진행(별·레벨·칭호) 표시 전용 파생 함수. R6 메타 시스템의 기반.
+//  R6 §F1 retune — 별 임계를 절대 수치 표에서 라이브 목표 점수 *파생식*으로 전환:
+//  "★1 = 목표"(02 §7-1 표 헤더 불변 의도)가 절대 수치보다 우선 — verdict/★ 모순 0 (R5 P2-2 해소).
+//  레벨 테이블(§7-2)은 byte-수치 그대로 무변경. XP 정의 = GameStats.totalScore 현행 유지.
 //
 
 import CoreGraphics
@@ -14,31 +14,43 @@ import Foundation
 /// 메타 진행 파생 네임스페이스. case 없는 enum — 인스턴스화 차단.
 enum MetaProgression {
 
-    // MARK: - 별 임계 (02 §7-1 표 그대로)
+    // MARK: - 별 임계 (R6 §F1 — 목표 파생식. 결과: easy 70/91/112 · normal 50/65/80 · hard 40/52/64)
 
-    /// 난이도별 (★1, ★★2, ★★★3) 임계 점수. switch exhaustive — default 금지.
-    /// ⚠️ 문서-코드 불일치 (구현 시 발견 — SELF_CHECK 기재): 02 §7-1의 ★1(=목표)은
-    /// easy 60 / normal 50 / hard 30이지만 라이브 `GameplayTuning.targetScoreByDifficulty`는
-    /// easy 70 / normal 50 / hard 40. SPEC §주의사항 7("기존 라이브 상수 값 변경 0")에 따라
-    /// 라이브 목표는 불변이며, 본 표는 설계서 수치를 그대로 채택한다 — 정합은 R6 튜닝 결정 사항.
-    static func starThresholds(for difficulty: Difficulty) -> (one: Int, two: Int, three: Int) {
-        switch difficulty {
-        case .easy:   return (one: 60, two: 78, three: 96)
-        case .normal: return (one: 50, two: 65, three: 80)
-        case .hard:   return (one: 30, two: 39, three: 48)
+    /// 목표 점수 → (★1, ★★2, ★★★3) 임계. ★1 = 목표 그대로 (모순 0의 핵심),
+    /// ★2/★3 = 목표 × 1.3 / × 1.6 반올림 (02 §7-1 표의 비율 byte 보존: 60→78→96 등 전부 동일 비).
+    /// normal은 02 표와 byte-동일(50/65/80). easy +16.7%·hard +33.3%는 라이브 목표(70/40)
+    /// 파생의 귀결 — "R6 retune 게이트, 모순 0" 사용자 지시로 승인된 변경 (SPEC §F1).
+    /// 향후 R7이 목표를 튜닝해도 자동 정합 — 파생식 자체가 계약 (±20% 재량 대상 아님).
+    static func thresholds(forTarget target: Int) -> (one: Int, two: Int, three: Int) {
+        // dict 조회 실패 폴백(Int.max) × 1.6 → Double→Int 변환 트랩 방지 가드.
+        guard target > 0, target <= MetaTuning.starThresholdDerivationMaxTarget else {
+            return (one: target, two: target, three: target)
         }
+        let two = Int((Double(target) * MetaTuning.starTwoMultiplier).rounded())
+        let three = Int((Double(target) * MetaTuning.starThreeMultiplier).rounded())
+        return (one: target, two: two, three: three)
+    }
+
+    /// 난이도 래퍼 — 라이브 목표(`difficulty.targetScore`) 경유 파생 (§F1 결과 표가 R6의 진실).
+    static func starThresholds(for difficulty: Difficulty) -> (one: Int, two: Int, three: Int) {
+        return thresholds(forTarget: difficulty.targetScore)
     }
 
     /// 셀당 최대 별 수 (★★★).
     static let maxStarsPerCell: Int = 3
 
-    /// 판 점수 → 별 0...3. 점수에 단조이므로 셀 최고점 → 셀 최고 별로도 그대로 쓰인다 (Scoreboard).
-    static func stars(score: Int, difficulty: Difficulty) -> Int {
-        let thresholds = starThresholds(for: difficulty)
+    /// 판 점수 → 별 0...3 (임의 목표 기준 — 음표 러시 effectiveTarget도 같은 식 자동 동반).
+    static func stars(score: Int, target: Int) -> Int {
+        let thresholds = thresholds(forTarget: target)
         if score >= thresholds.three { return 3 }
         if score >= thresholds.two { return 2 }
         if score >= thresholds.one { return 1 }
         return 0
+    }
+
+    /// 판 점수 → 별 0...3. 점수에 단조이므로 셀 최고점 → 셀 최고 별로도 그대로 쓰인다.
+    static func stars(score: Int, difficulty: Difficulty) -> Int {
+        return stars(score: score, target: difficulty.targetScore)
     }
 
     // MARK: - 레벨 테이블 (02 §7-2 표 그대로 — Lv5→6 증분 +780 비균질도 설계서 수치 그대로)
@@ -83,13 +95,13 @@ enum MetaProgression {
         return min(max(ratio, 0), 1)
     }
 
-    // MARK: - DEBUG 정합 검증 (SPEC 기능 1 — ★1 == targetScore 자동 검증)
+    // MARK: - DEBUG 정합 검증 (R6 §F1 — 경고 print 분기 제거, assert 승격)
 
     #if DEBUG
-    /// ★1 임계 == `GameplayTuning.targetScoreByDifficulty` 정합 검증 (불변 조건 3).
-    /// 현재 라이브 목표(70/50/40)가 02 §7-1(60/50/30)과 불일치 — assert로 두면 DEBUG 부팅마다
-    /// 크래시해 검증 자체가 불가능하므로, 알려진 불일치는 경고 출력으로 노출한다 (허위 은폐 금지).
-    /// 표 내부 단조성(★1<★2<★3, 레벨 XP 순증)은 진짜 불변이라 assert로 잠근다.
+    /// ★1 임계 == `GameplayTuning.targetScoreByDifficulty` 정합 검증.
+    /// R6 retune으로 ★1이 라이브 목표 *파생*이 되어 불일치가 구조적으로 소멸 —
+    /// R5의 "알려진 불일치 경고 print" 분기를 제거하고 assert로 승격 (DEBUG 부팅 크래시 0 = 정합 증명).
+    /// 표 내부 단조성(★1<★2<★3, 레벨 XP 순증)도 그대로 assert로 잠근다.
     static func debugAuditAlignment() {
         for difficulty in Difficulty.allCases {
             let thresholds = starThresholds(for: difficulty)
@@ -97,10 +109,8 @@ enum MetaProgression {
                    "MetaProgression 별 임계 단조성 위반 — \(difficulty)")
             let liveTarget = GameplayTuning.targetScoreByDifficulty[difficulty]
                 ?? GameplayTuning.targetScoreByDifficultyFallback
-            if thresholds.one != liveTarget {
-                print("[MetaProgression] ⚠️ ★1 임계(\(thresholds.one)) ≠ 라이브 목표(\(liveTarget))"
-                      + " — \(difficulty.rawValue). 02 §7-1 vs GameplayTuning 불일치, R6 튜닝 결정 사항.")
-            }
+            assert(thresholds.one == liveTarget,
+                   "MetaProgression ★1 임계(\(thresholds.one)) ≠ 라이브 목표(\(liveTarget)) — \(difficulty.rawValue)")
         }
         for index in 1..<levelTable.count {
             assert(levelTable[index].xp > levelTable[index - 1].xp,

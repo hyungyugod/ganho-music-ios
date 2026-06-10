@@ -124,7 +124,7 @@ final class CloudProgressRepository {
     }
 
     private func progressData(progress: CloudProgressSnapshot) -> [String: Any] {
-        return [
+        var data: [String: Any] = [
             "highScore": progress.highScore,
             "stats": [
                 "playCount": progress.stats.playCount,
@@ -134,6 +134,16 @@ final class CloudProgressRepository {
             "graduations": progress.graduations,
             "updatedAt": FieldValue.serverTimestamp()
         ]
+        // R6 §F4 — meta는 *추가 필드로만* 합류 (nil이면 기존 문서 스키마 그대로 — 호환 유지).
+        if let meta = progress.meta {
+            data["meta"] = [
+                "starCells": meta.starCells,
+                "achievements": meta.achievements,
+                "dailyClearedDayKeys": meta.dailyClearedDayKeys,
+                "counters": meta.counters
+            ]
+        }
+        return data
     }
 
     private func progressSnapshot(from data: [String: Any]) -> CloudProgressSnapshot {
@@ -147,7 +157,25 @@ final class CloudProgressRepository {
             stats: stats,
             perDifficultyScores: scoreMatrix(from: data["perDifficultyScores"]),
             graduations: graduationDates(from: data["graduations"]),
-            updatedAt: dateValue(data["updatedAt"]) ?? Date()
+            updatedAt: dateValue(data["updatedAt"]) ?? Date(),
+            meta: metaProgress(from: data["meta"])   // R6 — 필드 부재 구버전 문서는 nil graceful
+        )
+    }
+
+    /// R6 §F4 — Firestore "meta" 필드 → CloudMetaProgress. 부재/형 불일치는 nil (로컬 우선).
+    private func metaProgress(from value: Any?) -> CloudMetaProgress? {
+        guard let raw = value as? [String: Any] else { return nil }
+        var counters: [String: Int] = [:]
+        if let rawCounters = raw["counters"] as? [String: Any] {
+            for (key, countValue) in rawCounters {
+                counters[key] = intValue(countValue)
+            }
+        }
+        return CloudMetaProgress(
+            starCells: scoreMatrix(from: raw["starCells"]),
+            achievements: graduationDates(from: raw["achievements"]),
+            dailyClearedDayKeys: (raw["dailyClearedDayKeys"] as? [String]) ?? [],
+            counters: counters
         )
     }
 

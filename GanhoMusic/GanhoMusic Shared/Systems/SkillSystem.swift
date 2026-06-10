@@ -33,6 +33,15 @@ final class SkillSystem {
     /// true가 되면 progress=0 영구 + tryActivate 차단.
     private(set) var usedThisGame: Bool = false
 
+    /// R6 §F7 기합 충만 — 쿨다운 배율 (기본 1.0 = 기존 동작 byte-동일).
+    /// 발동 set(tryActivate)과 진행률 분모(progress) *양쪽*에 일관 적용 — HUD 게이지 정합.
+    /// 설정값이라 configure() 리셋 비대상 — GameScene 모디파이어 배선이 1회 set.
+    var cooldownScale: Double = 1.0
+
+    /// R6 §F9 — 이번 판 스킬 발동 횟수 (메타 카운터 전용, 로직 분기 0).
+    /// 발동 확정 지점(쿨다운 set) 1곳에서만 증가 — kim(.none)은 자연 0.
+    private(set) var activationCount: Int = 0
+
     /// 외부(GameScene) 참조 — weak. SKAction 클로저 [weak self] 함께 메모리 누수 방지.
     private weak var scene: GameScene?
 
@@ -55,6 +64,7 @@ final class SkillSystem {
         self.durationRemaining = 0
         self.usedThisGame = false
         self.isActivationBuffered = false
+        self.activationCount = 0   // R6 — 판 카운터 리셋 (cooldownScale은 설정값이라 비대상)
     }
 
     // MARK: - Update Loop
@@ -121,11 +131,14 @@ final class SkillSystem {
         scene?.haptics.skillActivate()
 
         // 발동 직후 쿨다운/지속시간 set. oncePerGame은 usedThisGame로 영구 차단.
-        cooldownRemaining = activeSkill.cooldown
+        // R6 §F7 — 쿨다운 set에 cooldownScale 적용 (progress 분모와 양쪽 일관 — 기본 1.0 무변화).
+        // charmStudent(.infinity)는 × 0.5도 .infinity — oncePerGame 시맨틱 자연 보존.
+        cooldownRemaining = activeSkill.cooldown * cooldownScale
         durationRemaining = activeSkill.duration
         if activeSkill.oncePerGame {
             usedThisGame = true
         }
+        activationCount += 1   // R6 — 발동 확정 지점 단일 카운트 (메타 전용)
     }
 
     // MARK: - Progress (HUD 폴링용)
@@ -142,8 +155,9 @@ final class SkillSystem {
             return usedThisGame ? 0 : 1.0
         case .dashClimb, .bookClubRally, .taiwanTrip:
             if cooldownRemaining <= 0 { return 1.0 }
-            let total = activeSkill.cooldown
-            // total이 양수임은 cooldownRemaining > 0인 시점에서 보장됨.
+            // R6 §F7 — 진행률 분모에도 cooldownScale 적용 (발동 set과 일관 — HUD 게이지 정합).
+            let total = activeSkill.cooldown * cooldownScale
+            // total이 양수임은 cooldownRemaining > 0인 시점에서 보장됨 (scale > 0 계약).
             let p = 1.0 - cooldownRemaining / total
             // CGFloat 변환 + clamp(0~1).
             return CGFloat(max(0, min(1, p)))

@@ -34,8 +34,25 @@ extension GameScene {
     /// 옛 addOuterWalls/addCentralPillar/addHardMap/addNormalMap/addRectPillar/addHorizontalWall/
     /// addVerticalWall 7개 함수는 본 Phase에서 *함수 자체* 삭제(호출자 0건 검증 후).
     /// 외곽 라운드 보더 SKShapeNode도 함께 제거(OQ-1 — 원본 1:1 픽셀 톤 우선).
+    /// R6 §F7 거울 병동 — 빌드 직후 *데이터 레벨 x 반전* (노드 음수 xScale 금지 — 물리 신뢰 불가).
     func setupMap() {
         mapNode.buildWalls(difficulty: difficulty)
+        if dailyModifier == .mirrorWard {
+            applyMirrorWardToMap()
+        }
+    }
+
+    /// 거울 병동 — mapNode 자식(벽 타일·병원 소품) 전부의 x를 맵 폭 기준 반전.
+    /// physicsBody는 노드 position을 따라가므로 *부착 직후 위치 이동* = 데이터 레벨 반전과 등가.
+    /// 셀 중심((col+0.5)×tile)의 반전은 정확히 (31-col+0.5)×tile — 격자 정합 유지.
+    /// 외곽 벽은 자기 대칭이라 무변화, 내부 비대칭 장애물만 좌우가 바뀐다.
+    /// 적 패트롤 waypoint는 미반전 — nurse 세트는 x-대칭(3.5↔28.5 스왑 = 동일 집합)이고,
+    /// 반전 대상 내부 장애물은 패트롤 라인(행 3·16 / 열 3·28)과 비교차 실측 (플레이 불능 회귀 0).
+    /// 석조무사·이교수는 SKAction.move 구동 — 벽 비충돌이라 경로 영향 0.
+    private func applyMirrorWardToMap() {
+        for child in mapNode.children {
+            child.position.x = GameplayTuning.mapWidth - child.position.x
+        }
     }
 
     /// Phase 9-4 체크보드 바닥 — R1: 640개(32×20) SKSpriteNode 루프 폐기 →
@@ -163,6 +180,12 @@ extension GameScene {
             x: GameplayTuning.mapWidth  / 4,
             y: GameplayTuning.mapHeight / 2
         )
+        // R6 §F7 거울 병동 — 스폰 좌표도 데이터 레벨 반전 (좌측 1/4 → 우측 3/4, 동일 열린 지점).
+        // setupEnemy/setupStoneGuard/setupProfessor가 이 위치를 읽어 farthest-first/점대칭을
+        // 계산하므로 *여기서* 반전해야 등장 배치 전체가 자연 미러링된다 (호출 순서 계약).
+        if dailyModifier == .mirrorWard {
+            player.position.x = GameplayTuning.mapWidth - player.position.x
+        }
         player.apply(characterID)   // Phase 5-R — 5-2(color) + 5-3(speedMultiplier) 단일 진입점으로 통합
         player.apply(difficulty)    // Phase 7-1 — 난이도별 baseSpeedStart/End set. character 먼저 → difficulty 나중(주의사항 1).
         player.wallCollisionProvider = { [weak self] rect in
@@ -422,6 +445,75 @@ extension GameScene {
             x: +(halfW - safe.right - marginX),
             y: +(halfH - safe.top - marginY)
         )
+    }
+
+    // MARK: - Daily Modifier (R6 §F7)
+    /// 일일 모디파이어 배선 단일 진입점 — didMove에서 setupEnemy/setupStoneGuard/setupProfessor
+    /// *이후* 1회 호출 (speed_night가 apply(difficulty) 완료된 patrolSpeed에 배율을 곱는 계약).
+    /// 거울 병동의 맵·스폰 반전은 setupMap/setupPlayer가 자체 처리 (등장 배치 순서 계약).
+    /// nil(일반 판)이면 HUD 표식 포함 노드 0 생성 — 기존 동작 byte-동일 (좀비 금지).
+    func setupDailyModifier() {
+        guard let modifier = dailyModifier else { return }
+        // 공통 — SpawnSystem 주입 (음표 러시·황금 변기는 내부에서만 반응. apply보다 선행 계약).
+        spawnSystem.configureDailyModifier(modifier)
+        switch modifier {
+        case .speedNight:
+            // 적 *이동* 속도 ×1.2 — 수간호사(physics velocity)는 전용 훅, 석조무사는 순수
+            // SKAction move 구동이라 node.speed 배율이 정확히 이동 ×1.2 (다른 액션 없음).
+            // 이교수는 제외 — 청진기 투척 루프가 같은 노드 SKAction이라 node.speed가
+            // 공격 빈도까지 가속(SPEC "이동 속도" 범위 초과). SELF_CHECK 기재.
+            enemy.applyDailySpeedScale(MetaTuning.speedNightEnemySpeedScale)
+            stoneGuard.speed = MetaTuning.speedNightEnemySpeedScale
+        case .noteRush, .mirrorWard:
+            break   // 각각 SpawnSystem.apply / setupMap·setupPlayer에서 적용 완료.
+        case .lightsOut:
+            attachLightsOutVignette()
+        case .goldenToilet:
+            scoreSystem.toiletScoreScale = MetaTuning.goldenToiletScoreScale
+        case .fullSpirit:
+            skillSystem.cooldownScale = MetaTuning.fullSpiritCooldownScale
+        }
+        attachDailyModifierHUDChip(modifier)
+    }
+
+    /// 소등 — 시야 축소 비네트 (cameraNode 부착 1노드, TensionVignetteNode 패턴 답습).
+    /// 중앙 시야 창(화면 최소 변 × 0.58)만 남기고 4면을 어둡게 — tension 비네트(z=110)와
+    /// zPos 분리(105)·동시 존재 허용. 정적 가림막 — 깜빡임 없음 ("소등"의 항상성).
+    private func attachLightsOutVignette() {
+        let container = SKNode()
+        container.name = "lightsOutVignette"
+        container.zPosition = UILayout.R6.lightsOutVignetteZPosition
+        let window = min(size.width, size.height) * MetaTuning.lightsOutWindowRatio
+        let alpha = MetaTuning.lightsOutShroudAlpha
+        let sideWidth = max(0, (size.width - window) / 2)
+        let bandHeight = max(0, (size.height - window) / 2)
+        // 상/하 가로 막대 (전체 폭) + 좌/우 세로 막대 (중앙 창 높이만큼) — L자 겹침 없는 액자.
+        let top = SKSpriteNode(color: .black, size: CGSize(width: size.width, height: bandHeight))
+        top.position = CGPoint(x: 0, y: (size.height - bandHeight) / 2)
+        let bottom = SKSpriteNode(color: .black, size: CGSize(width: size.width, height: bandHeight))
+        bottom.position = CGPoint(x: 0, y: -(size.height - bandHeight) / 2)
+        let left = SKSpriteNode(color: .black, size: CGSize(width: sideWidth, height: window))
+        left.position = CGPoint(x: -(size.width - sideWidth) / 2, y: 0)
+        let right = SKSpriteNode(color: .black, size: CGSize(width: sideWidth, height: window))
+        right.position = CGPoint(x: (size.width - sideWidth) / 2, y: 0)
+        for shroud in [top, bottom, left, right] {
+            shroud.alpha = alpha
+            container.addChild(shroud)
+        }
+        cameraNode.addChild(container)
+    }
+
+    /// 인게임 도전 표식 — 화면 상단 중앙 작은 칩 1요소 (노드 +1, 도전 중 상시 인지).
+    private func attachDailyModifierHUDChip(_ modifier: DailyModifier) {
+        let chip = PixelChipNode(text: modifier.displayName, style: .accent(Palette.gold))
+        chip.zPosition = UILayout.R6.ingameDailyChipZPosition
+        let safe = SceneSafeArea.insets(for: self)
+        chip.position = CGPoint(
+            x: 0,
+            y: (size.height / 2 - safe.top - UILayout.R6.ingameDailyChipTopInset
+                - chip.chipSize.height / 2).rounded()
+        )
+        cameraNode.addChild(chip)
     }
 
     // MARK: - Sergeant Park Debut (Sprint 8 Phase G)

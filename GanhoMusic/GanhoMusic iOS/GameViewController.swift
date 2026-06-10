@@ -42,6 +42,11 @@ class GameViewController: UIViewController {
         // (스크린샷 자동화용). 환경변수만 사용 — UserDefaults 미사용(키 불변 조건 회피).
         // 릴리즈 빌드 동작 영향 0 (#if DEBUG 격리 — 릴리즈 경로는 StartScene 단일).
         #if DEBUG
+        // R6 §F8 — env 구동 메타 자가검증 (PIXELKIT_GALLERY 전례). 격리 suite만 사용 —
+        // 실행 후 평소 부팅 계속 (콘솔 "[MetaMigrationSelfTest] PASS 8/8"가 게이트 증거).
+        if ProcessInfo.processInfo.environment["GANHO_META_SELFTEST"] == "1" {
+            MetaMigrationSelfTest.runAll()
+        }
         if ProcessInfo.processInfo.environment["PIXELKIT_GALLERY"] == "1" {
             skView.presentScene(PixelKitGalleryScene.newGalleryScene())
         } else if let bootName = ProcessInfo.processInfo.environment["GANHO_BOOT_SCENE"],
@@ -115,6 +120,35 @@ class GameViewController: UIViewController {
         }
         if name == "scoreboard" {
             return ScoreboardScene.newScoreboardScene()
+        }
+        // R6 §F5 — 업적 탭 직행 (simctl 터치 주입 불가 우회 — characterSelectProfile 전례).
+        if name == "scoreboardAchievements" {
+            return ScoreboardScene.newScoreboardScene(initialTab: .achievements)
+        }
+        // R6 성능 게이트 — 음표 러시 hard 인게임 노드 측정용 직행 (FrameStats 판독).
+        if name == "gameHardRush" {
+            return GameScene.newGameScene(characterID: .kim, difficulty: .hard,
+                                          dailyModifier: .noteRush)
+        }
+        // R6 — 소등(시야 비네트) 시각 확인용 직행.
+        if name == "gameLightsOut" {
+            return GameScene.newGameScene(characterID: .kim, difficulty: .normal,
+                                          dailyModifier: .lightsOut)
+        }
+        // R6 §F6 — 일일 클리어 칩 + 업적 칩 스크린샷용 픽스처 (GANHO_BOOT_SCENE 확장 — SPEC 게이트 ④).
+        if name == "resultDaily" {
+            let runMeta = RunMetaOutcome(
+                effectiveTarget: 50, earnedStars: 2, creditedStars: 3,
+                dailyModifier: .goldenToilet, isDailyFirstClear: true,
+                newAchievements: [.firstGraduation, .combo10], totalStars: 7
+            )
+            return ResultScene.newResultScene(
+                score: 66, bestScore: 66, isNewBest: true,
+                stats: GameStats(playCount: 9, totalScore: 1_204),
+                characterID: .kim, difficulty: .normal,
+                maxCombo: 11, notesCollected: 41,
+                runMeta: runMeta
+            )
         }
         // R5 — 프로필 다이얼로그 직행 (openProfileOnEntry — simctl 터치 주입 불가 우회).
         if name == "characterSelectProfile" {

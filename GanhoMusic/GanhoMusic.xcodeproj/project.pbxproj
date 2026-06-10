@@ -71,6 +71,17 @@
 		AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000002 /* UILayout+R4.swift */; };
 		AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40F1A00000000000000003 /* PixelPortraitSprite.swift */; };
 		AB50F1B00000000000000001 /* MetaProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000001 /* MetaProgression.swift */; };
+		AB60F1B00000000000000001 /* MetaTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000001 /* MetaTuning.swift */; };
+		AB60F1B00000000000000002 /* UILayout+R6.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000002 /* UILayout+R6.swift */; };
+		AB60F1B00000000000000003 /* SeededRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000003 /* SeededRandom.swift */; };
+		AB60F1B00000000000000004 /* DailyChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000004 /* DailyChallenge.swift */; };
+		AB60F1B00000000000000005 /* AchievementID.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000005 /* AchievementID.swift */; };
+		AB60F1B00000000000000006 /* RunSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000006 /* RunSummary.swift */; };
+		AB60F1B00000000000000007 /* AchievementEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000007 /* AchievementEvaluator.swift */; };
+		AB60F1B00000000000000008 /* MetaProgressRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000008 /* MetaProgressRepository.swift */; };
+		AB60F1B0000000000000000B /* MetaProgressRepository+Cloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A0000000000000000B /* MetaProgressRepository+Cloud.swift */; };
+		AB60F1B00000000000000009 /* ScoreboardScene+Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000009 /* ScoreboardScene+Achievements.swift */; };
+		AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */; };
 		AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000002 /* UILayout+R5.swift */; };
 		AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000003 /* FeelTuning+R5.swift */; };
 		AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000004 /* ResultScene+Reveal.swift */; };
@@ -223,6 +234,17 @@
 		AB40F1A00000000000000002 /* UILayout+R4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R4.swift"; sourceTree = "<group>"; };
 		AB40F1A00000000000000003 /* PixelPortraitSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPortraitSprite.swift; sourceTree = "<group>"; };
 		AB50F1A00000000000000001 /* MetaProgression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetaProgression.swift"; sourceTree = "<group>"; };
+		AB60F1A00000000000000001 /* MetaTuning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaTuning.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000002 /* UILayout+R6.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R6.swift"; sourceTree = "<group>"; };
+		AB60F1A00000000000000003 /* SeededRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededRandom.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000004 /* DailyChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallenge.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000005 /* AchievementID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementID.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000006 /* RunSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunSummary.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000007 /* AchievementEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementEvaluator.swift; sourceTree = "<group>"; };
+		AB60F1A00000000000000008 /* MetaProgressRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaProgressRepository.swift; sourceTree = "<group>"; };
+		AB60F1A0000000000000000B /* MetaProgressRepository+Cloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetaProgressRepository+Cloud.swift"; sourceTree = "<group>"; };
+		AB60F1A00000000000000009 /* ScoreboardScene+Achievements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreboardScene+Achievements.swift"; sourceTree = "<group>"; };
+		AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaMigrationSelfTest.swift; sourceTree = "<group>"; };
 		AB50F1A00000000000000002 /* UILayout+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R5.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000003 /* FeelTuning+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R5.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000004 /* ResultScene+Reveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+Reveal.swift"; sourceTree = "<group>"; };
@@ -459,6 +481,8 @@
 				AB50F1A00000000000000001 /* MetaProgression.swift */,
 				AB50F1A00000000000000002 /* UILayout+R5.swift */,
 				AB50F1A00000000000000003 /* FeelTuning+R5.swift */,
+				AB60F1A00000000000000001 /* MetaTuning.swift */,
+				AB60F1A00000000000000002 /* UILayout+R6.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -541,6 +565,7 @@
 				AB20F1A00000000000000003 /* CameraDirector.swift */,
 				AB20F1A00000000000000004 /* EffectDirector.swift */,
 				A1C0F1A00000000000000046 /* SkillSystem.swift */,
+				AB60F1A00000000000000007 /* AchievementEvaluator.swift */,
 			);
 			name = Systems;
 			path = "GanhoMusic Shared/Systems";
@@ -558,6 +583,7 @@
 				A1C0F1A00000000000000072 /* DifficultySelectScene.swift */,
 				A1C0F1A00000000000000074 /* ScoreboardScene.swift */,
 				AB50F1A00000000000000006 /* ScoreboardScene+Table.swift */,
+				AB60F1A00000000000000009 /* ScoreboardScene+Achievements.swift */,
 				AB30F1A00000000000000002 /* SceneRouter.swift */,
 				AB30F1A00000000000000003 /* PixelKitGalleryScene.swift */,
 				AB40F1A00000000000000007 /* SkillBriefingScene.swift */,
@@ -583,6 +609,8 @@
 				PA1000000000000000000002 /* ProfileAvatarRepository.swift */,
 				FB1000000000000000000006 /* PendingCloudScoreRepository.swift */,
 				FB1000000000000000000007 /* CloudProgressRepository.swift */,
+				AB60F1A00000000000000008 /* MetaProgressRepository.swift */,
+				AB60F1A0000000000000000B /* MetaProgressRepository+Cloud.swift */,
 			);
 			name = Repositories;
 			path = "GanhoMusic Shared/Repositories";
@@ -607,6 +635,9 @@
 				A1C0F1A00000000000000043 /* PixelPalette.swift */,
 				AB40F1A00000000000000003 /* PixelPortraitSprite.swift */,
 				AB50F1A00000000000000007 /* ResultReturnContext.swift */,
+				AB60F1A00000000000000004 /* DailyChallenge.swift */,
+				AB60F1A00000000000000005 /* AchievementID.swift */,
+				AB60F1A00000000000000006 /* RunSummary.swift */,
 				AB40F1A00000000000000004 /* PixelHeroSprite.swift */,
 				A1C0F1A00000000000000045 /* PlayerSkill.swift */,
 				A1C0F1A00000000000000076 /* Direction.swift */,
@@ -647,6 +678,7 @@
 				C0F1A0DE000000000000000A /* ObjectPool.swift */,
 				C0F1A0DE000000000000000B /* FrameStats.swift */,
 				AB20F1A00000000000000001 /* Tween.swift */,
+				AB60F1A00000000000000003 /* SeededRandom.swift */,
 			);
 			name = Core;
 			path = "GanhoMusic Shared/Core";
@@ -697,6 +729,7 @@
 				A1C0F2000000000000000017 /* Managers */,
 				A1C0F2000000000000000018 /* Core */,
 				A1C0F2000000000000000019 /* Rendering */,
+				AB60F1C00000000000000001 /* Debug */,
 				C75D462B2FA627C20016BB86 /* GanhoMusic iOS */,
 				C75D463B2FA627C20016BB86 /* GanhoMusic tvOS */,
 				C75D464B2FA627C20016BB86 /* GanhoMusic macOS */,
@@ -721,6 +754,15 @@
 				A1C0F1590000000000000009 /* GanhoMusic Shared/Nodes/HUDNode.swift */,
 			);
 			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+		AB60F1C00000000000000001 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */,
+			);
+			name = Debug;
+			path = "GanhoMusic Shared/Debug";
 			sourceTree = "<group>";
 		};
 		FB3000000000000000000001 /* Errors */ = {
@@ -932,6 +974,17 @@
 				AB40F1B00000000000000002 /* UILayout+R4.swift in Sources */,
 				AB40F1B00000000000000003 /* PixelPortraitSprite.swift in Sources */,
 				AB50F1B00000000000000001 /* MetaProgression.swift in Sources */,
+				AB60F1B00000000000000001 /* MetaTuning.swift in Sources */,
+				AB60F1B00000000000000002 /* UILayout+R6.swift in Sources */,
+				AB60F1B00000000000000003 /* SeededRandom.swift in Sources */,
+				AB60F1B00000000000000004 /* DailyChallenge.swift in Sources */,
+				AB60F1B00000000000000005 /* AchievementID.swift in Sources */,
+				AB60F1B00000000000000006 /* RunSummary.swift in Sources */,
+				AB60F1B00000000000000007 /* AchievementEvaluator.swift in Sources */,
+				AB60F1B00000000000000008 /* MetaProgressRepository.swift in Sources */,
+				AB60F1B0000000000000000B /* MetaProgressRepository+Cloud.swift in Sources */,
+				AB60F1B00000000000000009 /* ScoreboardScene+Achievements.swift in Sources */,
+				AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */,
 				AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */,
 				AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */,
 				AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */,

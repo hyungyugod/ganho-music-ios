@@ -23,8 +23,12 @@ final class ResultScene: BaseMenuScene {
     let notesCollected: Int
     let isNewGraduation: Bool
     let graduatedAt: Date?
+    /// R6 §F6 — 메타 기록 결과. nil = 기존과 byte-동일 동작 (verdict 기준 = 라이브 목표).
+    let runMeta: RunMetaOutcome?
 
-    // MARK: - Derived (init 1회 — 성공 = score >= 라이브 목표(경계 포함) / 별 = MetaProgression)
+    // MARK: - Derived (init 1회 — 성공 = score >= 실효 목표(경계 포함) / 별 = MetaProgression)
+    /// 이번 판 실효 목표 — runMeta 있으면 그 값(음표 러시 ×1.3 포함), 없으면 라이브 목표.
+    let effectiveTarget: Int
     let isSuccess: Bool
     let earnedStars: Int
 
@@ -41,6 +45,9 @@ final class ResultScene: BaseMenuScene {
     var notesChip: PixelChipNode?
     var recordChip: PixelChipNode?
     var levelUpChip: PixelChipNode?
+    // R6 §F6 — 시퀀스 완료 후 정적 칩 2종 (해당 없으면 노드 미생성 — 좀비 금지).
+    var dailyClearChip: PixelChipNode?
+    var achievementChip: PixelChipNode?
     var retryButton: PixelButtonNode?
     var characterButton: PixelButtonNode?
     var recordsButton: PixelButtonNode?
@@ -61,14 +68,16 @@ final class ResultScene: BaseMenuScene {
         score: Int, bestScore: Int, isNewBest: Bool, stats: GameStats,
         characterID: CharacterID, difficulty: Difficulty,
         maxCombo: Int, notesCollected: Int,
-        isNewGraduation: Bool = false, graduatedAt: Date? = nil
+        isNewGraduation: Bool = false, graduatedAt: Date? = nil,
+        runMeta: RunMetaOutcome? = nil
     ) -> ResultScene {
         let scene = ResultScene(
             size: CGSize(width: 1024, height: 768),
             score: score, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
             characterID: characterID, difficulty: difficulty,
             maxCombo: maxCombo, notesCollected: notesCollected,
-            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt
+            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt,
+            runMeta: runMeta
         )
         scene.scaleMode = .resizeFill
         return scene
@@ -80,7 +89,8 @@ final class ResultScene: BaseMenuScene {
         score: Int, bestScore: Int, isNewBest: Bool, stats: GameStats,
         characterID: CharacterID, difficulty: Difficulty,
         maxCombo: Int, notesCollected: Int,
-        isNewGraduation: Bool, graduatedAt: Date?
+        isNewGraduation: Bool, graduatedAt: Date?,
+        runMeta: RunMetaOutcome?
     ) {
         self.finalScore = score
         self.bestScore = bestScore
@@ -92,8 +102,12 @@ final class ResultScene: BaseMenuScene {
         self.notesCollected = notesCollected
         self.isNewGraduation = isNewGraduation
         self.graduatedAt = graduatedAt
-        self.isSuccess = score >= difficulty.targetScore
-        self.earnedStars = MetaProgression.stars(score: score, difficulty: difficulty)
+        self.runMeta = runMeta
+        // R6 §F6 — verdict/★/부족 칩 전부 실효 목표 단일 기준 (nil = 라이브 목표 = 기존 byte-동일).
+        let effectiveTarget = runMeta?.effectiveTarget ?? difficulty.targetScore
+        self.effectiveTarget = effectiveTarget
+        self.isSuccess = score >= effectiveTarget
+        self.earnedStars = MetaProgression.stars(score: score, target: effectiveTarget)
         super.init(size: size)
     }
 
@@ -150,6 +164,11 @@ final class ResultScene: BaseMenuScene {
         levelLabel.position = CGPoint(x: 0, y: UILayout.R5.resultLevelLabelOffsetY)
         levelUpChip?.position = CGPoint(x: UILayout.R5.resultLevelUpChipOffsetX,
                                         y: UILayout.R5.resultLevelLabelOffsetY)
+        // R6 §F6 — 정적 칩 2종: 점수 좌측 열 (recordChip +168의 좌측 대칭 — 기존 요소·버튼 겹침 0).
+        dailyClearChip?.position = CGPoint(x: UILayout.R6.resultMetaOutcomeChipOffsetX,
+                                           y: UILayout.R6.resultDailyClearChipOffsetY)
+        achievementChip?.position = CGPoint(x: UILayout.R6.resultMetaOutcomeChipOffsetX,
+                                            y: UILayout.R6.resultAchievementChipOffsetY)
     }
 
     private func layoutMetaChips() {   // 콤보·수집 칩 행 중앙 정렬
@@ -218,7 +237,8 @@ final class ResultScene: BaseMenuScene {
             finalScore: finalScore, bestScore: bestScore, isNewBest: isNewBest, stats: stats,
             characterID: characterID, difficulty: difficulty,
             maxCombo: maxCombo, notesCollected: notesCollected,
-            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt
+            isNewGraduation: isNewGraduation, graduatedAt: graduatedAt,
+            runMeta: runMeta   // R6 — 복귀 재생성 verdict 정합 (음표 러시 판 필수 — nil 처리 금지)
         )
         let scoreboard = ScoreboardScene.newScoreboardScene(
             lastUpdatedKey: lastUpdatedKey,

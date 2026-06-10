@@ -59,4 +59,16 @@ enum StorageKeys {
 
     // MARK: - Profile Avatar
     static let profileAvatarUserDefaultsKeyPrefix: String = "profileAvatar"
+
+    // MARK: - R6 Meta System (SPEC §F2 — 신규 5키, 기존 키 diff 0. 키별 독립 저장 — 단일 blob 금지)
+    /// 별 15셀 ratchet 기록 — `[String(CharacterID.rawValue): [String(Difficulty.rawValue): Int]]`.
+    static let metaStarCellsUserDefaultsKey: String = "meta.starCells"
+    /// 업적 달성 — `[String(AchievementID.rawValue): Date]` (달성일 보존).
+    static let metaAchievementsUserDefaultsKey: String = "meta.achievements"
+    /// 일일 도전 클리어 dayKey 집합 — `[String]`.
+    static let metaDailyChallengeUserDefaultsKey: String = "meta.dailyChallenge"
+    /// 누적 카운터(누적 음표·캐릭터별 스킬 발동) — `[String: Int]`.
+    static let metaCountersUserDefaultsKey: String = "meta.counters"
+    /// 마이그레이션 멱등 가드 — Int (최초 1).
+    static let metaMigrationVersionUserDefaultsKey: String = "meta.migrationVersion"
 }

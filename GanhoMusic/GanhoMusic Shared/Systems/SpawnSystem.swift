@@ -51,6 +51,16 @@ final class SpawnSystem {
     /// R0 — dead 3종(burst/fireIntervalStart/End)은 호출처 0 확인 후 삭제. 발사 책임은 EnemyNode가 전담.
     var projectileMaxConcurrent: Int = GameplayTuning.projectileMaxConcurrent
 
+    // MARK: - R6 일일 모디파이어 (§F7 — 음표 러시·황금 변기 훅)
+    /// 이번 판 모디파이어. nil = 일반 판(기존 동작 byte-동일). apply() 이전 1회 set —
+    /// GameScene.setupDailyModifier가 didMove에서 주입 (startGameProperly의 apply가 소비).
+    private var dailyModifier: DailyModifier?
+
+    /// 모디파이어 주입 단일 진입점. apply(difficulty)보다 먼저 호출돼야 한다 (didMove ≺ countdown 종료).
+    func configureDailyModifier(_ modifier: DailyModifier?) {
+        self.dailyModifier = modifier
+    }
+
     // MARK: - Apply (Phase 7-1)
     /// 난이도 정체성 단일 진입점. GameScene.startGameProperly에서 spawnSystem.start 직전 1줄 호출.
     /// 모든 dict lookup에 fallback 필수 — 강제 언래핑 금지(주의사항 5).
@@ -61,6 +71,10 @@ final class SpawnSystem {
         // Sprint 10 Phase I — 음표 spawn 주기 난이도 차등 (원본 game.js L101~L105 1:1).
         // easy=1.5(기존값 = 회귀 0) / normal=0.4 / hard=0.3. fallback은 기존 단일값 noteSpawnInterval.
         noteSpawnInterval = GameplayTuning.noteSpawnIntervalByDifficulty[difficulty] ?? GameplayTuning.noteSpawnInterval
+        // R6 §F7 음표 러시 — 스폰 간격 ÷1.5 (단일 적용 지점: 난이도 값 확정 직후 배율 1회).
+        if dailyModifier == .noteRush {
+            noteSpawnInterval = noteSpawnInterval / MetaTuning.noteRushSpawnIntervalDivisor
+        }
     }
 
     // MARK: - Lifecycle
@@ -81,6 +95,11 @@ final class SpawnSystem {
         // Sprint 10 Phase D — F 발사 루프 폐기. EnemyNode 내부 텔레그래프 상태 머신이 전담.
         // startProjectileFireLoop() 호출 제거 — 옛 함수 본문은 dead code(향후 정리, OQ-6).
         startToiletSpawnLoop()   // Phase 9-6 — 변기 보너스 12초/15% Bernoulli 루프
+        // R6 §F7 황금 변기 — 스폰 기대치 +1: 확정 1회 추가 스폰 (기존 Bernoulli 루프 무변경).
+        // 확률 미세조정 대신 결정적 +1 — 황금 변기 날에 변기 0개인 빈 체험 방지 (MetaTuning 주석).
+        if dailyModifier == .goldenToilet {
+            scheduleGuaranteedToiletSpawn()
+        }
     }
 
     /// 게임 종료 시 GameScene이 호출. 모든 액션 정지 + 활성 projectile/aItem 정지.
@@ -91,6 +110,7 @@ final class SpawnSystem {
         scene?.removeAction(forKey: "spawnNotes")
         scene?.removeAction(forKey: "fireProjectiles")
         scene?.removeAction(forKey: "spawnToilets")   // Phase 9-6 — 변기 스폰 루프 정지
+        scene?.removeAction(forKey: "spawnGoldenToilet")   // R6 — 황금 변기 확정 스폰 정지
         // R1 — 활성 F 정지: 구 name="projectile" enumerate → registry 배열 순회 (동일 대상).
         if let registry = registry {
             for projectile in registry.projectiles {
@@ -305,6 +325,23 @@ final class SpawnSystem {
         toilet.position = position
         world.addChild(toilet)
         toilet.applyLifetime()
+    }
+
+    /// R6 §F7 황금 변기 — 확정 1회 스폰 예약. SKAction.wait 경유 (Timer 금지).
+    /// 단일성 가드·위치 산출은 일반 스폰과 동일 — 확률 판정만 건너뛴다 (기대치 정확 +1).
+    private func scheduleGuaranteedToiletSpawn() {
+        let wait = SKAction.wait(forDuration: MetaTuning.goldenToiletGuaranteedSpawnDelay)
+        let spawn = SKAction.run { [weak self] in
+            guard let self = self, let world = self.worldNode else { return }
+            guard self.currentToiletCount() < GameplayTuning.toiletMaxConcurrent else { return }
+            guard let position = self.randomToiletPosition() else { return }
+            let toilet = ToiletNode()
+            toilet.position = position
+            world.addChild(toilet)
+            toilet.applyLifetime()
+        }
+        // 기존 "spawnToilets" 루프와 별개 키 — stop()이 함께 제거 (아래 stop 참조).
+        scene?.run(.sequence([wait, spawn]), withKey: "spawnGoldenToilet")
     }
 
     /// worldNode 안 변기 ("toilet" 이름) 개수.

@@ -34,10 +34,19 @@ extension StartScene {
                 guard let self = self, !self.isTransitioning else { return }
                 self.authStateReady = true
                 self.currentAuthProfile = profile
+                // R6 §F2 — 인증 상태 확정 직후 메타 마이그레이션 (멱등 — 기존 키 읽기 전용).
+                let scope = AccountProgressScopeProvider.current(authProfile: profile)
+                MetaProgressRepository.scoped(scope: scope).ensureMigrated()
                 self.refreshProfileChip()
+                self.refreshDailyChallengeChip()   // 스코프 확정 후 클리어 표시 재계산
                 self.resolveLoginChoiceOnEntryIfNeeded()
             }
         }
+    }
+
+    /// R6 §F7 — 게스트 프로필 칩 탭 → 로그인 선택 다이얼로그 (기존 LoginChoiceDialogNode 재사용).
+    func presentLoginDialogForGuestProfileTap() {
+        showLoginDialog()
     }
 
     func resolveStartButtonTap() {

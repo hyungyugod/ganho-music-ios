@@ -213,7 +213,8 @@ extension ResultScene {
             chip = PixelChipNode(text: UILayout.R5.resultNewRecordChipText,
                                  style: .accent(Palette.gold))
         } else if !isSuccess {
-            let gap = max(0, difficulty.targetScore - finalScore)
+            // R6 — 부족 칩도 실효 목표 기준 (verdict와 같은 단일 기준 — 음표 러시 판 정합).
+            let gap = max(0, effectiveTarget - finalScore)
             chip = PixelChipNode(text: "\(gap)\(UILayout.R5.resultGapChipSuffix)",
                                  style: .accent(Palette.coral))
         } else {
@@ -252,10 +253,35 @@ extension ResultScene {
                 runStaggeredAppear([retry, character, records])
             }
         }
+        // R6 §F6 — 시퀀스 완료 시점 *이후* 정적 칩만 추가 (6단계 타이밍·순서 무변경).
+        revealMetaOutcomeChips()
         #if DEBUG
         print("[ResultScene] 시퀀스 완료 직계 자식: \(children.count)")
         #endif
         presentDiplomaIfNeeded()
+    }
+
+    /// R6 §F6 — 일일 최초 클리어 배지 + 신규 업적 칩. 해당 없으면 노드 미생성 (좀비 금지).
+    /// revealCompleted 가드 내 1회 실행 — 스킵·정상 완료 어느 경로든 멱등.
+    private func revealMetaOutcomeChips() {
+        guard let runMeta = runMeta else { return }
+        if runMeta.isDailyFirstClear, dailyClearChip == nil {
+            let chip = PixelChipNode(text: UILayout.R6.resultDailyClearChipText,
+                                     style: .accent(Palette.gold))
+            chip.zPosition = ZOrder.Layer.hud
+            dailyClearChip = chip
+            contentNode.addChild(chip)
+        }
+        if !runMeta.newAchievements.isEmpty, achievementChip == nil {
+            let chip = PixelChipNode(
+                text: "\(UILayout.R6.resultAchievementChipPrefix)\(runMeta.newAchievements.count)",
+                style: .accent(Palette.mint)
+            )
+            chip.zPosition = ZOrder.Layer.hud
+            achievementChip = chip
+            contentNode.addChild(chip)
+        }
+        layoutAll()   // 부착 직후 좌표 확정 (layoutContent가 칩 위치 소유)
     }
 
     // MARK: - XP 파생 (기능 1 — 기존 영속값에서만, 신규 저장 0. +Build도 호출 — internal)

@@ -25,6 +25,9 @@ extension ScoreboardScene {
         addChild(panel)
 
         let matrix = perDiffRepo.current
+        // R6 §F5 — 별 표시 소스를 저장 셀(ratchet 기록)로 교체: 일일 2배 적립이 반영되어
+        // 점수→별 단조 파생과 다를 수 있음 — 의도된 보상 시맨틱 (별은 "기록"이지 파생이 아님).
+        let starCells = metaRepo.starCells
         // 열 헤더 — 난이도명, Palette.difficulty(d) 액센트 (v2 난이도 카드 lookup 사용 0).
         for (col, diff) in Difficulty.allCases.enumerated() {
             let header = makeLabel(text: diff.displayName,
@@ -41,7 +44,8 @@ extension ScoreboardScene {
         for (row, charID) in CharacterID.allCases.enumerated() {
             for (col, diff) in Difficulty.allCases.enumerated() {
                 let best = matrix[charID]?[diff] ?? 0
-                addCell(best: best, difficulty: diff,
+                addCell(best: best,
+                        recordedStars: starCells[charID]?[diff] ?? 0,
                         center: CGPoint(x: columnCenterX(col), y: rowCenterY(row)),
                         to: panel)
             }
@@ -71,9 +75,10 @@ extension ScoreboardScene {
     }
 
     /// 셀 — 최고점(textHi) + 별 행(gold ★ 채움 / textLo ☆ 윤곽 — 윤곽도 시각 정보, 좀비 아님).
-    private func addCell(best: Int, difficulty: Difficulty,
+    /// R6 — 별은 호출부가 저장 셀 값을 주입 (점수 파생 아님 — 일일 2배 적립 반영).
+    private func addCell(best: Int, recordedStars: Int,
                          center: CGPoint, to panel: PixelPanelNode) {
-        guard best > 0 else {
+        guard best > 0 || recordedStars > 0 else {
             let empty = makeLabel(text: UILayout.R5.scoreboardEmptyCellText,
                                   token: Typography.V3.body,
                                   color: Palette.textLo)
@@ -88,7 +93,7 @@ extension ScoreboardScene {
                                  y: center.y + UILayout.R5.scoreboardCellScoreOffsetY)
         panel.addChild(score)
 
-        let stars = MetaProgression.stars(score: best, difficulty: difficulty)
+        let stars = min(max(recordedStars, 0), MetaProgression.maxStarsPerCell)
         let filled = makeLabel(
             text: String(repeating: UILayout.R5.starFilledText, count: stars),
             token: Typography.V3.caption,

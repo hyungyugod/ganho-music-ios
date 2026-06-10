@@ -170,6 +170,14 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         throwTimer = fireIntervalStart
     }
 
+    // MARK: - R6 일일 모디파이어 (§F7 스피드 나이트 — 필수 연동 변경: patrolSpeed가 private)
+    /// 이동(패트롤) 속도 배율 1회 적용. apply(difficulty) *이후* 호출 계약 —
+    /// GameScene+Setup.setupDailyModifier가 speed_night 날에만 1회 호출 (기본 경로 무변화).
+    /// 발사 간격·obs 속도는 비대상 — "적 *이동* 속도 ×1.2"의 정확한 범위 (SPEC §F7 표).
+    func applyDailySpeedScale(_ scale: CGFloat) {
+        patrolSpeed *= scale
+    }
+
     // MARK: - Initial Waypoint (Sprint 10 Phase D)
     /// 플레이어 위치에서 가장 먼 waypoint를 시작 위치로 결정.
     /// 원본 game.js L2618~L2628 byte-equal — hypot 기반 최댓값 인덱스 탐색.

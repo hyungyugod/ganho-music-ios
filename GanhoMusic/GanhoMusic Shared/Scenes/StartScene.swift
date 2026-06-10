@@ -23,8 +23,10 @@ final class StartScene: BaseMenuScene {
     private var heroSprite: SKSpriteNode?
     /// "▶ 탭하여 시작" — 1.2s 블링크 (시각 펄스 — 소멸 아님, §F-1 허용).
     private let tapToStartLabel = SKLabelNode(fontNamed: Typography.V3.body.fontName)
-    /// 연동 시에만 add되는 프로필 칩 — 미연동 시 노드 자체 미생성/제거 (isHidden 게이트 금지).
+    /// 프로필 칩 — R6 §F7 상시 노출. 탭: 연동 = 프로필 진입 / 게스트 = 로그인 다이얼로그.
     private var profileChip: PixelChipNode?
+    /// R6 §F7 — 좌상단 일일 도전 칩. 진입 시 1회 계산 (매초 갱신 금지), 탭 = armed 토글.
+    private var dailyChip: PixelChipNode?
     /// 로그인 다이얼로그 — 표시 중에만 존재 (PixelDialogNode 딤이 배후 터치 흡수).
     var loginDialog: LoginChoiceDialogNode?
 
@@ -54,6 +56,7 @@ final class StartScene: BaseMenuScene {
         setupLogo()
         setupHero()
         setupTapToStart()
+        refreshDailyChallengeChip()   // R6 §F7 — 진입 시 1회 계산 (오늘 모디파이어·남은 시간·✓)
         layoutAll()
         let appearNodes = [logoLabel, heroSprite, tapToStartLabel].compactMap { $0 }
         runStaggeredAppear(appearNodes)
@@ -77,6 +80,7 @@ final class StartScene: BaseMenuScene {
         layoutHero()
         layoutTapToStart()
         layoutProfileChip()
+        layoutDailyChip()
     }
 
     // MARK: - Logo (§F-1 — v2 2-라인 타이틀·태그라인·액센트 라인 폐기)
@@ -178,32 +182,28 @@ final class StartScene: BaseMenuScene {
         )
     }
 
-    // MARK: - Profile Chip (§F-1 노출 정책 유지 — 연동 시에만 add, 탭 → 프로필 진입 보존)
-    /// R5(03_UI §8) — 아이콘 슬롯(선호 캐릭터 24×24 포트레이트) + "Lv.{n} {칭호}" 확장.
-    /// Lv·칭호는 기존 영속값(StatisticsRepository.totalScore)에서 MetaProgression 파생 — 신규 저장 0.
+    // MARK: - Profile Chip (R6 §F7 — *상시 노출*: canUseAppleLinkedSession 게이트 제거)
+    /// R5 — 아이콘 슬롯 + "Lv.{n} {칭호}" (기존 영속값 파생 — 신규 저장 0).
+    /// R6 — 게스트도 노출 (로컬 진행이라 유의미). 상태 변화 시 제거 후 재생성 (좀비 0).
     func refreshProfileChip() {
-        if canUseAppleLinkedSession {
-            guard profileChip == nil else { return }
-            let scope = AccountProgressScopeProvider.current(authProfile: currentAuthProfile)
-            let preferredID = CharacterPreferenceRepository.scoped(scope: scope).current
-            let icon = SKSpriteNode(texture: PixelPortraitSprite.texture(for: preferredID))
-            icon.size = CGSize(width: UILayout.R5.startProfileChipIconSide,
-                               height: UILayout.R5.startProfileChipIconSide)
-            let xp = StatisticsRepository().current.totalScore
-            let level = MetaProgression.level(forXP: xp)
-            let chip = PixelChipNode(
-                text: "\(UILayout.R5.resultLevelLabelPrefix)\(level) \(MetaProgression.title(forLevel: level))",
-                style: .accent(Palette.gold),
-                icon: icon
-            )
-            chip.zPosition = ZOrder.Layer.hud
-            profileChip = chip
-            addChild(chip)
-            layoutProfileChip()
-        } else {
-            profileChip?.removeFromParent()
-            profileChip = nil
-        }
+        profileChip?.removeFromParent()
+        profileChip = nil
+        let scope = AccountProgressScopeProvider.current(authProfile: currentAuthProfile)
+        let preferredID = CharacterPreferenceRepository.scoped(scope: scope).current
+        let icon = SKSpriteNode(texture: PixelPortraitSprite.texture(for: preferredID))
+        icon.size = CGSize(width: UILayout.R5.startProfileChipIconSide,
+                           height: UILayout.R5.startProfileChipIconSide)
+        let xp = StatisticsRepository().current.totalScore
+        let level = MetaProgression.level(forXP: xp)
+        let chip = PixelChipNode(
+            text: "\(UILayout.R5.resultLevelLabelPrefix)\(level) \(MetaProgression.title(forLevel: level))",
+            style: .accent(Palette.gold),
+            icon: icon
+        )
+        chip.zPosition = ZOrder.Layer.hud
+        profileChip = chip
+        addChild(chip)
+        layoutProfileChip()
     }
 
     private func layoutProfileChip() {
@@ -219,26 +219,75 @@ final class StartScene: BaseMenuScene {
         )
     }
 
-    /// 칩 히트 영역 — 칩 높이 24 → 44pt 터치 보장 패딩.
-    private func profileChipHitFrame() -> CGRect? {
-        guard let chip = profileChip else { return nil }
+    /// 칩 히트 영역 — 칩 높이 24 → 44pt 터치 보장 패딩 (프로필·일일 칩 공용).
+    private func chipHitFrame(_ chip: PixelChipNode?) -> CGRect? {
+        guard let chip = chip else { return nil }
         return chip.calculateAccumulatedFrame().insetBy(
             dx: -UILayout.R4.chipHitPadding,
             dy: -UILayout.R4.chipHitPadding
         )
     }
 
+    // MARK: - Daily Challenge Chip (R6 §F7 — 좌상단, 진입/토글 시 1회 재계산. Timer 0)
+    /// armed = "▶"+gold / 클리어 = "✓" / 평시 = 이름+남은 시간. 상태 변화 시 재생성 (좀비 0).
+    func refreshDailyChallengeChip() {
+        dailyChip?.removeFromParent()
+        dailyChip = nil
+        let dayKey = DailyChallenge.todayKey()
+        let modifier = DailyChallenge.modifier(forDayKey: dayKey)
+        let scope = AccountProgressScopeProvider.current(authProfile: currentAuthProfile)
+        let isCleared = MetaProgressRepository.scoped(scope: scope).isDailyCleared(dayKey: dayKey)
+        let isArmed = DailyChallengeSession.shared.isArmed()
+        var text = "\(UILayout.R6.dailyChipTitlePrefix)\(modifier.displayName)"
+        if isCleared {
+            text = UILayout.R6.dailyChipClearedPrefix + text
+        } else {
+            text += "\(UILayout.R6.dailyChipRemainJoiner)\(DailyChallenge.hoursUntilTomorrow())"
+                + UILayout.R6.dailyChipRemainSuffix
+        }
+        if isArmed {
+            text = UILayout.R6.dailyChipArmedPrefix + text
+        }
+        let chip = PixelChipNode(text: text,
+                                 style: isArmed ? .accent(Palette.gold) : .info)
+        chip.zPosition = ZOrder.Layer.hud
+        dailyChip = chip
+        addChild(chip)
+        layoutDailyChip()
+    }
+
+    /// y — 로고 라인 아래 전용 inset (startDailyChipTopInset): 로고타입과 겹침 0.
+    private func layoutDailyChip() {
+        guard let chip = dailyChip else { return }
+        let safe = menuSafeInsets()
+        let scale = menuCompactScale()
+        chip.setScale(scale)
+        chip.position = CGPoint(
+            x: (frame.minX + safe.left + UILayout.v3ScreenEdgeInset
+                + chip.chipSize.width * scale / 2).rounded(),
+            y: (frame.maxY - safe.top - UILayout.R6.startDailyChipTopInset * scale).rounded()
+        )
+    }
+
     // MARK: - Touch (§F-1 — 시작 버튼 폐기: 소비되지 않은 화면 탭 = 시작)
+    /// R6 §F7 — 일일 칩 탭 = armed 토글 / 프로필 칩 탭 = 연동 ? 프로필 : 로그인 다이얼로그.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         // 다이얼로그 노출 중에는 딤(PixelDialogNode)이 터치를 흡수 — 방어적 이중 가드.
         guard loginDialog == nil else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        if canUseAppleLinkedSession,
-           let chipFrame = profileChipHitFrame(),
-           chipFrame.contains(location) {
-            transitionToCharacterSelect(openProfileOnEntry: true)
+        if let dailyFrame = chipHitFrame(dailyChip), dailyFrame.contains(location) {
+            DailyChallengeSession.shared.toggle()
+            refreshDailyChallengeChip()
+            return
+        }
+        if let chipFrame = chipHitFrame(profileChip), chipFrame.contains(location) {
+            if canUseAppleLinkedSession {
+                transitionToCharacterSelect(openProfileOnEntry: true)
+            } else {
+                presentLoginDialogForGuestProfileTap()
+            }
             return
         }
         resolveStartButtonTap()
