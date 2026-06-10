@@ -7,18 +7,24 @@
 //  원본 game.js L783~L812 byte-equal — 12×12 픽셀 매트릭스, #ff3b4e.
 //  PhysicsBody 16×16 hitbox 보존 (기존 ProjectileNode와 동일 정책 — collision=0 통과).
 //  ContactRouter 호환을 위해 name="projectile" 유지 — onProjectileHitPlayer/Wall 콜백이 그대로 작동.
-//  EnemyNode.fireF()가 인스턴스 생성 후 world에 addChild — SpawnSystem 발사 루프 폐기됨(Sprint 10 Phase D).
+//  R1 · Poolable 채택 — EnemyNode.fireF()가 풀 경유 provider로 실체화하고, TTL/충돌/스킬 정리는
+//    전부 회수 콜백으로 수렴. 카운트/순회는 EntityRegistry.projectiles가 담당(name enumerate 전폐).
 //
 
 import SpriteKit
 import UIKit
 
 /// F 투사체. 수간호사가 fireF()에서 burst 단위로 발사.
-/// - PixelSpriteRenderer.fProjectileTexture()로 12×12 매트릭스 → SKTexture 변환 후 시각 노출.
+/// - 텍스처는 TextureAtlasStore 캐시 경유(원색/매혹 2종) — 12×12 매트릭스 렌더 결과 byte-equal.
 /// - PhysicsBody는 축정렬 16×16 (시각 24pt와 분리) — 기존 ProjectileNode hitbox 정확 보존(회귀 0).
-/// - collision=0(벽 통과) + contact=player|wall → 닿으면 ContactRouter가 분기, 노드는 SKAction.removeFromParent로 정리.
-/// - name="projectile" — ContactRouter.onProjectileHitPlayer/Wall과 SpawnSystem.stop()의 enumerateChildNodes 둘 다 그대로 동작.
-final class FProjectileNode: SKSpriteNode {
+/// - collision=0(벽 통과) + contact=player|wall → 닿으면 ContactRouter가 분기, 노드는 지연 회수로 풀 복귀.
+/// - name="projectile" — ContactRouter 콜백 분기와 정합(R1 변경 금지).
+final class FProjectileNode: SKSpriteNode, Poolable {
+
+    // MARK: - Recycle (R1)
+    /// 풀 소유자(GameScene)가 obtain 시 주입하는 회수 핸들러 — unregister + pool.recycle 수행.
+    /// nil이면 removeFromParent fallback(풀 미배선 안전망 — 구 자기 파괴와 동일 동작).
+    var recycleHandler: ((FProjectileNode) -> Void)?
 
     // MARK: - Enchanted State
     /// 매혹 상태. true면 F가 *수집 가능한 A*로 분류 — 닿으면 점수 가산 + 제거.
@@ -39,7 +45,7 @@ final class FProjectileNode: SKSpriteNode {
             width:  GameplayTuning.fProjectileVisualSize,
             height: GameplayTuning.fProjectileVisualSize
         )
-        let texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.fProjectileColor)
+        let texture = TextureAtlasStore.fProjectileTexture(enchanted: false)
         haloNode = SKShapeNode(circleOfRadius: UILayout.projectileDangerHaloRadius)
         outlineNode = SKShapeNode(rectOf: visualSize)
         super.init(texture: texture, color: .clear, size: visualSize)
@@ -68,7 +74,7 @@ final class FProjectileNode: SKSpriteNode {
     /// 매혹 진입. texture를 분홍(.ganhoPinkNote)으로 교체. 멱등(재호출 안전).
     func applyEnchanted() {
         isEnchanted = true
-        texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.aItemColor)
+        texture = TextureAtlasStore.fProjectileTexture(enchanted: true)
         haloNode.strokeColor = UIColor.ganhoIngameRewardMint
             .withAlphaComponent(UILayout.projectileDangerHaloAlpha)
         haloNode.fillColor = UIColor.ganhoIngameReward
@@ -79,7 +85,7 @@ final class FProjectileNode: SKSpriteNode {
     /// 매혹 해제. texture를 원색(빨강)으로 복원.
     func clearEnchanted() {
         isEnchanted = false
-        texture = PixelSpriteRenderer.fProjectileTexture(color: Palette.fProjectileColor)
+        texture = TextureAtlasStore.fProjectileTexture(enchanted: false)
         haloNode.strokeColor = UIColor.ganhoIngameDanger
             .withAlphaComponent(UILayout.projectileDangerHaloAlpha)
         haloNode.fillColor = UIColor.ganhoIngameDangerDeep
@@ -94,13 +100,39 @@ final class FProjectileNode: SKSpriteNode {
             : PhysicsCategory.player | PhysicsCategory.wall
     }
 
+    /// R1 — TTL 만료 시 removeFromParent → requestRecycle(풀 회수)로 교체. 발사 시점마다
+    /// EnemyNode가 재호출하므로 withKey 멱등 + 재사용 노드의 잔존 TTL은 resetForReuse가 차단.
     func applyLifetime(_ lifetime: TimeInterval) {
         guard lifetime.isFinite, lifetime > 0 else { return }
         removeAction(forKey: GameplayTuning.projectileLifetimeActionKey)
+        let recycle = SKAction.run { [weak self] in self?.requestRecycle() }
         run(.sequence([
             .wait(forDuration: lifetime),
-            .removeFromParent()
+            recycle
         ]), withKey: GameplayTuning.projectileLifetimeActionKey)
+    }
+
+    // MARK: - Poolable (R1)
+    /// 회수 단일 진입점 — TTL 만료/purge/스킬 정화 등 모든 회수 요청이 이 메서드로 수렴.
+    func requestRecycle() {
+        if let handler = recycleHandler {
+            handler(self)
+        } else {
+            removeFromParent()
+        }
+    }
+
+    /// 재사용 직전 신품 복원: 잔존 TTL 액션 제거 → near-miss 펄스 정리(자식 halo/outline
+    /// 액션·scale 원복) → 매혹 해제(원색 텍스처/halo/outline — clearEnchanted 시맨틱) → 시각/물리 원복.
+    /// wallPolicy(contactTestBitMask)는 발사 시점에 EnemyNode가 매회 applyWallPolicy로 재적용 — 리셋 불요.
+    func resetForReuse() {
+        removeAllActions()
+        stopNearMissPulse()
+        clearEnchanted()
+        alpha = 1
+        setScale(1)
+        position = .zero
+        physicsBody?.velocity = .zero
     }
 
     // MARK: - Readability

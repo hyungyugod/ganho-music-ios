@@ -20,8 +20,9 @@ import SpriteKit
 final class WallTileNode: SKSpriteNode {
 
     // MARK: - Lifecycle
-    /// 1셀 runtime tileSize + 픽셀 톤 단색 + 정적 physicsBody.
-    /// 텍스처 nil — Phase J 픽셀 톤 외곽 효과 도입 시 텍스처로 승격 가능.
+    /// 1셀 runtime tileSize + 공유 베이크 텍스처 + 정적 physicsBody.
+    /// R1 — 자식 3종(그림자/하이라이트/테두리) 부착 폐기 → TextureAtlasStore.wallTileTexture()
+    /// 25×25 베이크 1장(전 타일 공유)으로 동일 시각 — 타일당 4노드 → 1노드(노드 ≤300 게이트 핵심).
     /// - Parameter breakable: 내부 벽이면 true → name=breakableWallName(dashClimb enumerate 대상).
     ///   외곽 벽은 false(기본) → name=wallTileNodeName(파괴 비대상, 맵 이탈 방지).
     ///   physicsBody 정책(category=wall 등)은 breakable 무관 *동일* — 이름만 다르다.
@@ -31,41 +32,12 @@ final class WallTileNode: SKSpriteNode {
             width:  tileSize,
             height: tileSize
         )
-        let color = UIColor.ganhoIngameWallFill
-        super.init(texture: nil, color: color, size: size)
+        let texture = TextureAtlasStore.wallTileTexture()
+        super.init(texture: texture, color: .clear, size: size)
         name = breakable ? GameplayTuning.breakableWallName : GameplayTuning.wallTileNodeName
         zPosition = ZOrder.wallTileZPosition
 
-        let shadow = SKSpriteNode(
-            color: .ganhoIngameWallShadow,
-            size: CGSize(width: size.width, height: UILayout.wallTileShadowHeight)
-        )
-        shadow.position = CGPoint(
-            x: 0,
-            y: -size.height / 2 + UILayout.wallTileShadowHeight / 2
-        )
-        shadow.zPosition = 1
-        addChild(shadow)
-
-        let topLine = SKSpriteNode(
-            color: .ganhoIngameWallHighlight,
-            size: CGSize(width: size.width, height: UILayout.wallTileHighlightHeight)
-        )
-        topLine.position = CGPoint(
-            x: 0,
-            y: size.height / 2 - UILayout.wallTileHighlightHeight / 2
-        )
-        topLine.zPosition = 2
-        addChild(topLine)
-
-        let outline = SKShapeNode(rectOf: size)
-        outline.strokeColor = .ganhoPixelOutlineBlack
-        outline.lineWidth = UILayout.ingameWallStrokeWidth
-        outline.fillColor = .clear
-        outline.zPosition = 3
-        addChild(outline)
-
-        // PhysicsBody — 옛 addRectPillar 정책과 byte-equal(주의사항 3·11).
+        // PhysicsBody — 옛 addRectPillar 정책과 byte-equal(주의사항 3·11). R1 변경 0줄.
         // isDynamic=false → 외부 힘으로 안 움직임. friction/restitution 0 → 부딪힘 시 미끄러짐 0/반사 0.
         // collisionBitMask 0 → 다른 객체가 이 노드를 밀어내지 않음(외곽 벽 정책과 일치).
         // contactTestBitMask 0 → 충돌 알림은 Player/Projectile/Stethoscope 측에서 받음(대칭).

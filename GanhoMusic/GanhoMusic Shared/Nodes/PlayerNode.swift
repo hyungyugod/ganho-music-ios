@@ -11,7 +11,7 @@
 //             4방향 + 걷기 애니메이션을 PlayerNode가 *자기 update*에서 수동 처리.
 //  Sprint 10 Phase A · 풀바디(CharacterFullBodyNode SKShapeNode) 자식 제거 → 16×20 PixelSprite 자식 SKSpriteNode 1개로 통일.
 //                       시각 단일 진실 원천을 자식으로 일원화. physicsBody/velocity/이동/충돌/스킬 0줄 변경.
-//                       5명 × 4방향 = 20 SKTexture 정적 캐시(lazy hit). PNG 우선 경로 제거(원본 1:1 픽셀 회귀).
+//  R1 · 노드 보유 static 캐시 2벌(idle 20 + walk 60) 삭제 → TextureAtlasStore 단일 캐시 위임 (렌더 결과 byte-equal).
 //
 
 import SpriteKit
@@ -89,16 +89,9 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     /// apply(_ characterID:)에서 부착, facing/updatePixelDirection에서 texture 교체만.
     private var pixelSpriteChild: SKSpriteNode?
 
-    /// 5 × 4 = 20 SKTexture 정적 캐시(idle 전용). 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
-    /// static — PlayerNode 인스턴스 전환(캐릭터 재선택 후 재시작)에도 1회 워밍 유지.
-    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전.
-    /// facing/init/attach가 계속 사용 — Sprint 10 Phase A 이후에도 보존(idle 방향 텍스처 단일 원천).
-    private static var textureCache: [CharacterID: [PixelDirection: SKTexture]] = [:]
-    /// 걷기 프레임용 3차원 정적 캐시. [캐릭터][방향][프레임(idle/step1/step2)].
-    /// 최대 5 × 4 × 3 = 60 텍스처(lazy 실사용분만). 16×20×4byte 기준 ≈ 77KB — 허용 범위.
-    /// idle 전용 textureCache와 분리 — frame 파라미터를 받아 step1/step2를 실제로 렌더해야
-    /// 인게임에서 다리 교차가 자식 texture에 반영된다(Sprint 10 Phase A 누락 결함 해소).
-    private static var walkTextureCache: [CharacterID: [PixelDirection: [PixelFrame: SKTexture]]] = [:]
+    // R1 — 노드 보유 static 캐시 2벌(textureCache·walkTextureCache) 삭제.
+    // 텍스처 캐시는 TextureAtlasStore.characterTexture(id:direction:frame:)가 단일 진입점 —
+    // idle 조회는 frame: .idle, 보행 조회는 step1/step2로 같은 3차원 캐시를 공유한다.
     private let nearMissWarning = PlayerNearMissWarningNode()
 
     // MARK: - Init
@@ -116,7 +109,7 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         // 초기 텍스처는 .kim의 down/idle. apply(_ characterID:)로 캐릭터 확정 시 갱신.
         // Sprint 10 Phase A — 본체 self.texture는 투명 placeholder 정책상 시각 영향 0이지만
         //                    size 0 방지 위해 .kim down idle 텍스처를 placeholder로 보유.
-        let initialTexture = Self.cachedTexture(for: .kim, direction: .down)
+        let initialTexture = TextureAtlasStore.characterTexture(id: .kim, direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "player"
 
@@ -189,7 +182,7 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         pixelSpriteChild?.removeFromParent()
 
         // 2. SKSpriteNode 생성. 초기 texture는 .down(.front 대응) idle.
-        let initialTexture = Self.cachedTexture(for: characterID, direction: .down)
+        let initialTexture = TextureAtlasStore.characterTexture(id: characterID, direction: .down, frame: .idle)
         let child = SKSpriteNode(texture: initialTexture)
         child.name = "pixelSpriteChild"
         child.zPosition = ZOrder.playerFaceChildZPosition  // 1 — 기존 상수 재사용
@@ -215,51 +208,6 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         // pixelFrame은 .idle 그대로(init default). Phase A는 walk 미적용 정책.
     }
 
-    /// 5 × 4 = 20 SKTexture 정적 캐시 헬퍼. 첫 호출 시 lazy 생성 → 이후 dict lookup O(1).
-    /// PixelSpriteRenderer는 이미 filteringMode = .nearest 보장 — 픽셀 perfect.
-    /// SKTexture는 GPU 텍스처 공유 안전 — 다중 PlayerNode 인스턴스가 같은 텍스처 참조해도 OK.
-    private static func cachedTexture(for characterID: CharacterID,
-                                       direction: PixelDirection) -> SKTexture {
-        if let cached = textureCache[characterID]?[direction] {
-            return cached
-        }
-        let sprite = PixelSprite.data(for: characterID,
-                                      direction: direction,
-                                      frame: .idle)
-        let palette = PixelPalette.palette(for: characterID)
-        let texture = PixelSpriteRenderer.texture(from: sprite, palette: palette)
-        if textureCache[characterID] == nil {
-            textureCache[characterID] = [:]
-        }
-        textureCache[characterID]?[direction] = texture
-        return texture
-    }
-
-    /// 걷기 프레임 텍스처 정적 캐시 헬퍼(frame 파라미터 포함). 첫 호출 시 lazy 생성 → 이후 O(1) lookup.
-    /// cachedTexture(for:direction:)가 항상 .idle만 렌더하는 것과 달리, step1/step2도 실제로 렌더한다.
-    /// PixelSprite.data(for:direction:frame:) → PixelSpriteRenderer 경로는 cachedTexture와 동형(강제 언래핑 0).
-    /// SKTexture는 GPU 텍스처 공유 안전 — 다중 PlayerNode 인스턴스가 같은 텍스처 참조해도 OK.
-    private static func walkTexture(for characterID: CharacterID,
-                                    direction: PixelDirection,
-                                    frame: PixelFrame) -> SKTexture {
-        if let cached = walkTextureCache[characterID]?[direction]?[frame] {
-            return cached
-        }
-        let sprite = PixelSprite.data(for: characterID,
-                                      direction: direction,
-                                      frame: frame)
-        let palette = PixelPalette.palette(for: characterID)
-        let texture = PixelSpriteRenderer.texture(from: sprite, palette: palette)
-        if walkTextureCache[characterID] == nil {
-            walkTextureCache[characterID] = [:]
-        }
-        if walkTextureCache[characterID]?[direction] == nil {
-            walkTextureCache[characterID]?[direction] = [:]
-        }
-        walkTextureCache[characterID]?[direction]?[frame] = texture
-        return texture
-    }
-
     // MARK: - Facing (Sprint 7 Phase G / Sprint 10 Phase A 픽셀 일원화)
     /// D-Pad 입력 방향 → 자식 SKSpriteNode texture 교체. 다음 SK 프레임(~16ms) 안 전환.
     /// lastFacing 가드 — 같은 방향 재호출 시 noop(매 프레임 호출에도 비용 0).
@@ -270,9 +218,10 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
         if direction == lastFacing { return }
         lastFacing = direction
         let pixelDir = Self.pixelDirection(from: direction)
-        pixelSpriteChild?.texture = Self.cachedTexture(
-            for: currentCharacterID,
-            direction: pixelDir
+        pixelSpriteChild?.texture = TextureAtlasStore.characterTexture(
+            id: currentCharacterID,
+            direction: pixelDir,
+            frame: .idle
         )
         pixelDirection = pixelDir
     }
@@ -644,23 +593,24 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     // updatePixelDirection / tickWalkFrame 본문은 프로토콜 기본 구현이 단일 진실 원천.
     // PlayerNode는 텍스처 반영 훅 2개만 구현 — 기존 시맨틱 byte-equal 보존:
     //   · 방향 변경 프레임: 본체 refreshTexture(idle 캐시) + 자식에 idle 방향 텍스처 (순간적 idle 노출 보존)
-    //   · 보행 토글 프레임: walkTexture 캐시로 본체+자식 동기 (다리 교차가 화면에 보임 — Sprint 11)
+    //   · 보행 토글 프레임: TextureAtlasStore 캐시로 본체+자식 동기 (다리 교차가 화면에 보임 — Sprint 11)
 
     /// 방향이 바뀐 프레임 전용 훅 — 자식에 *idle 방향 텍스처*를 적용(기존 updatePixelDirection 시맨틱).
     func applyDirectionChangeTexture() {
         refreshTexture()
         // Sprint 10 Phase A — 본체뿐 아니라 자식도 같이 갱신(시각 단일 진실 원천).
-        pixelSpriteChild?.texture = Self.cachedTexture(
-            for: currentCharacterID,
-            direction: pixelDirection
+        pixelSpriteChild?.texture = TextureAtlasStore.characterTexture(
+            id: currentCharacterID,
+            direction: pixelDirection,
+            frame: .idle
         )
     }
 
     /// 현재 pixelDirection + pixelFrame 조합 텍스처를 본체(self)와 자식 pixelSpriteChild 양쪽에 set.
-    /// 텍스처는 walkTexture 정적 캐시에서 가져오므로 매 호출 재생성 없음 — 변화 없는 프레임은 노드가 noop 처리.
+    /// 텍스처는 TextureAtlasStore 캐시에서 가져오므로 매 호출 재생성 없음 — 변화 없는 프레임은 노드가 noop 처리.
     func applyPixelTexture() {
-        let tex = Self.walkTexture(
-            for: currentCharacterID,
+        let tex = TextureAtlasStore.characterTexture(
+            id: currentCharacterID,
             direction: pixelDirection,
             frame: pixelFrame
         )
@@ -669,16 +619,17 @@ final class PlayerNode: SKSpriteNode, PixelCharacterAnimating {
     }
 
     // MARK: - Texture Refresh
-    /// 현재 캐릭터/방향 조합으로 텍스처를 재생성하고 SKSpriteNode.texture에 set.
+    /// 현재 캐릭터/방향 조합 idle 텍스처를 SKSpriteNode.texture에 set.
     /// SKTexture 이전 값은 ARC로 자동 해제 — 메모리 누수 0.
     /// 호출 빈도: 캐릭터 적용 1회 + 방향 변경 시 (D-Pad/velocity fallback).
-    /// Sprint 10 Phase A — PNG 우선 경로 제거. cachedTexture(20-텍스처 static 캐시) 직행.
-    ///                     본체 self.texture는 투명 placeholder 정책상 시각 영향 0 — 자식이 단일 진실 원천.
-    ///                     단, currentCharacterID/pixelDirection 상태 정합 위해 *값으로*는 정확히 유지.
+    /// R1 — 노드 보유 static 캐시 폐기, TextureAtlasStore 단일 캐시 경유(렌더 결과 byte-equal).
+    ///      본체 self.texture는 투명 placeholder 정책상 시각 영향 0 — 자식이 단일 진실 원천.
+    ///      단, currentCharacterID/pixelDirection 상태 정합 위해 *값으로*는 정확히 유지.
     private func refreshTexture() {
-        texture = Self.cachedTexture(
-            for: currentCharacterID,
-            direction: pixelDirection
+        texture = TextureAtlasStore.characterTexture(
+            id: currentCharacterID,
+            direction: pixelDirection,
+            frame: .idle
         )
     }
 }

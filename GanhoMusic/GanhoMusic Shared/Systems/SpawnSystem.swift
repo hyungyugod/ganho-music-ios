@@ -24,6 +24,19 @@ final class SpawnSystem {
     private var progressProvider: () -> Double = { 0 }
     private var noteSpawnTick: Int = 0
 
+    // MARK: - R1 Pool/Registry 배선
+    /// 동적 엔티티 카운트/순회 캐시. GameScene이 configurePooling으로 주입 — weak(기존 의존성 컨벤션).
+    private weak var registry: EntityRegistry?
+    /// 음표 실체화 provider — 풀+레지스트리 경유(obtain→register) 클로저.
+    /// 미주입 fallback은 직접 생성(풀 미경유) — 단독 사용 안전망, 본 게임 경로에선 항상 주입됨.
+    private var noteProvider: () -> NoteNode = { NoteNode() }
+
+    /// R1 — 풀·레지스트리 배선 단일 진입점. GameScene didMove(setupEntityPools)에서 1회 호출.
+    func configurePooling(registry: EntityRegistry, noteProvider: @escaping () -> NoteNode) {
+        self.registry = registry
+        self.noteProvider = noteProvider
+    }
+
     // MARK: - Tunable (Phase 7-1 / Sprint 10 Phase I)
     /// 동시 음표 최대 수. default = GameplayTuning.noteMaxConcurrent → apply 누락 시 easy 동작 자연 fallback.
     var noteMaxConcurrent: Int = GameplayTuning.noteMaxConcurrent
@@ -78,10 +91,14 @@ final class SpawnSystem {
         scene?.removeAction(forKey: "spawnNotes")
         scene?.removeAction(forKey: "fireProjectiles")
         scene?.removeAction(forKey: "spawnToilets")   // Phase 9-6 — 변기 스폰 루프 정지
-        worldNode?.enumerateChildNodes(withName: "projectile") { node, _ in
-            node.physicsBody?.velocity = .zero
+        // R1 — 활성 F 정지: 구 name="projectile" enumerate → registry 배열 순회 (동일 대상).
+        if let registry = registry {
+            for projectile in registry.projectiles {
+                projectile.physicsBody?.velocity = .zero
+            }
         }
-        // Sprint 10 Phase D — 매혹 잔존 A 노드 정지.
+        // Sprint 10 Phase D — 매혹 잔존 A 노드 정지. (aItem은 registry 비대상 — 저빈도
+        // 이벤트 경로라 enumerate 유지 허용, R1 SPEC 명시.)
         worldNode?.enumerateChildNodes(withName: "aItem") { node, _ in
             node.physicsBody?.velocity = .zero
         }
@@ -113,12 +130,9 @@ final class SpawnSystem {
         spawnNote(at: position, in: world)
     }
 
-    /// worldNode 안 음표 ("note" 이름) 개수.
+    /// 활성 음표 수 — R1: registry 캐시 조회 (구 worldNode enumerate 카운트 대체).
     private func currentNoteCount() -> Int {
-        guard let world = worldNode else { return 0 }
-        var count = 0
-        world.enumerateChildNodes(withName: "note") { _, _ in count += 1 }
-        return count
+        return registry?.notes.count ?? 0
     }
 
     /// 외곽 벽과 수집 hitbox가 겹치지 않는 열린 위치. 중앙 기둥/벽 내부 후보는 제한 횟수 안에서 재시도한다.
@@ -211,8 +225,10 @@ final class SpawnSystem {
         return true
     }
 
+    /// R1 — 풀+레지스트리 경유 실체화: provider가 obtain→register, 본 시설이 addChild.
+    /// TTL은 addChild 직후 매 spawn마다 재부착 — 재사용 노드도 신품과 동일 수명 정책.
     private func spawnNote(at position: CGPoint, in world: SKNode) {
-        let note = NoteNode()
+        let note = noteProvider()
         note.position = position
         world.addChild(note)
         note.applyLifetime(noteLifetime)
@@ -241,18 +257,18 @@ final class SpawnSystem {
 
     // MARK: - Sprint 10 Phase G · F 전멸 + obstacles target getter
 
-    /// AIRFORCE 이스터에그 폭탄 섬광 동기 호출. 화면 위 모든 F(name="projectile")를 즉시 제거.
-    /// A(name="aItem", 매혹 변환)는 보존 — 원본 game.js L3419~L3447 'type==F 전부 삭제' byte-equal.
-    /// SKAction.removeFromParent 사용 — didBegin/물리 콜백 진행 중 즉시 removeFromParent 회피
-    /// (주의사항 1: 물리 충돌 노드 즉시 삭제 금지).
-    /// FProjectileNode가 name="projectile"로 등록됨 (ContactRouter 콜백과 정합).
-    /// 매혹된 F(isEnchanted=true)는 SkillSystem이 시각만 분홍으로 토글 — name="projectile" 그대로 유지.
-    /// 발사 시점에 매혹 만료된 F는 AItemNode(name="aItem")로 별도 분기되어 본 enumerate에 잡히지 않음.
+    /// AIRFORCE 이스터에그 폭탄 섬광 동기 호출. 화면 위 모든 F를 지연 회수.
+    /// A(매혹 변환 AItemNode)는 보존 — 원본 game.js L3419~L3447 'type==F 전부 삭제' byte-equal.
+    /// R1 — 구 name="projectile" enumerate → registry.projectiles *스냅샷* 순회 (순회 중 회수로
+    /// 배열이 변형돼도 안전). 매혹된 F는 FProjectileNode 타입 그대로라 registry에 있어 동일 포함,
+    /// AItemNode는 별도 타입이라 자연 비포함 — 구 enumerate와 대상 동일.
+    /// 지연 회수(.wait 0) — didBegin/물리 콜백 진행 중 즉시 removeFromParent 회피 규칙을 회수에도 적용.
     func purgeAllF() {
-        guard let world = worldNode else { return }
-        world.enumerateChildNodes(withName: "projectile") { node, _ in
-            // 다음 프레임 안전 제거 — SKAction.removeFromParent는 물리 콜백 진행 중 즉시 제거 회피.
-            node.run(.removeFromParent())
+        guard let registry = registry else { return }
+        let snapshot = registry.projectiles
+        for projectile in snapshot {
+            let recycle = SKAction.run { [weak projectile] in projectile?.requestRecycle() }
+            projectile.run(.sequence([.wait(forDuration: 0), recycle]))
         }
     }
 
@@ -292,7 +308,7 @@ final class SpawnSystem {
     }
 
     /// worldNode 안 변기 ("toilet" 이름) 개수.
-    /// currentNoteCount / currentProjectileCount 패턴 답습 — DRY 유지.
+    /// toilet은 registry 비대상(저빈도 12초 주기 경로) — enumerate 유지 허용(R1 SPEC 명시).
     private func currentToiletCount() -> Int {
         guard let world = worldNode else { return 0 }
         var count = 0

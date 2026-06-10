@@ -38,37 +38,97 @@ extension GameScene {
         mapNode.buildWalls(difficulty: difficulty)
     }
 
-    /// Phase 9-4 — 체크보드 바닥. 640개(mapColumns × mapRows = 32×20) SKSpriteNode를
-    /// *컨테이너 한 개*에 자식으로 묶어 worldNode에 부착한다.
-    /// physicsBody 0 부착(시각 전용), zPosition = checkerboardZPosition(-100).
+    /// Phase 9-4 체크보드 바닥 — R1: 640개(32×20) SKSpriteNode 루프 폐기 →
+    /// **사전 렌더 텍스처 1장 + SKSpriteNode 1개** (설계서 01 §9 권장안).
+    /// 시각 동일: ganhoIngameFloorA/B 2색, (c+r) 홀짝 교차, 셀 25pt, 맵 800×500 전체 —
+    /// 32×20px 이미지(1픽셀=1타일)를 TextureAtlasStore가 1회 렌더, .nearest로 800×500pt 확대.
+    /// anchorPoint .zero + position .zero → 구 타일들(0~800, 0~500 커버)과 같은 영역.
+    /// physicsBody 0 부착(시각 전용), zPosition = checkerboardZPosition(-100),
+    /// name = checkerboardContainerName 유지(외부 참조는 본 생성부뿐 — 컨테이너 SKNode 제거, sprite에 직접 부여).
     /// 호출은 setupWorld()에서 1회만 — update() 안 호출 금지(성능 핵심).
     private func addCheckerboardFloor() {
-        let container = SKNode()
-        container.name = GameplayTuning.checkerboardContainerName
-        container.zPosition = ZOrder.checkerboardZPosition
-
-        let t = GameplayTuning.tileSize
-        let half = t / 2
-        let floorA = UIColor.ganhoIngameFloorA
-        let floorB = UIColor.ganhoIngameFloorB
-        let tileSize = CGSize(width: t, height: t)
-
-        for c in 0..<GameplayTuning.mapColumns {
-            for r in 0..<GameplayTuning.mapRows {
-                // 시장 패턴(market check): (c + r)의 홀짝성으로 두 색 교차.
-                let color = ((c + r) % 2 == 0) ? floorA : floorB
-                let tile = SKSpriteNode(color: color, size: tileSize)
-                tile.position = CGPoint(
-                    x: CGFloat(c) * t + half,
-                    y: CGFloat(r) * t + half
-                )
-                // 시각 전용 — physicsBody 미부착. 640개 노드가 물리 시뮬에 들어가면 60fps 위협.
-                container.addChild(tile)
-            }
-        }
-
-        worldNode.addChild(container)
+        let floor = SKSpriteNode(texture: TextureAtlasStore.checkerboardFloorTexture())
+        floor.name = GameplayTuning.checkerboardContainerName
+        floor.zPosition = ZOrder.checkerboardZPosition
+        floor.anchorPoint = .zero
+        floor.position = .zero
+        floor.size = CGSize(width: GameplayTuning.mapWidth, height: GameplayTuning.mapHeight)
+        worldNode.addChild(floor)
     }
+
+    // MARK: - Entity Pools + Registry (R1)
+    /// 풀 4종 예열 + SpawnSystem 풀·레지스트리 배선. didMove에서 1회 호출.
+    /// 예열 수치는 GameplayTuning 상수(12/16/6/8 — 설계서 01 §8 그대로).
+    func setupEntityPools() {
+        projectilePool.preheat(count: GameplayTuning.projectilePoolPreheatCount)
+        notePool.preheat(count: GameplayTuning.notePoolPreheatCount)
+        stethoscopePool.preheat(count: GameplayTuning.stethoscopePoolPreheatCount)
+        scorePopupPool.preheat(count: GameplayTuning.scorePopupPoolPreheatCount)
+        spawnSystem.configurePooling(
+            registry: registry,
+            noteProvider: { [weak self] in
+                guard let self = self else { return NoteNode() }
+                return self.obtainPooledNote()
+            }
+        )
+    }
+
+    /// 풀+레지스트리 원자 쌍의 obtain 절반: obtain → recycleHandler 주입 → register.
+    /// addChild는 호출 시설(SpawnSystem)이 위치 확정 직후 수행 — provider 호출 직후라 사실상 원자.
+    func obtainPooledNote() -> NoteNode {
+        let note = notePool.obtain()
+        note.recycleHandler = { [weak self] node in self?.recycleDynamicNode(node) }
+        registry.register(note)
+        return note
+    }
+
+    /// F 투사체 obtain 절반 — EnemyNode.projectileProvider가 호출.
+    func obtainPooledProjectile() -> FProjectileNode {
+        let projectile = projectilePool.obtain()
+        projectile.recycleHandler = { [weak self] node in self?.recycleDynamicNode(node) }
+        registry.register(projectile)
+        return projectile
+    }
+
+    /// 청진기 obtain 절반 — ProfessorNode.stethoscopeProvider가 호출.
+    func obtainPooledStethoscope() -> StethoscopeNode {
+        let stethoscope = stethoscopePool.obtain()
+        stethoscope.recycleHandler = { [weak self] node in self?.recycleDynamicNode(node) }
+        registry.register(stethoscope)
+        return stethoscope
+    }
+
+    /// 풀 대상 4종의 회수 단일 진입점: unregister → pool.recycle(removeFromParent+reset+보관).
+    /// 비풀 노드(AItem/Toilet 등)는 기존 removeFromParent 동작 유지(fallback).
+    /// 이중 회수 안전 — unregister/recycle 모두 idempotent.
+    func recycleDynamicNode(_ node: SKNode) {
+        if let note = node as? NoteNode {
+            registry.unregister(note)
+            notePool.recycle(note)
+        } else if let projectile = node as? FProjectileNode {
+            registry.unregister(projectile)
+            projectilePool.recycle(projectile)
+        } else if let stethoscope = node as? StethoscopeNode {
+            registry.unregister(stethoscope)
+            stethoscopePool.recycle(stethoscope)
+        } else if let popup = node as? ScorePopupNode {
+            scorePopupPool.recycle(popup)
+        } else {
+            node.removeFromParent()
+        }
+    }
+
+    #if DEBUG
+    // MARK: - Frame Stats (R1 · DEBUG 전용)
+    /// 좌상단 프레임/노드 진단 라벨 부착. FrameStats.isEnabled=false면 attach 0 (코드 1줄 토글).
+    func setupFrameStats() {
+        guard FrameStats.isEnabled else { return }
+        let stats = FrameStats()
+        stats.place(in: size)
+        cameraNode.addChild(stats)
+        frameStats = stats
+    }
+    #endif
 
     // Sprint 10 Phase C — 옛 빌더 함수 7개 본문 + 외곽 라운드 보더 SKShapeNode 삭제.
     // 제거된 함수: addHorizontalWall / addVerticalWall / addRectPillar / addOuterWalls /
@@ -144,6 +204,15 @@ extension GameScene {
         enemy.charmActiveProvider = { [weak self] in
             return self?.skillSystem.isCharmActive ?? false
         }
+        // R1 — F 실체화/카운트 provider. 실체화는 풀+레지스트리 경유(obtain→register),
+        // 카운트는 registry 캐시(구 update 경로 enumerate 대체). 기존 provider 컨벤션 동형.
+        enemy.projectileProvider = { [weak self] in
+            guard let self = self else { return FProjectileNode() }
+            return self.obtainPooledProjectile()
+        }
+        enemy.projectileCountProvider = { [weak self] in
+            return self?.registry.projectiles.count ?? 0
+        }
         worldNode.addChild(enemy)
     }
 
@@ -177,6 +246,14 @@ extension GameScene {
             of: player.position,
             mapSize: CGSize(width: GameplayTuning.mapWidth, height: GameplayTuning.mapHeight)
         )
+        // R1 — 청진기 실체화/카운트 provider. EnemyNode provider 컨벤션 동형.
+        node.stethoscopeProvider = { [weak self] in
+            guard let self = self else { return StethoscopeNode() }
+            return self.obtainPooledStethoscope()
+        }
+        node.stethoscopeCountProvider = { [weak self] in
+            return self?.registry.stethoscopes.count ?? 0
+        }
         // [weak self] 캡처 — 발사 루프 진행 중 씬 전환 가능성 대비.
         // self 해제 시 player.position nil → nil 반환 → throwStethoscope의 guard로 자연 noop.
         node.startThrowingStethoscopes(

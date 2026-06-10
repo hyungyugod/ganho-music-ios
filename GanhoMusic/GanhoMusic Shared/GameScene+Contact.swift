@@ -48,7 +48,11 @@ extension GameScene {
             self.worldNode.addChild(sparkle)
             sparkle.emit()
 
-            ScorePopupNode.spawn(at: sparkleOrigin, gainedPoints: gainedPoints, parent: self.worldNode)
+            // R1 — 점수 팝업 풀 경유 (obtain→addChild→animate→풀 회수).
+            ScorePopupNode.spawn(at: sparkleOrigin,
+                                 gainedPoints: gainedPoints,
+                                 parent: self.worldNode,
+                                 pool: self.scorePopupPool)
 
             if FeelTuning.comboMilestones.contains(currentCombo),
                !self.triggeredComboMilestones.contains(currentCombo) {
@@ -117,14 +121,17 @@ extension GameScene {
                                  parent: self.worldNode)
 
             if let firstGain = gains.first, let secondGain = gains.dropFirst().first {
+                // R1 — 점수 팝업 풀 경유 (변기 보너스는 동시 2장 — 예열 8장이 흡수).
                 ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x - GameplayTuning.toiletScorePopupFanOutX,
                                                  y: toiletOrigin.y),
                                      gainedPoints: firstGain,
-                                     parent: self.worldNode)
+                                     parent: self.worldNode,
+                                     pool: self.scorePopupPool)
                 ScorePopupNode.spawn(at: CGPoint(x: toiletOrigin.x + GameplayTuning.toiletScorePopupFanOutX,
                                                  y: toiletOrigin.y),
                                      gainedPoints: secondGain,
-                                     parent: self.worldNode)
+                                     parent: self.worldNode,
+                                     pool: self.scorePopupPool)
             }
 
             if FeelTuning.comboMilestones.contains(currentCombo),
@@ -141,11 +148,18 @@ extension GameScene {
     }
 
     // MARK: - Contact Cleanup
-    /// 물리 contact 콜백 중 노드 제거를 다음 액션 틱으로 미뤄 SpriteKit 물리 처리와 분리.
+    /// 물리 contact 콜백 중 노드 제거/회수를 다음 액션 틱으로 미뤄 SpriteKit 물리 처리와 분리.
+    /// R1 — 마지막 단계만 removeFromParent → recycleDynamicNode(풀 4종 회수 / 비풀 제거)로 교체.
+    /// `.wait(forDuration: 0)` 지연은 그대로 유지 — 충돌 델리게이트 진행 중 즉시 제거 금지 규칙을
+    /// 회수에도 동일 적용(물리 시뮬레이션 단계와 노드 제거 분리).
     private func deferRemoveAfterContact(_ node: SKNode) {
+        let cleanup = SKAction.run { [weak self, weak node] in
+            guard let node = node else { return }
+            self?.recycleDynamicNode(node)
+        }
         node.run(.sequence([
             .wait(forDuration: 0),
-            .removeFromParent()
+            cleanup
         ]))
     }
 }

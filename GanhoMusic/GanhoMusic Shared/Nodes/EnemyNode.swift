@@ -60,6 +60,12 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
     var progressProvider: () -> Double = { 0 }
     /// 발사 시점 매혹 활성 여부 검사. true면 F 대신 A 생성. 발사 시점 1회만 검사 (SPEC §5).
     var charmActiveProvider: () -> Bool = { false }
+    /// R1 — F 실체화 provider. GameScene+Setup이 풀+레지스트리 경유(obtain→register) 클로저를 주입.
+    /// 미주입 fallback은 직접 생성(풀 미경유) — 단독 사용 안전망, 본 게임 경로에선 항상 주입됨.
+    var projectileProvider: () -> FProjectileNode = { FProjectileNode() }
+    /// R1 — 활성 F 수 provider (registry.projectiles.count). 구 enumerate 카운트(update 경로!)의 대체.
+    /// 미주입 fallback 0 — 동시 캡이 안 걸리지만 본 게임 경로에선 GameScene+Setup이 항상 주입.
+    var projectileCountProvider: () -> Int = { 0 }
 
     /// 난이도별 burst 카운트. apply에서 set. easy=1, normal=3, hard=4.
     var burstCount: Int = 1
@@ -102,9 +108,9 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
             width:  GameplayTuning.enemyWidth  * GameplayTuning.pixelSpriteScale,
             height: GameplayTuning.enemyHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
-        // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
-        let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
+        // 초기 텍스처도 TextureAtlasStore 캐시 경유 — applyPixelTexture()와 같은 캐시 워밍 →
+        // down/idle 텍스처 단일 인스턴스 공유 (R1: 노드 static 캐시 → Store 위임).
+        let initialTexture = TextureAtlasStore.nurseChiefTexture(direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "enemy"
 
@@ -410,7 +416,8 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         if isCharmed {
             anglesToFire = shotPlan.angles.prefix(shotPlan.angles.count)
         } else {
-            let remainingSlots = max(0, projectileMaxConcurrent - currentProjectileCount(in: world))
+            // R1 — 구 currentProjectileCount(world enumerate, update 경로) → registry 카운트 provider.
+            let remainingSlots = max(0, projectileMaxConcurrent - projectileCountProvider())
             guard remainingSlots > 0 else {
                 clearPendingShotPlan()
                 return
@@ -428,7 +435,9 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
                 a.physicsBody?.velocity = velocity
                 world.addChild(a)
             } else {
-                let f = FProjectileNode()
+                // R1 — 풀+레지스트리 경유 실체화: provider가 obtain→register, 본 시설이 addChild.
+                // wallPolicy/TTL은 발사 시점마다 재적용 — 재사용 노드도 신품과 동일 정책 보장.
+                let f = projectileProvider()
                 f.applyWallPolicy(passesWalls: projectilePassesWalls)
                 f.applyLifetime(projectileLifetime)
                 f.position = spawnPoint
@@ -437,14 +446,6 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
             }
         }
         clearPendingShotPlan()
-    }
-
-    private func currentProjectileCount(in world: SKNode) -> Int {
-        var count = 0
-        world.enumerateChildNodes(withName: "projectile") { _, _ in
-            count += 1
-        }
-        return count
     }
 
     private func clearPendingShotPlan() {
@@ -490,31 +491,11 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
     // updatePixelDirection / tickWalkFrame 본문은 프로토콜 기본 구현이 단일 진실 원천.
     // EnemyNode는 텍스처 반영 훅만 구현 — 즉시 step1 토글 없음(1 interval 대기)·간격 0.18 기본값 그대로.
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 갱신 — TextureAtlasStore 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
+    /// R1 — 노드 보유 static textureCache 삭제, Store가 단일 캐시 지점(수간호사 전용 캐시 분리 유지).
     func applyPixelTexture() {
-        texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
-    }
-
-    // MARK: - Texture Cache (출시 전 최적화 — PlayerNode L80-83 패턴 동형)
-    /// (방향 × 프레임) SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
-    /// static — 인스턴스 재생성(재시작)에도 1회 워밍 유지. 4방향 × 3프레임 = 최대 12종.
-    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전(PlayerNode L82 근거).
-    /// ⚠️ 클래스별 별도 캐시 — chiefPalette/nurseChiefData가 다른 노드와 달라 공유 절대 금지.
-    private static var textureCache: [PixelDirection: [PixelFrame: SKTexture]] = [:]
-
-    /// 캐시 헬퍼. 미스 시 PixelSpriteRenderer로 1회 렌더 후 저장.
-    /// 결과 픽셀은 직접 렌더와 byte-equal(같은 입력 → 같은 image → `.nearest` 동일).
-    private static func cachedTexture(direction: PixelDirection,
-                                      frame: PixelFrame) -> SKTexture {
-        if let cached = textureCache[direction]?[frame] { return cached }
-        let texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.nurseChiefData(direction: direction, frame: frame),
-            palette: PixelPalette.chiefPalette
-        )
-        if textureCache[direction] == nil { textureCache[direction] = [:] }
-        textureCache[direction]?[frame] = texture
-        return texture
+        texture = TextureAtlasStore.nurseChiefTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F — 본문 삭제)

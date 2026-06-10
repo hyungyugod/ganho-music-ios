@@ -49,6 +49,14 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
     var warningProfile = GameplayTuning.warningProfileFallback
     private let proximityWarning = EnemyProximityWarningNode(color: .ganhoCoralPrimary)
 
+    // MARK: - R1 Providers (GameScene+Setup이 주입 — EnemyNode provider 컨벤션 동형)
+    /// 청진기 실체화 provider — 풀+레지스트리 경유(obtain→register) 클로저.
+    /// 미주입 fallback은 직접 생성(풀 미경유) — 단독 사용 안전망, 본 게임 경로에선 항상 주입됨.
+    var stethoscopeProvider: () -> StethoscopeNode = { StethoscopeNode() }
+    /// 활성 청진기 수 provider (registry.stethoscopes.count). 구 enumerate 카운트의 대체.
+    /// 미주입 fallback 0 — 동시 캡이 안 걸리지만 본 게임 경로에선 GameScene+Setup이 항상 주입.
+    var stethoscopeCountProvider: () -> Int = { 0 }
+
     // MARK: - Init
     init() {
         // EnemyNode/PlayerNode 패턴 동형 — 시각은 pixelSpriteScale(2)배, physicsBody는 미부착.
@@ -56,9 +64,9 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
             width:  GameplayTuning.professorWidth  * GameplayTuning.pixelSpriteScale,
             height: GameplayTuning.professorHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
-        // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
-        let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
+        // 초기 텍스처도 TextureAtlasStore 캐시 경유 — applyPixelTexture()와 같은 캐시 워밍 →
+        // down/idle 텍스처 단일 인스턴스 공유 (R1: 노드 static 캐시 → Store 위임).
+        let initialTexture = TextureAtlasStore.professorTexture(direction: .down, frame: .idle)
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "professor"
         zPosition = 5
@@ -202,7 +210,8 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
     private func throwStethoscope() {
         guard let world = worldRef else { return }
         guard let target = targetProvider() else { return }
-        guard currentStethoscopeCount(in: world) < GameplayTuning.stethoscopeMaxConcurrent else { return }
+        // R1 — 구 currentStethoscopeCount(world enumerate) → registry 카운트 provider.
+        guard stethoscopeCountProvider() < GameplayTuning.stethoscopeMaxConcurrent else { return }
         let telegraph = ProfessorTelegraphNode()
         telegraph.position = CGPoint(x: 0, y: GameplayTuning.professorTelegraphOffsetY)
         addChild(telegraph)
@@ -234,11 +243,12 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
     /// 실제 청진기 다발 발사. 텔레그래프 종료 직후 호출.
     /// 각 방향마다 spawnPoint = 본체 위치 + unitVec × stethoscopeFireStartOffset — 자기 충돌로 즉시 소멸 방지.
     /// velocity = unitVec × stethoscopeSpeed. 속도/offset 수치는 단발 시절과 동일(요청3 범위 = 개수/방향만).
+    /// R1 — 풀+레지스트리 경유 실체화: provider가 obtain→register, 본 시설이 addChild.
     private func fireStethoscope(angles: [CGFloat], world: SKNode) {
         for angle in angles {
             let unitX = cos(angle)
             let unitY = sin(angle)
-            let steth = StethoscopeNode()
+            let steth = stethoscopeProvider()
             steth.position = CGPoint(
                 x: position.x + unitX * GameplayTuning.stethoscopeFireStartOffset,
                 y: position.y + unitY * GameplayTuning.stethoscopeFireStartOffset
@@ -251,19 +261,11 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
         }
     }
 
-    /// worldNode 안 청진기("stethoscope" 이름) 개수. SpawnSystem.currentProjectileCount 패턴 답습.
-    private func currentStethoscopeCount(in world: SKNode) -> Int {
-        var count = 0
-        world.enumerateChildNodes(withName: "stethoscope") { _, _ in count += 1 }
-        return count
-    }
-
-    /// 게임 종료 시 GameScene.endGame이 호출. 발사 루프 정지 + 활성 청진기 velocity 0.
-    func stopThrowing(worldNode: SKNode) {
+    /// 게임 종료 시 GameScene.endGame이 호출. 발사 루프 정지만 담당.
+    /// R1 — 활성 청진기 velocity 0은 GameScene이 registry.stethoscopes 직접 순회로 수행
+    /// (구 worldNode enumerate 대체 — 시그니처에서 worldNode 인자 제거).
+    func stopThrowing() {
         removeAction(forKey: GameplayTuning.professorThrowActionKey)
-        worldNode.enumerateChildNodes(withName: "stethoscope") { node, _ in
-            node.physicsBody?.velocity = .zero
-        }
     }
 
     // MARK: - Pixel Animation (Phase 9-7 · 보존)
@@ -278,31 +280,11 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
         )
     }
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 갱신 — TextureAtlasStore 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
+    /// R1 — 노드 보유 static textureCache 삭제, Store가 단일 캐시 지점(이교수 전용 캐시 분리 유지).
     func applyPixelTexture() {
-        texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
-    }
-
-    // MARK: - Texture Cache (출시 전 최적화 — PlayerNode L80-83 패턴 동형)
-    /// (방향 × 프레임) SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
-    /// static — 인스턴스 재생성(재시작)에도 1회 워밍 유지. 4방향 × 3프레임 = 최대 12종.
-    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전(PlayerNode L82 근거).
-    /// ⚠️ 클래스별 별도 캐시 — professorPalette/professorData가 다른 노드와 달라 공유 절대 금지.
-    private static var textureCache: [PixelDirection: [PixelFrame: SKTexture]] = [:]
-
-    /// 캐시 헬퍼. 미스 시 PixelSpriteRenderer로 1회 렌더 후 저장.
-    /// 결과 픽셀은 직접 렌더와 byte-equal(같은 입력 → 같은 image → `.nearest` 동일).
-    private static func cachedTexture(direction: PixelDirection,
-                                      frame: PixelFrame) -> SKTexture {
-        if let cached = textureCache[direction]?[frame] { return cached }
-        let texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.professorData(direction: direction, frame: frame),
-            palette: PixelPalette.professorPalette
-        )
-        if textureCache[direction] == nil { textureCache[direction] = [:] }
-        textureCache[direction]?[frame] = texture
-        return texture
+        texture = TextureAtlasStore.professorTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F · 본문 삭제)

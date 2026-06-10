@@ -123,7 +123,12 @@ extension GameScene {
         tensionVignette?.removeFromParent()
         tensionVignette = nil
         spawnSystem.stop()
-        professor?.stopThrowing(worldNode: worldNode)
+        professor?.stopThrowing()
+        // R1 — 잔존 청진기 velocity 0: 구 stopThrowing 내부 enumerate의 registry 대체.
+        // easy/normal은 청진기 0개 → 빈 배열 순회 자연 noop (professor=nil 시맨틱과 동일).
+        for stethoscope in registry.stethoscopes {
+            stethoscope.physicsBody?.velocity = .zero
+        }
         dpad.resetDirection()
         resetMovementInput()
         runButton.resetPressedState()
@@ -150,7 +155,11 @@ extension GameScene {
         tensionVignette?.removeFromParent()
         tensionVignette = nil
         spawnSystem.stop()
-        professor?.stopThrowing(worldNode: worldNode)
+        professor?.stopThrowing()
+        // R1 — 잔존 청진기 velocity 0: 구 stopThrowing 내부 enumerate의 registry 대체.
+        for stethoscope in registry.stethoscopes {
+            stethoscope.physicsBody?.velocity = .zero
+        }
         player.currentDirection = .zero
         player.isRunning = false
         resetMovementInput()

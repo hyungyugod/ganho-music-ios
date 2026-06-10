@@ -28,20 +28,22 @@ extension GameScene {
             )
         }
 
+        // R1 — 구 enumerateChildNodes("projectile"/"stethoscope") 프레임당 2건(update 경로 게이트 대상)
+        // → registry 배열 직접 순회. 대상·판정·갱신 시맨틱 동일, 트리 전체 순회 비용만 제거.
         var closestProjectileDistance: CGFloat?
-        worldNode.enumerateChildNodes(withName: "projectile") { [weak self] node, _ in
-            guard let self = self, let projectile = node as? FProjectileNode else { return }
-            let distance = self.distance(from: projectile.position, to: self.player.position)
+        for projectile in registry.projectiles {
+            let distanceToPlayer = distance(from: projectile.position, to: player.position)
             if !projectile.isEnchanted {
-                closestProjectileDistance = self.closestDistance(current: closestProjectileDistance, candidate: distance)
+                closestProjectileDistance = closestDistance(current: closestProjectileDistance,
+                                                            candidate: distanceToPlayer)
             }
-            projectile.updateNearMissWarning(distanceToPlayer: distance, profile: profile)
+            projectile.updateNearMissWarning(distanceToPlayer: distanceToPlayer, profile: profile)
         }
-        worldNode.enumerateChildNodes(withName: "stethoscope") { [weak self] node, _ in
-            guard let self = self, let stethoscope = node as? StethoscopeNode else { return }
-            let distance = self.distance(from: stethoscope.position, to: self.player.position)
-            closestProjectileDistance = self.closestDistance(current: closestProjectileDistance, candidate: distance)
-            stethoscope.updateNearMissWarning(distanceToPlayer: distance, profile: profile)
+        for stethoscope in registry.stethoscopes {
+            let distanceToPlayer = distance(from: stethoscope.position, to: player.position)
+            closestProjectileDistance = closestDistance(current: closestProjectileDistance,
+                                                        candidate: distanceToPlayer)
+            stethoscope.updateNearMissWarning(distanceToPlayer: distanceToPlayer, profile: profile)
         }
         player.updateNearMissWarning(closestProjectileDistance: closestProjectileDistance, profile: profile)
     }

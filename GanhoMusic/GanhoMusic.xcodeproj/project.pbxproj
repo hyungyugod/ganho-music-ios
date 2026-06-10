@@ -37,6 +37,10 @@
 		A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000020 /* BombFlashNode.swift */; };
 		A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000021 /* SelfDismissingNode.swift */; };
 		C0F1A0DE0000000000000108 /* PixelCharacterAnimating.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000008 /* PixelCharacterAnimating.swift */; };
+		C0F1A0DE0000000000000109 /* EntityRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE0000000000000009 /* EntityRegistry.swift */; };
+		C0F1A0DE000000000000010A /* ObjectPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE000000000000000A /* ObjectPool.swift */; };
+		C0F1A0DE000000000000010B /* FrameStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE000000000000000B /* FrameStats.swift */; };
+		C0F1A0DE000000000000010C /* TextureAtlasStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F1A0DE000000000000000C /* TextureAtlasStore.swift */; };
 		A1C0F1B00000000000000022 /* CharacterID.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000022 /* CharacterID.swift */; };
 		A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000023 /* CharacterCardNode.swift */; };
 		A1C0F1B00000000000000024 /* CharacterPreferenceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */; };
@@ -165,6 +169,10 @@
 		A1C0F1A00000000000000020 /* BombFlashNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombFlashNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000021 /* SelfDismissingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfDismissingNode.swift; sourceTree = "<group>"; };
 		C0F1A0DE0000000000000008 /* PixelCharacterAnimating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterAnimating.swift; sourceTree = "<group>"; };
+		C0F1A0DE0000000000000009 /* EntityRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityRegistry.swift; sourceTree = "<group>"; };
+		C0F1A0DE000000000000000A /* ObjectPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPool.swift; sourceTree = "<group>"; };
+		C0F1A0DE000000000000000B /* FrameStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStats.swift; sourceTree = "<group>"; };
+		C0F1A0DE000000000000000C /* TextureAtlasStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureAtlasStore.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000022 /* CharacterID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterID.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000023 /* CharacterCardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterCardNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000024 /* CharacterPreferenceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterPreferenceRepository.swift; sourceTree = "<group>"; };
@@ -581,6 +589,26 @@
 			path = "GanhoMusic Shared/Managers";
 			sourceTree = "<group>";
 		};
+		A1C0F2000000000000000018 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				C0F1A0DE0000000000000009 /* EntityRegistry.swift */,
+				C0F1A0DE000000000000000A /* ObjectPool.swift */,
+				C0F1A0DE000000000000000B /* FrameStats.swift */,
+			);
+			name = Core;
+			path = "GanhoMusic Shared/Core";
+			sourceTree = "<group>";
+		};
+		A1C0F2000000000000000019 /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				C0F1A0DE000000000000000C /* TextureAtlasStore.swift */,
+			);
+			name = Rendering;
+			path = "GanhoMusic Shared/Rendering";
+			sourceTree = "<group>";
+		};
 		C75D461B2FA627C10016BB86 = {
 			isa = PBXGroup;
 			children = (
@@ -595,6 +623,8 @@
 				FB3000000000000000000001 /* Errors */,
 				A1C0F1F00000000000000016 /* Protocols */,
 				A1C0F2000000000000000017 /* Managers */,
+				A1C0F2000000000000000018 /* Core */,
+				A1C0F2000000000000000019 /* Rendering */,
 				C75D462B2FA627C20016BB86 /* GanhoMusic iOS */,
 				C75D463B2FA627C20016BB86 /* GanhoMusic tvOS */,
 				C75D464B2FA627C20016BB86 /* GanhoMusic macOS */,
@@ -805,6 +835,10 @@
 				A1C0F1B00000000000000020 /* BombFlashNode.swift in Sources */,
 				A1C0F1B00000000000000021 /* SelfDismissingNode.swift in Sources */,
 				C0F1A0DE0000000000000108 /* PixelCharacterAnimating.swift in Sources */,
+				C0F1A0DE0000000000000109 /* EntityRegistry.swift in Sources */,
+				C0F1A0DE000000000000010A /* ObjectPool.swift in Sources */,
+				C0F1A0DE000000000000010B /* FrameStats.swift in Sources */,
+				C0F1A0DE000000000000010C /* TextureAtlasStore.swift in Sources */,
 				A1C0F1B00000000000000022 /* CharacterID.swift in Sources */,
 				A1C0F1B00000000000000023 /* CharacterCardNode.swift in Sources */,
 				A1C0F1B00000000000000025 /* HapticsManager.swift in Sources */,

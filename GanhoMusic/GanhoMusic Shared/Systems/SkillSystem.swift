@@ -337,16 +337,18 @@ final class SkillSystem {
         guard let scene = scene else { return }
         let world = scene.worldNode
         let radiusSquared = radius * radius
-        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
-            guard let self = self else { return }
-            let dx = node.position.x - center.x
-            let dy = node.position.y - center.y
+        // R1 — 구 name="note" enumerate → registry 스냅샷 순회 (pull은 회수가 아니라 배열 무변형이지만
+        // registry 순회 컨벤션 통일 — 스냅샷 복사로 가변 중 순회 사고 원천 차단).
+        let noteSnapshot = scene.registry.notes
+        for note in noteSnapshot {
+            let dx = note.position.x - center.x
+            let dy = note.position.y - center.y
             // 거리^2 비교 — sqrt 회피(성능).
-            guard dx * dx + dy * dy < radiusSquared else { return }
-            node.removeAction(forKey: UILayout.noteBobActionKey)
-            let start = node.position
-            self.spawnSkillSparkle(at: start, color: color, parent: world)
-            node.run(self.pullCollectible(for: node, from: start, scene: scene),
+            guard dx * dx + dy * dy < radiusSquared else { continue }
+            note.removeAction(forKey: UILayout.noteBobActionKey)
+            let start = note.position
+            spawnSkillSparkle(at: start, color: color, parent: world)
+            note.run(pullCollectible(for: note, from: start, scene: scene),
                      withKey: GameplayTuning.bookClubRallyPullActionKey)
         }
         guard includeAItems else { return }
@@ -374,18 +376,19 @@ final class SkillSystem {
         guard let scene = scene else { return }
         let world = scene.worldNode
         let limitSquared = halfWidth * halfWidth
-        world.enumerateChildNodes(withName: "note") { [weak self] node, _ in
-            guard let self = self else { return }
-            let distanceSquared = self.squaredDistanceFromPointToSegment(
-                point: node.position,
+        // R1 — 구 name="note" enumerate → registry 스냅샷 순회.
+        let noteSnapshot = scene.registry.notes
+        for note in noteSnapshot {
+            let distanceSquared = squaredDistanceFromPointToSegment(
+                point: note.position,
                 start: start,
                 end: end
             )
-            guard distanceSquared <= limitSquared else { return }
-            node.removeAction(forKey: UILayout.noteBobActionKey)
-            let startPosition = node.position
-            self.spawnSkillSparkle(at: startPosition, color: color, parent: world)
-            node.run(self.pullCollectible(for: node, from: startPosition, scene: scene),
+            guard distanceSquared <= limitSquared else { continue }
+            note.removeAction(forKey: UILayout.noteBobActionKey)
+            let startPosition = note.position
+            spawnSkillSparkle(at: startPosition, color: color, parent: world)
+            note.run(pullCollectible(for: note, from: startPosition, scene: scene),
                      withKey: GameplayTuning.bookClubRallyPullActionKey)
         }
     }
@@ -400,10 +403,10 @@ final class SkillSystem {
         ToastLabelNode.spawn(text: GameplayTuning.charmStudentToastText,
                              at: scene.enemy.position,
                              parent: world)
-        world.enumerateChildNodes(withName: "projectile") { node, _ in
-            if let projectile = node as? FProjectileNode {
-                projectile.applyEnchanted()
-            }
+        // R1 — 구 name="projectile" enumerate → registry 스냅샷 순회 (매혹 F 포함 동일 대상).
+        let projectileSnapshot = scene.registry.projectiles
+        for projectile in projectileSnapshot {
+            projectile.applyEnchanted()
         }
         // ── 신규: 시각·햅틱만 추가 (게임 수치 0 변경) ──
         // 매혹 테마색은 코랄·피치 톤. ColorTokens에 ganhoPeachAccent 미존재 → 실재 토큰 ganhoCoralPrimary 사용.
@@ -568,38 +571,44 @@ final class SkillSystem {
     }
 
     private func clearProjectilesInCorridor(from start: CGPoint, to end: CGPoint, halfWidth: CGFloat) {
-        guard let world = scene?.worldNode else { return }
+        guard let registry = scene?.registry else { return }
         let limitSquared = halfWidth * halfWidth
-        world.enumerateChildNodes(withName: "projectile") { [weak self] node, _ in
-            guard let self = self else { return }
-            let distanceSquared = self.squaredDistanceFromPointToSegment(
-                point: node.position,
+        // R1 — 구 name="projectile" enumerate → registry 스냅샷 순회 (순회 중 회수 안전).
+        let snapshot = registry.projectiles
+        for projectile in snapshot {
+            let distanceSquared = squaredDistanceFromPointToSegment(
+                point: projectile.position,
                 start: start,
                 end: end
             )
-            guard distanceSquared <= limitSquared else { return }
-            self.removeProjectileNode(node)
+            guard distanceSquared <= limitSquared else { continue }
+            removeProjectileNode(projectile)
         }
     }
 
     private func clearProjectiles(near center: CGPoint, radius: CGFloat) {
-        guard let world = scene?.worldNode else { return }
+        guard let registry = scene?.registry else { return }
         let radiusSquared = radius * radius
-        world.enumerateChildNodes(withName: "projectile") { [weak self] node, _ in
-            guard let self = self else { return }
-            let dx = node.position.x - center.x
-            let dy = node.position.y - center.y
-            guard dx * dx + dy * dy <= radiusSquared else { return }
-            self.removeProjectileNode(node)
+        // R1 — 구 name="projectile" enumerate → registry 스냅샷 순회 (순회 중 회수 안전).
+        let snapshot = registry.projectiles
+        for projectile in snapshot {
+            let dx = projectile.position.x - center.x
+            let dy = projectile.position.y - center.y
+            guard dx * dx + dy * dy <= radiusSquared else { continue }
+            removeProjectileNode(projectile)
         }
     }
 
-    private func removeProjectileNode(_ node: SKNode) {
+    /// 스킬 정화 연출 — fadeOut 후 풀 회수. R1: 마지막 단계가 removeFromParent → requestRecycle.
+    /// removeAllActions로 잔존 TTL을 먼저 끊어 fadeOut 도중 이중 회수 경합을 줄인다
+    /// (이중 회수가 발생해도 pool.recycle/unregister가 idempotent — 안전).
+    private func removeProjectileNode(_ node: FProjectileNode) {
         node.physicsBody?.velocity = .zero
         node.removeAllActions()
+        let recycle = SKAction.run { [weak node] in node?.requestRecycle() }
         node.run(.sequence([
             .fadeOut(withDuration: FeelTuning.skillEffectFadeDuration),
-            .removeFromParent()
+            recycle
         ]))
     }
 

@@ -36,8 +36,8 @@ extension GameScene {
         enemy.startFleeing(duration: GameplayTuning.enemyFleeDuration) { [weak self] in
             guard let self = self else { return }
             let target = self.spawnSystem.currentObstaclesTarget
-            var currentF = 0
-            self.worldNode.enumerateChildNodes(withName: "projectile") { _, _ in currentF += 1 }
+            // R1 — 구 enumerateChildNodes("projectile") 카운트 → registry 캐시 조회 (대상 동일).
+            let currentF = self.registry.projectiles.count
             let deficit = max(0, target - currentF)
             for _ in 0..<deficit {
                 self.spawnSystem.fireImmediately()

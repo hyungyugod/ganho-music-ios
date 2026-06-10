@@ -50,9 +50,9 @@ final class StoneGuardNode: SKSpriteNode, PixelPositionDeltaAnimating {
             width:  GameplayTuning.stoneGuardWidth  * GameplayTuning.pixelSpriteScale,
             height: GameplayTuning.stoneGuardHeight * GameplayTuning.pixelSpriteScale
         )
-        // 출시 전 최적화 — 초기 텍스처도 캐시 경유. applyPixelTexture()와 같은 캐시를 워밍 →
-        // down/idle 텍스처 단일 인스턴스 공유 (PlayerNode L101 패턴 동형).
-        let initialTexture = Self.cachedTexture(direction: .down, frame: .idle)
+        // 초기 텍스처도 TextureAtlasStore 캐시 경유 — applyPixelTexture()와 같은 캐시 워밍 →
+        // down/idle 텍스처 단일 인스턴스 공유 (R1: 노드 static 캐시 → Store 위임).
+        let initialTexture = TextureAtlasStore.stoneGuardTexture(direction: .down, frame: .idle)
         // Sprint 10 Phase F — color:.ganhoStoneGuardLight 폐기. 본체는 텍스처 노출, color:.clear.
         super.init(texture: initialTexture, color: .clear, size: visualSize)
         name = "stoneGuard"
@@ -134,31 +134,11 @@ final class StoneGuardNode: SKSpriteNode, PixelPositionDeltaAnimating {
         proximityWarning.update(distanceToPlayer: distance, profile: profile)
     }
 
-    /// 현재 방향/프레임 조합으로 텍스처 재생성 — (direction, frame) 정적 캐시 경유.
+    /// 현재 방향/프레임 조합으로 텍스처 갱신 — TextureAtlasStore 캐시 경유.
     /// 호출 빈도·시점·인자(pixelDirection/pixelFrame)는 전혀 변경하지 않음 — 결과 텍스처 byte-equal.
+    /// R1 — 노드 보유 static textureCache 삭제, Store가 단일 캐시 지점(석조무사 전용 캐시 분리 유지).
     func applyPixelTexture() {
-        texture = Self.cachedTexture(direction: pixelDirection, frame: pixelFrame)
-    }
-
-    // MARK: - Texture Cache (출시 전 최적화 — PlayerNode L80-83 패턴 동형)
-    /// (방향 × 프레임) SKTexture 정적 캐시. 첫 호출 시 lazy 채움 → 이후 dict lookup O(1).
-    /// static — 인스턴스 재생성(재시작)에도 1회 워밍 유지. 4방향 × 3프레임 = 최대 12종.
-    /// SKTexture는 GPU 텍스처라 다중 인스턴스 공유 안전(PlayerNode L82 근거).
-    /// ⚠️ 클래스별 별도 캐시 — stoneGuardPalette/stoneGuardData가 다른 노드와 달라 공유 절대 금지.
-    private static var textureCache: [PixelDirection: [PixelFrame: SKTexture]] = [:]
-
-    /// 캐시 헬퍼. 미스 시 PixelSpriteRenderer로 1회 렌더 후 저장.
-    /// 결과 픽셀은 직접 렌더와 byte-equal(같은 입력 → 같은 image → `.nearest` 동일).
-    private static func cachedTexture(direction: PixelDirection,
-                                      frame: PixelFrame) -> SKTexture {
-        if let cached = textureCache[direction]?[frame] { return cached }
-        let texture = PixelSpriteRenderer.texture(
-            from: PixelSprite.stoneGuardData(direction: direction, frame: frame),
-            palette: PixelPalette.stoneGuardPalette
-        )
-        if textureCache[direction] == nil { textureCache[direction] = [:] }
-        textureCache[direction]?[frame] = texture
-        return texture
+        texture = TextureAtlasStore.stoneGuardTexture(direction: pixelDirection, frame: pixelFrame)
     }
 
     // MARK: - Visual Overlay (Sprint 10 Phase F · 본문 삭제)

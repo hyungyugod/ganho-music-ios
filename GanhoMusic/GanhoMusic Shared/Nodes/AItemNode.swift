@@ -10,8 +10,8 @@
 //  EnemyNode.fireF()가 isCharmed=true 분기에서 F 대신 인스턴스 생성.
 //
 //  분기 영속성: 발사 시점 매혹 여부로 결정 — 매혹 만료 후에도 화면에 남은 A는 계속 A 유지.
-//  SkillSystem.onDurationExpired charmStudent 케이스의 enumerateChildNodes(withName: "projectile")는
-//  A 노드(name="aItem")와 0 매치 — 자연 noop (SPEC §5).
+//  R1 — A 노드는 FProjectileNode 타입이 아니라 EntityRegistry.projectiles에 등록되지 않음 —
+//  스킬/이스터에그의 F 순회·purge에 자연 비포함 (구 name="projectile" enumerate와 동일 시맨틱).
 //
 
 import SpriteKit
@@ -34,7 +34,8 @@ final class AItemNode: SKSpriteNode {
             width:  GameplayTuning.fProjectileVisualSize,
             height: GameplayTuning.fProjectileVisualSize
         )
-        let texture = PixelSpriteRenderer.aItemTexture(color: Palette.aItemColor)
+        // R1 — TextureAtlasStore 캐시 경유 (구 init마다 1회 렌더 → 전 인스턴스 공유 1회 렌더).
+        let texture = TextureAtlasStore.aItemTexture()
         super.init(texture: texture, color: .clear, size: visualSize)
         name = "aItem"   // ContactRouter handleAItemContact 분기 키 + GameScene+Setup의 enumerate 키
         zPosition = 5

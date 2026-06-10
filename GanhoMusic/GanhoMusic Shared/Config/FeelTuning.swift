@@ -169,6 +169,11 @@ enum FeelTuning {
     /// BGM rate 최대값 (1.15 = 영상 빨리감기 톤, 피치 포함). 0.5~2.0 권장 범위 중 안전.
     /// 1.15는 *체감되지만 곡 식별성 유지* 균형점 — Float 타입(AVAudioPlayer.rate 일치).
     static let tensionRateMax: Float = 1.15
+    /// R1 — tension rate 전송 양자화 스텝. 보간값이 매 프레임 연속이라 단순 "값 변화 가드"가
+    /// 무효 → 0.01 단위 반올림 양자화 후 직전 전송값과 다를 때만 setRate 호출.
+    /// 1.0→1.15 구간 전송 최대 16회(구 매 프레임 ≈300회). 스텝이 전체 변화폭의 1/15 — 청감 차이 0.
+    /// 반올림(.rounded()) 채택 — 내림이면 Float 정밀도로 종료 근방 1.15 도달이 1.14에 머무는 사고 방지.
+    static let tensionRateQuantizeStep: Float = 0.01
     /// 깜빡임 한 색 머무는 길이 (초). 총 1초 주기 = 빨강 0.5 + 원색 0.5.
     /// 매초 정수 변화(5→4→3→2→1)와 *심박* 톤이 자연 동기.
     static let tensionBlinkHalfPeriod: TimeInterval = 0.5

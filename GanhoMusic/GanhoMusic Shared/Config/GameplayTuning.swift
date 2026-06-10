@@ -788,4 +788,17 @@ enum GameplayTuning {
     /// 수간호사 도주 속도 (pt/s). 원본 fleeSpeed 180 byte-equal.
     /// startFleeing 본문이 단위벡터에 곱해 velocity 부여.
     static let enemyFleeSpeed: CGFloat = 180
+
+    // MARK: - Object Pool (R1)
+    // 풀 예열 수치 — 설계서 01_CODE_ARCHITECTURE §8 그대로(변경 금지).
+    // 예열은 GameScene.didMove 직후 1회 — 첫 스폰 웨이브의 노드 생성 스파이크 제거.
+
+    /// F 투사체 풀 예열 수. hard 동시 캡(22)의 절반 수준 — 초반 부족분은 lazy 생성으로 흡수.
+    static let projectilePoolPreheatCount: Int = 12
+    /// 음표 풀 예열 수. 동시 캡 + 패턴 스폰(4발 묶음) 여유분.
+    static let notePoolPreheatCount: Int = 16
+    /// 청진기 풀 예열 수. hard 전용 — fan 1사이클 분량 커버.
+    static let stethoscopePoolPreheatCount: Int = 6
+    /// 점수 팝업 풀 예열 수. 변기 보너스(동시 2장) + 연속 수집 잔상 여유분.
+    static let scorePopupPoolPreheatCount: Int = 8
 }
