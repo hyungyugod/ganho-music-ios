@@ -242,7 +242,8 @@ enum MetaMigrationSelfTest {
             characterID: .kim, difficulty: .normal, score: score,
             maxCombo: 5, comboBreaks: 1, notesCollected: score,
             toiletsCollected: 0, skillActivations: 0, sergeantParkAppeared: false,
-            dailyModifier: .speedNight, effectiveTarget: target, playedDayKey: dayKey
+            dailyModifier: .speedNight, effectiveTarget: target, playedDayKey: dayKey,
+            unlockedCharactersBefore: []   // R7 §F6 — 중립값 (T8 단언은 별·일일 필드만 검사)
         )
     }
 }

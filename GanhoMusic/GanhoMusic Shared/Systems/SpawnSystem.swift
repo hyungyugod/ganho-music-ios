@@ -20,8 +20,11 @@ final class SpawnSystem {
     private weak var worldNode: SKNode?
     private weak var player: PlayerNode?
     private weak var enemy: EnemyNode?
-    /// 게임 진행률 (0 ~ 1) 공급자. F 발사 주기 보간에 사용.
+    /// 게임 진행률 (0 ~ 1) 공급자. F 발사 주기 보간 + R7 중반 피크(25s) 판정에 사용.
     private var progressProvider: () -> Double = { 0 }
+    /// R7 §F4 — 현재 콤보 공급자. 리스크 가속(combo ≥ 7 동안 스폰 간격 ×0.85) 판정 전용.
+    /// progressProvider 동형 — GameScene이 [weak self] 클로저 주입. 미주입 0 = 가속 없음 (안전).
+    private var comboProvider: () -> Int = { 0 }
     private var noteSpawnTick: Int = 0
 
     // MARK: - R1 Pool/Registry 배선
@@ -79,18 +82,21 @@ final class SpawnSystem {
 
     // MARK: - Lifecycle
     /// 외부에서 의존성 주입 후 spawn / fire 두 루프 시작.
+    /// R7 §F4 — comboProvider 추가 (기본 { 0 } = 가속 없음 — 미주입 호출부 행동 불변).
     func start(
         scene: SKScene,
         world: SKNode,
         player: PlayerNode,
         enemy: EnemyNode,
-        progressProvider: @escaping () -> Double
+        progressProvider: @escaping () -> Double,
+        comboProvider: @escaping () -> Int = { 0 }
     ) {
         self.scene = scene
         self.worldNode = world
         self.player = player
         self.enemy = enemy
         self.progressProvider = progressProvider
+        self.comboProvider = comboProvider
         startNoteSpawnLoop()
         // Sprint 10 Phase D — F 발사 루프 폐기. EnemyNode 내부 텔레그래프 상태 머신이 전담.
         // startProjectileFireLoop() 호출 제거 — 옛 함수 본문은 dead code(향후 정리, OQ-6).
@@ -124,20 +130,48 @@ final class SpawnSystem {
         }
     }
 
-    // MARK: - Note Spawn (Phase 2-3 / Sprint 10 Phase I)
-    /// 음표 자동 spawn 루프 시작. SKAction.repeatForever — Timer 금지.
-    /// Sprint 10 Phase I — GameplayTuning.noteSpawnInterval(static) → self.noteSpawnInterval(인스턴스).
-    /// apply(difficulty)가 set한 난이도별 dict 값을 그대로 반영 — easy=1.5(회귀 0)/normal=0.4/hard=0.3.
+    // MARK: - Note Spawn (Phase 2-3 / Sprint 10 Phase I / R7 §F4 — 사이클별 실효 간격 재계산)
+    /// R7 — 구 repeatForever(고정 간격) → 자기 재예약 체인. 매 사이클 시작 시점의 콤보로 실효
+    /// 간격을 재계산 — 콤보 하락 시 다음 사이클부터 자연 복귀 (ProfessorNode.scheduleNextThrow
+    /// 재귀 예약 전례 동형, Timer 금지). 같은 노드(scene)·같은 키("spawnNotes") 유지 —
+    /// stop() 정지·일시정지 시맨틱 기존과 동일 (SPEC §F4 보존 계약).
     private func startNoteSpawnLoop() {
-        let wait  = SKAction.wait(forDuration: self.noteSpawnInterval)
-        let spawn = SKAction.run { [weak self] in self?.trySpawnNote() }
-        let loop  = SKAction.repeatForever(.sequence([wait, spawn]))
-        scene?.run(loop, withKey: "spawnNotes")
+        scheduleNextNoteSpawn()
+    }
+
+    private func scheduleNextNoteSpawn() {
+        let wait = SKAction.wait(forDuration: currentNoteSpawnInterval())
+        let cycle = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.trySpawnNote()
+            self.scheduleNextNoteSpawn()
+        }
+        scene?.run(.sequence([wait, cycle]), withKey: "spawnNotes")
+    }
+
+    /// R7 §F4 리스크 가속 — combo ≥ 7(comboBonusThresholdHigh 재사용, 신규 임계 금지) 동안
+    /// 실효 간격 = noteSpawnInterval(noteRush ÷1.5 기반영 값) × 0.85.
+    /// combo < 7이면 noteSpawnInterval 그대로 — 일반 판 스폰 간격 byte-동일 (회귀 0 게이트).
+    private func currentNoteSpawnInterval() -> TimeInterval {
+        guard comboProvider() >= GameplayTuning.comboBonusThresholdHigh else {
+            return noteSpawnInterval
+        }
+        return noteSpawnInterval * FeelTuning.R7.comboRushSpawnIntervalScale
+    }
+
+    /// R7 §F1-② 중반 피크 — elapsed ≥ 25s부터 동시 음표 *실효 캡* +1 (스폰 틱당 발수 증가 아님).
+    /// progressProvider(0~1) × gameDuration = elapsed 환산 — SpawnSystem은 시계 비소유.
+    /// elapsed < 25s면 noteMaxConcurrent 그대로 — 일반 판 캡 byte-동일 (회귀 0 게이트).
+    private func effectiveNoteCap() -> Int {
+        let elapsed = progressProvider() * GameplayTuning.gameDuration
+        guard elapsed >= FeelTuning.R7.waveMidPeakElapsed else { return noteMaxConcurrent }
+        return noteMaxConcurrent + FeelTuning.R7.midPeakNoteCapBonus
     }
 
     /// 한 사이클당 1회 호출. 동시 음표 수 미만일 때만 1개 spawn.
-    /// Phase 7-1 — 인스턴스 프로퍼티 noteMaxConcurrent 참조 + addChild 직후 applyLifetime 호출.
+    /// Phase 7-1 — 인스턴스 프로퍼티 참조 + addChild 직후 applyLifetime 호출.
     /// easy(.infinity)는 applyLifetime 가드로 noop → 기존 동작 정확 보존.
+    /// R7 §F1-② — 캡 가드를 실효 캡(effectiveNoteCap) 기준으로 일관 적용.
     private func trySpawnNote() {
         guard let world = worldNode else { return }
         noteSpawnTick += 1
@@ -145,7 +179,7 @@ final class SpawnSystem {
            trySpawnNotePattern(in: world) {
             return
         }
-        guard currentNoteCount() < noteMaxConcurrent else { return }
+        guard currentNoteCount() < effectiveNoteCap() else { return }
         guard let position = randomNotePosition() else { return }
         spawnNote(at: position, in: world)
     }
@@ -219,8 +253,9 @@ final class SpawnSystem {
         return false
     }
 
+    /// R7 §F1-② — 패턴 가드도 실효 캡 기준 (trySpawnNote의 단일 캡 가드와 일관 적용).
     private func trySpawnNotePattern(in world: SKNode) -> Bool {
-        guard currentNoteCount() <= noteMaxConcurrent - GameplayTuning.notePatternSize else { return false }
+        guard currentNoteCount() <= effectiveNoteCap() - GameplayTuning.notePatternSize else { return false }
         guard let origin = randomNotePosition() else { return false }
         let spacing = GameplayTuning.notePatternSpacing
         let rawOffsets: [CGPoint]

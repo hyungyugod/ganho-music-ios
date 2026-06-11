@@ -82,6 +82,10 @@
 		AB60F1B0000000000000000B /* MetaProgressRepository+Cloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A0000000000000000B /* MetaProgressRepository+Cloud.swift */; };
 		AB60F1B00000000000000009 /* ScoreboardScene+Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A00000000000000009 /* ScoreboardScene+Achievements.swift */; };
 		AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */; };
+		AB70F1B00000000000000001 /* FeelTuning+R7.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000001 /* FeelTuning+R7.swift */; };
+		AB70F1B00000000000000002 /* UILayout+R7.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000002 /* UILayout+R7.swift */; };
+		AB70F1B00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */; };
+		AB70F1B00000000000000004 /* ResultScene+MetaCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000004 /* ResultScene+MetaCelebration.swift */; };
 		AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000002 /* UILayout+R5.swift */; };
 		AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000003 /* FeelTuning+R5.swift */; };
 		AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000004 /* ResultScene+Reveal.swift */; };
@@ -245,6 +249,10 @@
 		AB60F1A0000000000000000B /* MetaProgressRepository+Cloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetaProgressRepository+Cloud.swift"; sourceTree = "<group>"; };
 		AB60F1A00000000000000009 /* ScoreboardScene+Achievements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreboardScene+Achievements.swift"; sourceTree = "<group>"; };
 		AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaMigrationSelfTest.swift; sourceTree = "<group>"; };
+		AB70F1A00000000000000001 /* FeelTuning+R7.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R7.swift"; sourceTree = "<group>"; };
+		AB70F1A00000000000000002 /* UILayout+R7.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R7.swift"; sourceTree = "<group>"; };
+		AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+NearMiss.swift"; sourceTree = "<group>"; };
+		AB70F1A00000000000000004 /* ResultScene+MetaCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+MetaCelebration.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000002 /* UILayout+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R5.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000003 /* FeelTuning+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R5.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000004 /* ResultScene+Reveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+Reveal.swift"; sourceTree = "<group>"; };
@@ -483,6 +491,8 @@
 				AB50F1A00000000000000003 /* FeelTuning+R5.swift */,
 				AB60F1A00000000000000001 /* MetaTuning.swift */,
 				AB60F1A00000000000000002 /* UILayout+R6.swift */,
+				AB70F1A00000000000000001 /* FeelTuning+R7.swift */,
+				AB70F1A00000000000000002 /* UILayout+R7.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -577,6 +587,7 @@
 				A1C0F1A00000000000000012 /* ResultScene.swift */,
 				AB50F1A00000000000000004 /* ResultScene+Reveal.swift */,
 				AB50F1A00000000000000005 /* ResultScene+Build.swift */,
+				AB70F1A00000000000000004 /* ResultScene+MetaCelebration.swift */,
 				A1C0F1A00000000000000050 /* StartScene.swift */,
 				A1C0F1A000000000000000F0 /* BaseMenuScene.swift */,
 				A1C0F1A00000000000000051 /* CharacterSelectScene.swift */,
@@ -718,6 +729,7 @@
 				C75D46202FA627C10016BB86 /* GanhoMusic Shared */,
 				A1C0F1A00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift */,
 				AB30F1A00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift */,
+				AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */,
 				A1C0F1500000000000000000 /* Config */,
 				A1C0F1570000000000000007 /* Nodes */,
 				A1C0F1C00000000000000012 /* Scenes */,
@@ -985,6 +997,10 @@
 				AB60F1B0000000000000000B /* MetaProgressRepository+Cloud.swift in Sources */,
 				AB60F1B00000000000000009 /* ScoreboardScene+Achievements.swift in Sources */,
 				AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */,
+				AB70F1B00000000000000001 /* FeelTuning+R7.swift in Sources */,
+				AB70F1B00000000000000002 /* UILayout+R7.swift in Sources */,
+				AB70F1B00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift in Sources */,
+				AB70F1B00000000000000004 /* ResultScene+MetaCelebration.swift in Sources */,
 				AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */,
 				AB50F1B00000000000000003 /* FeelTuning+R5.swift in Sources */,
 				AB50F1B00000000000000004 /* ResultScene+Reveal.swift in Sources */,

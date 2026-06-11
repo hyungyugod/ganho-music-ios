@@ -396,11 +396,14 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
 
     /// telegraph/firing → idle 전이. 텔레그래프 노드 제거 + 다음 throwTimer lerp 계산.
     /// progressProvider() 호출 — 게임 진행률 ↑ 시 throwTimer ↓ (긴박감 증가).
+    /// R7 §F1-① — 발사 *간격* 보간에만 pacing 적용: 10s까지 시작값 유지, 10s→45s에서 0→1 선형.
+    /// 투사체 속도 곡선(fireF의 obsBase→obsMax lerp)은 raw 진행률 유지 — provider 공유 함정 회피
+    /// (SPEC 주의 3: provider 자체를 바꾸면 속도 곡선까지 변형).
     private func enterIdle() {
         throwState = .idle
         telegraphNode?.removeFromParent()
         telegraphNode = nil
-        let t = progressProvider()
+        let t = FeelTuning.R7.pacedFireProgress(progressProvider())
         throwTimer = fireIntervalStart + (fireIntervalEnd - fireIntervalStart) * t
     }
 

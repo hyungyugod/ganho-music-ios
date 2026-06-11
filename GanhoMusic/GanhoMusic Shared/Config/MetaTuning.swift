@@ -58,9 +58,15 @@ enum MetaTuning {
     /// 콤보 10 / 콤보 20.
     static let achievementComboLow: Int = 10
     static let achievementComboHigh: Int = 20
-    /// 변기 마니아 — 한 판 변기 수집 수. 현행 변기 기대치 ≈0.56개/판이라 사실상
-    /// golden_toilet 날 전용의 의도된 희귀 업적 — 수치 조정은 R7 소관 (SPEC §주의사항 5).
-    static let achievementToiletManiacCount: Int = 4
+    /// 변기 마니아 — 한 판 변기 수집 수. R7 §F7 — 4 → 3 retune (오케스트레이터 승인 확정,
+    /// 02 §7-5 명세 4 대비 −25%로 ±20% 초과 — R6 QA 이관 지시 건).
+    /// 산정 근거: 45초 판의 변기 확률 판정은 t=12/24/36s *3회*(각 15%, 동시 1개·TTL 8s) —
+    /// 임계 4는 일반 판 도달 불가능(기회 자체가 3회), 황금 변기 날(확정 +1)만 이론상 4 가능
+    /// (3/3 성공 = 0.15³ ≈ 0.34%). 임계 3이면: 일반 판 0.34%, 황금 변기 날 ≈ 6.1%
+    /// (확정 1 + 3회 중 ≥2 성공) — "황금 변기 날에 노려볼 만한 희귀 업적"으로 정상화.
+    /// raw 키 `toilet_maniac`·기달성 사용자 보존 (업적 dict append-only). 변기 스폰 수치는
+    /// 무변경 (12s/15%/단일성/8s TTL — GDD §7-3 원본 정합, SPEC 범위 계약 금지 항목).
+    static let achievementToiletManiacCount: Int = 3
     /// 스킬 마스터 — jung/geon/im/lee 스킬 발동 누적 각각의 요구치.
     static let achievementSkillMasterPerCharacter: Int = 10
     /// 누적 음표 500 / 2,000.

@@ -99,10 +99,14 @@ class GameScene: SKScene {
     var maxComboThisRun: Int = 0
     var triggeredComboBreaks: Set<Int> = []
 
-    /// Phase 6-14 — 5초 긴박감 1회 가드. 같은 판 1회만 setup 발화 (HUD 깜빡임 시작 등).
+    /// Phase 6-14 — 긴박감 1회 가드. 같은 판 1회만 setup 발화 (HUD 깜빡임 시작 등).
     /// 새 GameScene 인스턴스에서 자동 false 리셋(재시작 안전).
     /// `airforceTriggered` 1회 가드 패턴 답습 — 단순/안전/회귀 0.
     var tensionStarted: Bool = false
+
+    /// R7 §F2 — near-miss "아슬!" 팝업·햅틱 쿨다운(0.25s) 기준 시각. 콤보 연장은 쿨다운 비대상.
+    /// 새 GameScene 인스턴스에서 자동 0 리셋 — sentinel 0 < 첫 lastUpdateTime이라 첫 이벤트 통과.
+    var lastNearMissFeedbackAt: TimeInterval = 0
 
     /// Sprint 10 Phase J — 5초 긴박감 화면 가장자리 비네트. tensionStarted true 진입 시 attach,
     /// endGame/stopTensionBlink 경로에서 detach. nil 상태로 시작 → 재시작 안전.
@@ -271,7 +275,9 @@ class GameScene: SKScene {
         updateAIPhase(dt: dt)
 
         // ── projectiles: F/청진기는 physicsBody.velocity 구동 — SpriteKit physics가
-        //    시뮬레이션 단계에서 자동 적분. update 내 별도 갱신 0 (명시적 빈 슬롯). ──
+        //    시뮬레이션 단계에서 자동 적분. R7 §F2 — near-miss 보너스 폴링만 본 슬롯 배속
+        //    (콤보 타이머 = 게임 수치 변경이라 effects 단계 "무변경" 계약상 금지 — SPEC 주의 2). ──
+        updateNearMissBonusPhase()
 
         // ── collisions: SpriteKit physics 콜백(ContactRouter.didBegin)이 본 update 밖에서
         //    담당 — 점수/회수는 GameScene+Contact 콜백으로 발화 (명시적 빈 슬롯). ──
@@ -316,6 +322,12 @@ class GameScene: SKScene {
         } else if player.isFrozen {
             resetMovementInput()
         }
+
+        #if DEBUG
+        // R7 시각 증빙 — env GANHO_DEMO_AUTOPILOT=1 한정 자동 주행 (콤보 게이지/near-miss 캡처).
+        // simctl 터치 주입 불가 우회 — GANHO_SKIP_CUTSCENE·FrameStats 전례. 릴리즈 코드 0.
+        applyDemoAutopilotIfEnabled()
+        #endif
     }
 
     /// player 단계 — PlayerNode 자체 dt 보간 이동(wall-slide 포함) + 픽셀 걷기 프레임 + 수집 자석.
@@ -402,6 +414,10 @@ class GameScene: SKScene {
     private func updateHUDPhase() {
         // HUD 라벨 갱신 (Phase 2-4) — Phase 2-12: ScoreSystem에서 값 조회
         hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
+
+        // R7 §F3 — 콤보 윈도우 잔여 게이지 (combo 0 = nil → 비표시). near-miss 연장(F2)은
+        // ScoreSystem 파생값이라 자동 즉시 반영 — 점수/시간과 같은 "확정 이후 표시" 단계.
+        hud.updateComboGauge(fraction: scoreSystem.comboWindowRemainingFraction(at: lastUpdateTime))
 
         // Phase 6-12 — 콤보 끊김 폴링. tickComboExpiry(input 단계)가 같은 프레임에
         // 콤보를 0으로 떨어뜨린 직후를 캡처. F 피격 경로는 별도 분기(configureContactRouter).

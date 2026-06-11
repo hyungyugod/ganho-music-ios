@@ -180,12 +180,22 @@ extension GameScene {
         player.physicsBody?.velocity = .zero
         enemy.physicsBody?.velocity = .zero
         hud.update(score: scoreSystem.score, remainingTime: 0, combo: 0)
+        // R7 §F3 — 콤보 게이지도 확실히 소거 (combo 0 표기와 동기 — 점멸 잔존 0).
+        hud.updateComboGauge(fraction: nil)
         // 게임오버 후 update가 gameOver 분기로 빠져 comboAura 폴링이 중단됨 —
         // 콤보 ≥5 사망 시 오라가 0.9s 지연 동안 잔존 방출하지 않도록 즉시 회수(combo 0 = detach).
         effectDirector.updateComboAura(combo: 0, playerPosition: player.position)
 
         guard let view = self.view else { return }
         let score = scoreSystem.score
+        // R7 §F6 — 캐릭터 해금 사전 스냅샷: 저장 5종 *이전*의 라이브 OR 판정 (잠금→해금 전이
+        // 기준점). 영속 0 — 라이브 OR 원칙(R6 §F3) 그대로, 해금 상태 저장 금지.
+        let unlockedBefore = CharacterID.allCases.filter {
+            CharacterUnlockRules.isUnlocked($0,
+                                            graduations: graduationRepo.current,
+                                            scores: perDiffRepo.current,
+                                            totalStars: metaRepo.totalStars)
+        }
         let isNewBest = highScoreRepo.record(score)
         let bestScore = highScoreRepo.current
         statsRepo.recordPlay(score: score)
@@ -193,11 +203,14 @@ extension GameScene {
 
         perDiffRepo.record(characterID: characterID, difficulty: difficulty, score: score)
         var isNewGraduation = false
-        // R6 — 졸업 판정도 effectiveTarget 경유 (음표 러시 판에서 "유급" verdict + 졸업장 모순 차단).
-        if GameScene.isGraduated(characterID: characterID, scores: perDiffRepo,
-                                 effectiveTarget: effectiveTargetScore,
-                                 playedDifficulty: difficulty) {
-            isNewGraduation = graduationRepo.record(characterID: characterID, date: Date())
+        // R7 §F8-a — 졸업 판정 분리: *기록*은 base 목표 전용(즉시 — noteRush 판 score ∈ [base, eff)
+        // 에서도 그 판에 기록, 이연 없음), *졸업장 연출*은 실효 목표 성공 판 한정 AND 게이트 —
+        // "유급 verdict + 졸업장 연출 동시 표시"가 구조적으로 불가능 (R6 QA P2-1 봉인).
+        // 기록됐으나 연출이 억제된 셀은 이후 재연출 없음(정적 graduatedAt 표시는 기존대로) —
+        // 의도된 트레이드오프 (연출·보상 언어는 성공 판 원칙).
+        if GameScene.isGraduated(characterID: characterID, scores: perDiffRepo) {
+            let isFirstRecord = graduationRepo.record(characterID: characterID, date: Date())
+            isNewGraduation = isFirstRecord && score >= effectiveTargetScore
         }
         let graduatedAt = graduationRepo.graduatedAt(characterID: characterID)
         let cloudRecord = CloudScoreRecord(
@@ -236,7 +249,8 @@ extension GameScene {
             sergeantParkAppeared: sergeantParkDebuted || airforceTriggered,
             dailyModifier: dailyModifier,
             effectiveTarget: effectiveTargetScore,
-            playedDayKey: DailyChallenge.todayKey()
+            playedDayKey: DailyChallenge.todayKey(),
+            unlockedCharactersBefore: unlockedBefore   // R7 §F6 — 저장 5종 이전 스냅샷
         )
         let runMeta = metaRepo.recordRun(runSummary)
         // R5 — characterID 직접 전달(역추론 우회 소멸) + maxCombo/notesCollected 추가 (§7 칩 2개).
@@ -261,16 +275,14 @@ extension GameScene {
         cameraNode.run(.sequence([wait, present]))
     }
 
-    /// R6 — 이번 판 난이도는 effectiveTarget(음표 러시 ×1.3 포함)으로 판정, 나머지는 라이브 목표.
-    /// 일반 판은 effectiveTarget == 라이브 목표라 기존 로직과 byte-동일 (max는 방어적).
+    /// R7 §F8-a — base 목표 *전용* 회귀 (R6의 played-difficulty max(base, eff) 분기 제거,
+    /// 인자 단순화). noteRush 판에서 score ∈ [base, eff)여도 base 충족은 인정 — 졸업 기록이
+    /// 다음 일반 판으로 이연되지 않으므로 "다음 판 유급 + 졸업장 동시 표시" 엣지 자체가 소멸.
+    /// 실효 목표는 *연출 게이트*(endGame의 isNewGraduation AND 조건)만 담당.
     private static func isGraduated(characterID: CharacterID,
-                                    scores repo: PerDifficultyScoreRepository,
-                                    effectiveTarget: Int,
-                                    playedDifficulty: Difficulty) -> Bool {
-        let targets = GameplayTuning.targetScoreByDifficulty
+                                    scores repo: PerDifficultyScoreRepository) -> Bool {
         for difficulty in Difficulty.allCases {
-            let base = targets[difficulty] ?? Int.max
-            let target = difficulty == playedDifficulty ? max(base, effectiveTarget) : base
+            let target = GameplayTuning.targetScoreByDifficulty[difficulty] ?? Int.max
             if repo.best(characterID: characterID, difficulty: difficulty) < target {
                 return false
             }

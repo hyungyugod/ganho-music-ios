@@ -5,6 +5,7 @@
 //  Phase 2-12 · 점수 / 콤보 상태 + 갱신 로직 분리
 //
 
+import CoreGraphics
 import Foundation
 
 /// 점수와 콤보 상태를 관리하는 시스템.
@@ -96,6 +97,24 @@ final class ScoreSystem {
             return [firstGain * toiletScoreScale, secondGain * toiletScoreScale]
         }
         return [firstGain, secondGain]
+    }
+
+    // MARK: - R7 §F2/F3 — near-miss 콤보 연장 + 게이지 파생값
+    /// R7 §F2 — near-miss 회피 보상: 콤보 윈도우만 연장 (lastCollectAt 갱신).
+    /// score/combo/notesCollected/comboBreaks 전부 무변경 — "콤보 연장 무부작용" 계약
+    /// (SPEC 합격 기준). combo == 0이면 noop — 연장할 윈도우 자체가 없다 (콤보 시작은 수집만).
+    func extendComboWindow(at now: TimeInterval) {
+        guard combo > 0 else { return }
+        lastCollectAt = now
+    }
+
+    /// R7 §F3 — 콤보 윈도우 잔여 비율 (1.0 = 방금 수집 → 0.0 = 만료 직전). combo == 0이면 nil.
+    /// GameplayTuning.comboWindow(2.5) 단일 기준 — HUD 게이지 전용 read-only 파생값 (상태 변경 0).
+    /// near-miss 연장(F2)이 lastCollectAt을 갱신하므로 게이지에 자동 즉시 반영.
+    func comboWindowRemainingFraction(at now: TimeInterval) -> CGFloat? {
+        guard combo > 0 else { return nil }
+        let fraction = 1.0 - (now - lastCollectAt) / GameplayTuning.comboWindow
+        return CGFloat(max(0, min(1, fraction)))
     }
 
     /// 모든 상태 리셋. 게임 재시작 등에서 사용 (Phase 3 이후).

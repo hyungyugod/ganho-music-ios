@@ -35,6 +35,8 @@ final class ScoreboardScene: BaseMenuScene {
     private let graduationRepo: GraduationRepository
     /// R6 — 별 셀·업적 읽기 전용 소스 (+Table/+Achievements 공유).
     let metaRepo: MetaProgressRepository
+    /// R7 §F9 — 씬 소유 햅틱 (ResultScene 전례 동형). 버튼 uiTap SFX는 PixelButtonNode 내장.
+    private let haptics = HapticsManager()
 
     /// 테이블 골격 — 패널 1장, 셀 라벨/스프라이트는 패널 로컬 좌표 (리사이즈 시 재배치 불필요).
     var tablePanel: PixelPanelNode?   // +Table이 setupTable에서 설정
@@ -119,13 +121,15 @@ final class ScoreboardScene: BaseMenuScene {
         let records = PixelButtonNode(
             title: UILayout.R6.scoreboardRecordsTabText,
             variant: activeTab == .records ? .secondary : .ghost,
-            size: UILayout.R6.scoreboardTabButtonSize
+            size: UILayout.R6.scoreboardTabButtonSize,
+            haptics: haptics   // R7 §F9 — 탭 전환도 uiTap 햅틱 동행 (권장 2종)
         )
         records.onTap = { [weak self] in self?.switchTab(to: .records) }
         let achievements = PixelButtonNode(
             title: UILayout.R6.scoreboardAchievementsTabText,
             variant: activeTab == .achievements ? .secondary : .ghost,
-            size: UILayout.R6.scoreboardTabButtonSize
+            size: UILayout.R6.scoreboardTabButtonSize,
+            haptics: haptics   // R7 §F9
         )
         achievements.onTap = { [weak self] in self?.switchTab(to: .achievements) }
         [records, achievements].forEach { button in
@@ -156,9 +160,11 @@ final class ScoreboardScene: BaseMenuScene {
 
     // MARK: - Chrome (뒤로 ghost + 하단 stat 칩 — 브레드크럼 칩 폐지, 03_UI §6-5)
     private func setupBackButton() {
+        // R7 §F9 — haptics 주입 (ResultScene+Build 전례 동형). 무주입이던 R5 잔여분 보충.
         let back = PixelButtonNode(title: UILayout.R4.selectBackButtonText,
                                    variant: .ghost,
-                                   size: UILayout.R4.backButtonSize)
+                                   size: UILayout.R4.backButtonSize,
+                                   haptics: haptics)
         back.onTap = { [weak self] in self?.transitionBack() }
         back.zPosition = ZOrder.Layer.hud
         backButton = back

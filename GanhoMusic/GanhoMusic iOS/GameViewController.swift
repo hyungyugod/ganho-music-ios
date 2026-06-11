@@ -140,7 +140,9 @@ class GameViewController: UIViewController {
             let runMeta = RunMetaOutcome(
                 effectiveTarget: 50, earnedStars: 2, creditedStars: 3,
                 dailyModifier: .goldenToilet, isDailyFirstClear: true,
-                newAchievements: [.firstGraduation, .combo10], totalStars: 7
+                newAchievements: [.firstGraduation, .combo10],
+                newlyUnlockedCharacters: [],   // R7 — 본 픽스처는 칩 전용 (배너 픽스처는 resultUnlock)
+                totalStars: 7
             )
             return ResultScene.newResultScene(
                 score: 66, bestScore: 66, isNewBest: true,
@@ -149,6 +151,29 @@ class GameViewController: UIViewController {
                 maxCombo: 11, notesCollected: 41,
                 runMeta: runMeta
             )
+        }
+        // R7 §F5/F6 — 해금 배너 + 업적 토스트 스크린샷용 픽스처 (시각 증빙 게이트 ③④).
+        if name == "resultUnlock" {
+            let runMeta = RunMetaOutcome(
+                effectiveTarget: 50, earnedStars: 3, creditedStars: 3,
+                dailyModifier: nil, isDailyFirstClear: false,
+                newAchievements: [.combo10, .firstGraduation],
+                newlyUnlockedCharacters: [.geon],
+                totalStars: 9
+            )
+            return ResultScene.newResultScene(
+                score: 84, bestScore: 84, isNewBest: true,
+                stats: GameStats(playCount: 14, totalScore: 1_530),
+                characterID: .jung, difficulty: .normal,
+                maxCombo: 13, notesCollected: 38,
+                runMeta: runMeta
+            )
+        }
+        // R7 — 인게임 콤보 게이지/near-miss 시각 증빙용 일반 판 직행
+        // (GANHO_DEMO_AUTOPILOT=1·GANHO_SKIP_CUTSCENE=1과 조합).
+        if name == "gameEasy" {
+            return GameScene.newGameScene(characterID: .kim, difficulty: .easy,
+                                          dailyModifier: nil)
         }
         // R5 — 프로필 다이얼로그 직행 (openProfileOnEntry — simctl 터치 주입 불가 우회).
         if name == "characterSelectProfile" {

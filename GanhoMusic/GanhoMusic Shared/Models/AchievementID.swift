@@ -56,7 +56,8 @@ enum AchievementID: String, CaseIterable {
         case .combo10:               return "한 판 콤보 10 달성"
         case .combo20:               return "한 판 콤보 20 달성"
         case .fullComboGraduation:   return "콤보 안 끊고 졸업"
-        case .toiletManiac:          return "한 판 변기 4개 수집"
+        // R7 §F7 — 상수 보간: 표시·판정(MetaTuning.achievementToiletManiacCount) 단일 진실 원천.
+        case .toiletManiac:          return "한 판 변기 \(MetaTuning.achievementToiletManiacCount)개 수집"
         case .sergeantWitness:       return "박병장과 마주치기"
         case .kimHardClear:          return "김간호로 상 난이도 졸업"
         case .skillMaster:           return "4캐릭터 스킬 각 10회 발동"

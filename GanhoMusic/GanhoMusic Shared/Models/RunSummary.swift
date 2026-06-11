@@ -30,6 +30,9 @@ struct RunSummary {
     let effectiveTarget: Int
     /// 플레이한 날의 dayKey (yyyyMMdd) — 일일 최초 클리어 판정.
     let playedDayKey: String
+    /// R7 §F6 — endGame이 저장 5종 *이전*에 찍은 해금 캐릭터 스냅샷 (라이브 OR 판정).
+    /// recordRun이 기록 반영 후 동일 식으로 재평가해 delta = 이번 판 잠금→해금 전이를 산출.
+    let unlockedCharactersBefore: [CharacterID]
 }
 
 /// recordRun의 반환 봉투 — ResultScene `runMeta`로 전달 (SPEC §F6).
@@ -46,6 +49,9 @@ struct RunMetaOutcome {
     let isDailyFirstClear: Bool
     /// 이번 판으로 새로 달성한 업적 — "업적 +{n}" 칩 (n ≥ 1일 때만 노드 생성).
     let newAchievements: [AchievementID]
+    /// R7 §F6 — 이번 판으로 잠금→해금 전이된 캐릭터 (allCases 순서). 결과창 전용 배너 1회 —
+    /// 영속 0 (라이브 OR 원칙), Scoreboard 복귀 시 runMetaForReturn이 빈 배열로 소거.
+    let newlyUnlockedCharacters: [CharacterID]
     /// 기록 반영 후 총 별 (0...45) — 언락 진행 가시화.
     let totalStars: Int
 }

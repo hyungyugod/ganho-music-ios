@@ -26,6 +26,12 @@ final class StethoscopeNode: SKSpriteNode, Poolable {
 
     private var isNearMissPulsing = false
 
+    // MARK: - Near-miss Bonus Tracking (R7 §F2)
+    /// R7 — 보너스 반경(22px) 진입 여부. GameScene+NearMiss 폴링이 단독 기록자 (F와 동형).
+    var nearMissEntered: Bool = false
+    /// R7 — 보상 부여 완료 (투사체 1개당 1회 상한).
+    var nearMissAwarded: Bool = false
+
     // MARK: - Recycle (R1)
     /// 풀 소유자(GameScene)가 obtain 시 주입하는 회수 핸들러 — unregister + pool.recycle 수행.
     /// nil이면 removeFromParent fallback(풀 미배선 안전망 — 구 자기 파괴와 동일 동작).
@@ -84,9 +90,12 @@ final class StethoscopeNode: SKSpriteNode, Poolable {
     /// 재사용 직전 신품 복원: 잔존 액션 제거 → near-miss 펄스 정리(normal 베이크 복원) →
     /// 시각/물리 원복 → 회전 repeatForever 재부착(removeAllActions가 지우므로 필수).
     /// zRotation도 0 복원 — 회전 도중 회수된 각도가 다음 사용자에게 남지 않게.
+    /// R7 §F2 — near-miss 추적 플래그 2종도 반드시 리셋 (FProjectileNode와 동일 게이트).
     func resetForReuse() {
         removeAllActions()
         stopNearMissPulse()
+        nearMissEntered = false
+        nearMissAwarded = false
         alpha = 1
         setScale(1)
         zRotation = 0

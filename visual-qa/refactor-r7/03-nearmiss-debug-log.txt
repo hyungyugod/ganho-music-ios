@@ -1,0 +1,8 @@
+# R7 near-miss DEBUG 로그 증빙 (gameEasy + GANHO_DEMO_AUTOPILOT, 2026-06-11)
+
+## 부여 발화 (진입→이탈 1회 보상)
+[NearMiss] 반경 진입 (보류 — 이탈 시 부여)
+[NearMiss] 아슬! combo=0 elapsed=9.12s
+
+## 보수 판정 (반경 내 회수 — 미부여)
+[NearMiss] 반경 진입 (보류 — 이탈 시 부여)

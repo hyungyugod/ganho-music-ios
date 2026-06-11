@@ -153,10 +153,13 @@ enum FeelTuning {
     /// V3 dim 노드 name — 디버그/회귀 검증/명시적 lookup용.
     static let countdownDimNodeName: String = "countdownDim"
 
-    // MARK: - Tension (Phase 6-14)
-    /// 5초 긴박감 발화 시작 임계값 (초). remainingTime이 이 값 이하로 떨어지면 폴링 진입.
-    /// 6-13 카운트다운(출발의 개봉감)과 시간 대칭 — 시작·끝의 톤이 짝을 이룬다.
-    static let tensionWindow: TimeInterval = 5.0
+    // MARK: - Tension (Phase 6-14 / R7 §F1-③)
+    /// 긴박감 발화 시작 임계값 (초). remainingTime이 이 값 이하로 떨어지면 폴링 진입.
+    /// R7 §F1-③ — 5.0 → 7.0: 02 §8 웨이브 마커 "38s 라스트 스퍼트" 정렬 (gameDuration 45 −
+    /// FeelTuning.R7.waveLastSpurtElapsed 38 = 7). BGM rate 1.0→1.15 보간·HUD TIME 경고색·
+    /// 블링크·비네트가 한 패키지로 38s 시점에 시작. 초당 햅틱은 기존 1~4초 한정 로직 무변경.
+    /// 02 §6 "5초 긴박"과의 상충은 §8(R7 소관) 우선 — SPEC §문서-코드 불일치 #2.
+    static let tensionWindow: TimeInterval = 7.0
     /// BGM rate 시작값 (1.0 = 원본). AVAudioPlayer.rate 타입에 맞춰 Float.
     static let tensionRateBase: Float = 1.0
     /// BGM rate 최대값 (1.15 = 영상 빨리감기 톤, 피치 포함). 0.5~2.0 권장 범위 중 안전.

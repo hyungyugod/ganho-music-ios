@@ -273,7 +273,10 @@ enum GameplayTuning {
     /// R2 — 플레이어 속도 곡선 종속 배율. baseSpeedEnd = baseSpeedStart × 1.15 (02_GAME_FEEL §5).
     /// 구 playerSpeedEndByDifficulty(420/500/500 — 원본 maxSpeed × SCALE 2, Sprint 10 Phase I)는
     /// 종속 +50%로 02 명세 ×1.15를 크게 초과해 dict 자체를 본 배율로 대체 (dead 상수 잔존 금지).
-    /// 원본 420/500/500 재도입은 R7 페이싱 재조정에서 사용자 승인 후 검토 (SPEC §문서-코드 불일치 3).
+    /// R7 검토 완료 — ×1.15 유지 확정 (F10, 코드 값 변경 0): ① 02 §5 명세가 ×1.15 (설계서가 진실)
+    /// ② 원본 종속 ×1.5는 +30%로 ±20% 초과 — 사용자 승인 없이 불가 ③ R7 웨이브 페이싱(F1)이
+    /// 후반 압박을 이미 추가 — 속도 ×1.5 중첩은 압박 과다 ④ compact 맵(800×500)에 원본 절대값
+    /// 1:1 전이 불가. 원본 절대값(420/500) 재도입은 사용자가 원하면 별도 승인 건.
     static let playerSpeedEndMultiplier: CGFloat = 1.15
     /// 난이도별 동시 음표 최대 수. Sprint tuning — 화면에 목표가 더 자주 보이도록 전체 밀도 상향.
     static let noteMaxConcurrentByDifficulty: [Difficulty: Int] = [

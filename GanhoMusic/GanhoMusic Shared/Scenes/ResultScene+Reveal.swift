@@ -255,6 +255,9 @@ extension ResultScene {
         }
         // R6 §F6 — 시퀀스 완료 시점 *이후* 정적 칩만 추가 (6단계 타이밍·순서 무변경).
         revealMetaOutcomeChips()
+        // R7 §F5/F6 — 해금 배너 → 업적 토스트 순차 연출. revealCompleted 합류점 *이후* 추가만 —
+        // 정상 완료·스킵(finishRevealImmediately) 어느 경로든 본 가드 1회 통과로 자동 일관.
+        startMetaCelebrationSequence()
         #if DEBUG
         print("[ResultScene] 시퀀스 완료 직계 자식: \(children.count)")
         #endif

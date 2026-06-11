@@ -37,7 +37,8 @@ final class HUDNode: SKNode {
     override init() {
         timeSlot  = HUDSlotNode(label: "TIME",   initialValue: "00:45", showTimeBar: true)
         scoreSlot = HUDSlotNode(label: "SCORE",  initialValue: "0")
-        comboSlot = HUDSlotNode(label: "COMBO",  initialValue: "0")
+        // R7 §F3 — 콤보 칩 하단 60×4 게이지 (콤보 윈도우 잔여 가시화).
+        comboSlot = HUDSlotNode(label: "COMBO",  initialValue: "0", showComboGauge: true)
         nameSlot  = HUDSlotNode(label: "PLAYER", initialValue: "")
         super.init()
 
@@ -121,6 +122,14 @@ final class HUDNode: SKNode {
         return .ganhoPixelHudWhite
     }
 
+    // MARK: - Combo Gauge (R7 §F3)
+    /// 콤보 윈도우(2.5s) 잔여 게이지 갱신 — GameScene.updateHUDPhase가 매 프레임 호출.
+    /// fraction nil = combo 0 → 게이지 비표시 + 점멸 정지. endGame 경로도 nil로 확실히 소거.
+    /// near-miss 연장(F2)은 ScoreSystem 파생값(comboWindowRemainingFraction)이라 자동 반영.
+    func updateComboGauge(fraction: CGFloat?) {
+        comboSlot.setComboGauge(fraction: fraction)
+    }
+
     // MARK: - Character Name
     /// Phase 5-4 — 선택 캐릭터 이름을 HUD nameSlot 값 라벨에 1회 주입.
     /// 한 판 안에서 호출은 1회만 권장 (런타임 변경 미지원).
@@ -164,13 +173,21 @@ final class HUDSlotNode: SKNode {
     private let timeBarBg: SKSpriteNode?
     /// TIME 슬롯 전용 진행바 채움(흰). xScale로 진행률 시각화.
     private let timeBarFill: SKSpriteNode?
+    /// R7 §F3 — COMBO 슬롯 전용 콤보 윈도우 게이지(60×4). showComboGauge=true일 때만 자식.
+    /// timeBar 패턴 재사용 — SKSpriteNode 2장, xScale 갱신만 (매 프레임 텍스처/노드 생성 0).
+    private let comboGaugeBg: SKSpriteNode?
+    private let comboGaugeFill: SKSpriteNode?
+    /// R7 §F3 — 코랄 점멸 상태. 상태 전환 시 1회 부착/제거 (매 프레임 SKAction 재부착 금지).
+    private var isComboGaugeBlinking = false
 
     // MARK: - Init
     /// - Parameters:
     ///   - label: 위쪽 캡션 텍스트 ("TIME"/"SCORE"/"COMBO"/"PLAYER").
     ///   - initialValue: 아래쪽 값 텍스트 초기값.
     ///   - showTimeBar: TIME 슬롯 전용 진행바 자식 생성 여부 (default false → 호환성 100%).
-    init(label: String, initialValue: String, showTimeBar: Bool = false) {
+    ///   - showComboGauge: COMBO 슬롯 전용 콤보 윈도우 게이지 생성 여부 (R7 §F3, default false).
+    init(label: String, initialValue: String, showTimeBar: Bool = false,
+         showComboGauge: Bool = false) {
         // (1) 배경 알약 — navy 0.78. setWarn으로 코랄 교체 가능.
         let chipSize = CGSize(
             width: UILayout.hudSlotWidth,
@@ -237,6 +254,33 @@ final class HUDSlotNode: SKNode {
             timeBarFill = nil
         }
 
+        // (3-b) R7 §F3 — 콤보 윈도우 게이지 — COMBO 슬롯만. timeBar(3)와 동일 anchor/배치 패턴.
+        // 시작 isHidden=true: combo 0 동안 비표시. 상태형 HUD 요소의 표시/비표시 토글은 좀비 패턴
+        // 아님 — 매 판 재사용되는 살아있는 상태 표시기의 OFF 시각이지, 불용 노드 잔존이 아니다.
+        if showComboGauge {
+            let gaugeSize = UILayout.R7.hudComboGaugeSize
+            let gaugeY = -chipSize.height / 2 + gaugeSize.height / 2
+                + UILayout.R7.hudComboGaugeBottomGap
+            let bg = SKSpriteNode(color: .white, size: gaugeSize)
+            bg.alpha = UILayout.hudTimeBarBgAlpha
+            bg.anchorPoint = CGPoint(x: 0, y: 0.5)
+            bg.position = CGPoint(x: -gaugeSize.width / 2, y: gaugeY)
+            bg.zPosition = ZOrder.hudLabelZPosition
+            bg.isHidden = true
+            comboGaugeBg = bg
+
+            let fill = SKSpriteNode(color: .white, size: gaugeSize)
+            fill.alpha = FeelTuning.R7.comboGaugeFillAlpha
+            fill.anchorPoint = CGPoint(x: 0, y: 0.5)
+            fill.position = bg.position
+            fill.zPosition = ZOrder.hudLabelZPosition + 1
+            fill.isHidden = true
+            comboGaugeFill = fill
+        } else {
+            comboGaugeBg = nil
+            comboGaugeFill = nil
+        }
+
         super.init()
 
         // (4) 위쪽 라벨 — 10pt 픽셀 옐로. labelNode.position을 super.init 후 set.
@@ -264,11 +308,13 @@ final class HUDSlotNode: SKNode {
             y: -UILayout.hudSlotLabelFontSize / 2 - UILayout.hudSlotInnerGap
         )
 
-        // (6) 자식 부착 — 그림자(98) → 배경(99) → 진행바(100/101, TIME만) → 라벨/값(100).
+        // (6) 자식 부착 — 그림자(98) → 배경(99) → 진행바/게이지(100/101) → 라벨/값(100).
         addChild(shadowNode)
         addChild(backgroundChip)
         if let bg = timeBarBg { addChild(bg) }
         if let fill = timeBarFill { addChild(fill) }
+        if let bg = comboGaugeBg { addChild(bg) }
+        if let fill = comboGaugeFill { addChild(fill) }
         addChild(labelNode)
         addChild(valueNode)
     }
@@ -320,6 +366,55 @@ final class HUDSlotNode: SKNode {
     /// showTimeBar=false 슬롯에서 호출하면 자연 noop (timeBarFill=nil).
     func setTimeBar(progress: CGFloat) {
         timeBarFill?.xScale = max(0, min(1, progress))
+    }
+
+    // MARK: - R7 §F3 · Combo Window Gauge
+    /// 콤보 윈도우 잔여 게이지 갱신 — xScale 1줄 + 점멸 상태 전환만 (timeBar와 동일 비용 등급).
+    /// fraction nil(combo 0) = 비표시 + 점멸 정지. showComboGauge=false 슬롯은 자연 noop.
+    func setComboGauge(fraction: CGFloat?) {
+        guard let bg = comboGaugeBg, let fill = comboGaugeFill else { return }
+        guard let fraction = fraction else {
+            if !bg.isHidden {
+                bg.isHidden = true
+                fill.isHidden = true
+            }
+            stopComboGaugeBlink()
+            return
+        }
+        if bg.isHidden {
+            bg.isHidden = false
+            fill.isHidden = false
+        }
+        fill.xScale = max(0, min(1, fraction))
+        // 잔여 초 환산 — 점멸 진입/이탈 판정 (2.5s × fraction).
+        let remaining = TimeInterval(fraction) * GameplayTuning.comboWindow
+        if remaining <= FeelTuning.R7.comboGaugeBlinkWindow {
+            startComboGaugeBlinkIfNeeded()
+        } else {
+            stopComboGaugeBlink()
+        }
+    }
+
+    /// 코랄 점멸 1회 부착 — 기존 픽셀 코랄 토큰 재사용 (신규 색 정의 금지).
+    /// FProjectileNode.startNearMissPulseIfNeeded 상태 가드 패턴 동형 — withKey 멱등.
+    private func startComboGaugeBlinkIfNeeded() {
+        guard !isComboGaugeBlinking, let fill = comboGaugeFill else { return }
+        isComboGaugeBlinking = true
+        fill.color = .ganhoPixelHudCoral
+        let half = FeelTuning.R7.comboGaugeBlinkHalfPeriod
+        let blink = SKAction.sequence([
+            .fadeAlpha(to: FeelTuning.R7.comboGaugeBlinkMinAlpha, duration: half),
+            .fadeAlpha(to: FeelTuning.R7.comboGaugeFillAlpha, duration: half)
+        ])
+        fill.run(.repeatForever(blink), withKey: FeelTuning.R7.comboGaugeBlinkActionKey)
+    }
+
+    private func stopComboGaugeBlink() {
+        guard isComboGaugeBlinking, let fill = comboGaugeFill else { return }
+        isComboGaugeBlinking = false
+        fill.removeAction(forKey: FeelTuning.R7.comboGaugeBlinkActionKey)
+        fill.color = .white   // timeBarFill과 동일 기본 흰색 복원 (잔상 0)
+        fill.alpha = FeelTuning.R7.comboGaugeFillAlpha
     }
 
     // MARK: - Tension Blink (Phase 6-14 · Sprint 3 v2)

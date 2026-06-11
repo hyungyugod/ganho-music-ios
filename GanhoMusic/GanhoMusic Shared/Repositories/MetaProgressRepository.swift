@@ -176,6 +176,16 @@ final class MetaProgressRepository {
             context: makeContext(summary: summary)
         )
         recordAchievements(newAchievements, at: Date())
+        // 5) R7 §F6 — 캐릭터 해금 delta: 별 ratchet·업적 기록 반영 *후* endGame 스냅샷과 동일
+        //    식으로 재평가 (graduations/scores는 endGame이 이미 갱신한 저장소 현재값).
+        //    영속 0 — 라이브 OR 판정 원칙(R6 §F3) 그대로, 해금 상태 저장 금지. allCases 순서 보존.
+        let newlyUnlocked = CharacterID.allCases.filter { characterID in
+            guard !summary.unlockedCharactersBefore.contains(characterID) else { return false }
+            return CharacterUnlockRules.isUnlocked(characterID,
+                                                   graduations: graduationRepo.current,
+                                                   scores: perDiffRepo.current,
+                                                   totalStars: totalStars)
+        }
         return RunMetaOutcome(
             effectiveTarget: summary.effectiveTarget,
             earnedStars: earned,
@@ -183,6 +193,7 @@ final class MetaProgressRepository {
             dailyModifier: summary.dailyModifier,
             isDailyFirstClear: isDailyFirstClear,
             newAchievements: newAchievements,
+            newlyUnlockedCharacters: newlyUnlocked,
             totalStars: totalStars
         )
     }

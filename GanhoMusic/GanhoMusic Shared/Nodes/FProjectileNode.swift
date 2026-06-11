@@ -36,6 +36,13 @@ final class FProjectileNode: SKSpriteNode, Poolable {
     private(set) var isEnchanted: Bool = false
     private var isNearMissPulsing = false
 
+    // MARK: - Near-miss Bonus Tracking (R7 §F2)
+    /// R7 — 보너스 반경(22px) 진입 여부. GameScene+NearMiss 폴링이 단독 기록자 —
+    /// 비무적 상태 진입 프레임에 set, 반경 밖 이탈 프레임에 1회 보상.
+    var nearMissEntered: Bool = false
+    /// R7 — 보상 부여 완료 (투사체 1개당 1회 상한).
+    var nearMissAwarded: Bool = false
+
     // MARK: - Init
     init() {
         let physicsSize = CGSize(
@@ -69,8 +76,10 @@ final class FProjectileNode: SKSpriteNode, Poolable {
 
     // MARK: - Enchanted Toggle
     /// 매혹 진입. 베이크 enchanted 텍스처로 교체. 멱등(재호출 안전). 매혹 중 펄스 없음(기존 가드).
+    /// R7 §F2 — 보류 중 near-miss 진입 플래그 무효화: 매혹 F는 수집물이라 회피 보상 비대상.
     func applyEnchanted() {
         isEnchanted = true
+        nearMissEntered = false
         stopNearMissPulse()
         texture = TextureAtlasStore.fProjectileBakedTexture(.enchanted)
     }
@@ -113,10 +122,14 @@ final class FProjectileNode: SKSpriteNode, Poolable {
 
     /// 재사용 직전 신품 복원: 잔존 TTL 액션 제거 → near-miss 펄스 정리 → 매혹 해제(normal
     /// 베이크 텍스처 복원) → 시각/물리 원복. wallPolicy는 발사 시점에 EnemyNode가 매회 재적용.
+    /// R7 §F2 — near-miss 추적 플래그 2종도 반드시 리셋 (반경 안에서 회수된 노드의 보류 상태가
+    /// 다음 사용자에게 새면 발사 직후 오발 보상 — SPEC §F2 풀 재사용 리셋 게이트).
     func resetForReuse() {
         removeAllActions()
         stopNearMissPulse()
         clearEnchanted()
+        nearMissEntered = false
+        nearMissAwarded = false
         alpha = 1
         setScale(1)
         position = .zero

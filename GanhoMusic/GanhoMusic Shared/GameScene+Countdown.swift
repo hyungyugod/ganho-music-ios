@@ -59,6 +59,10 @@ extension GameScene {
             progressProvider: { [weak self] in
                 guard let self = self else { return 0 }
                 return Double(1.0 - self.remainingTime / GameplayTuning.gameDuration)
+            },
+            comboProvider: { [weak self] in
+                // R7 §F4 — 리스크 가속 판정용 콤보 공급 (progressProvider 동형 [weak self]).
+                return self?.scoreSystem.combo ?? 0
             }
         )
         gameState = .playing

@@ -108,6 +108,12 @@ final class HapticsManager {
                        fallback: medium)
     }
 
+    /// R7 §F2 — near-miss 회피 보상 — transient 0.3 ×1 (telegraphWarning 강도의 단발판).
+    func nearMiss() {
+        playTransients([(FeelTuning.R7.hapticNearMissIntensity, FeelTuning.hapticDefaultSharpness, 0)],
+                       fallback: light)
+    }
+
     // MARK: - Legacy Triggers (미매핑 이벤트 — 카운트다운 틱·tension 초당 틱 등 기존 강도 등가 유지)
     func light() {
         lightGenerator.impactOccurred()

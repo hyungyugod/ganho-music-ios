@@ -49,9 +49,13 @@ enum AchievementEvaluator {
     private static func isSatisfied(_ id: AchievementID, context: AchievementContext) -> Bool {
         switch id {
         case .firstGraduation:
-            // 최초 성공 판 — 또는 백필: 임의 셀 best ≥ 해당 난이도 목표.
-            if let summary = context.summary, summary.score >= summary.effectiveTarget {
-                return true
+            // R7 §F8-b — 라이브 판(summary != nil)은 "이번 판 성공"만 판정. 셀 best 폴백은
+            // 마이그레이션 백필(summary == nil) 한정 — 유급 판 결과창에서 직전 셀 best로
+            // "첫 졸업"이 발화하는 엣지 봉인 (보상 언어는 성공 판 원칙).
+            // 파생 시맨틱(의도): F8-a로 졸업이 기록된 noteRush 유급 판에서도 본 업적은 미발화 —
+            // 다음 *성공 판*에서 발화 (백필 7종의 마이그레이션 발화는 기존과 동일).
+            if let summary = context.summary {
+                return summary.score >= summary.effectiveTarget
             }
             return anyCellMeetsTarget(context.perDifficultyScores)
         case .combo10:
@@ -68,11 +72,11 @@ enum AchievementEvaluator {
         case .sergeantWitness:
             return context.summary?.sergeantParkAppeared == true
         case .kimHardClear:
-            // 이번 판(kim ∧ hard ∧ 성공) — 또는 백필: kim hard 셀 best ≥ hard 목표.
-            if let summary = context.summary,
-               summary.characterID == .kim, summary.difficulty == .hard,
-               summary.score >= summary.effectiveTarget {
-                return true
+            // R7 §F8-b — firstGraduation과 동일 정책: 라이브 판은 이번 판(kim ∧ hard ∧ 성공)만,
+            // 셀 폴백은 백필(summary == nil) 한정 — 유급 판 "정공법" 발화 엣지 봉인.
+            if let summary = context.summary {
+                return summary.characterID == .kim && summary.difficulty == .hard
+                    && summary.score >= summary.effectiveTarget
             }
             return cellMeetsTarget(context.perDifficultyScores, characterID: .kim, difficulty: .hard)
         case .skillMaster:
