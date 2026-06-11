@@ -126,6 +126,12 @@ enum GameplayTuning {
     /// player.currentDirection 경로에만 적용 (dpad 원시값·스킬 돌진 방향·facing 콜백은 비스무딩).
     /// 정지→이동 첫 입력은 즉시 적용이라 반응 지연 0 — 이 값은 *이동 중 전환*의 부드러움만 담당.
     static let dpadDirectionSmoothingDuration: TimeInterval = 0.08
+    /// R11 U7 — 이동 중 *의도적 꺾기* 즉시 스냅 각도 게이트의 dot(코사인) 임계값.
+    /// 임계각 60° → cos(60°) = 0.5 정확값을 직접 저장 — 매 프레임 삼각함수 재계산 0 (상수 1회 평가).
+    /// 사이각 > 60°(dot < 0.5)면 보간 없이 즉시 전환: 90°(dot=0)·180°(dot=−1) 꺾기 지연 0.
+    /// 45° 인접 스냅 벡터 간 지터(dot ≥ cos45° ≈ 0.707)는 게이트 미통과 — 계속 스무딩이 흡수.
+    /// 60° 채택 근거: 45° 인접 스냅 경계와 15° 여유 확보 (경계 진동이 게이트를 오발화하지 않도록).
+    static let dpadTurnSnapDotThreshold: CGFloat = 0.5
 
     // (placeholderBoxSize, placeholderBoxAutoSpeed는 1-2 임시값 → 1-3에서 제거)
 

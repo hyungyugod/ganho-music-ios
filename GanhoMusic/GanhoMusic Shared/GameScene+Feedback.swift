@@ -66,10 +66,13 @@ extension GameScene {
 
 // MARK: - Hitstop Request (R2)
 extension GameScene {
-    /// 히트스톱 단일 요청 진입점 — 일시정지 중 신규 요청 무시 (speed/isPaused 소유권 충돌 차단).
-    /// 일시정지 진입 시 즉시 cancel은 presentPauseMenu가 담당 (원복 책임 단일화).
+    /// 히트스톱 단일 요청 진입점 — 일시정지/컷씬 중 신규 요청 무시 (speed/isPaused 소유권 충돌 차단).
+    /// 일시정지/컷씬 동결 진입 시 즉시 cancel은 presentPauseMenu/freezeForDiscoveryCutscene이 담당.
+    /// R11 — `.cutscene` 추가: update() hitstop.tick은 상태 가드 *이전*이라 컷씬 중에도 진행 —
+    /// 동결 중 점화되면 HitstopController가 종료 시 isPaused/speed를 원복해 컷씬 동결을 중도
+    /// 해제하는 P0 함정 차단 (예: 이스터에그 동결과 같은 didBegin 배치의 후속 수집 콜백).
     func requestHitstop(freeze: TimeInterval, ramp: TimeInterval = 0) {
-        guard gameState != .paused else { return }
+        guard gameState != .paused, gameState != .cutscene else { return }
         hitstop.request(freeze: freeze, ramp: ramp)
     }
 }

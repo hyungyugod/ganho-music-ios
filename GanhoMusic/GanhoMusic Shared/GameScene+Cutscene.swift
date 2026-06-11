@@ -3,9 +3,54 @@
 //  GanhoMusic Shared
 //
 //  Intro and mid-game cutscene flow for GameScene.
+//  R11 U8 — 박병장 발견 컷씬 공용 동결/복원 헬퍼 쌍 (+GameState 281줄 → 300줄 위험 회피로 본 파일에).
 //
 
 import SpriteKit
+
+// MARK: - Discovery Cutscene Freeze/Resume (R11 U8)
+extension GameScene {
+    /// 발견 컷씬 동결 — presentPauseMenu(+GameState L25-47) 레시피와 항목·순서 1:1 대응
+    /// (다이얼로그·uiTap SFX/햅틱만 제외). pauseStored* 트리오 *재사용* — presentPauseMenu는
+    /// `.playing` 한정 가드라 `.cutscene` 중 경합이 구조적으로 불가, 신규 var 0.
+    /// `.cutscene` 중 자동 보장(코드 추가 불요): 45초 타이머·AI·스폰 폴링·near-miss·effects는
+    /// update() `.playing` 가드에서 동결 / 자동 일시정지(R9)·일시정지 버튼은 `.playing` 가드로
+    /// 자연 차단 / 컷씬 오버레이는 cameraNode 부착이라 worldNode.isPaused 무관하게 애니 정상.
+    func freezeForDiscoveryCutscene() {
+        // 순서 계약(주의사항 3) — hitstop.cancel()이 isPaused/speed 소유권을 먼저 인수(원복).
+        // cancel *이전*에 isPaused를 세팅하면 cancel의 원복이 덮어쓴다 — presentPauseMenu 전례 순서.
+        hitstop.cancel()
+        gameState = .cutscene
+        player.currentDirection = .zero
+        player.isRunning = false
+        player.physicsBody?.velocity = .zero
+        pauseStoredDPadInteractionEnabled = dpad.isUserInteractionEnabled
+        pauseStoredSkillInteractionEnabled = skillButton.isUserInteractionEnabled
+        pauseStoredRunInteractionEnabled = runButton.isUserInteractionEnabled
+        dpad.resetDirection()
+        resetMovementInput()
+        runButton.resetPressedState()
+        dpad.isUserInteractionEnabled = false
+        skillButton.isUserInteractionEnabled = false
+        runButton.isUserInteractionEnabled = false
+        worldNode.isPaused = true
+        physicsWorld.speed = 0
+    }
+
+    /// 발견 컷씬 복원 — dismissPauseMenu(+GameState L92-108) 레시피 *정확히 역순* (다이얼로그 제외).
+    func resumeFromDiscoveryCutscene() {
+        worldNode.isPaused = false
+        physicsWorld.speed = 1
+        dpad.resetDirection()
+        resetMovementInput()
+        runButton.resetPressedState()
+        dpad.isUserInteractionEnabled = pauseStoredDPadInteractionEnabled
+        skillButton.isUserInteractionEnabled = pauseStoredSkillInteractionEnabled
+        runButton.isUserInteractionEnabled = pauseStoredRunInteractionEnabled
+        lastUpdateTime = 0   // dt 폭주 방지 — dismissPauseMenu L106 전례
+        gameState = .playing
+    }
+}
 
 // MARK: - Cutscene
 extension GameScene {

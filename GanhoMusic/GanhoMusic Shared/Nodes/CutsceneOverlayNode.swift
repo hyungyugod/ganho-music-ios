@@ -81,6 +81,10 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
     ///   - parent: 부착 부모. cameraNode 전달 권장 — 화면 중앙 고정 + 카메라 follow와 독립.
     ///   - sceneSize: 배경 크기/본문 폭 계산 기준. 호출부 `self.size` 전달.
     ///   - onDismiss: 탭 1회 후 fadeOut 종료 시 호출. [weak self] 캡처는 호출부 책임.
+    /// - Returns: 부착된 오버레이 노드. R11 — `@discardableResult` 반환 추가: 장식 자식(클로즈업·
+    ///   카메오) 부착용 — fadeIn/fadeOut/removeFromParent 자동 동승(좀비 0). 기존 3 호출처
+    ///   (Intro/IntroVillain/Mid)는 discardable이라 diff 0 — 본체 로직 0줄 변경 계약 유지.
+    @discardableResult
     static func present(
         title: String,
         body: String,
@@ -88,12 +92,13 @@ final class CutsceneOverlayNode: SKNode, SelfDismissingNode {
         sceneSize: CGSize,
         fontName: String? = nil,
         onDismiss: @escaping () -> Void
-    ) {
+    ) -> CutsceneOverlayNode {
         let node = CutsceneOverlayNode(title: title, body: body, sceneSize: sceneSize, fontName: fontName)
         node.onDismiss = onDismiss
         parent.addChild(node)
         // fadeIn — 등장 보간. ScorePopupNode·CountdownNode와 동형 자가 소멸 패턴.
         node.run(SKAction.fadeIn(withDuration: FeelTuning.cutsceneFadeInDuration))
+        return node
     }
 
     // MARK: - Touch Trigger

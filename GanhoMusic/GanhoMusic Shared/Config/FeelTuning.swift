@@ -24,6 +24,22 @@ enum FeelTuning {
     static let airforceOverlayFontSize: CGFloat = 28
     static let airforceStoryTitle: String = "박병장 호출"
     static let airforceStoryBody: String = "사실 박병장은 석조무사의 오랜 친구입니다.\n석조무사가 조용히 신호를 보내자, 박병장이 나타나 잠시 수간호사를 물리쳐 줍니다."
+    // R11 U8-A — 발견 컷씬 장식 배치 (CutsceneOverlayNode 자식 좌표 — 화면 중앙 (0,0) 기준).
+    // 좌(카메오: 신호를 보낸 석조무사) ↔ 우(클로즈업: 응답한 박병장) 대칭 — 본문 카피의 무전
+    // 서사 방향과 일치. 제목(y=+100, x≈±75)·본문(중앙)·TAP(y=−120)과 비겹침 상단 측면 배치:
+    // 클로즈업(scale 2.0, ≈64×80pt)은 x 138~202 — 제목 우단(+75)과 63pt 이격.
+    /// 박병장 클로즈업 x 오프셋 (제목 우측 바깥).
+    static let airforceCutsceneCloseupOffsetX: CGFloat = 170
+    /// 박병장 클로즈업 y 오프셋. 상단 — 최소 지원 폭(375pt 세로, halfH 187.5)에서도 상단 수납
+    /// (126 + 40 = 166 < 187.5).
+    static let airforceCutsceneCloseupOffsetY: CGFloat = 126
+    /// 석조무사 카메오 x 오프셋 (제목 좌측 바깥 — 클로즈업과 좌우 대칭).
+    static let airforceCutsceneCameoOffsetX: CGFloat = -170
+    /// 석조무사 카메오 y 오프셋. 클로즈업보다 살짝 아래 — 스케일 차이(1.2 vs 2.0)의 원근 정렬
+    /// (R10 sergeantIntroCameoOffsetY 어휘 답습).
+    static let airforceCutsceneCameoOffsetY: CGFloat = 118
+    /// 장식 노드의 오버레이 내부 zPosition — 배경(0) 위, 라벨(1)과 동급 (비겹침 배치라 충돌 0).
+    static let airforceCutsceneDecorationZPosition: CGFloat = 1
     /// "나와라 박병장!" 오버레이 표시 시간 (초). 페이드아웃 시작 전 또렷이 떠 있는 구간.
     /// Phase 9-8 — 사용자 요청 시퀀스 "오버레이 2.4초 유지" 정합화: 1.5 → 2.1.
     /// 총 수명 = displayDuration(2.1) + fadeOutDuration(0.3) = 2.4초.

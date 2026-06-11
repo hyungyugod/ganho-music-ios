@@ -87,14 +87,24 @@ extension GameScene {
     /// 1) 컷씬 2.2초(얼굴 클로즈업 + "박병장 등장!" 토스트) 발화
     /// 2) 컷씬 종료 콜백에서 실제 SergeantParkNode를 worldNode에 부착
     /// 3) 화면 우측에서 들어와 중앙에서 8초 머무름 → 좌측으로 퇴장 → 자가 소멸
-    /// gameState 전환 없음 — 컷씬 노드는 cameraNode 자식(zPos 300) 위에 깔리고 게임은 계속 진행.
+    /// R11 U8-B — 구 "gameState 전환 없음(게임 계속 진행)" 계약은 *의도적 폐지* (사용자 "발견 시
+    /// 멈춤" 명시 — hard는 이스터에그 구조적 불가(석조무사 미부착)라 데뷔 컷씬이 유일 서사 호흡):
+    /// 2.2s 컷씬 동안 freezeForDiscoveryCutscene 동결 — 타이머·적·플레이어 정지(플레이 시간 손실 0).
+    /// 2.2s 타이밍·completion 계약·컷씬 내부(presentSergeantParkIntro)는 byte-보존.
     func spawnSergeantPark() {
         // R2 — 박병장 등장 줌 펄스 1.0→0.97→1.0 (0.5s, 02 §3) — *거물 등장*의 무게감.
+        // R11 — 기존 위치 보존: cameraNode SKAction이라 아래 동결 중에도 진행 — 의도된 연출.
         cameraDirector.zoomPulse(to: FeelTuning.sergeantZoomPulseScale,
                                  duration: FeelTuning.sergeantZoomPulseDuration)
+        // R11 U8-B — 컷씬 직전 동결. 컷씬 오버레이는 cameraNode 자식(zPos 300)이라
+        // worldNode.isPaused 무관하게 dim/closeup/toast 애니 정상 진행.
+        freezeForDiscoveryCutscene()
         // 컷씬 먼저 → 콜백에서 본 노드 부착. [weak self] 캡처 — 컷씬 진행 중 씬 전환 가능성 대비.
         presentSergeantParkIntro { [weak self] in
             guard let self = self else { return }
+            // R11 U8-B — 복원이 park.run *이전*: worldNode.isPaused 해제 후 addChild —
+            // 등장 애니(enter 1.2s) 즉시 재생 (지연 0).
+            self.resumeFromDiscoveryCutscene()
             let park = SergeantParkNode()
             // 화면 우측 바깥에서 출발 → 좌로 진입.
             park.position = CGPoint(
