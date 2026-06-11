@@ -43,6 +43,8 @@ final class ChiptuneSynth {
         case resultStamp
         /// 점수 카운트업 틱 — square C5 + step×2반음(0...7단), 30ms (R5 — §7 0.4s, 단계 발화 전용).
         case scoreTick(step: Int)
+        /// 박병장 데뷔 스팅어 — square 저음 G2→C3 (두움·빠암), 500ms (R10 U5 — 거물 등장).
+        case sergeantDebut
     }
 
     private enum Waveform {
@@ -105,7 +107,8 @@ final class ChiptuneSynth {
         var voices: [Voice] = [.toiletCollect, .comboMilestone, .comboBreak,
                                .hit, .uiTap, .countdownTick, .countdownGo,
                                .sceneTransition,
-                               .resultStamp]   // R5 — 사전 렌더 누락 시 무음 (R3 컨벤션 동일)
+                               .resultStamp,   // R5 — 사전 렌더 누락 시 무음 (R3 컨벤션 동일)
+                               .sergeantDebut] // R10 — 데뷔 스팅어 (런타임 합성 0 게이트)
         for semitone in 0...FeelTuning.sfxCollectPitchMaxSemitone {
             voices.append(.noteCollect(semitoneOffset: semitone))
         }
@@ -184,6 +187,16 @@ final class ChiptuneSynth {
             let midi = FeelTuning.sfxMidiC5 + clamped * FeelTuning.R5.sfxScoreTickSemitonePerStep
             return renderTones([(frequency(midi: midi), FeelTuning.R5.sfxScoreTickDuration)],
                                waveform: .square)
+        case .sergeantDebut:
+            // R10 — 데뷔 스팅어 (02 §6 표 외 신규 — U5). square 저음 G2→C3 완전4도 상행 —
+            // "두움·빠암" 군용 나팔 톤. 기존 voice 최저음(C4) 아래 음역 = 거물의 무게감.
+            // (동일 주파수 연타는 renderTones 단일 엔벨로프상 한 음으로 들려 2음 구조 채택.)
+            return renderTones([
+                (frequency(midi: FeelTuning.R10.sfxSergeantDebutMidiLow),
+                 FeelTuning.R10.sfxSergeantDebutShortToneDuration),
+                (frequency(midi: FeelTuning.R10.sfxSergeantDebutMidiHigh),
+                 FeelTuning.R10.sfxSergeantDebutLongToneDuration)
+            ], waveform: .square)
         }
     }
 

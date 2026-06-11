@@ -18,9 +18,10 @@ extension UILayout {
         static let authNetworkUnavailableText: String = "네트워크 연결을 확인해 주세요"
 
         // MARK: U2·U3 프로필 다이얼로그 버튼 3행 (640×372 패널 좌표)
-        /// 3행(계정 — 로그아웃/연동·탈퇴) 중심 y. 시각 하단 엣지 -183 > 패널 하단 -186 (수납).
-        /// 2행(-132, 44pt 터치)과의 터치 겹침 띠는 action(at:) 우선순위(2행 후순 등록 = 우선)로 해소.
-        static let profileThirdButtonRowY: CGFloat = -170
+        /// 3행([계정 관리] 진입 — R10 D-2에서 로그아웃/탈퇴 격리) 중심 y.
+        /// R10 — -170 → -164: 44pt 터치 띠 [-186, -142]가 패널 하단(-186)과 정확히 일치 —
+        /// R9 P2 "하단 6pt 돌출" 해소. 2행은 -126으로 동반 상향(UILayout+R5) — 시각 겹침 0.
+        static let profileThirdButtonRowY: CGFloat = -164
         /// 3행 compact 버튼 시각 크기 (높이 26 ≤ 32 — 위계 강등). 터치는 44pt 자동 확장.
         static let profileCompactButtonSize = CGSize(width: 132, height: 26)
 

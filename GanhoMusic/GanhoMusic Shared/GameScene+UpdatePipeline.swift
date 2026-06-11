@@ -11,6 +11,18 @@
 
 import SpriteKit
 
+#if DEBUG
+/// R10 — env GANHO_FORCE_SERGEANT=1 (스크린샷 증빙 전용 — 릴리즈 미포함, DemoAutopilot 전례).
+/// hard: 데뷔 트리거 시간 30s → 2s 단축 / easy·normal: 이스터에그 강제 발화 (우정 인사 캡처).
+/// env 1회 평가 캐시 — update 경로 매 프레임 environment dict 생성 방지.
+private enum ForcedSergeantDebut {
+    static let isEnabled =
+        ProcessInfo.processInfo.environment["GANHO_FORCE_SERGEANT"] == "1"
+    /// 단축 트리거 시간 (초). 카운트다운 직후 빠른 발화 — 컷씬·연출 캡처 대기 최소화.
+    static let debutTime: Double = 2.0
+}
+#endif
+
 extension GameScene {
 
     // MARK: - Pipeline Phases (R1)
@@ -30,7 +42,7 @@ extension GameScene {
         // 동결 시 currentDirection = .zero로 즉시 set → PlayerNode.update 가드 도달 전에도
         // *마지막 방향 잔존*으로 인한 미세 이동 방지.
         if !skillSystem.isDashing && !player.isFrozen {
-            updateMovementInput()
+            updateMovementInput(dt: dt)   // R10 U4 — 방향 급변 스무딩에 dt 전달 (필수 연동 1줄)
         } else if skillSystem.isDashing {
             resetMovementInput()
         } else if player.isFrozen {
@@ -86,12 +98,26 @@ extension GameScene {
         // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
         if difficulty == .hard && !sergeantParkDebuted {
             let elapsed = GameplayTuning.gameDuration - remainingTime
-            if elapsed >= GameplayTuning.sergeantParkDebutTime
+            var debutTime = GameplayTuning.sergeantParkDebutTime
+            #if DEBUG
+            // R10 — env GANHO_FORCE_SERGEANT=1 한정 데뷔 시간 단축 (스크린샷 증빙 전용,
+            // GANHO_AUTO_PAUSE 전례 동형). 릴리즈 경로는 위 30s OR 50점 조건 그대로.
+            if ForcedSergeantDebut.isEnabled { debutTime = ForcedSergeantDebut.debutTime }
+            #endif
+            if elapsed >= debutTime
                 || scoreSystem.score >= GameplayTuning.sergeantParkDebutScore {
                 sergeantParkDebuted = true
                 spawnSergeantPark()
             }
         }
+        #if DEBUG
+        // R10 — 같은 env로 easy/normal 이스터에그 강제 발화 (C-2 인사 연출 증빙 — SPEC "B의
+        // env에 통합 가능"). triggerAirforceEasterEgg 내부 가드(airforceTriggered·hard 제외) 그대로.
+        if ForcedSergeantDebut.isEnabled, difficulty != .hard, !airforceTriggered,
+           GameplayTuning.gameDuration - remainingTime >= ForcedSergeantDebut.debutTime {
+            triggerAirforceEasterEgg()
+        }
+        #endif
 
         // Sprint 10 Phase D — 수간호사 패트롤 + 텔레그래프 상태 머신.
         //    player.position / 진행률 / charmActive는 provider 캡처(GameScene+Setup에서 1회 주입).

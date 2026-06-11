@@ -24,6 +24,10 @@ enum ProfileDetailAction {
     case linkApple
     case signOut
     case requestDeleteConfirmation
+    /// R10 D — 계정 관리 서브 모드 진입 (detail에서 로그아웃/탈퇴 격리).
+    case openAccountManagement
+    /// R10 D — 계정 관리 → detail 복귀.
+    case backToProfileDetail
     case close
 }
 
@@ -32,6 +36,8 @@ enum ProfileDetailMode {
     case avatarPicker
     case nicknamePrompt
     case busy
+    /// R10 D — 계정 관리 서브 모드 (로그아웃/Apple 연동/탈퇴 — 의도적으로 찾아야 보이는 위계).
+    case accountManagement
 }
 
 final class ProfileDetailOverlayNode: SKNode {
@@ -129,6 +135,8 @@ final class ProfileDetailOverlayNode: SKNode {
             configureNicknamePrompt(snapshot: snapshot)
         case .busy:
             configureBusy(snapshot: snapshot)
+        case .accountManagement:
+            configureAccountManagement(snapshot: snapshot)   // R10 D-3
         }
     }
 

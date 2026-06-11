@@ -23,6 +23,10 @@ extension FeelTuning {
     static let hitstopBombFlash: TimeInterval = 0.12
     /// 변기(+2) 수집 정지 시간 (초).
     static let hitstopToiletCollect: TimeInterval = 0.03
+    /// R10 #8 — 일반 음표 수집 미니 정지 시간 (초). 약 1프레임 — 수집 "딱" 체감만 더하고
+    /// 흐름은 유지. 02 §2 "일반 수집 히트스톱 없음" 조항은 R10에서 동반 갱신 (명세 충돌 해소).
+    /// longer-wins 합성은 기존 HitstopController 그대로 — 변기(0.03)·마일스톤(0.045)과 겹치면 긴 쪽.
+    static let hitstopNoteCollect: TimeInterval = 0.015
     /// 히트스톱·줌 펄스가 발화되는 콤보 마일스톤. 마일스톤 3은 기존 팝업/사운드만
     /// (SPEC §문서-코드 불일치 1 — comboMilestones [3,5,7,10,20] 중 3 제외).
     static let comboHitstopMilestones: [Int] = [5, 7, 10, 20]

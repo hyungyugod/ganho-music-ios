@@ -104,14 +104,22 @@ extension GameScene {
             park.zPosition = 5
             self.worldNode.addChild(park)
 
+            // R10 U5 ③ — 방향성 킥: 우→좌 진입 시작 순간 카메라 좌향 4px 밀림 (기존 kick 재사용).
+            self.cameraDirector.kick(direction: FeelTuning.R10.sergeantEntryKickDirection)
+
             // 등장(1.2s) → 머무름(8.0s) → 퇴장(1.5s) → 자가 소멸.
             // SKAction.sequence 5단계 — DispatchQueue/Timer 금지(주의사항).
             let enter = SKAction.moveTo(x: self.size.width * 0.5,
                                         duration: 1.2)
+            // R10 U5 ④ — 체류 개시 미니 셰이크: enter 완료(중앙 도달) 시 .soft 1회.
+            // 0초 .run 삽입 — enter/stay/exit/cleanup 타이밍 불변. [weak self] 필수.
+            let arrivalShake = SKAction.run { [weak self] in
+                self?.cameraDirector.shake(.soft)
+            }
             let stay  = SKAction.wait(forDuration: GameplayTuning.sergeantParkOnStageDuration)
             let exit  = SKAction.moveTo(x: -100, duration: 1.5)
             let cleanup = SKAction.removeFromParent()
-            park.run(.sequence([enter, stay, exit, cleanup]))
+            park.run(.sequence([enter, arrivalShake, stay, exit, cleanup]))
         }
     }
 
@@ -132,6 +140,16 @@ extension GameScene {
         let closeup = SergeantParkNode.makeIntroCloseup()
         closeup.alpha = 0
         overlay.addChild(closeup)
+
+        // R10 U6 C-1 — 석조무사 시각 카메오 (우정 서사 동승). physicsBody nil + 소형 스케일 —
+        // makeIntroCloseup 동형. overlay 자식이라 컷씬 종료 removeFromParent에 동반 소멸 (좀비 0).
+        let cameo = StoneGuardNode()
+        cameo.physicsBody = nil
+        cameo.setScale(FeelTuning.R10.sergeantIntroCameoScale)
+        cameo.position = CGPoint(x: FeelTuning.R10.sergeantIntroCameoOffsetX,
+                                 y: FeelTuning.R10.sergeantIntroCameoOffsetY)
+        cameo.alpha = 0
+        overlay.addChild(cameo)
 
         // 토스트 — 긴 서사 멘트 상수화 + 멀티라인 줄바꿈(36→24pt). coralPrimary.
         let toast = SKLabelNode(fontNamed: Typography.fontDisplay)
@@ -173,6 +191,17 @@ extension GameScene {
         overlay.addChild(sparkle)
         sparkle.emit()
 
+        // R10 U5 ① — 전용 데뷔 스팅어 1회 (fadeIn 시점). init 사전 렌더 버퍼 — 런타임 합성 0.
+        synth.play(.sergeantDebut)
+
+        // R10 U5 ② — 토스트 스탬프 등장: scale 1.4→1.0 easeOutBack, fadeIn(0.4s) 구간 내
+        // *병행* 액션만 — 아래 dim/closeup/toast 0.4/1.4/0.4 fade 시퀀스·completion 위치는 byte-보존.
+        toast.setScale(FeelTuning.R10.sergeantToastStampStartScale)
+        toast.run(Tween.curved(
+            SKAction.scale(to: 1.0, duration: FeelTuning.R10.sergeantToastStampDuration),
+            .easeOutBack
+        ))
+
         // 0.4s fadeIn / 1.4s hold / 0.4s fadeOut = 2.2s 총 길이.
         // sergeantParkIntroDurationV4(2.2s)와 정확히 일치.
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.4)
@@ -182,6 +211,7 @@ extension GameScene {
 
         dim.run(.sequence([dimFadeIn, hold, fadeOut]))
         closeup.run(.sequence([fadeIn, hold, fadeOut]))
+        cameo.run(.sequence([fadeIn, hold, fadeOut]))   // R10 C-1 — 클로즈업과 같은 박자 동승
         toast.run(.sequence([fadeIn, hold, fadeOut, .run {
             overlay.removeFromParent()
             completion()

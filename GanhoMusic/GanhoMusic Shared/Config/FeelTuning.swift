@@ -402,7 +402,11 @@ enum FeelTuning {
     // 박병장 컷씬 멘트 + 이펙트 (요청 2)
     /// 박병장 등장 컷씬 토스트 멘트. AS-IS 하드코딩 "박병장 등장!"(GameScene+Setup) 대체.
     /// 긴 문장이라 numberOfLines=0 + preferredMaxLayoutWidth로 줄바꿈해 화면 폭 초과 방지.
-    static let sergeantParkIntroToastText: String = "석조무사가 친구인 박병장을 불러 유저를 도와줍니다!"
+    /// R10 U6 C-1 — "원격 호출(무전)" 우정 서사로 교체 (안1 압축 채택 — ⚠️ 사용자 검수 권장 포인트).
+    /// 석조무사 부재(hard 미등장) 중 호출의 어색함을 무전 프레임으로 해소. 상수명·참조 구조 불변.
+    /// 27자 ≤ 32자 (2.2s hold 1.4s 가독 한계). CJK 자동 wrap은 음절 단위로 끊겨("출|격")
+    /// 수동 \n으로 어절 경계 2행 확정 (스크린샷 검증 — numberOfLines=0 기존 경로 그대로).
+    static let sergeantParkIntroToastText: String = "석조무사의 무전 — 오랜 친구\n박병장, 지원 출격!"
     /// 컷씬 토스트 폰트(24pt). 긴 멘트가 화면 폭 안에 들어오도록 36→24 축소.
     static let sergeantParkIntroToastFontSize: CGFloat = 24
     /// 컷씬 토스트 줄바꿈 최대 폭(pt). 멀티라인 wrap 기준. landscape 가시영역 내.

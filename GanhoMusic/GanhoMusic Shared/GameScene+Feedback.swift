@@ -12,7 +12,8 @@ import SpriteKit
 // MARK: - Combo Feedback
 extension GameScene {
     /// 음표 수집 — 콤보 1단계당 +반음(최대 +12) square 톤 + transient 0.45 햅틱 (02 §6).
-    /// 일반 음표 수집에는 히트스톱 **없음** — 흐름 유지 (02 §2).
+    /// R10 #8 — 일반 음표 수집에 미니 히트스톱 0.015s *추가* (발화는 Contact 콜백 —
+    /// 구 "히트스톱 없음" 조항은 02 §2와 함께 동반 갱신, 명세 충돌 해소).
     func playNoteCollectFeedback(combo: Int) {
         haptics.noteCollect()
         synth.play(.noteCollect(semitoneOffset: comboSemitoneOffset(for: combo)))

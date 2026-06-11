@@ -4,7 +4,7 @@
 > 읽는 위치는 환경변수마다 1곳 — 아래 표가 정확한 소비 지점이다.
 > (REFACTOR_STATE의 "GANHO_BOOT_SCENE 9종" 기록은 구식 — 실측 **14종**, 본 문서가 진실.)
 
-## 1. 환경변수 5종 + GANHO_BOOT_SCENE
+## 1. 환경변수 6종 + GANHO_BOOT_SCENE
 
 | 환경변수 | 읽는 위치 | 효과 |
 |---|---|---|
@@ -14,6 +14,7 @@
 | `GANHO_SKIP_CUTSCENE=1` | `GameScene+Cutscene.resetCutsceneStateAndShowIntro` | 인트로/빌런 컷씬 생략 → 즉시 카운트다운 (simctl 탭 주입 불가 우회) |
 | `GANHO_DEMO_AUTOPILOT=1` | `GameScene+MovementInput` (DemoAutopilot, input 단계) | 자동 주행 — 최근접 음표 추적 + 투사체 스침 회피 (콤보 게이지·near-miss 캡처 전용. 게임 수치·판정 0 변경 — 입력 대체만) |
 | `GANHO_AUTO_PAUSE=1` (R8 신설) | `GameScene+Cutscene.resetCutsceneStateAndShowIntro` | 진입 8.0s 후 `presentPauseMenu()` 자동 발화 (T6 일시정지 스크린샷 전용 — 카운트다운 ≈4.2s 경과 보정값). **`GANHO_SKIP_CUTSCENE=1` 조합 필수** — `.playing` 가드가 안전망 |
+| `GANHO_FORCE_SERGEANT=1` (R10 신설) | `GameScene+UpdatePipeline.updateAIPhase` (ForcedSergeantDebut) | hard: 박병장 데뷔 트리거 시간 30s → 2s 단축 / easy·normal: 진입 2s 후 이스터에그 강제 발화 (데뷔 컷씬·우정 인사 스크린샷 전용). 릴리즈 경로 0 — 점수(50pt) OR 조건·`airforceTriggered`/hard 제외 가드는 그대로 |
 
 ### 조합 예시
 

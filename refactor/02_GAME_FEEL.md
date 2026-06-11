@@ -22,8 +22,10 @@
 | F/청진기 피격 (게임오버) | 0.10s → 0.25s에 걸쳐 speed 0→1 복귀 | 플래시 + 셰이크 강 |
 | 박병장 폭탄 섬광 | 0.12s | 풀스크린 플래시 |
 | 변기(+2) 수집 | 0.03s | 스쿼시 |
+| 일반 음표 수집 (R10 #8) | 0.015s | 미니 — 수집 "딱" 체감만, 흐름 유지 |
 
-- 일반 음표 수집에는 히트스톱 **없음** (흐름 유지).
+- ~~일반 음표 수집에는 히트스톱 없음~~ → **R10 갱신**: 미니 히트스톱 0.015s(≈1프레임) 추가
+  (`FeelTuning.hitstopNoteCollect`). 콤보 마일스톤/변기와 겹치면 longer-wins 합성이 흡수.
 - 중첩 요청 시 더 긴 쪽만 적용. `#if DEBUG` 토글로 on/off 비교 가능하게.
 
 ## 3. 카메라 v2 (R2) — `CameraDirector`
@@ -31,7 +33,8 @@
 - **추적**: 현 follow 유지하되 지수 보간 `lerp(cam, player, 1 - exp(-8.5 * dt))` — 즉시 추적 대비 미세 관성. 맵 클램프 유지.
 - **셰이크**: 기존 x축 전용 → x·y 동시, 감쇠형. 강도 3단: soft(±3px, 0.15s) / medium(±6px, 0.22s) / strong(±10px, 0.32s), 매 스텝 0.82배 감쇠. 게임오버=strong, 스킬 발동=medium, 텔레그래프 발사=soft.
 - **줌 펄스**: 콤보 마일스톤 시 scale 1.0→1.015→1.0 (0.18s, easeOut). 박병장 등장 시 1.0→0.97→1.0 (0.5s).
-- **방향성 킥**: 피격 시 투사체 진행 방향으로 4px 밀렸다 복귀 (0.12s).
+- **방향성 킥**: 피격 시 투사체 진행 방향으로 4px 밀렸다 복귀 (0.12s). R10 U5 — 박병장 본 노드 진입 시작 시 좌향 킥 1회 추가 (`FeelTuning.R10.sergeantEntryKickDirection`).
+- **박병장 데뷔 연출 (R10 U5)**: 컷씬 fadeIn 시점 전용 스팅어 `.sergeantDebut`(square G2→C3, 0.5s — 사전 렌더) + 토스트 스탬프 1.4→1.0 easeOutBack + 진입 좌향 킥 + 중앙 도달 시 .soft 셰이크 1회. 컷씬 0.4/1.4/0.4=2.2s·enter 1.2s/stay 8.0s/exit 1.5s 계약 불변.
 
 ## 4. 파티클 (R2) — SKEmitterNode 6종, `EffectDirector` 경유
 
@@ -55,7 +58,7 @@
 - **수집 자석感**: 음표가 플레이어 32px 내 진입 시 0.08s 동안 플레이어 쪽으로 흡인 후 수집 (입력 관용성 향상 — 판정 자체는 불변).
 - **걷기 먼지**: 4걸음마다 발밑 2px 사각 2개 0.25s 페이드 (파티클 아님, 풀링 노드).
 - **플레이어 속도 곡선 활성화**: dead code인 `baseSpeedEnd`를 구현 — 45초에 걸쳐 `baseSpeedStart → baseSpeedEnd` 선형 보간. `baseSpeedEnd = baseSpeedStart × 1.15` 기본값 (GameplayTuning).
-- **입력**: dpad 즉시성 유지(스무딩 추가 금지). 스킬 버튼에 0.1s 입력 버퍼 (쿨다운 종료 직전 입력 허용).
+- **입력**: ~~dpad 즉시성 유지(스무딩 추가 금지)~~ → **R10 U4 갱신**: 정지→이동 첫 입력은 즉시(지연 0) 유지하되, *이동 중 방향 급변만* 80ms 지수 스무딩(`GameplayTuning.dpadDirectionSmoothingDuration`) — `player.currentDirection` 경로 한정, dpad 원시값·스킬 돌진 방향·facing 콜백·해제 즉시 정지는 비스무딩. 스킬 버튼에 0.1s 입력 버퍼 (쿨다운 종료 직전 입력 허용).
 
 ## 6. 사운드·햅틱 (R2)
 

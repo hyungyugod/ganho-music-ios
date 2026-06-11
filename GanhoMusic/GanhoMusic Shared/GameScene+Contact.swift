@@ -44,6 +44,10 @@ extension GameScene {
             let currentCombo = self.scoreSystem.combo
             self.playNoteCollectFeedback(combo: currentCombo)
 
+            // R10 #8 — 음표 수집 미니 히트스톱 (0.015s ≈ 1프레임). longer-wins 합성은
+            // HitstopController 기존 로직 그대로 (02 §2 동반 갱신 — 충돌 조항 해소).
+            self.requestHitstop(freeze: FeelTuning.hitstopNoteCollect)
+
             // R2 — SparkleEffectNode(수집당 노드 9개) → EffectDirector.collectBurst (이미터 풀).
             let burstOrigin = note.position
             self.effectDirector.collectBurst(at: burstOrigin)

@@ -153,6 +153,9 @@
 		AB90F1B00000000000000005 /* ControlsHintNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB90F1A00000000000000005 /* ControlsHintNode.swift */; };
 		AB90F1B00000000000000006 /* StartScene+Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB90F1A00000000000000006 /* StartScene+Settings.swift */; };
 		AB90F1B00000000000000007 /* GanhoMusic Shared/GameScene+AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB90F1A00000000000000007 /* GanhoMusic Shared/GameScene+AppLifecycle.swift */; };
+		ABA0F1B00000000000000001 /* UILayout+R10.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA0F1A00000000000000001 /* UILayout+R10.swift */; };
+		ABA0F1B00000000000000002 /* FeelTuning+R10.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA0F1A00000000000000002 /* FeelTuning+R10.swift */; };
+		ABA0F1B00000000000000003 /* FriendGreetingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA0F1A00000000000000003 /* FriendGreetingNode.swift */; };
 		AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000001 /* AccountMenuOverlayNode.swift */; };
 		B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */; };
 		B8316D45F22D4F7DA0B204B7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 961C7E8E394A42E688745446 /* FirebaseCore */; };
@@ -334,6 +337,9 @@
 		AB90F1A00000000000000005 /* ControlsHintNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsHintNode.swift; sourceTree = "<group>"; };
 		AB90F1A00000000000000006 /* StartScene+Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StartScene+Settings.swift"; sourceTree = "<group>"; };
 		AB90F1A00000000000000007 /* GanhoMusic Shared/GameScene+AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+AppLifecycle.swift"; sourceTree = "<group>"; };
+		ABA0F1A00000000000000001 /* UILayout+R10.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R10.swift"; sourceTree = "<group>"; };
+		ABA0F1A00000000000000002 /* FeelTuning+R10.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R10.swift"; sourceTree = "<group>"; };
+		ABA0F1A00000000000000003 /* FriendGreetingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendGreetingNode.swift; sourceTree = "<group>"; };
 		AC0000000000000000000001 /* AccountMenuOverlayNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuOverlayNode.swift; sourceTree = "<group>"; };
 		B2C0F1A00000000000000102 /* CharacterHomeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHomeSnapshot.swift; sourceTree = "<group>"; };
 		C0F1A0DE0000000000000001 /* GameplayTuning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameplayTuning.swift; sourceTree = "<group>"; };
@@ -525,6 +531,8 @@
 				AB80F1A00000000000000002 /* FeelTuning+R8.swift */,
 				AB90F1A00000000000000001 /* UILayout+R9.swift */,
 				AB90F1A00000000000000002 /* FeelTuning+R9.swift */,
+				ABA0F1A00000000000000001 /* UILayout+R10.swift */,
+				ABA0F1A00000000000000002 /* FeelTuning+R10.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -593,6 +601,7 @@
 				A1C0F1A00000000000000080 /* IntroVillainCutsceneNode.swift */,
 				A1C0F1A00000000000000082 /* TensionVignetteNode.swift */,
 				AB90F1A00000000000000005 /* ControlsHintNode.swift */,
+				ABA0F1A00000000000000003 /* FriendGreetingNode.swift */,
 				AB30F1C00000000000000001 /* UI */,
 			);
 			name = Nodes;
@@ -1055,6 +1064,9 @@
 				AB90F1B00000000000000005 /* ControlsHintNode.swift in Sources */,
 				AB90F1B00000000000000006 /* StartScene+Settings.swift in Sources */,
 				AB90F1B00000000000000007 /* GanhoMusic Shared/GameScene+AppLifecycle.swift in Sources */,
+				ABA0F1B00000000000000001 /* UILayout+R10.swift in Sources */,
+				ABA0F1B00000000000000002 /* FeelTuning+R10.swift in Sources */,
+				ABA0F1B00000000000000003 /* FriendGreetingNode.swift in Sources */,
 				AB70F1B00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift in Sources */,
 				AB70F1B00000000000000004 /* ResultScene+MetaCelebration.swift in Sources */,
 				AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */,

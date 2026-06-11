@@ -128,7 +128,9 @@ extension UILayout {
         static let profileMetricValueOffsetY: CGFloat = 24
         /// 버튼 행 2개 y + 버튼 크기 + 간격.
         static let profileFirstButtonRowY: CGFloat = -76
-        static let profileSecondButtonRowY: CGFloat = -132
+        /// R10 D-2 — -132 → -126: 3행(-164, 시각 상단 -151)과의 시각 겹침 해소(2행 시각 하단
+        /// -148 — 3pt 분리). 1행 터치 띠 [-98, -54]와 2행 터치 띠 [-148, -104]도 6pt 분리 유지.
+        static let profileSecondButtonRowY: CGFloat = -126
         static let profileWideButtonSize = CGSize(width: 152, height: 44)
         static let profileButtonSize = CGSize(width: 112, height: 44)
         static let profileButtonGap: CGFloat = 12

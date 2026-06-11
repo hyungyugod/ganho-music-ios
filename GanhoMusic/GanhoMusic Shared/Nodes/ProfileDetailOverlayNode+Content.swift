@@ -13,8 +13,8 @@ import UIKit
 extension ProfileDetailOverlayNode {
 
     // MARK: - Modes (카피는 기존 UILayout 텍스트 상수 재사용 — R4 §E-9 패턴)
-    /// R9 U2+U3 — 버튼 3행 재구성: 1행 프로필 편집(기존) / 2행 [기록][업적]+[닫기](주 위계) /
-    /// 3행 계정 compact(위계 강등 — 탈퇴 primary 폐지, 전부 ghost).
+    /// R10 D-2 — 버튼 3행: 1행 프로필 편집 / 2행 [기록][업적]+[닫기](주 위계) /
+    /// 3행 [계정 관리] 진입 1버튼 (로그아웃/탈퇴는 .accountManagement 서브 모드로 격리).
     func configureDetail(snapshot: CharacterHomeSnapshot) {
         titleLabel.text = UILayout.profileDetailTitleText
         bodyLabel.text = snapshot.profileDetailIdentityText
@@ -33,21 +33,18 @@ extension ProfileDetailOverlayNode {
                        action: .choosePhoto, variant: .secondary)
         ], y: UILayout.R5.profileFirstButtonRowY)
 
-        // 3행 — 계정 compact (연동 상태별). 회원탈퇴 primary 금지 — ghost로 강등.
+        // 3행 — [계정 관리] ghost compact 1버튼 (시각 위계 최하 — 진입점 1개). 연동 여부 무관
+        // 동일 — 게스트의 Apple 연동도 서브 모드로 이동 (⚠️ 1탭 심화 — 사용자 검수 권장 포인트).
         // ⚠️ 등록 순서: 2행보다 *먼저* 등록 — action(at:)이 reversed() 순회라 44pt 터치
-        // 확장이 겹치는 행간 띠에서 2행(주 위계, 후순 등록)이 우선 판정된다.
-        let accountButton = snapshot.isAppleLinked
-            ? makeButton(text: UILayout.accountMenuSignOutText,
-                         size: UILayout.R9.profileCompactButtonSize,
-                         action: .signOut, variant: .ghost)
-            : makeButton(text: UILayout.authAppleButtonText,
-                         size: UILayout.R9.profileCompactButtonSize,
-                         action: .linkApple, variant: .ghost)
+        // 확장이 겹치는 행간 띠(아래 좌표 검증)에서 2행(주 위계, 후순 등록)이 우선 판정된다.
+        // 좌표 검증 (R9 P2 "하단 6pt 돌출" 해소 — 패널 640×372, 하단 엣지 -186):
+        //   3행 중심 -164 → 44pt 터치 띠 [-186, -142] — 패널 하단과 정확히 일치 (돌출 0).
+        //   시각(26pt) 엣지 [-177, -151] — 2행 시각 하단(-126-22=-148)과 3pt 분리 (겹침 0).
+        //   2행 터치 띠 [-148, -104]와 3행 터치 띠의 [-148, -142] 6pt 겹침만 등록 순서로 해소.
         layoutButtonRow([
-            accountButton,
-            makeButton(text: UILayout.accountMenuDeleteText,
+            makeButton(text: UILayout.R10.profileAccountEntryText,
                        size: UILayout.R9.profileCompactButtonSize,
-                       action: .requestDeleteConfirmation, variant: .ghost)
+                       action: .openAccountManagement, variant: .ghost)
         ], y: UILayout.R9.profileThirdButtonRowY)
 
         // 2행 — [기록][업적] 주 위계 + [닫기] (마지막 등록 = 터치 우선).
@@ -62,6 +59,36 @@ extension ProfileDetailOverlayNode {
                        size: UILayout.R5.profileButtonSize,
                        action: .close, variant: .ghost)
         ], y: UILayout.R5.profileSecondButtonRowY)
+    }
+
+    /// R10 D-3 — 계정 관리 서브 모드. 탈퇴 confirm 절차 보존: .requestDeleteConfirmation →
+    /// 씬이 기존 showAccountMenuOverlay(mode: .confirmDelete) 경로 그대로 라우팅.
+    /// 위계: 로그아웃/연동 secondary · 탈퇴 ghost (R9 "탈퇴 primary 금지" 원칙 유지).
+    /// 좌표 검증: 액션 행 -60 터치 띠 [-82, -38] / [뒤로] 행 -130 터치 띠 [-152, -108] —
+    /// 상호 26pt 분리·패널(-186) 수납 — 터치 겹침 0.
+    func configureAccountManagement(snapshot: CharacterHomeSnapshot) {
+        titleLabel.text = UILayout.R10.accountManagementTitleText
+        bodyLabel.text = UILayout.R10.accountManagementBodyText
+
+        let primaryAccountButton = snapshot.isAppleLinked
+            ? makeButton(text: UILayout.accountMenuSignOutText,
+                         size: UILayout.R5.profileWideButtonSize,
+                         action: .signOut, variant: .secondary)
+            : makeButton(text: UILayout.authAppleButtonText,
+                         size: UILayout.R5.profileWideButtonSize,
+                         action: .linkApple, variant: .secondary)
+        layoutButtonRow([
+            primaryAccountButton,
+            makeButton(text: UILayout.accountMenuDeleteText,
+                       size: UILayout.R5.profileWideButtonSize,
+                       action: .requestDeleteConfirmation, variant: .ghost)
+        ], y: UILayout.R10.accountManagementActionRowY)
+
+        layoutButtonRow([
+            makeButton(text: UILayout.R10.profileBackButtonText,
+                       size: UILayout.R5.profileButtonSize,
+                       action: .backToProfileDetail, variant: .ghost)
+        ], y: UILayout.R10.accountManagementBackRowY)
     }
 
     func configureAvatarPicker(avatar: ProfileAvatarSnapshot,

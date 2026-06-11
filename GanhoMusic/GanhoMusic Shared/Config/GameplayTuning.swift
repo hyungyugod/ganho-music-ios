@@ -101,20 +101,31 @@ enum GameplayTuning {
     static let dpadMarginX: CGFloat = 90
     /// D-Pad 하단 가장자리에서의 안쪽 마진 (pt).
     static let dpadMarginY: CGFloat = 90
-    /// 아날로그 D-Pad가 입력으로 인정하는 최대 thumb 반경.
-    static let dpadAnalogMaxRadius: CGFloat = 58
+    /// 아날로그 D-Pad가 입력으로 인정하는 최대 thumb 클램프 반경.
+    /// R10 U4 — 58 → 66 (+13.8%): 큰 스트로크 허용 — 손가락이 멀리 밀려도 thumb가 따라온다.
+    static let dpadAnalogMaxRadius: CGFloat = 66
     /// 아날로그 D-Pad 중심 데드존 반경.
     static let dpadAnalogDeadzoneRadius: CGFloat = 8
-    /// D-Pad가 터치를 받는 전체 원형 반경.
-    static let dpadTouchRadius: CGFloat = 76
+    /// D-Pad가 터치를 받는 전체 원형 반경. baseRing 시각 반경 겸용(DPadNode)·contains()·
+    /// layoutDPad controlMargin이 전부 본 토큰 참조 — 값만 바꾸면 3곳 자동 동반.
+    /// R10 U4 — 76 → 88 (+15.8%): "대강 짚어도 잡히는" 터치 면적 확대.
+    static let dpadTouchRadius: CGFloat = 88
     /// 아날로그 D-Pad thumb 반경.
-    static let dpadThumbRadius: CGFloat = 18
+    /// R10 U4 — 18 → 22 (사용자 지시 수치, backlog §U4): thumb 시인성 강화.
+    /// 최대 스트로크 시 thumb 외곽(66+22=88)이 정확히 baseRing(88) 안쪽에 수납.
+    static let dpadThumbRadius: CGFloat = 22
     /// 아날로그 D-Pad thumb 알파.
     static let dpadThumbAlpha: CGFloat = 0.82
     /// 보간 결과를 0으로 스냅하는 임계값.
     static let dpadInputSnapEpsilon: CGFloat = 0.02
     /// 한 축이 다른 축보다 이 배수 이상 우세하면 작은 축을 제거한다.
-    static let dpadAxisSnapDominanceRatio: CGFloat = 1.35
+    /// R10 U4 — 1.35 → 1.15: 축 스냅 콘 ±36.5° → ±41° (atan(1/1.15)≈41.0°) —
+    /// "대강 오른쪽이면 오른쪽"으로 4방향 의도가 더 관대하게 잡힌다.
+    static let dpadAxisSnapDominanceRatio: CGFloat = 1.15
+    /// R10 U4 — 이동 중 방향 급변 지수 스무딩 시정수 (초). GameScene+MovementInput이
+    /// player.currentDirection 경로에만 적용 (dpad 원시값·스킬 돌진 방향·facing 콜백은 비스무딩).
+    /// 정지→이동 첫 입력은 즉시 적용이라 반응 지연 0 — 이 값은 *이동 중 전환*의 부드러움만 담당.
+    static let dpadDirectionSmoothingDuration: TimeInterval = 0.08
 
     // (placeholderBoxSize, placeholderBoxAutoSpeed는 1-2 임시값 → 1-3에서 제거)
 

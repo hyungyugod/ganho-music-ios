@@ -14,13 +14,38 @@ extension GameScene {
         player.currentDirection = .zero
     }
 
-    func updateMovementInput() {
+    /// R10 U4 — 방향 급변 지수 스무딩 (~80ms 시정수). 경계 고정: player.currentDirection
+    /// 경로 *한정* — dpad.currentDirection 원시값은 무변경(SkillSystem 돌진 방향·facing
+    /// onDirectionChanged 콜백은 비스무딩 유지). DEBUG 자동주행은 player 직접 대입으로 우회(허용).
+    func updateMovementInput(dt: TimeInterval) {
         let target = dpad.currentDirection
         guard isZeroVector(target) == false else {
-            resetMovementInput()
+            resetMovementInput()   // 요구 4 — 입력 해제는 즉시 정지 (기존 경로 보존)
             return
         }
-        smoothedMoveDirection = target
+        if isZeroVector(smoothedMoveDirection) {
+            // 요구 1 — 정지→이동(직전 smoothed가 zero)은 즉시 target 적용: 첫 입력 반응 지연 0.
+            smoothedMoveDirection = target
+        } else {
+            // 요구 2 — 이동 중 방향 급변만 지수 보간: alpha = 1 - exp(-dt/τ), τ = 0.08s.
+            // 요구 3 — 결과 크기 ≤ 1 자동 보장: 단위 벡터 간 볼록 결합(lerp)의 노름은
+            //   삼각부등식으로 (1-α)|a| + α|b| = 1 이하 — 속도 상한 불변(클램프 불필요).
+            let alpha = CGFloat(1 - exp(-dt / GameplayTuning.dpadDirectionSmoothingDuration))
+            var smoothed = CGVector(
+                dx: smoothedMoveDirection.dx + (target.dx - smoothedMoveDirection.dx) * alpha,
+                dy: smoothedMoveDirection.dy + (target.dy - smoothedMoveDirection.dy) * alpha
+            )
+            // 수렴 스냅 — 지수 점근의 잔존 오차가 epsilon 미만이면 target에 정착 (영구 미세 드리프트 방지).
+            if hypot(target.dx - smoothed.dx, target.dy - smoothed.dy)
+                < GameplayTuning.dpadInputSnapEpsilon {
+                smoothed = target
+            }
+            // 요구 5 — 0 스냅 게이트를 스무딩 결과에도 적용 (180° 반전 통과 순간 등 미세 벡터 제거).
+            if isZeroVector(smoothed) {
+                smoothed = .zero
+            }
+            smoothedMoveDirection = smoothed
+        }
         player.currentDirection = smoothedMoveDirection
     }
 

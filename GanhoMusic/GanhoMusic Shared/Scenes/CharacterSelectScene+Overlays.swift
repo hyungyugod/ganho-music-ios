@@ -75,6 +75,11 @@ extension CharacterSelectScene {
         case .requestDeleteConfirmation:
             hideProfileDetailOverlay()
             showAccountMenuOverlay(mode: .confirmDelete)
+        // R10 D-4 — 계정 관리 서브 모드 왕복 (모드 전환 = 기존 update 재구성 패턴 — 좀비 0).
+        case .openAccountManagement:
+            showProfileDetailOverlay(mode: .accountManagement)
+        case .backToProfileDetail:
+            showProfileDetailOverlay(mode: .detail)
         case .close:
             hideProfileDetailOverlay()
         }
