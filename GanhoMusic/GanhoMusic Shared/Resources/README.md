@@ -25,7 +25,7 @@ GanhoMusic Shared/
 | `Actions.sks` | (이동) | 기존 |
 | `Assets.xcassets/` | (이동) | 기존 |
 | `Fonts/DungGeunMo.ttf` | 4 | `Info.plist` `UIAppFonts` 등록 필요 |
-| `Sounds/` | R2부터 효과음은 ChiptuneSynth가 프로시저럴 생성 — 효과음 `.wav` 불필요 | BGM(`bgm.m4a`)만 파일 기반 (아래 BGM 절차 참조). |
+| `Sounds/` | R2부터 효과음은 ChiptuneSynth가 프로시저럴 생성 — 효과음 `.wav` 불필요 | BGM(`bgm.m4a`·`menu_bgm.m4a`)만 파일 기반 (아래 BGM 절차 참조). |
 | `Sprites.spriteatlas/` | 4 | 텍스처 아틀라스 (`Assets.xcassets/` 안) |
 
 ## 이동 절차 (Xcode에서)
@@ -56,7 +56,21 @@ Phase 6-4에서 `BGMPlayer`에 AVAudioPlayer 기반 BGM 인프라가 설치되�
 ### 파일명 (고정)
 | 파일명 | 역할 |
 |---|---|
-| `bgm.m4a` | 게임 진입 시 재생, 게임오버 시 정지 |
+| `bgm.m4a` | 게임 진입 시 재생, 게임오버 시 정지 (124 BPM 칩튠, −10dB) |
+| `menu_bgm.m4a` | 메뉴 패밀리(Start~Scoreboard) 무중단 대기 음악 — `BGMPlayer.menuShared` + SceneRouter 단일 훅 (84 BPM 잔잔, −14dB) |
+
+### 재생성 절차 (플레이스홀더 — 자작곡 m4a 교체만으로 드롭인 가능)
+```bash
+# 인게임 트랙
+python3 tools/generate_bgm.py
+afconvert -f m4af -d aac -b 96000 tools/bgm.wav \
+  "GanhoMusic/GanhoMusic Shared/Resources/Audio/bgm.m4a"
+# 메뉴 트랙 (자매 스크립트 — triangle/sine, square·노이즈 햇 없음)
+python3 tools/generate_menu_bgm.py
+afconvert -f m4af -d aac -b 96000 tools/menu_bgm.wav \
+  "GanhoMusic/GanhoMusic Shared/Resources/Audio/menu_bgm.m4a"
+```
+중간 `.wav`는 저장소 비보관. 코드에 BPM/길이 의존 0 (`numberOfLoops = -1`) — 파일 교체 = 곡 교체.
 
 ### AVAudioSession 카테고리 차이
 - 음원 부재: `.ambient` 그대로 (6-3 정책)

@@ -6,6 +6,8 @@
 //  fade 전폐 → 진행 방향 push(앞으로=좌로 밀기 / 뒤로=우로 밀기) + 인게임 진입만 픽셀 디졸브.
 //  push 커브 easeInOutQuad는 SKTransition 한계로 미적용 — duration 0.35만 준수 (SPEC 불일치 기록 10).
 //  모든 route에서 전환 SFX 1회 (ChiptuneSynth.Voice.sceneTransition).
+//  메뉴 BGM(post-R12) — 라우터가 메뉴 BGM 컨텍스트의 단일 훅: 메뉴 패밀리 제시 = play(멱등 이어짐),
+//  .intoGame = stop(페이드 아웃 → 인게임 페이드 인과 자연 크로스). 씬 6개 didMove 개별 수정 금지.
 //
 
 import SpriteKit
@@ -23,9 +25,11 @@ enum SceneRouter {
         case intoGame
     }
 
-    /// 단일 제시 API. 씬 생성·선행 로직(저장/exit 애니)은 호출측 책임 — 여기선 전환만.
+    /// 단일 제시 API. 씬 생성·선행 로직(저장/exit 애니)은 호출측 책임 —
+    /// 여기선 전환 + 메뉴 BGM 컨텍스트만 결정한다.
     static func present(_ scene: SKScene, on view: SKView, route: Route) {
         ChiptuneSynth.shared.play(.sceneTransition)
+        routeMenuBGM(for: scene, route: route)
         switch route {
         case .forward:
             view.presentScene(scene, transition: pushTransition(direction: .left))
@@ -35,6 +39,22 @@ enum SceneRouter {
             view.presentScene(scene)
             // presentScene 직후 didMove 완료 — cameraNode 등 호스트가 준비된 상태.
             (scene as? PixelDissolveReceiving)?.runPixelDissolveIntro()
+        }
+    }
+
+    /// 메뉴 BGM 단일 훅 — 무중단의 핵심. play()의 isPlaying 가드가 멱등 처리:
+    /// 이미 재생 중이면 noop = 메뉴 전환 간 음악이 그대로 이어진다 (씬마다 재시작 0).
+    /// .intoGame stop(1.0s 아웃) ↔ 카운트다운 인게임 play(1.5s 인) = AVAudioPlayer 2개 네이티브
+    /// 믹스 크로스페이드. 비메뉴 씬(PixelKitGalleryScene 등)은 미발화 — 기존 컨텍스트 유지.
+    /// 게임→메뉴 복귀(Result .forward / CharacterSelect .backward)도 이 훅이 자동 재개.
+    private static func routeMenuBGM(for scene: SKScene, route: Route) {
+        switch route {
+        case .forward, .backward:
+            if scene is BaseMenuScene {
+                BGMPlayer.menuShared.play()
+            }
+        case .intoGame:
+            BGMPlayer.menuShared.stop()
         }
     }
 

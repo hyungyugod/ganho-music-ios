@@ -1,0 +1,24 @@
+[Typography.V3] 폰트 해석: Galmuri14-Regular → Galmuri14-Regular
+[Typography.V3] 폰트 해석: Galmuri11-Regular → Galmuri11-Regular
+[Typography.V3] 폰트 해석: Galmuri9-Regular → Galmuri9-Regular
+objc[55178]: Class UIAccessibilityLoaderWebShared is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_23E254a/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.4.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebKit.axbundle/WebKit (0x10fa98398) and /Library/Developer/CoreSimulator/Volumes/iOS_23E254a/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.4.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebCore.axbundle/WebCore (0x11b648310). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+[ObjectPool] NoteNode 재사용 #1 (보관 잔여 15)
+[ObjectPool] NoteNode 재사용 #2 (보관 잔여 14)
+[ObjectPool] NoteNode 재사용 #3 (보관 잔여 13)
+[ObjectPool] NoteNode 재사용 #4 (보관 잔여 12)
+[ObjectPool] FProjectileNode 재사용 #1 (보관 잔여 11)
+[ObjectPool] FProjectileNode 재사용 #2 (보관 잔여 10)
+[ObjectPool] FProjectileNode 재사용 #3 (보관 잔여 9)
+[ObjectPool] NoteNode 재사용 #5 (보관 잔여 11)
+[ObjectPool] NoteNode 재사용 #6 (보관 잔여 10)
+[ObjectPool] NoteNode 재사용 #7 (보관 잔여 9)
+[ObjectPool] NoteNode 재사용 #8 (보관 잔여 8)
+[ObjectPool] NoteNode 재사용 #9 (보관 잔여 7)
+[ObjectPool] NoteNode 재사용 #10 (보관 잔여 6)
+[ObjectPool] FProjectileNode 재사용 #4 (보관 잔여 9)
+[ObjectPool] FProjectileNode 재사용 #5 (보관 잔여 8)
+[NearMiss] 셸 진입 (보류 — 이탈 시 부여)
+[ResultScene] didMove 직계 자식: 2
+[ResultScene] 시퀀스 완료 직계 자식: 5
+[BGMPlayer] start menu_bgm
+com.hyungyu.GanhoMusic: 55178

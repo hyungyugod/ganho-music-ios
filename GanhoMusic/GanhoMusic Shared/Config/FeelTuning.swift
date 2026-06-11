@@ -290,6 +290,11 @@ enum FeelTuning {
     /// 런타임 on/off는 SettingsRepository.isBGMEnabled(설정 토글)가 담당 — BGMPlayer.play() 게이트.
     /// 게임 정체성 = 사용자 자작곡: bgm.m4a *파일 교체만으로* 곡 교체 가능 (코드에 BPM/길이 의존 0).
     static let isBGMEnabled: Bool = true
+    /// 메뉴 BGM — 트랙 리소스명 단일 출처 (Bundle 내 .m4a 베이스네임, 인라인 리터럴 산재 금지).
+    /// 인게임 트랙 = BGMPlayer init 기본값 (GameScene의 `BGMPlayer()` 호출 diff 0 증빙).
+    static let bgmTrackNameInGame: String = "bgm"
+    /// 메뉴 패밀리(Start~Scoreboard) 잔잔한 대기 트랙 — BGMPlayer.menuShared 전용 (84 BPM, −14dB).
+    static let bgmTrackNameMenu: String = "menu_bgm"
 
     // MARK: - Diploma Overlay (Phase 7-4 — 증서 시각. 구 오배치 MARK 정리 — R12 불일치 #2)
     /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.

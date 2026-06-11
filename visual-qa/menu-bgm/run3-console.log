@@ -1,0 +1,8 @@
+[Typography.V3] 폰트 해석: Galmuri14-Regular → Galmuri14-Regular
+[Typography.V3] 폰트 해석: Galmuri11-Regular → Galmuri11-Regular
+[Typography.V3] 폰트 해석: Galmuri9-Regular → Galmuri9-Regular
+[BGMPlayer] start menu_bgm
+objc[55593]: Class UIAccessibilityLoaderWebShared is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_23E254a/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.4.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebKit.axbundle/WebKit (0x111d88398) and /Library/Developer/CoreSimulator/Volumes/iOS_23E254a/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.4.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebCore.axbundle/WebCore (0x112770310). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+2026-06-11 23:38:36.137 GanhoMusic[55593:537394] SKView: no drawables available for rendering. Skipping this frame.
+[BGMPlayer] start menu_bgm
+com.hyungyu.GanhoMusic: 55593

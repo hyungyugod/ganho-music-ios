@@ -6,18 +6,29 @@
 //  Phase 6-5 · play/stop에 페이드 인(1.5s) / 아웃(1.0s) 적용
 //  Phase 6-6 · Interruption 처리 — 전화/Siri/타이머 등 시스템 인터럽션 시 BGM 자동 일시정지/복귀
 //  Phase 6-7 · 백그라운드/포그라운드 라이프사이클 — 홈 버튼/앱 스위처 시 BGM 일시정지/재개
+//  메뉴 BGM(post-R12) · init 리소스명 파라미터화 + menuShared — 메뉴 패밀리 무중단 대기 음악
 //
 
 import AVFoundation
 import UIKit  // Phase 6-7 — UIApplication.*Notification 사용
 
-/// 배경음악 재생을 캡슐화한 매니저. Bundle에 bgm.m4a가 있을 때만 활성화.
+/// 배경음악 재생을 캡슐화한 매니저. Bundle에 `<resourceName>.m4a`가 있을 때만 활성화.
 /// 없으면 player = nil, 모든 메서드 noop. ChiptuneSynth(.ambient — R2부터 SFX 담당)와의
 /// 카테고리 분리도 음원 존재 여부를 트리거로 함 — 음원 없으면 .ambient 유지(회귀 0).
+/// 인스턴스 2개(인게임 bgm / 메뉴 menu_bgm) 공존: 인터럽션·라이프사이클 옵저버는 인스턴스별
+/// 등록이지만 각 핸들러가 자기 player의 isPlaying/shouldResumeOnForeground만 보므로 충돌 0
+/// (정지 중인 쪽은 자연 noop). setCategory 2회 호출은 동일 값 멱등 — 무해.
 /// Spring 비유: ChiptuneSynth / HapticsManager와 동급의 @Service 빈.
 final class BGMPlayer {
 
+    // MARK: - Shared (메뉴 전용)
+    /// 메뉴 패밀리(Start~Scoreboard) 공유 인스턴스 — 씬 전환을 가로질러 살아남아 무중단의 토대.
+    /// static let = lazy 1회 생성 (첫 접근 = StartScene.didMove 부팅 훅). ChiptuneSynth.shared 동형.
+    static let menuShared = BGMPlayer(resourceName: FeelTuning.bgmTrackNameMenu)
+
     // MARK: - Properties
+    /// 로딩·DEBUG 관측 로그용 트랙 베이스네임 ("bgm" / "menu_bgm").
+    private let resourceName: String
     /// Bundle에 음원이 있을 때만 채워짐. nil이면 play/stop 모두 noop.
     private var player: AVAudioPlayer?
     /// Phase 6-5 — 페이드 아웃 진행 여부. 중복 stop 호출 멱등성 가드.
@@ -36,13 +47,15 @@ final class BGMPlayer {
     private let settings = SettingsRepository()
 
     // MARK: - Init
-    /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
+    /// `<resourceName>.m4a` 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers 덮어쓰기 + 무한 루프.
+    /// 기본값 = 인게임 트랙 — 기존 `BGMPlayer()` 호출(GameScene.swift:84) 무변경 (diff 0 계약).
     /// 실패는 전부 graceful (try?) — 어떤 단계가 실패해도 6-3 .ambient 정책이 살아 회귀 0.
-    init() {
+    init(resourceName: String = FeelTuning.bgmTrackNameInGame) {
+        self.resourceName = resourceName
         guard FeelTuning.isBGMEnabled else { return }
 
         // 1) Bundle 음원 탐색. 없으면 player = nil로 끝 — 카테고리 변경 안 함.
-        guard let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") else { return }
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "m4a") else { return }
 
         // 2) AVAudioPlayer 생성 시도. 디코딩 실패도 graceful.
         guard let p = try? AVAudioPlayer(contentsOf: url) else { return }
@@ -126,6 +139,11 @@ final class BGMPlayer {
         player.volume = 0
         player.play()
         player.setVolume(1.0, fadeDuration: FeelTuning.bgmFadeInDuration)
+        #if DEBUG
+        // 무중단 정량 증거 — 전 가드(설정·음원·isPlaying) 통과 후 1곳. 멱등 noop(이어짐)은
+        // 무로그 → "메뉴 전환 N회에 start 1회"가 재시작 0의 측정값이 된다. 릴리즈 경로 0 변화.
+        print("[BGMPlayer] start \(resourceName)")
+        #endif
     }
 
     /// 페이드 아웃으로 정지. 페이드 완료 후 실제 player.stop() 호출. 멱등(중복 호출 안전).
@@ -133,6 +151,13 @@ final class BGMPlayer {
     func stop() {
         guard let player = player else { return }
         if isFadingOut { return }                   // 페이드 아웃 중 중복 stop 차단 (멱등)
+        #if DEBUG
+        // 멱등 가드 통과 후 1곳 — 단 *가청 정지*만 기록 (isPlaying): 비재생 중 들어온 stop()의
+        // 방어적 페이드 예약은 무로그 → stop 로그 = 실제 음악이 멎은 횟수. 릴리즈 경로 0 변화.
+        if player.isPlaying {
+            print("[BGMPlayer] stop \(resourceName)")
+        }
+        #endif
         isFadingOut = true
 
         // 1) 시스템에게 페이드 아웃 위임 (비동기 보간).

@@ -47,7 +47,17 @@ extension StartScene {
     func presentSettingsDialog() {
         guard settingsDialog == nil, loginDialog == nil, !isTransitioning else { return }
         let dialog = SettingsDialogNode()
-        dialog.onClose = { [weak self] in self?.settingsDialog = nil }
+        dialog.onClose = { [weak self] in
+            self?.settingsDialog = nil
+            // 메뉴 BGM 재평가 — 토글 변경을 늦어도 닫힘 시점에 반영 (R12 [A⑤] dismissPauseMenu
+            // 재평가 1곳 전례의 메뉴판 미러). StartScene 쪽에만 배선 — 인게임 일시정지 설정
+            // 경로에서는 menuShared 발화 0 (구조적 격리). play/stop 내부 가드가 멱등 처리.
+            if SettingsRepository().isBGMEnabled {
+                BGMPlayer.menuShared.play()
+            } else {
+                BGMPlayer.menuShared.stop()
+            }
+        }
         settingsDialog = dialog
         dialog.present(in: self, screenSize: size,
                        position: CGPoint(x: frame.midX, y: frame.midY))

@@ -70,6 +70,8 @@ final class StartScene: BaseMenuScene {
         // 한 시점에 tapToStartLabel의 alpha를 구동하는 액션 ≤ 1 (경합 해소).
         scheduleTapToStartBlink(afterAppearCount: appearNodes.count)
         loadInitialAuthState()
+        // 메뉴 BGM 부팅 1회 — 최초 presentScene은 SceneRouter 비경유 (이후는 라우터 훅 소관).
+        BGMPlayer.menuShared.play()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
