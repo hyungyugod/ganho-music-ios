@@ -57,7 +57,7 @@ final class CharacterSelectScene: BaseMenuScene {
     let carouselCrop = SKCropNode()
     let carouselContainer = SKNode()
     var carouselCards: [PixelCharacterCardNode] = []
-    var portraitTextures: [CharacterID: SKTexture] = [:]
+    var illustrationTextures: [CharacterID: SKTexture] = [:]   // R8 — 카드 일러스트 캐시
 
     // MARK: - UI (상단·하단)
     var backButton: PixelButtonNode?
@@ -133,7 +133,7 @@ final class CharacterSelectScene: BaseMenuScene {
     // MARK: - Texture Cache (didMove 1회 — 주의사항 5)
     private func buildTextureCaches() {
         for id in characters {
-            portraitTextures[id] = PixelPortraitSprite.texture(for: id)
+            illustrationTextures[id] = PixelCharacterCardNode.illustrationTexture(for: id)
             let palette = PixelPalette.palette(for: id)
             previewTextures[id] = [PixelFrame.step1, PixelFrame.step2].map { frame in
                 PixelSpriteRenderer.texture(

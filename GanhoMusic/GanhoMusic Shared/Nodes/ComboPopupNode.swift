@@ -104,6 +104,7 @@ final class ComboPopupNode: SKNode, SelfDismissingNode {
         case 7:  return FeelTuning.comboPopupTextMilestone7
         case 10: return FeelTuning.comboPopupTextMilestone10
         case 20: return FeelTuning.comboPopupTextMilestone20
+        // Int 매칭 — exhaustive 불가능한 비유한 도메인의 구조적 필수 default (R8 감사 분류 ②).
         default: return "x\(milestone)"
         }
     }

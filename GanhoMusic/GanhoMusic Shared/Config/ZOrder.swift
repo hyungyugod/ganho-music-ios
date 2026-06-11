@@ -43,8 +43,7 @@ enum ZOrder {
     static let countdownZPosition: CGFloat = 250
 
     // MARK: - New Best (Phase 6-15)
-    /// 신기록 보상 라벨 zPosition. comboPopupZPosition(150)과 동급 — ResultScene 기본 z=0 위.
-    static let newBestZPosition: CGFloat = 150
+    // R8 — newBestZPosition: 참조 0 실증 후 삭제 (R5 ResultScene v3가 칩 연출로 대체).
 
     // MARK: - Score Popup (Phase 6-16)
     /// "+1"/"+2" 라벨 zPosition. sparkle(30) 위, HUD(100) 아래 —
@@ -66,7 +65,7 @@ enum ZOrder {
     static let cutsceneZPosition: CGFloat = 300
 
     // MARK: - Profile Name Editor — Keyboard Avoidance (신규)
-    /// 졸업장 zPosition. cutsceneZPosition(300)과 동급 — newBestZPosition(150) 위로 자연 겹침.
+    /// 졸업장 zPosition. cutsceneZPosition(300)과 동급 — 결과 칩 연출(150 계열) 위로 자연 겹침.
     /// 그 어떤 게임 UI도 덮음(이미 게임 종료 후 ResultScene 위라 충돌 없음).
     static let diplomaZPosition: CGFloat = 300
 
@@ -89,26 +88,19 @@ enum ZOrder {
     static let toastZPosition: CGFloat = 50
 
     // MARK: - Account Menu Overlay
+    // R8 — accountMenuDim/Panel/Label/Button 4종: 참조 0 실증 후 삭제 (R5 오버레이 v3
+    // 재구축의 잔여 내부 적층 토큰 — AccountMenuOverlayNode가 내부 enum으로 자체 관리).
     static let accountMenuOverlayZPosition: CGFloat = 500
-    static let accountMenuDimZPosition: CGFloat = -1
-    static let accountMenuPanelZPosition: CGFloat = 0
-    static let accountMenuLabelZPosition: CGFloat = 1
-    static let accountMenuButtonZPosition: CGFloat = 2
 
     // MARK: - Profile Avatar
-    static let profileAvatarFrameZPosition: CGFloat = 0
-    static let profileAvatarContentZPosition: CGFloat = 1
+    // R8 — profileAvatarFrame/Content 2종: 참조 0 실증 후 삭제 (R5 프로필 v3 잔여).
 
     // MARK: - Profile Detail Overlay
+    // R8 — profileDetailDim/Panel/Label/Button 4종: 참조 0 실증 후 삭제 (동상).
     static let profileDetailOverlayZPosition: CGFloat = 540
-    static let profileDetailDimZPosition: CGFloat = -1
-    static let profileDetailPanelZPosition: CGFloat = 0
-    static let profileDetailLabelZPosition: CGFloat = 2
-    static let profileDetailButtonZPosition: CGFloat = 4
 
     // MARK: - Sprint 5 · ResultScene v2 Layout
-    /// 공유 실패 토스트 zPosition. 결과 버튼보다 위에 표시한다.
-    static let resultShareToastZPosition: CGFloat = 120
+    // R8 — resultShareToastZPosition: 참조 0 실증 후 삭제 (v2 공유 토스트 폐기 잔여).
     /// 종이 카드 zPosition(노드 좌표계 내부). background(0) 위 + 도트 패턴(0.7) 아래.
     static let diplomaPaperZPosition: CGFloat = 0.5
     /// 도트 패턴 zPosition. paperCard(0.5) 위 + 라벨(1) 아래.
@@ -162,6 +154,11 @@ enum ZOrder {
     /// 살짝 덮되 카운트다운/플래시는 안 가림.
     static let tensionVignetteZPosition: CGFloat = 110
 
+    // MARK: - R8 일시정지 다이얼로그
+    /// 일시정지 PixelDialogNode zPosition. 구 v2 오버레이 z(420) 의미 보존 —
+    /// HitFlash(200)·컷씬(300) 위. 기본 Layer.overlay(200)를 오버라이드.
+    static let pauseDialogZPosition: CGFloat = 420
+
     // MARK: - R2 게임필 (juice)
     /// 인게임 파티클 이미터 zPosition (worldNode 소속 — collectBurst/comboAura/deathBurst/
     /// toiletSplash/skillSignature). sparkle(30)과 동급 — Player/Enemy(5) 위, HUD(100) 아래.
@@ -172,8 +169,7 @@ enum ZOrder {
     static let walkDustZPosition: CGFloat = -1
 
     // MARK: - Sprint 2 Character Account Home
-
-    static let characterHomeCharacterZPosition: CGFloat = 130
+    // R8 — characterHomeCharacterZPosition: 참조 0 실증 후 삭제 (v2 캐릭터 홈 폐기 잔여).
 }
 
 // MARK: - R3 디자인 시스템 v3 "Night Shift" Layer (03_UI §4)
@@ -182,6 +178,8 @@ enum ZOrder {
 // 기존 상수(오버레이 z 500~540 등)는 무변경 — v3 토큰은 *추가만* (R3 합격 게이트).
 extension ZOrder {
     /// v3 적층 11층 — 전 v3 컴포넌트가 이 토큰만 사용.
+    /// R8 감사 — collectibles는 현재 0참조이나 *보존*: 03_UI §4 적층 11층 설계 계약의
+    /// 구성 요소 (부분 삭제 시 층 의미 붕괴 — 인게임 노드의 v3 층 이행 시 소비 예정).
     enum Layer {
         static let bg: CGFloat = 0
         static let floor: CGFloat = 10

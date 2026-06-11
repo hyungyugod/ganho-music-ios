@@ -38,10 +38,18 @@ extension FeelTuning {
             return min(1, max(0, paced))
         }
 
-        // MARK: near-miss 보너스 (02 §8 — R7 합격 게이트 "판정 동작")
-        /// 판정 반경 (플레이어 중심 거리, pt). 기존 시각 펄스 반경(40/48/58)과 별개 공존 —
-        /// 시각 레이어 무변경 (SPEC §문서-코드 불일치 #5).
-        static let nearMissBonusRadius: CGFloat = 22
+        // MARK: near-miss 보너스 (02 §8 — R8 retune: 히트박스 가장자리 기준)
+        /// 판정 셸 폭 (pt) — "충돌까지 10px 남기고 스쳤다". 충돌 히트박스(민코프스키 확장
+        /// AABB) 가장자리로부터의 바깥 대역. 기존 시각 펄스 반경(40/48/58)과 별개 공존 —
+        /// 시각 레이어 무변경.
+        ///
+        /// 산정 근거 (R8 — 구 22px 중심거리 기준 폐기 사유 봉인):
+        /// 플레이어 16×20(half 8,10)·F 16×16(half 8,8)·청진기 28×16(half 14,8) 기하에서
+        /// 구 22px 중심거리의 비접촉 발화 대역은 수직 4px·수평 6px뿐이고, 대각 코너
+        /// 접촉거리 ≈24.1 > 22라 대각 궤적은 발화 자체가 기하학적으로 불가능(사각지대).
+        /// evaluator 5판 실측 발화 0건 — 가장자리 셸 10px는 전방위 균일 10px 대역
+        /// (축정렬 약 2배·대각 0→10px)으로 직접 해소 (사용자 기승인, 02 §8 동반 갱신).
+        static let nearMissEdgeBand: CGFloat = 10
         /// "아슬!" 팝업·햅틱 쿨다운 (초). 부채꼴 5발 동시 통과 스팸 가드 —
         /// 콤보 연장(extendComboWindow)은 쿨다운 비대상, 이벤트마다 적용.
         static let nearMissFeedbackCooldown: TimeInterval = 0.25

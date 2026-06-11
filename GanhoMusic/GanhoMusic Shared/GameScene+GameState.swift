@@ -13,17 +13,9 @@ extension GameScene {
         guard let touch = touches.first else { return }
         let location = touch.location(in: cameraNode)
 
-        if pauseOverlay != nil {
-            if pauseResumeButton?.contains(location) == true {
-                dismissPauseMenu()
-                return
-            }
-            if pauseMenuButton?.contains(location) == true {
-                exitToMainMenu()
-                return
-            }
-            return
-        }
+        // R8 — 다이얼로그 노출 중 씬 레벨 입력 차단 (딤이 배후 흡수 — StartScene loginDialog
+        // 가드 동형). 버튼은 PixelButtonNode onTap 자체 처리라 contains 분기 불요.
+        guard pauseDialog == nil else { return }
 
         if gameState == .playing, pauseButton.contains(location) {
             presentPauseMenu()
@@ -31,11 +23,12 @@ extension GameScene {
     }
 
     func presentPauseMenu() {
-        guard pauseOverlay == nil, gameState == .playing else { return }
+        guard pauseDialog == nil, gameState == .playing else { return }
         gameState = .paused
         // R2 — 히트스톱 즉시 cancel (원복 책임 단일화): 아래 worldNode.isPaused/physicsWorld.speed
         // 소유권을 일시정지가 인수. 일시정지 중 신규 요청은 requestHitstop 가드가 무시.
         hitstop.cancel()
+        // 일시정지 버튼 탭(씬 레벨 contains 판정)의 피드백 — PixelButtonNode 비경유라 수동 발화 유지.
         synth.play(.uiTap)
         haptics.uiTap()
         player.currentDirection = .zero
@@ -53,58 +46,45 @@ extension GameScene {
         worldNode.isPaused = true
         physicsWorld.speed = 0
 
-        let overlay = SKNode()
-        overlay.zPosition = 420
-        overlay.name = "pauseOverlay"
+        // R8 — v3 다이얼로그 (LoginChoiceDialogNode 조립 전례 동형). cameraNode 부착 —
+        // worldNode 비소속이라 일시정지(isPaused) 중에도 등장 애니 정상 구동.
+        // PixelDialogNode 딤이 배후 터치 흡수 + 위 인터랙션 차단과 이중 방어 (주의사항 2 —
+        // 기존 저장/복원 로직 제거 금지, 행동 보존).
+        let dialog = PixelDialogNode(panelSize: UILayout.R8.pausePanelSize,
+                                     title: UILayout.R8.pauseTitleText,
+                                     accent: Palette.gold)
+        dialog.zPosition = ZOrder.pauseDialogZPosition
 
-        let dim = SKSpriteNode(color: .ganhoNavyDeep, size: size)
-        dim.alpha = 0.42
-        dim.zPosition = 0
-        overlay.addChild(dim)
+        let resume = PixelButtonNode(title: UILayout.R8.pauseResumeText,
+                                     variant: .primary,
+                                     size: UILayout.R8.pauseButtonSize,
+                                     haptics: haptics)
+        // 연타 안전 — 첫 발화에서 pauseDialog가 nil이 되어 이중 resume 불가
+        // (dismissPauseMenu의 .paused 가드와 이중 방어).
+        resume.onTap = { [weak self] in self?.dismissPauseMenu() }
+        resume.position = CGPoint(x: -UILayout.R8.pauseButtonOffsetX,
+                                  y: UILayout.R8.pauseButtonRowY)
+        dialog.contentNode.addChild(resume)
 
-        let panelSize = CGSize(width: 300, height: 176)
-        let panel = SKShapeNode(rectOf: panelSize, cornerRadius: 24)
-        panel.fillColor = UIColor.white.withAlphaComponent(0.92)
-        panel.strokeColor = UIColor.ganhoCoralPrimary.withAlphaComponent(0.28)
-        panel.lineWidth = 1.5
-        panel.zPosition = 1
-        overlay.addChild(panel)
+        let exit = PixelButtonNode(title: UILayout.R8.pauseExitText,
+                                   variant: .ghost,
+                                   size: UILayout.R8.pauseButtonSize,
+                                   haptics: haptics)
+        exit.onTap = { [weak self] in self?.exitToMainMenu() }
+        exit.position = CGPoint(x: UILayout.R8.pauseButtonOffsetX,
+                                y: UILayout.R8.pauseButtonRowY)
+        dialog.contentNode.addChild(exit)
 
-        let title = SKLabelNode(fontNamed: Typography.fontDisplay)
-        title.text = "일시정지"
-        title.fontSize = 28
-        title.fontColor = .ganhoNavyDeep
-        title.verticalAlignmentMode = .center
-        title.position = CGPoint(x: 0, y: 52)
-        title.zPosition = 2
-        overlay.addChild(title)
-
-        let resume = PrimaryButtonNode(text: "계속")
-        resume.position = CGPoint(x: -78, y: -34)
-        resume.setScale(0.72)
-        resume.zPosition = 3
-        overlay.addChild(resume)
-
-        let menu = PrimaryButtonNode(text: "메인")
-        menu.position = CGPoint(x: 78, y: -34)
-        menu.setScale(0.72)
-        menu.zPosition = 3
-        overlay.addChild(menu)
-
-        pauseOverlay = overlay
-        pauseResumeButton = resume
-        pauseMenuButton = menu
-        cameraNode.addChild(overlay)
+        pauseDialog = dialog
+        dialog.present(in: cameraNode, screenSize: size)
     }
 
     func dismissPauseMenu() {
         guard gameState == .paused else { return }
-        synth.play(.uiTap)
-        haptics.uiTap()
-        pauseOverlay?.removeFromParent()
-        pauseOverlay = nil
-        pauseResumeButton = nil
-        pauseMenuButton = nil
+        // R8 — uiTap SFX/햅틱은 PixelButtonNode가 자체 발화 — 수동 발화 제거 (이중 발화 0).
+        // 게임 상태는 즉시 복원(기존 시맨틱 보존), dialog.dismiss 0.22s 페이드는 cosmetic.
+        pauseDialog?.dismiss()
+        pauseDialog = nil
         worldNode.isPaused = false
         physicsWorld.speed = 1
         dpad.resetDirection()
@@ -119,14 +99,12 @@ extension GameScene {
 
     func exitToMainMenu() {
         gameState = .gameOver
-        synth.play(.uiTap)
-        haptics.uiTap()
+        // R8 — uiTap SFX/햅틱은 PixelButtonNode가 자체 발화 — 수동 발화 제거 (이중 발화 0).
         // R2 — 잔존 히트스톱 원복 (일시정지 경유라 실질 idle이지만 소유권 정리 일관성).
         hitstop.cancel()
-        pauseOverlay?.removeFromParent()
-        pauseOverlay = nil
-        pauseResumeButton = nil
-        pauseMenuButton = nil
+        // 씬 전환 직전 — dismiss 애니 불요, 즉시 제거 (좀비 0).
+        pauseDialog?.removeFromParent()
+        pauseDialog = nil
         worldNode.isPaused = false
         physicsWorld.speed = 1
         bgm.stop()

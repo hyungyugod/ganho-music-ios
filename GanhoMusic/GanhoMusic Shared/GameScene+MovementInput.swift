@@ -40,7 +40,9 @@ private enum DemoAutopilot {
     /// 투사체 속도 유효 하한 (pt/s). 정지 투사체(이론상 없음)는 회피 대상 제외.
     static let minThreatSpeed: CGFloat = 1
     /// 스침 대역 내측 한계 (pt). 경로 중심선과의 측면 거리 < 이 값이면 수직으로 밀어낸다.
-    /// 비접촉 통과가 가능한 측면 오프셋(세로 코리도 |dy| ≥ 18) 바깥 + near-miss 반경(22) 안.
+    /// 비접촉 통과가 가능한 측면 오프셋(세로 코리도 |dy| ≥ 18) 바깥 + near-miss 셸(R8:
+    /// 히트박스 가장자리 10px — 세로 18~28px 대역) 안. 구 22px 중심거리보다 대역이 넓어져
+    /// 기존 19~21.5 기동 수치는 무변경으로 더 안정 발화.
     static let grazeBandInner: CGFloat = 19
     /// 스침 대역 외측 한계 (pt). 측면 거리 ≤ 이 값이면 역평행 주행 — 대역 유지.
     static let grazeBandOuter: CGFloat = 21.5
@@ -54,7 +56,7 @@ extension GameScene {
     /// GANHO_DEMO_AUTOPILOT=1 — 위협 투사체 수직 회피 + 평시 최근접 음표 주행.
     /// simctl 터치 주입 불가 제약에서 인게임 콤보 게이지(F3)·near-miss(F2) 캡처 전용
     /// (GANHO_SKIP_CUTSCENE 전례 동형). 수직 회피는 숙련 플레이어의 '스침 회피'를 재현 —
-    /// near-miss 판정(22px 진입→이탈)이 자연 발생하는 기하를 만든다.
+    /// near-miss 판정(히트박스 가장자리 10px 셸 진입→이탈 — R8 retune)이 자연 발생하는 기하를 만든다.
     /// 돌진/동결 중엔 기존 입력 가드와 동일하게 미개입. 게임 수치·판정 로직 0 변경 — 입력 대체만.
     func applyDemoAutopilotIfEnabled() {
         guard DemoAutopilot.isEnabled, !skillSystem.isDashing, !player.isFrozen else { return }

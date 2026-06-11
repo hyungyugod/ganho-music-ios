@@ -166,6 +166,7 @@ final class ScorePopupNode: SKNode, SelfDismissingNode, Poolable {
             return "+\(GameplayTuning.scorePerNoteComboMid) \(FeelTuning.scorePopupTextComboSuffix)"
         case GameplayTuning.scorePerNoteComboHigh:
             return "+\(GameplayTuning.scorePerNoteComboHigh) \(FeelTuning.scorePopupTextComboSuffix)"
+        // Int 매칭 — exhaustive 불가능한 비유한 도메인의 구조적 필수 default (R8 감사 분류 ②).
         default:
             return "+\(gainedPoints)"
         }
@@ -187,6 +188,7 @@ final class ScorePopupNode: SKNode, SelfDismissingNode, Poolable {
             return .ganhoPixelComboGold
         case GameplayTuning.scorePerNoteComboHigh:
             return .ganhoPixelComboRed
+        // Int 매칭 — exhaustive 불가능한 비유한 도메인의 구조적 필수 default (R8 감사 분류 ②).
         default:
             return .ganhoPixelHudWhite
         }

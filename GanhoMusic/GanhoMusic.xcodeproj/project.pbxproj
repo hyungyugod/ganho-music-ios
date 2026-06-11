@@ -84,6 +84,14 @@
 		AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */; };
 		AB70F1B00000000000000001 /* FeelTuning+R7.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000001 /* FeelTuning+R7.swift */; };
 		AB70F1B00000000000000002 /* UILayout+R7.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000002 /* UILayout+R7.swift */; };
+		AB80F1B00000000000000001 /* UILayout+R8.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000001 /* UILayout+R8.swift */; };
+		AB80F1B00000000000000002 /* FeelTuning+R8.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000002 /* FeelTuning+R8.swift */; };
+		AB80F1B00000000000000003 /* GanhoMusic Shared/GameScene+UpdatePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000003 /* GanhoMusic Shared/GameScene+UpdatePipeline.swift */; };
+		AB80F1B00000000000000004 /* GanhoMusic Shared/GameScene+SetupActors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000004 /* GanhoMusic Shared/GameScene+SetupActors.swift */; };
+		AB80F1B00000000000000005 /* GanhoMusic Shared/GameScene+DailyModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000005 /* GanhoMusic Shared/GameScene+DailyModifiers.swift */; };
+		AB80F1B00000000000000006 /* HUDSlotNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000006 /* HUDSlotNode.swift */; };
+		AB80F1B00000000000000007 /* HUDSlotNode+Display.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000007 /* HUDSlotNode+Display.swift */; };
+		AB80F1B00000000000000008 /* SpawnSystem+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80F1A00000000000000008 /* SpawnSystem+Notes.swift */; };
 		AB70F1B00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */; };
 		AB70F1B00000000000000004 /* ResultScene+MetaCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB70F1A00000000000000004 /* ResultScene+MetaCelebration.swift */; };
 		AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB50F1A00000000000000002 /* UILayout+R5.swift */; };
@@ -123,7 +131,6 @@
 		A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004A /* ToastLabelNode.swift */; };
 		A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004B /* ProfessorNode.swift */; };
 		A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004C /* StethoscopeNode.swift */; };
-		A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */; };
 		A1C0F1B00000000000000050 /* StartScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000050 /* StartScene.swift */; };
 		A1C0F1B00000000000000051 /* CharacterSelectScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000051 /* CharacterSelectScene.swift */; };
 		A1C0F1B00000000000000058 /* DarkContextChipNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0F1A00000000000000058 /* DarkContextChipNode.swift */; };
@@ -251,6 +258,14 @@
 		AB60F1A0000000000000000A /* MetaMigrationSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaMigrationSelfTest.swift; sourceTree = "<group>"; };
 		AB70F1A00000000000000001 /* FeelTuning+R7.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R7.swift"; sourceTree = "<group>"; };
 		AB70F1A00000000000000002 /* UILayout+R7.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R7.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000001 /* UILayout+R8.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R8.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000002 /* FeelTuning+R8.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeelTuning+R8.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000003 /* GanhoMusic Shared/GameScene+UpdatePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+UpdatePipeline.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000004 /* GanhoMusic Shared/GameScene+SetupActors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+SetupActors.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000005 /* GanhoMusic Shared/GameScene+DailyModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+DailyModifiers.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000006 /* HUDSlotNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDSlotNode.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000007 /* HUDSlotNode+Display.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDSlotNode+Display.swift"; sourceTree = "<group>"; };
+		AB80F1A00000000000000008 /* SpawnSystem+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpawnSystem+Notes.swift"; sourceTree = "<group>"; };
 		AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GanhoMusic Shared/GameScene+NearMiss.swift"; sourceTree = "<group>"; };
 		AB70F1A00000000000000004 /* ResultScene+MetaCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ResultScene+MetaCelebration.swift"; sourceTree = "<group>"; };
 		AB50F1A00000000000000002 /* UILayout+R5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UILayout+R5.swift"; sourceTree = "<group>"; };
@@ -290,7 +305,6 @@
 		A1C0F1A0000000000000004A /* ToastLabelNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastLabelNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004B /* ProfessorNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessorNode.swift; sourceTree = "<group>"; };
 		A1C0F1A0000000000000004C /* StethoscopeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StethoscopeNode.swift; sourceTree = "<group>"; };
-		A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButtonNode.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000050 /* StartScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000051 /* CharacterSelectScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSelectScene.swift; sourceTree = "<group>"; };
 		A1C0F1A00000000000000058 /* DarkContextChipNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkContextChipNode.swift; sourceTree = "<group>"; };
@@ -493,6 +507,8 @@
 				AB60F1A00000000000000002 /* UILayout+R6.swift */,
 				AB70F1A00000000000000001 /* FeelTuning+R7.swift */,
 				AB70F1A00000000000000002 /* UILayout+R7.swift */,
+				AB80F1A00000000000000001 /* UILayout+R8.swift */,
+				AB80F1A00000000000000002 /* FeelTuning+R8.swift */,
 				C0F1A0DE0000000000000003 /* UILayout.swift */,
 				C0F1A0DE0000000000000004 /* Palette.swift */,
 				C0F1A0DE0000000000000005 /* Typography.swift */,
@@ -512,6 +528,8 @@
 			isa = PBXGroup;
 			children = (
 				AB20F1A00000000000000006 /* WalkDustNode.swift */,
+				AB80F1A00000000000000006 /* HUDSlotNode.swift */,
+				AB80F1A00000000000000007 /* HUDSlotNode+Display.swift */,
 				A1C0F1550000000000000005 /* PlayerNode.swift */,
 				A1C0F1560000000000000006 /* DPadNode.swift */,
 				A1C0F1580000000000000008 /* NoteNode.swift */,
@@ -537,7 +555,6 @@
 				A1C0F1A0000000000000004A /* ToastLabelNode.swift */,
 				A1C0F1A0000000000000004B /* ProfessorNode.swift */,
 				A1C0F1A0000000000000004C /* StethoscopeNode.swift */,
-				A1C0F1A0000000000000004E /* PrimaryButtonNode.swift */,
 				AC0000000000000000000001 /* AccountMenuOverlayNode.swift */,
 				A1C0F1A00000000000000058 /* DarkContextChipNode.swift */,
 				A1C0F1A00000000000000059 /* PauseButtonNode.swift */,
@@ -569,6 +586,7 @@
 			isa = PBXGroup;
 			children = (
 				A1C0F15C000000000000000C /* SpawnSystem.swift */,
+				AB80F1A00000000000000008 /* SpawnSystem+Notes.swift */,
 				A1C0F15E000000000000000E /* ContactRouter.swift */,
 				A1C0F15F000000000000000F /* ScoreSystem.swift */,
 				AB20F1A00000000000000002 /* HitstopController.swift */,
@@ -730,6 +748,9 @@
 				A1C0F1A00000000000000087 /* GanhoMusic Shared/GameScene+DangerWarnings.swift */,
 				AB30F1A00000000000000004 /* GanhoMusic Shared/GameScene+Transition.swift */,
 				AB70F1A00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift */,
+				AB80F1A00000000000000003 /* GanhoMusic Shared/GameScene+UpdatePipeline.swift */,
+				AB80F1A00000000000000004 /* GanhoMusic Shared/GameScene+SetupActors.swift */,
+				AB80F1A00000000000000005 /* GanhoMusic Shared/GameScene+DailyModifiers.swift */,
 				A1C0F1500000000000000000 /* Config */,
 				A1C0F1570000000000000007 /* Nodes */,
 				A1C0F1C00000000000000012 /* Scenes */,
@@ -999,6 +1020,14 @@
 				AB60F1B0000000000000000A /* MetaMigrationSelfTest.swift in Sources */,
 				AB70F1B00000000000000001 /* FeelTuning+R7.swift in Sources */,
 				AB70F1B00000000000000002 /* UILayout+R7.swift in Sources */,
+				AB80F1B00000000000000001 /* UILayout+R8.swift in Sources */,
+				AB80F1B00000000000000002 /* FeelTuning+R8.swift in Sources */,
+				AB80F1B00000000000000003 /* GanhoMusic Shared/GameScene+UpdatePipeline.swift in Sources */,
+				AB80F1B00000000000000004 /* GanhoMusic Shared/GameScene+SetupActors.swift in Sources */,
+				AB80F1B00000000000000005 /* GanhoMusic Shared/GameScene+DailyModifiers.swift in Sources */,
+				AB80F1B00000000000000006 /* HUDSlotNode.swift in Sources */,
+				AB80F1B00000000000000007 /* HUDSlotNode+Display.swift in Sources */,
+				AB80F1B00000000000000008 /* SpawnSystem+Notes.swift in Sources */,
 				AB70F1B00000000000000003 /* GanhoMusic Shared/GameScene+NearMiss.swift in Sources */,
 				AB70F1B00000000000000004 /* ResultScene+MetaCelebration.swift in Sources */,
 				AB50F1B00000000000000002 /* UILayout+R5.swift in Sources */,
@@ -1047,7 +1076,6 @@
 				A1C0F1B0000000000000004A /* ToastLabelNode.swift in Sources */,
 				A1C0F1B0000000000000004B /* ProfessorNode.swift in Sources */,
 				A1C0F1B0000000000000004C /* StethoscopeNode.swift in Sources */,
-				A1C0F1B0000000000000004E /* PrimaryButtonNode.swift in Sources */,
 				AC1000000000000000000001 /* AccountMenuOverlayNode.swift in Sources */,
 				B2C0F1B00000000000000102 /* CharacterHomeSnapshot.swift in Sources */,
 				A1C0F1B00000000000000050 /* StartScene.swift in Sources */,

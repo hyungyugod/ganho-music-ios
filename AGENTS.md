@@ -47,7 +47,7 @@ xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" \
 
 1. Firebase 인증·클라우드 저장 동작 보존 (공개 API 시그니처 유지)
 2. UserDefaults 기존 키 문자열 불변 — 사용자 데이터 무손실
-3. 게임 골격: 5캐릭터·4빌런·45초·난이도 3종(목표 60/50/30)·스킬 4종
+3. 게임 골격: 5캐릭터·4빌런·45초·난이도 3종(목표 70/50/40 — `GameplayTuning.targetScoreByDifficulty`가 진실)·스킬 4종
 4. `PixelSprite.swift`·`PixelPalette.swift` 기존 16×20 데이터 byte-equal (신규 추가만 허용)
 5. 번들 ID·서명·Info.plist 권한 불변
 

@@ -74,9 +74,10 @@ final class SkillBriefingScene: BaseMenuScene {
     // MARK: - Left Card (§F-3 — 캐러셀과 동일 조립 + 뒤집힘 등장)
     private func setupCharacterCard() {
         // 본 씬 도달 = 해금 캐릭터 (CharacterSelect가 잠금 차단) — unlocked 상태로 조립.
+        // R8 — 카드 표시는 카툰 일러스트 (didMove 1회 생성 — 주의사항 5).
         let card = PixelCharacterCardNode(
             characterID: characterID,
-            portraitTexture: PixelPortraitSprite.texture(for: characterID),
+            illustrationTexture: PixelCharacterCardNode.illustrationTexture(for: characterID),
             unlockState: .unlocked(characterID)
         )
         card.setSelected(true, animated: false)   // 시그니처 액센트 보더 + 글로우

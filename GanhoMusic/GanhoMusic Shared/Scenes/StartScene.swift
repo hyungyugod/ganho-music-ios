@@ -76,11 +76,12 @@ final class StartScene: BaseMenuScene {
     }
 
     private func layoutAll() {
+        // R8 §C-2-사 — 칩 먼저, 로고 나중: layoutLogo의 칩-하단 min-클램프가 확정 좌표를 읽는다.
+        layoutProfileChip()
+        layoutDailyChip()
         layoutLogo()
         layoutHero()
         layoutTapToStart()
-        layoutProfileChip()
-        layoutDailyChip()
     }
 
     // MARK: - Logo (§F-1 — v2 2-라인 타이틀·태그라인·액센트 라인 폐기)
@@ -98,10 +99,15 @@ final class StartScene: BaseMenuScene {
         let safe = menuSafeInsets()
         let scale = menuCompactScale()
         logoLabel.setScale(scale)
-        logoLabel.position = CGPoint(
-            x: frame.midX.rounded(),
-            y: (frame.maxY - safe.top - UILayout.R4.startLogoTopInset * scale).rounded()
-        )
+        var y = (frame.maxY - safe.top - UILayout.R4.startLogoTopInset * scale).rounded()
+        // R8 §C-2-사 — 칩 존재 시 로고 상단 엣지 ≤ 칩 하단 엣지 − clearance(8)가 되도록
+        // y를 min-클램프 (좁은 폭/compact scale에서 로고 ♪ ↔ 칩 프레임 교차 0의 단일 해소점).
+        if let chip = profileChip {
+            y = min(y, (chip.calculateAccumulatedFrame().minY
+                        - UILayout.R8.startLogoChipClearance
+                        - logoLabel.calculateAccumulatedFrame().height / 2).rounded())
+        }
+        logoLabel.position = CGPoint(x: frame.midX.rounded(), y: y)
     }
 
     // MARK: - Hero (§F-1 — PixelHeroSprite 48×64 2프레임 bob 0.6s)
@@ -204,6 +210,14 @@ final class StartScene: BaseMenuScene {
         profileChip = chip
         addChild(chip)
         layoutProfileChip()
+        // R8 §C-2-사 — 칩은 인증 로드 후 비동기 생성: 로고 클램프 재평가. staggered 등장
+        // (moveBy 상대 이동) 진행 중이면 didChangeSize 전례대로 정리 후 절대좌표 재확정.
+        if logoLabel.hasActions() {
+            cancelStaggeredAppear()
+            layoutAll()
+        } else {
+            layoutLogo()
+        }
     }
 
     private func layoutProfileChip() {

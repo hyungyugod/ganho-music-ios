@@ -471,6 +471,8 @@ private enum AuthErrorMapper {
              .accountExistsWithDifferentCredential,
              .providerAlreadyLinked:
             return .appleCredentialRejected
+        // AuthErrorCode — ObjC non-frozen enum: 컴파일러가 exhaustive 보장 불가,
+        // 구조적 필수 default (R8 감사 분류 ②).
         default:
             return nil
         }

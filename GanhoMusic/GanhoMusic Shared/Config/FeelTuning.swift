@@ -57,8 +57,8 @@ enum FeelTuning {
     /// 음표 수집 시 방사되는 sparkle 파편 개수. 8방향 균등 방사 — 정팔각형.
     /// 4면 너무 빈약, 16면 시각 노이즈. 8이 균형점. GDD: 음악=별 미학.
     static let sparkleParticleCount: Int = 8
-    /// sparkle 파편 1개의 반지름 (pt). 음표 한 변(16)의 1/8 = 2.0pt. 작은 별빛 입자 톤.
-    static let sparkleParticleRadius: CGFloat = 2.0
+    // R8 — sparkleParticleRadius(.menu 원형 입자 전용)는 SparkleEffectNode .menu case
+    // 삭제와 함께 참조 0 실증 후 삭제 (인스턴스화는 .ingame 1곳뿐 — §C-2-다).
     /// sparkle 방사 거리 (pt). 노트 중심에서 파편이 도달하는 최대 거리.
     /// 음표 한 변(16)의 ~1.5배 = 24pt. 너무 멀면 인접 음표와 겹침, 가까우면 임팩트 약함.
     static let sparkleSpawnDistance: CGFloat = 24
@@ -178,24 +178,9 @@ enum FeelTuning {
     static let tensionBlinkActionKey: String = "tensionBlink"
 
     // MARK: - New Best (Phase 6-15)
-    /// 화면 중앙 신기록 보상 라벨 폰트 크기 (pt). resultScoreFontSize(24)보다 큼, countdownFontSize(96)보단 작음.
-    static let newBestFontSize: CGFloat = 56
-    /// frame.midY 기준 신기록 보상 라벨 Y 오프셋. 0 = 정중앙.
-    static let newBestOffsetY: CGFloat = 0
-    /// ResultScene 진입 후 신기록 보상 발화까지 지연 (초). fade transition(0.4s) 끝나고 score 인지 후 등장.
-    static let newBestRevealDelay: TimeInterval = 0.3
-    /// 신기록 보상 라벨 fade-in 길이 (초).
-    static let newBestFadeInDuration: TimeInterval = 0.3
-    /// 신기록 보상 라벨 scale pulse 한 사이클 총 길이 (초). up(0.4) + down(0.4) = 0.8.
-    static let newBestScalePulseDuration: TimeInterval = 0.8
-    /// 신기록 보상 라벨 scale pulse 정점 스케일 (1.0 → 1.2 → 1.0).
-    static let newBestEndScalePeak: CGFloat = 1.2
-    /// bestLabel 황금 깜빡임 최소 alpha. 1.0 ↔ 0.5 사이 보간.
-    static let newBestBlinkMinAlpha: CGFloat = 0.5
-    /// bestLabel 황금 깜빡임 한 색 머무는 시간 (초). tensionBlinkHalfPeriod(0.5)와 동일.
-    static let newBestBlinkHalfPeriod: TimeInterval = 0.5
-    /// bestLabel 황금 깜빡임 SKAction 키. 같은 키 재호출 시 자동 교체로 자연 멱등.
-    static let newBestBlinkActionKey: String = "newBestBlink"
+    // R8 — newBest* 9종(FontSize/OffsetY/RevealDelay/FadeInDuration/ScalePulseDuration/
+    // EndScalePeak/BlinkMinAlpha/BlinkHalfPeriod/BlinkActionKey): 참조 0 실증 후 삭제
+    // (R5 ResultScene v3 재구축이 NEW RECORD 칩 연출로 대체 — 9종, R5 기록 "8종"은 부정확).
 
     // MARK: - Score Popup (Phase 6-16)
     /// 노트 수집 자리에 뜨는 "+1"/"+2" 라벨 폰트 크기 (pt).
@@ -467,7 +452,7 @@ enum FeelTuning {
 
     // MARK: - Sprint 10 Phase J · Pixel HUD/Effect Tokens (마지막 Phase)
     /// SparkleEffectNode .ingame 컨텍스트 입자 한 변 크기 (pt). 8개 × 3pt 정사각 픽셀 — 음표 한 변(16)의
-    /// 약 1/5. 둥근 원(sparkleParticleRadius=2 → 지름 4)과 비슷한 시각 무게이나 *각진 픽셀 톤*.
+    /// 약 1/5. 구 .menu 원형 입자(반지름 2 → 지름 4 — R8 삭제)와 비슷한 시각 무게이나 *각진 픽셀 톤*.
     static let sparklePixelSize: CGFloat = 3
     /// 5초 긴박감 비네트 가장자리 두께 (pt). 8pt — HUD(상단 4슬롯)와 dpad(하단)를 가리지 않는 *얇은 액자*.
     static let tensionVignetteThickness: CGFloat = 8

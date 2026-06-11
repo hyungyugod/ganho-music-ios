@@ -1,131 +1,131 @@
-# 컴포넌트 목록 & 작업 체크리스트 — GanhoMusic iOS
+# 컴포넌트 목록 — GanhoMusic iOS (R8 전면 재작성)
 
-현재 구현 상태와 앞으로 만들 컴포넌트 목록.
+그랜드 리팩토링 v3 완료 시점(R8)의 실제 파일·역할 인벤토리.
 Generator가 새 기능 추가 전 반드시 읽고 현재 상태를 파악한다.
 
-**선행 참조 문서**:
-- `docs/game-design.md` — 게임 디자인 결정 (왜 이 컴포넌트를 만드는가)
-- `docs/architecture-mapping.md` — Spring(clonebose) ↔ Swift/SpriteKit 매핑 (멘탈 모델)
-- `docs/spritekit-rules.md` §11 — 파일 분리 전략 (어디에 만드는가)
-- `docs/assets.md` — 컬러/폰트/사운드 토큰 (어떻게 보이게 만드는가)
+**선행 참조**: `refactor/00_MASTER_PLAN.md`(비전·불변 조건) · `docs/debug-flags.md`(DEBUG 분기) ·
+`docs/swift-rules.md`·`spritekit-rules.md`(금지 패턴) · `refactor/R8_FINAL_AUDIT.md`(최종 감사).
 
-**플랫폼 정책**: iOS 타겟만 정식 지원. `GanhoMusic tvOS/`, `GanhoMusic macOS/` 폴더는 Xcode 템플릿 잔여물이며 수정 금지.
+**플랫폼 정책**: iOS 타겟만 정식 지원. `GanhoMusic tvOS/`·`GanhoMusic macOS/`는 템플릿 잔여물 — 수정 금지.
+**등록 정책**: Shared 소스는 pbxproj **명시 등록** (fileSystemSynchronizedGroups 아님) — 신규 .swift는 4곳(BuildFile/FileReference/Group/SourcesPhase) 등록 필수.
 
 ---
 
-## 현재 구현 상태 (Phase 0 완료 기준)
+## 1. 루트 오케스트레이터 — GameScene + 확장 파일
 
-| 파일 | 상태 | 설명 |
+| 파일 | 역할 |
+|---|---|
+| `GameScene.swift` | 본체 — 프로퍼티·init/factory·didMove·update() 파이프라인 골격 (300줄 가드) |
+| `GameScene+UpdatePipeline.swift` | R8 분할 — 파이프라인 단계 함수(input/player/AI/effects/HUD)·tension 폴링·마일스톤 배너 |
+| `GameScene+Setup.swift` | didMove 셋업 ① — 배경/월드/맵/풀·레지스트리/디렉터/플레이어/카메라/D-Pad/HUD/적 |
+| `GameScene+SetupActors.swift` | R8 분할 ② — 이교수·스킬/달리기 버튼·HUD 스킬 슬롯·일시정지 버튼 셋업/레이아웃 |
+| `GameScene+DailyModifiers.swift` | R8 분할 ③ — R6 일일 모디파이어 배선 + 박병장 데뷔 연출 |
+| `GameScene+GameState.swift` | 일시정지(v3 PixelDialog)·메인 이탈·endGame(저장 5종+메타 기록+Result 전환) |
+| `GameScene+Contact.swift` | ContactRouter 콜백 — 수집/피격/매혹/변기 |
+| `GameScene+NearMiss.swift` | R7/R8 — near-miss 폴링 (히트박스 가장자리 10px 셸, projectiles 슬롯 전속) |
+| `GameScene+Camera.swift` | CameraDirector 위임 — follow/클램프 |
+| `GameScene+Countdown.swift` | 3·2·1·GO + dim |
+| `GameScene+Cutscene.swift` | 인트로/빌런/mid 컷씬 흐름 + DEBUG SKIP/AUTO_PAUSE 분기 |
+| `GameScene+DangerWarnings.swift` | 위험 경고 시각 폴링 (거리 기반 alpha/펄스) |
+| `GameScene+EasterEgg.swift` | AIRFORCE 이스터에그 시퀀스 |
+| `GameScene+Feedback.swift` | 수집/피격/텔레그래프 피드백 (히트스톱·셰이크·SFX·햅틱 합성) |
+| `GameScene+Layout.swift` | 화면 고정 UI 레이아웃 (didChangeSize 멱등) |
+| `GameScene+MovementInput.swift` | D-Pad 입력 스무딩 + DEBUG 데모 오토파일럿 |
+| `GameScene+Transition.swift` | 씬 전환 헬퍼 |
+
+## 2. Scenes/ — 메뉴·결과 (전부 v3 "Night Shift")
+
+| 파일 | 역할 |
+|---|---|
+| `BaseMenuScene.swift` | 공통 — NightShift 배경·staggered 등장·safe inset·compact scale |
+| `SceneRouter.swift` | push/픽셀 디졸브 전환 단일 진입점 |
+| `StartScene.swift` (+`+Auth`) | 로비 — 로고(R8: 칩 겹침 클램프)·히어로·프로필/일일 칩·로그인 다이얼로그. Firebase 인증 상태 머신 |
+| `CharacterSelectScene.swift` (+`+Layout`/`+Account`/`+Overlays`) | 캐러셀 선택 — R8 일러스트 카드. 좌측 풀바디 프리뷰(픽셀 유지)·계정/클라우드 |
+| `SkillBriefingScene.swift` | 작전 브리핑 — 일러스트 카드(플립 인) + 스킬 패널 |
+| `DifficultySelectScene.swift` | 난이도 3카드 (Palette.difficulty 토큰) |
+| `ResultScene.swift` (+`+Build`/`+Reveal`/`+MetaCelebration`) | 보상의 무대 — 도장→카운트업→별→XP→칩→버튼 시퀀스 + 해금 배너/업적 토스트 |
+| `ScoreboardScene.swift` (+`+Table`/`+Achievements`) | 기록 테이블 + 업적 16종 탭 |
+| `PixelKitGalleryScene.swift` | DEBUG — v3 컴포넌트 갤러리 |
+
+## 3. Nodes/UI/ — v3 디자인 시스템 컴포넌트 9종
+
+| 컴포넌트 | 역할 |
+|---|---|
+| `PixelPanelNode` | ink800 면 + 2px 보더 + 하드섀도 + 헤더 슬롯 |
+| `PixelButtonNode` | 3변형(primary/secondary/ghost) — 자체 터치·uiTap SFX·햅틱 주입 |
+| `PixelChipNode` | info/locked/accent 칩 + 아이콘 슬롯 |
+| `PixelProgressBarNode` | 세그먼트 XP/진행 바 |
+| `PixelCardNode` | 카드 베이스 — 선택 보더+글로우+scale 1.04 |
+| `PixelCharacterCardNode` | R8 — 카툰 일러스트(.linear) + 시그니처 백드롭 + idle 부유 + 잠금 실루엣 |
+| `PixelDialogNode` | 딤+패널 다이얼로그 — R8부터 일시정지도 이 컴포넌트 |
+| `LoginChoiceDialogNode` | 게스트/Apple/취소 — StartScene 소비 |
+| `NightShiftBackdropNode` | 스타필드 + 심전도 배경 |
+
+## 4. Nodes/ — 인게임 노드
+
+| 분류 | 파일 |
+|---|---|
+| 액터 | `PlayerNode` · `EnemyNode`(수간호사) · `StoneGuardNode` · `ProfessorNode` · `SergeantParkNode` |
+| 투사체·수집물 | `FProjectileNode` · `StethoscopeNode` · `NoteNode` · `ToiletNode` · `AItemNode` |
+| 입력·HUD | `DPadNode` · `SkillButtonNode` · `RunButtonNode` · `HUDNode` · `HUDSlotNode`(+`+Display` — R8 분리) · `HUDSkillSlotNode` · `PauseButtonNode` |
+| 연출(자가 소멸) | `SparkleEffectNode`(R8: .ingame 단일) · `ScorePopupNode` · `ComboPopupNode` · `ComboBreakNode` · `MilestoneBannerNode` · `ToastLabelNode` · `HitFlashNode` · `BombFlashNode` · `WalkDustNode` · `CountdownNode` · `TensionVignetteNode` |
+| 경고 | `EnemyProximityWarningNode` · `EnemyTelegraphNode` · `ProfessorTelegraphNode` · `ProjectileWarningLineNode` · `PlayerNearMissWarningNode` |
+| 컷씬·오버레이 | `IntroCutsceneNode` · `IntroVillainCutsceneNode` · `MidCutsceneNode` · `CutsceneOverlayNode` · `DiplomaOverlayNode` · `AirforceOverlayNode` · `AirplaneNode` |
+| 계정·프로필 | `AccountMenuOverlayNode` · `ProfileDetailOverlayNode`(+`+Content`) · `ProfileAvatarViewNode` |
+| 맵 | `MapNode` · `WallTileNode` · `HospitalPropNode` |
+| 렌더 | `PixelSpriteRenderer` |
+
+### v2 잔존 처분 (R8 확정)
+
+| 컴포넌트 | 처분 | 근거 |
 |---|---|---|
-| `GameScene.swift` | ✅ 템플릿 | Xcode 기본 SpriteKit 템플릿. Hello World 씬. |
-| `GameViewController.swift` | ✅ 템플릿 | SKView에 씬 로드하는 기본 코드 |
-| `AppDelegate.swift` | ✅ 템플릿 | 앱 생명주기 기본 |
-| `Assets.xcassets` | ✅ 빈 상태 | 이미지/사운드 에셋 없음 |
+| `PrimaryButtonNode` | **삭제** | 마지막 소비처(일시정지)가 v3 PixelDialog로 재구축 — 참조 0 실증 |
+| `DarkContextChipNode` | **보존** | 인게임 SkillButton/RunButton 스킬명 칩 현역 — v3 재구축 비대상 (헤더 주석 봉인) |
+| `HUDNode`/`HUDSlotNode` | 보존 (v2 시각) | 인게임 HUD 현역 — R8은 1파일 2클래스만 해소 |
 
-> **Phase 0 완료**: Xcode 프로젝트 생성, iPhone 전용 설정, Landscape 설정, 시뮬레이터 첫 빌드 성공.
+## 5. Systems/ — 게임 로직
 
----
+| 파일 | 역할 |
+|---|---|
+| `SpawnSystem.swift` (+`+Notes` — R8 분리) | 음표(자기 재예약 체인·실효 캡·패턴)·변기 스폰. F 발사는 EnemyNode 소관 |
+| `ContactRouter.swift` | physics 충돌 분기 (델리게이트 내 즉시 제거 금지 — 지연 회수) |
+| `ScoreSystem.swift` | 점수·콤보 윈도우·near-miss 연장 파생값 |
+| `SkillSystem.swift` | 스킬 4종 상태 머신 (≈720줄 — R8 의도적 보존, 감사 보고서 §3) |
+| `HitstopController.swift` | 히트스톱 — speed/isPaused 소유권 |
+| `CameraDirector.swift` | 보간 추적·셰이크·줌 펄스·킥 |
+| `EffectDirector.swift` | 파티클 6종 — 풀링·캡·우선순위 |
+| `AchievementEvaluator.swift` | 업적 16종 판정 (RunSummary 입력) |
 
-## 컴포넌트 구현 로드맵
+## 6. Config/ — 도메인 상수 (매직 넘버 0의 단일 진실 원천)
 
-### Phase 1 — 플레이어 이동 (진행 예정)
+| 파일 | 도메인 |
+|---|---|
+| `GameplayTuning.swift` | 게임 수치 (속도/스폰/점수/히트박스) — **R8 diff 0 게이트** |
+| `FeelTuning.swift` (+R2/R3/R4/R5/R7/R8) | 연출 타이밍·강도. R3=Motion 토큰, R8=일러스트 부유·AUTO_PAUSE |
+| `UILayout.swift` (+R4/R5/R6/R7/R8) | 레이아웃·카피. R8=일러스트 카드·일시정지 v3·로고 클램프 |
+| `Palette.swift` / `ColorTokens.swift` | v3 잉크/액센트 토큰 + 레거시 픽셀 팔레트 |
+| `Typography.swift` | V3 폰트 토큰 (Galmuri 후보 해석) |
+| `ZOrder.swift` | 적층 — v3 Layer 11층 + 레거시 z |
+| `MetaTuning.swift` / `MetaProgression.swift` | 메타 수치·별 임계·레벨 곡선 |
+| `StorageKeys.swift` | UserDefaults 키 — **불변 조건 2 (변경 금지)** |
+| `GameState.swift` / `PhysicsCategory.swift` | 상태 enum·물리 비트마스크 |
+| `SceneSafeArea.swift` / `DeviceLayoutProfile.swift` | safe area·디바이스 프로파일 |
 
-| 컴포넌트 | 권장 위치 | 상태 |
-|---|---|---|
-| `GameConfig` 상수 enum | `Config/GameConfig.swift` | ⬜ 미구현 |
-| `GameState` enum | `Config/GameState.swift` | ⬜ 미구현 |
-| `PhysicsCategory` 비트마스크 | `Config/PhysicsCategory.swift` | ⬜ 미구현 |
-| `ColorTokens` extension | `Config/ColorTokens.swift` | ⬜ 미구현 |
-| `PlayerNode` (김간호 픽셀) | `Nodes/PlayerNode.swift` | ⬜ 미구현 |
-| 스와이프 이동 입력 | `Systems/InputSystem.swift` | ⬜ 미구현 |
-| 화면 경계 충돌 | `Scenes/GameScene.swift` | ⬜ 미구현 |
+## 7. Core/ · Rendering/ · Managers/ · Repositories/ · Models/ · Debug/
 
-### Phase 2 — 핵심 게임 루프
+| 디렉토리 | 파일 (역할) |
+|---|---|
+| Core/ | `EntityRegistry`(동적 엔티티 캐시) · `ObjectPool`(풀 4종+먼지) · `Tween`(곡선) · `SeededRandom`(splitmix64) · `FrameStats`(DEBUG 진단) |
+| Rendering/ | `TextureAtlasStore`(+`+R2`/`+Props`) — 사전 베이크 텍스처 캐시 (매 프레임 생성 0) |
+| Managers/ | `FirebaseAuthManager`(공개 API 불변 — 불변 조건 1) · `CloudSaveCoordinator` · `HapticsManager`(CoreHaptics v2) · `ChiptuneSynth`(SFX) · `BGMPlayer` |
+| Repositories/ | HighScore/Statistics/PerDifficultyScore/Graduation/CharacterPreference/DifficultyPreference/AuthProfile/ProfileAvatar/CloudProgress/PendingCloudScore/`MetaProgressRepository`(+`+Cloud`) |
+| Models/ | CharacterID·Difficulty·PlayerSkill·CharacterUnlockRules/State·GameStats·RunSummary·DailyChallenge·AchievementID·CloudScoreRecord·CloudProgressSnapshot·CutsceneTexts·`PixelSprite`/`PixelPalette`/`PixelPortraitSprite`/`PixelHeroSprite`(**byte-equal 불변 — 조건 4**) 외 |
+| Protocols/ | `PixelCharacterAnimating` · `SelfDismissingNode` |
+| Debug/ | `MetaMigrationSelfTest` (전체 #if DEBUG — env 구동) |
+| Errors/ | `AuthError` |
 
-| 컴포넌트 | 권장 위치 | 상태 |
-|---|---|---|
-| `NoteNode` 음표 ♪ | `Nodes/NoteNode.swift` | ⬜ 미구현 |
-| 음표 스폰 시스템 (BPM 동기) | `Systems/SpawnSystem.swift` | ⬜ 미구현 |
-| 음표 수집 충돌 감지 | `Scenes/GameScene.swift` (delegate) | ⬜ 미구현 |
-| 점수 / 콤보 시스템 | `Systems/ScoreSystem.swift` | ⬜ 미구현 |
-| 비트 동기 / On-Beat 판정 | `Systems/BeatSystem.swift` | ⬜ 미구현 |
-| `HUDNode` (점수/타이머/콤보) | `Nodes/HUDNode.swift` | ⬜ 미구현 |
-| 45초 타이머 | `Scenes/GameScene.swift` | ⬜ 미구현 |
-| `EnemyNode` 수간호사 NPC | `Nodes/EnemyNode.swift` | ⬜ 미구현 |
-| `ProjectileNode` F 투사체 | `Nodes/ProjectileNode.swift` | ⬜ 미구현 |
-| 보호막(Shield) 시스템 | `Systems/ScoreSystem.swift` | ⬜ 미구현 |
+## 8. 자산
 
-### Phase 3 — UI 화면 흐름
-
-| 컴포넌트 | 권장 위치 | 상태 |
-|---|---|---|
-| `TitleScene` 타이틀 화면 | `Scenes/TitleScene.swift` | ⬜ 미구현 |
-| `GameOverScene` 결과 화면 | `Scenes/GameOverScene.swift` | ⬜ 미구현 |
-| 최고 기록 저장 (UserDefaults) | `Repositories/ScoreRepository.swift` | ⬜ 미구현 |
-| `Score` 값 객체 | `Models/Score.swift` | ⬜ 미구현 |
-| 화면 전환 애니메이션 | `Scenes/GameScene.swift` (presentScene) | ⬜ 미구현 |
-
-### Phase 4 — 폴리싱
-
-| 컴포넌트 | 권장 위치 | 상태 |
-|---|---|---|
-| `AudioManager` 효과음 | `Managers/AudioManager.swift` | ⬜ 미구현 |
-| BGM (FL Studio 자체 제작) | `Managers/AudioManager.swift` + `Resources/` | ⬜ 미구현 |
-| `HapticsManager` 진동 피드백 | `Managers/HapticsManager.swift` | ⬜ 미구현 |
-| 앱 아이콘 | `Resources/Assets.xcassets/AppIcon` | ⬜ 미구현 |
-| 픽셀 아트 스프라이트 | `Resources/Assets.xcassets/Sprites.spriteatlas` | ⬜ 미구현 |
-
-### Phase 7 — 백엔드 연동 (BACKEND.md 참조)
-
-| 컴포넌트 | 권장 위치 | 상태 |
-|---|---|---|
-| Supabase 클라이언트 초기화 | `Managers/SupabaseManager.swift` | ⬜ 미구현 |
-| Apple Sign In | `Scenes/TitleScene.swift` + Manager | ⬜ 미구현 |
-| `LeaderboardRepository` | `Repositories/LeaderboardRepository.swift` | ⬜ 미구현 |
-| `ScoreDTO` (서버 통신용) | `Models/DTO/ScoreDTO.swift` | ⬜ 미구현 |
-| 리더보드 화면 | `Scenes/LeaderboardScene.swift` | ⬜ 미구현 |
-
----
-
-## 게임 세계관 레퍼런스
-
-웹 버전에서 가져오는 설정값 (모바일 재설계 기준):
-
-| 요소 | 웹 버전 | 모바일 버전 |
-|---|---|---|
-| 화면 크기 | 640×400 (가로) | iPhone Landscape 풀스크린 |
-| 게임 시간 | 45초 | 45초 유지 |
-| 조작 | 키보드 WASD/화살표 | 스와이프 또는 D-Pad |
-| 플레이어 | 김간호 픽셀 캐릭터 | 동일 세계관, 단순화된 픽셀 |
-| 적 | 수간호사 (F 투사체) | 동일 |
-| 수집물 | 음표 (♪) | 동일 |
-| 난이도 | 하/중/상 | MVP는 단일 난이도 |
-| 캐릭터 선택 | 5명 | MVP는 김간호 1명 |
-
----
-
-## 작업 체크리스트 (Generator가 구현 완료 후 체크)
-
-### Swift 패턴
-- [ ] 강제 언래핑(`!`) 미사용
-- [ ] `guard let` / `if let` 옵셔널 처리
-- [ ] `MARK:` 섹션 구분 사용
-- [ ] 매직 넘버 → `GameConfig` enum 상수화
-- [ ] 클로저 내 `[weak self]` 캡처
-
-### SpriteKit 패턴
-- [ ] 초기화는 `didMove(to:)`에서
-- [ ] `dt` (delta time) 기반 이동
-- [ ] 스폰은 `SKAction.repeatForever` 사용 (Timer 금지)
-- [ ] 충돌 처리 후 노드 즉시 삭제 금지 (다음 프레임에)
-- [ ] HUD 노드 별도 분리
-
-### 게임 로직
-- [ ] `GameState` enum으로 상태 관리
-- [ ] `PhysicsCategory` 비트마스크 정의
-- [ ] 씬 종료 시 액션/타이머 정리
-
-### 빌드
-- [ ] Xcode 빌드 에러 0개
-- [ ] 시뮬레이터 실행 확인
-- [ ] 콘솔 경고 최소화
+- `Assets.xcassets/Characters/` — R8 일러스트 5종 `{kim,jung,geon,im,lee}_down_idle_1` (96×144pt, .linear 로드).
+- `Resources/Fonts/` — Galmuri 계열 + GowunDodum. `Resources/Sounds/` — BGM 슬롯 (재생 OFF — FeelTuning.isBGMEnabled).
+- 인게임 픽셀은 전부 코드 데이터(PixelSprite 등) → `TextureAtlasStore` 런타임 베이크.

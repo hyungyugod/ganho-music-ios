@@ -85,7 +85,7 @@ Phase별 정량 게이트(미충족 시 해당 축 6점 이하):
 
 1. **Firebase 인증·클라우드 저장 동작 보존** — `FirebaseAuthManager`, `CloudSaveCoordinator`, Repository들의 공개 API 시그니처 유지. 내부 정리는 R0에서 허용.
 2. **기존 사용자 데이터 무손실** — UserDefaults 키 변경 금지(키 목록은 R0 Planner가 추출해 SPEC에 고정). 스키마 추가만 허용.
-3. **게임 골격 유지** — 5캐릭터(kim/jung/geon/im/lee)·4빌런·45초·난이도 3종(목표 60/50/30)·스킬 4종 메커니즘. 수치 튜닝은 02_GAME_FEEL 명세 범위 내에서만.
+3. **게임 골격 유지** — 5캐릭터(kim/jung/geon/im/lee)·4빌런·45초·난이도 3종(목표 70/50/40 — `GameplayTuning.targetScoreByDifficulty`가 진실, 구 기재 60/50/30은 R8 감사 문서-코드 불일치 #10으로 정정)·스킬 4종 메커니즘. 수치 튜닝은 02_GAME_FEEL 명세 범위 내에서만.
 4. **인게임 원본 픽셀 데이터** — `PixelSprite.swift`·`PixelPalette.swift`의 기존 16×20 데이터 byte-equal. 신규 데이터 추가는 허용.
 5. **빌드 설정** — 번들 ID·서명·Info.plist 권한·iOS 16.0+·Landscape 전용 불변.
 6. **docs/swift-rules.md·spritekit-rules.md 금지 패턴** 전부 유효 (강제 언래핑·Timer.scheduledTimer·DispatchQueue.asyncAfter(게임 내)·as!·switch default·매직넘버·update 내 addChild 반복·델리게이트 내 즉시 removeFromParent·매 프레임 텍스처 생성).

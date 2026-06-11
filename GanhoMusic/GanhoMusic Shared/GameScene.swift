@@ -62,9 +62,8 @@ class GameScene: SKScene {
     let runButton = RunButtonNode()       // Sprint 11 — 쿨타임 없는 hold-to-run 버튼
     let hudSkillSlot = HUDSkillSlotNode() // Phase 9-5 — 스킬 쿨다운 진행 시각화
     let pauseButton = PauseButtonNode()   // Sprint 3 — 우상단 일시정지 시각 placeholder
-    var pauseOverlay: SKNode?
-    var pauseResumeButton: PrimaryButtonNode?
-    var pauseMenuButton: PrimaryButtonNode?
+    /// R8 — 일시정지 v3 다이얼로그 (구 pauseOverlay/PrimaryButtonNode 2개 대체). nil = 비표시.
+    var pauseDialog: PixelDialogNode?
     var pauseStoredDPadInteractionEnabled: Bool = true
     var pauseStoredSkillInteractionEnabled: Bool = true
     var pauseStoredRunInteractionEnabled: Bool = true
@@ -81,7 +80,6 @@ class GameScene: SKScene {
     let haptics = HapticsManager()              // Phase 6-1 / R2 — CoreHaptics v2 + UIImpact 폴백
     let synth   = ChiptuneSynth.shared          // R2 — 칩튠 SFX 신스 (구 AudioManager 시스템 사운드 전폐)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
-
     // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
     // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
     var airforceTriggered: Bool = false
@@ -95,7 +93,7 @@ class GameScene: SKScene {
     // 6-11 triggeredComboMilestones와 완전 분리 — 환호와 실망은 독립 가드.
     // lastComboValue: 직전 프레임의 콤보값 추적 — 0으로 떨어진 *순간*을 감지하는 폴링 기준점.
     // 첫 프레임에는 0 시작이라 임계값(10) 가드로 노이즈 차단.
-    private var lastComboValue: Int = 0
+    var lastComboValue: Int = 0   // R8 분할 — +UpdatePipeline 소비 (private→internal)
     var maxComboThisRun: Int = 0
     var triggeredComboBreaks: Set<Int> = []
 
@@ -133,12 +131,12 @@ class GameScene: SKScene {
     /// Phase 6-14 — 직전 프레임의 정수초(ceil). 매초 변화 *순간* 감지용.
     /// -1 초기값 — 첫 프레임 비교가 자연스럽게 첫 변화로 처리됨.
     /// HUD timeLabel이 보여주는 `Int(ceil(remainingTime))`과 정확히 같은 식으로 계산 → *눈에 보이는 숫자가 바뀐 순간* 햅틱 발화.
-    private var lastRemainingTimeSecond: Int = -1
+    var lastRemainingTimeSecond: Int = -1   // R8 분할 — +UpdatePipeline 소비 (private→internal)
 
     /// R1 — tension BGM rate 직전 전송값(양자화 가드). nil = 미전송 → 윈도우 첫 진입 시 무조건 전송.
     /// 보간값이 매 프레임 연속이라 FeelTuning.tensionRateQuantizeStep 단위로 반올림 양자화 후
     /// 직전 전송값과 다를 때만 setRate — 1.0→1.15 단조 증가·최종 1.15 도달 시맨틱 보존.
-    private var lastSentTensionRate: Float?
+    var lastSentTensionRate: Float?   // R8 분할 — +UpdatePipeline 소비 (private→internal)
 
     /// Phase 5-2 — TitleScene이 init으로 주입한 선택 캐릭터.
     /// PlayerNode 색 등 캐릭터별 시각/로직 적용에 사용. 한 판 안에서 불변(`let`).
@@ -298,205 +296,5 @@ class GameScene: SKScene {
         frameStats?.tick(currentTime: currentTime)
         #endif
     }
-
-    // MARK: - Pipeline Phases (R1)
-
-    /// input 단계 — 입력 처리 전 게임 상태(콤보 만료·스킬 쿨다운)를 확정하고 D-Pad 입력을 위임.
-    /// skillSystem.update가 입력 가드(isDashing)보다 먼저여야 기존 프레임 순서와 동일(행동 불변).
-    private func updateInputPhase(dt: TimeInterval, currentTime: TimeInterval) {
-        // Phase 2-5 — 콤보 윈도우 만료 검사 (Phase 2-12: ScoreSystem에 위임)
-        scoreSystem.tickComboExpiry(currentTime: currentTime)
-
-        // Phase 9-5 — SkillSystem 매 프레임 진행 (쿨다운/지속시간 감산).
-        skillSystem.update(dt: dt)
-
-        // D-Pad 입력을 PlayerNode로 위임 (DPadNode → PlayerNode 직접 참조 금지 → GameScene 경유)
-        // Phase 9-5 — 정간호 돌진 중에는 D-Pad 입력 무시(SKAction.move가 위치 제어). 가드 1줄.
-        // Phase 9-7 — 청진기 동결 중에도 D-Pad 입력 무시. AND 가드로 두 조건 결합 — 스킬 가드 회귀 0.
-        // 동결 시 currentDirection = .zero로 즉시 set → PlayerNode.update 가드 도달 전에도
-        // *마지막 방향 잔존*으로 인한 미세 이동 방지.
-        if !skillSystem.isDashing && !player.isFrozen {
-            updateMovementInput()
-        } else if skillSystem.isDashing {
-            resetMovementInput()
-        } else if player.isFrozen {
-            resetMovementInput()
-        }
-
-        #if DEBUG
-        // R7 시각 증빙 — env GANHO_DEMO_AUTOPILOT=1 한정 자동 주행 (콤보 게이지/near-miss 캡처).
-        // simctl 터치 주입 불가 우회 — GANHO_SKIP_CUTSCENE·FrameStats 전례. 릴리즈 코드 0.
-        applyDemoAutopilotIfEnabled()
-        #endif
-    }
-
-    /// player 단계 — PlayerNode 자체 dt 보간 이동(wall-slide 포함) + 픽셀 걷기 프레임 + 수집 자석.
-    private func updatePlayerPhase(dt: TimeInterval) {
-        // PlayerNode 자체 dt 보간 이동 (도메인이 자기 갱신)
-        // 돌진 중에는 currentDirection이 zero로 유지되어 velocity 0 — SKAction.move만 위치 변경.
-        player.update(deltaTime: dt)
-
-        // Phase 8-1 — PlayerNode 픽셀 걷기 프레임 갱신 (시각만 — 게임 로직 무관).
-        // wall-slide 수동 이동이 적용된 직후의 실제 이동 벡터를 읽어 이번 프레임 시각에 반영한다.
-        // Sprint 11 — 방향(facing)은 D-Pad onDirectionChanged 콜백(GameScene+Setup)이 입력 즉시 단독 담당.
-        //   tickWalkFrame은 isMoving(velocity 기반)으로 다리 교차 여부만 판단 — 방향과 책임 분리.
-        let velocity = player.movementVelocity
-        let isMoving = abs(velocity.dx) > 0.1 || abs(velocity.dy) > 0.1
-        player.tickWalkFrame(deltaTime: dt, isMoving: isMoving)
-
-        // R2 — 수집 자석 (player 단계 말미): 32px 내 음표를 0.08s 흡인 곡선으로 끌어당김.
-        // **판정 불변** — 수집은 여전히 physics contact가 결정 (자석은 위치만 이동, 02 §5).
-        updateNoteMagnet(dt: dt)
-    }
-
-    /// R2 — 수집 자석. registry.notes 순회(동시 캡 ≤10 — R1 인프라)로 매 프레임 거리 검사.
-    /// 스킬 끌어오기(bookClubRallyPull) 진행 중인 음표는 제외 — 두 위치 제어의 경합 차단.
-    /// update 내 힙 할당 0 — 배열 스냅샷 없이 직접 순회(위치만 변경, 등록 변형 없음).
-    private func updateNoteMagnet(dt: TimeInterval) {
-        let radius = FeelTuning.noteMagnetRadius
-        let radiusSquared = radius * radius
-        let pull = CGFloat(min(1, dt / FeelTuning.noteMagnetDuration))
-        let playerPosition = player.position
-        for note in registry.notes {
-            let dx = playerPosition.x - note.position.x
-            let dy = playerPosition.y - note.position.y
-            guard dx * dx + dy * dy <= radiusSquared else { continue }
-            guard note.action(forKey: GameplayTuning.bookClubRallyPullActionKey) == nil else { continue }
-            note.position.x += dx * pull
-            note.position.y += dy * pull
-        }
-    }
-
-    /// AI 단계 — 적 NPC 갱신 + hard 박병장 데뷔 폴링(적 등장 = AI 책임).
-    private func updateAIPhase(dt: TimeInterval) {
-        // Sprint 8 Phase G — 박병장 hard 난이도 데뷔. 30s 또는 50점 중 더 빠른 쪽 1회.
-        if difficulty == .hard && !sergeantParkDebuted {
-            let elapsed = GameplayTuning.gameDuration - remainingTime
-            if elapsed >= GameplayTuning.sergeantParkDebutTime
-                || scoreSystem.score >= GameplayTuning.sergeantParkDebutScore {
-                sergeantParkDebuted = true
-                spawnSergeantPark()
-            }
-        }
-
-        // Sprint 10 Phase D — 수간호사 패트롤 + 텔레그래프 상태 머신.
-        //    player.position / 진행률 / charmActive는 provider 캡처(GameScene+Setup에서 1회 주입).
-        //    F 발사는 EnemyNode 내부 상태 머신이 전담 (R1: 실체화만 풀 provider 경유).
-        enemy.update(deltaTime: dt)
-
-        // Phase 4-1 — 석조무사 SKAction 패트롤의 시각 프레임 갱신.
-        if stoneGuard.parent != nil {
-            stoneGuard.updatePixelAnimation(deltaTime: dt)
-        }
-
-        // Phase 9-7 — 이교수 픽셀 애니메이션 갱신 (hard만). easy/normal에선 professor=nil → optional chain 자연 noop.
-        professor?.updatePixelAnimation(deltaTime: dt)
-    }
-
-    /// effects 단계 — 점수 배너/5초 긴박감/위험 경고/콤보 오라. 전부 게임 수치 무변경 시각·청각 레이어.
-    private func updateEffectsPhase() {
-        // 점수 마일스톤 안내 배너 — 게임을 멈추지 않는 순수 시각 격려.
-        // 점수는 콤보당 +1~+4로 *비연속* 증가하므로 정확값에 안 멈춰도 누락되지 않게 '>=' 교차로 판정.
-        updateScoreMilestoneBanners()
-
-        // Phase 6-14 — 5초 긴박감 폴링 (BGM rate + 비네트 + 초당 햅틱).
-        updateTensionPolling()
-
-        // 위험 경고는 밸런스 수치를 바꾸지 않는 시각 레이어다. 생성은 setup/발사 시점,
-        // 여기서는 거리 기반 alpha/펄스만 갱신해 노드 churn을 막는다. (R1: registry 순회)
-        updateDangerWarnings()
-
-        // R2 — comboAura 폴링: 콤보 ≥5 동안 플레이어 발밑 상승 입자, <5 복귀·끊김 시 즉시 회수.
-        effectDirector.updateComboAura(combo: scoreSystem.combo, playerPosition: player.position)
-    }
-
-    /// HUD 단계 — 점수/시간 확정 이후 표시 + 콤보 끊김 폴링(tickComboExpiry 이후 상대 순서 보존).
-    private func updateHUDPhase() {
-        // HUD 라벨 갱신 (Phase 2-4) — Phase 2-12: ScoreSystem에서 값 조회
-        hud.update(score: scoreSystem.score, remainingTime: remainingTime, combo: scoreSystem.combo)
-
-        // R7 §F3 — 콤보 윈도우 잔여 게이지 (combo 0 = nil → 비표시). near-miss 연장(F2)은
-        // ScoreSystem 파생값이라 자동 즉시 반영 — 점수/시간과 같은 "확정 이후 표시" 단계.
-        hud.updateComboGauge(fraction: scoreSystem.comboWindowRemainingFraction(at: lastUpdateTime))
-
-        // Phase 6-12 — 콤보 끊김 폴링. tickComboExpiry(input 단계)가 같은 프레임에
-        // 콤보를 0으로 떨어뜨린 직후를 캡처. F 피격 경로는 별도 분기(configureContactRouter).
-        // ScoreSystem 시그니처 미변경(옵션 B 폴링) — 6-10 환호 폴링과 같은 패턴.
-        let currentCombo = scoreSystem.combo
-        maxComboThisRun = max(maxComboThisRun, currentCombo)
-        if lastComboValue >= FeelTuning.comboBreakThreshold, currentCombo == 0 {
-            triggerComboBreak(brokenAt: lastComboValue)
-        }
-        lastComboValue = currentCombo
-
-        // Phase 9-5 — HUDSkillSlot 진행률 시각화. SkillSystem.progress는 4 상태 분기 후 반환.
-        hudSkillSlot.update(progress: skillSystem.progress)
-    }
-
-    // MARK: - Tension Polling (Phase 6-14 / R1 — BGM setRate 양자화 가드)
-    /// 5초 긴박감 폴링. .playing 가드·0도달 early return 이후에만 호출됨 — remainingTime > 0 보장.
-    /// 카운트다운(.countdown) 중에는 update 상단 가드에서 이미 차단 → BGM 미재생 상태와 시간 비교차 0.
-    private func updateTensionPolling() {
-        guard remainingTime <= FeelTuning.tensionWindow else { return }
-        // 첫 진입 1회 setup — HUD 깜빡임 시작.
-        if !tensionStarted {
-            tensionStarted = true
-            hud.startTensionBlink()
-            // Sprint 10 Phase J — 픽셀 비네트 attach (cameraNode 자식). HUD 깜빡임과 같은 박자 동기.
-            let vignette = TensionVignetteNode(sceneSize: size)
-            cameraNode.addChild(vignette)
-            tensionVignette = vignette
-        }
-        // rate 보간: 1.0 + 0.15 × (5 - remainingTime) / 5. TimeInterval(Double) → Float 캐스팅.
-        let progress = Float((FeelTuning.tensionWindow - remainingTime) / FeelTuning.tensionWindow)
-        let clamped = max(Float(0), min(Float(1), progress))
-        let rate = FeelTuning.tensionRateBase + (FeelTuning.tensionRateMax - FeelTuning.tensionRateBase) * clamped
-        // R1 — 양자화 가드: 연속 보간값을 스텝 단위로 반올림 후 직전 전송값과 다를 때만 setRate.
-        // 입력(rate)이 단조 증가이므로 양자화 결과도 단조 비감소 — 1.0 시작 → 종료 근방 1.15 도달 보존.
-        let step = FeelTuning.tensionRateQuantizeStep
-        let quantizedRate = (rate / step).rounded() * step
-        if quantizedRate != lastSentTensionRate {
-            lastSentTensionRate = quantizedRate
-            bgm.setRate(quantizedRate)
-        }
-        // 매초 정수 변화 시 light 햅틱 (5→4, 4→3, 3→2, 2→1 = 4회).
-        // HUD timeLabel이 보여주는 ceil 식과 동일 — *눈에 보이는 숫자가 바뀐 순간* 발화.
-        // 0초 도달은 update 상단 early return에서 처리되어 여기로 안 옴 (4회 발화 정확 보장).
-        let now = max(0, Int(ceil(remainingTime)))
-        if now != lastRemainingTimeSecond {
-            lastRemainingTimeSecond = now
-            if now >= 1 && now <= 4 {
-                haptics.light()
-            }
-        }
-    }
-
-    // MARK: - Milestone Banner
-    /// 점수 마일스톤 안내 배너 폴링. `update(_:)`의 `.playing` 가드·0도달 early return 이후에만 호출됨.
-    /// 점수는 콤보당 +1~+4로 비연속 증가 → '>=' 교차로 판정해 정확값에 안 멈춰도 누락 0.
-    /// 각 마일스톤은 멱등 Bool로 한 판 1회만 spawn(가드 통과 시에만 addChild → 매 프레임 생성 0).
-    /// A/B는 독립 `if`라 같은 프레임 동시 충족 시에도 둘 다 안전하게 발화(겹쳐도 자가 소멸).
-    private func updateScoreMilestoneBanners() {
-        // R6 — 음표 러시 판은 실효 목표(×1.3) 경유 — 배너 문구와 verdict 기준 일치 (단일 공급점).
-        let target = effectiveTargetScore
-        let score = scoreSystem.score
-        // A(절반): ceil(target/2). target ≥ 40이라 항상 절반 < (target-10) → A가 먼저.
-        let halfThreshold = Int((Double(target) / 2.0).rounded(.up))
-        if !halfScoreMilestoneShown, score >= halfThreshold {
-            halfScoreMilestoneShown = true
-            // 발화 시점 실제 남은 개수. 점수는 비연속 증가(+1~+4)라 발화 시 score>=halfThreshold →
-            // remaining은 절반 근처 양수. max(0,...)으로 음수 방어(이론상 미발생이나 안전).
-            let remaining = max(0, target - score)
-            let text = "\(remaining)" + FeelTuning.milestoneHalfSuffix
-            MilestoneBannerNode.spawn(text: text, parent: cameraNode)
-            effectDirector.milestoneConfetti()
-        }
-        // B(10점 남음): target - milestoneNearTargetRemaining.
-        if !nearTargetMilestoneShown, score >= target - FeelTuning.milestoneNearTargetRemaining {
-            nearTargetMilestoneShown = true
-            MilestoneBannerNode.spawn(text: FeelTuning.milestoneNearText, parent: cameraNode)
-            effectDirector.milestoneConfetti()
-        }
-    }
-
+    // R8 §B③ — 파이프라인 단계·Tension 폴링·마일스톤 배너는 +UpdatePipeline.swift로 분리.
 }

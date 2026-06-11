@@ -588,7 +588,7 @@ private final class ProfileNameEditorViewController: UIViewController {
             ?? .systemFont(ofSize: UILayout.profileNameEditFieldFontSize)
         textField.textColor = .ganhoNavyDeep
         textField.tintColor = .ganhoCoralPrimary
-        textField.backgroundColor = UIColor.white.withAlphaComponent(UILayout.glassPillFillAlpha)
+        textField.backgroundColor = UIColor.white.withAlphaComponent(UILayout.profileNameEditFieldFillAlpha)
         textField.clearButtonMode = .whileEditing
         textField.returnKeyType = .done
         textField.layer.cornerRadius = UILayout.profileNameEditFieldCornerRadius
@@ -627,7 +627,7 @@ private final class ProfileNameEditorViewController: UIViewController {
         button.layer.borderColor = UIColor.ganhoNavyDeep
             .withAlphaComponent(UILayout.menuControlStrokeAlpha)
             .cgColor
-        button.backgroundColor = isPrimary ? .ganhoCoralPrimary : UIColor.white.withAlphaComponent(UILayout.glassPillFillAlpha)
+        button.backgroundColor = isPrimary ? .ganhoCoralPrimary : UIColor.white.withAlphaComponent(UILayout.profileNameEditFieldFillAlpha)
         button.setTitleColor(isPrimary ? .ganhoPaper : .ganhoNavyDeep, for: .normal)
         button.heightAnchor.constraint(equalToConstant: UILayout.profileNameEditButtonHeight).isActive = true
     }
@@ -783,7 +783,7 @@ private final class ProfileNameEditorViewController: UIViewController {
         saveButton.isEnabled = enabled
         saveButton.alpha = enabled
             ? UILayout.menuControlEnabledAlpha
-            : UILayout.overlayButtonDisabledAlpha
+            : UILayout.profileNameEditDisabledAlpha
     }
 }
 

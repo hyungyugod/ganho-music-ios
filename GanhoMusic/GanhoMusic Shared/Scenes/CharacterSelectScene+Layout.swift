@@ -65,7 +65,8 @@ extension CharacterSelectScene {
                 )
             let card = PixelCharacterCardNode(
                 characterID: id,
-                portraitTexture: portraitTextures[id] ?? PixelPortraitSprite.texture(for: id),
+                illustrationTexture: illustrationTextures[id]
+                    ?? PixelCharacterCardNode.illustrationTexture(for: id),
                 unlockState: state
             )
             carouselContainer.addChild(card)

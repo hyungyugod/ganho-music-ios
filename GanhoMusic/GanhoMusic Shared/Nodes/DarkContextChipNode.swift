@@ -7,6 +7,8 @@
 //  navy 0.92 배경 + 골드 라벨 + 옵션 코랄 뱃지.
 //  난이도 표시, 브레드크럼, HUD 슬롯, 스킬명 칩에 재사용.
 //  DESIGN_RENEWAL_REQUEST.md §3.3.D.
+//  R8 감사 — 인게임 SkillButton/RunButton 현역(스킬명 칩) — 보존 결정, v3 재구축 비대상
+//  (darkContextChip* 토큰 9종 동반 보존 — SPEC §C-2-마).
 //
 
 import SpriteKit

@@ -13,6 +13,15 @@ extension GameScene {
         // Sprint 10 Phase H — UserDefaults 영구 스킵 제거. 원본 game.js처럼 매 판 Set을 리셋한다.
         cutscenesShown.removeAll()
         #if DEBUG
+        // R8 — T6 일시정지 스크린샷용 자동 일시정지 (simctl 터치 주입 불가 우회 —
+        // GANHO_SKIP_CUTSCENE 전례 동형, 릴리즈 경로 0). GANHO_SKIP_CUTSCENE=1 조합 필수 —
+        // 컷씬 경로면 3초 시점이 .cutscene이라 presentPauseMenu의 .playing 가드가 무시(안전망).
+        // 지연 노드는 cameraNode — worldNode 비소속이라 게임 동결과 무관하게 발화.
+        if ProcessInfo.processInfo.environment["GANHO_AUTO_PAUSE"] == "1" {
+            let wait = SKAction.wait(forDuration: FeelTuning.R8.debugAutoPauseDelay)
+            let pause = SKAction.run { [weak self] in self?.presentPauseMenu() }
+            cameraNode.run(.sequence([wait, pause]))
+        }
         // R6 — 성능 게이트 자동 측정용 컷씬 스킵 (simctl 탭 주입 불가 우회 — GANHO_BOOT_SCENE 전례).
         // 릴리즈 경로 0 영향 (#if DEBUG + env 게이트 이중 격리).
         if ProcessInfo.processInfo.environment["GANHO_SKIP_CUTSCENE"] == "1" {

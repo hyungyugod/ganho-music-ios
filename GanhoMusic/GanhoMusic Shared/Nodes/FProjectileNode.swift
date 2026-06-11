@@ -37,8 +37,8 @@ final class FProjectileNode: SKSpriteNode, Poolable {
     private var isNearMissPulsing = false
 
     // MARK: - Near-miss Bonus Tracking (R7 §F2)
-    /// R7 — 보너스 반경(22px) 진입 여부. GameScene+NearMiss 폴링이 단독 기록자 —
-    /// 비무적 상태 진입 프레임에 set, 반경 밖 이탈 프레임에 1회 보상.
+    /// R7/R8 — 히트박스 가장자리 10px 셸 진입 여부. GameScene+NearMiss 폴링이 단독 기록자 —
+    /// 비무적 상태 진입 프레임에 set, 셸 밖 이탈 프레임에 1회 보상.
     var nearMissEntered: Bool = false
     /// R7 — 보상 부여 완료 (투사체 1개당 1회 상한).
     var nearMissAwarded: Bool = false

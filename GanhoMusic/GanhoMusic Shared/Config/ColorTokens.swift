@@ -251,25 +251,13 @@ extension UIColor {
 
     // MARK: - Sprint 7 Phase C · Difficulty hierarchy
     //
-    // 난이도 3장 카드(하/중/상)에 *색 위계*를 부여하는 6 토큰. 카드 배경 자체가 강도를 전달.
-    // 하=민트 / 중=골드 / 상=코랄 — fillTop(밝은)·deep(짙은) 페어로 그라데이션·stroke 양쪽 커버.
-    // 기존 `.ganhoScrubMint`(#9BE0CC) hex가 EasyMint와 동일하지만 *의미 단위 분리* 위해
-    // `ganhoDifficultyEasyMint` 별도 네이밍 — 호출부에서 "이건 난이도용"이 명확하게.
-    // 모든 hex는 SPRINT_7_REQUEST.md §10 디자인 토큰 표 그대로(byte-identical).
+    // R8 — v2 난이도 카드 6색 중 5색(EasyMint/MidGold/MidDeep/HardCoral/HardDeep)은
+    // 참조 0 실증 후 삭제 (R4 난이도 카드가 Palette.difficulty(_:) v3 토큰으로 대체 완료).
+    // EasyDeep 1색만 잔존 — RunButtonNode(인게임 hold-to-run 버튼)가 현역 사용
+    // (R5 이관 기록 "6색 0참조"는 부정확 — SPEC §문서-코드 불일치 #2).
 
-    /// 하 난이도 카드 밝은 톤. mockup `linear-gradient(160deg, #9BE0CC, #5EBFA3)`의 상단.
-    static let ganhoDifficultyEasyMint   = UIColor(hex: "#9BE0CC")
-    /// 하 난이도 카드 짙은 톤(stroke + 그라데이션 하단).
+    /// 구 하 난이도 카드 짙은 톤 — 현재 RunButtonNode 본체 색 (L28·L97).
     static let ganhoDifficultyEasyDeep   = UIColor(hex: "#5EBFA3")
-    /// 중 난이도 카드 밝은 톤. `linear-gradient(160deg, #FFD27A, #E5A647)`의 상단.
-    static let ganhoDifficultyMidGold    = UIColor(hex: "#FFD27A")
-    /// 중 난이도 카드 짙은 톤.
-    static let ganhoDifficultyMidDeep    = UIColor(hex: "#E5A647")
-    /// 상 난이도 카드 밝은 톤. `linear-gradient(160deg, #FF8E80, #FF6B5B)`의 상단 대응 —
-    /// 기존 ganhoCoralPrimary(#FF6B5B)와 동일 hex이나 *의미 단위 분리*(난이도 lookup용).
-    static let ganhoDifficultyHardCoral  = UIColor(hex: "#FF6B5B")
-    /// 상 난이도 카드 짙은 톤. 기존 ganhoCoralShadow(#C44A3D)와 동일 hex.
-    static let ganhoDifficultyHardDeep   = UIColor(hex: "#C44A3D")
 
     // MARK: - Sprint 7 Phase F · Airforce Sergeant + Stone Guard tonal
     //

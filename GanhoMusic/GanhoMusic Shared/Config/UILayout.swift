@@ -32,8 +32,8 @@ enum UILayout {
     static let ingameHUDReadableAlpha: CGFloat = 0.92
     static let ingameControlReadableAlpha: CGFloat = 0.78
     static let ingameSafeControlPadding: CGFloat = 18
-    static let primaryButtonTextHorizontalPadding: CGFloat = 36
-    static let primaryButtonArrowReservedWidth: CGFloat = 48
+    // R8 — primaryButtonTextHorizontalPadding/ArrowReservedWidth: PrimaryButtonNode 삭제와
+    // 함께 참조 0 실증 후 삭제 (일시정지 v3 재구축 — §C-1).
 
     // MARK: - HUD (Phase 2-4)
     /// HUD 알파 (반투명, 가독성 우선). D-Pad 0.3보다 큼.
@@ -131,18 +131,8 @@ enum UILayout {
     /// 스토리 박스 좌우 패딩 (pt). preferredMaxLayoutWidth = boxWidth - padding×2.
     static let storyBoxHorizontalPadding: CGFloat = 16
 
-    /// 주요 버튼 가로 (pt). 한국어 2~5자 + 여백.
-    static let primaryButtonWidth: CGFloat = 160
-    /// 주요 버튼 세로 (pt). cornerRadius = height/2로 캡슐.
-    static let primaryButtonHeight: CGFloat = 48
-    /// 주요 버튼 폰트 크기 (pt).
-    static let primaryButtonFontSize: CGFloat = 18
-    /// 보조(뒤로) 버튼 가로 (pt). 주요 버튼보다 살짝 좁음 — 시각 위계.
-    static let backButtonWidth: CGFloat = 140
-    /// 보조 버튼 세로 (pt).
-    static let backButtonHeight: CGFloat = 40
-    /// 보조 버튼 폰트 크기 (pt). 주요(18)보다 작음.
-    static let backButtonFontSize: CGFloat = 14
+    // R8 — primaryButtonWidth/Height/FontSize(v2 캡슐 버튼)·최상위 backButtonWidth/Height/
+    // FontSize(R4.backButtonSize와 별개 구 토큰): 참조 0 실증 후 삭제 (§C-1·§C-2-마).
 
     // MARK: - Start Scene Visual (Phase 10-2 · 병동의 새벽 톤)
 
@@ -152,9 +142,10 @@ enum UILayout {
 
 
     // MARK: - v2 Components (Sprint 1)
-    // R5 — v2 알약/액션 버튼 계열 상수는 참조 0 실증 후 삭제. 아래 한 개만 잔존:
-    // ProfileNameEditor(UIKit 모달)의 필드/버튼 배경 α 현역 사용 — R8 리네임 감사 후보.
-    static let glassPillFillAlpha: CGFloat = 0.94
+    // R5 — v2 알약/액션 버튼 계열 상수는 참조 0 실증 후 삭제. 아래 한 개만 잔존.
+    /// R8 리네임 — 구 glassPillFillAlpha (값 byte-불변 0.94). ProfileNameEditor(UIKit 모달)의
+    /// 필드/버튼 배경 α 현역 사용 — 실사용처 기준 명명 (GameViewController 3곳).
+    static let profileNameEditFieldFillAlpha: CGFloat = 0.94
 
     /// DarkContextChipNode 배경 navy α. §3.3.D = 0.92.
     static let darkContextChipBgAlpha: CGFloat = 0.92
@@ -173,18 +164,9 @@ enum UILayout {
     /// DarkContextChipNode 뱃지 세로 inset(pt) — 칩 높이 - inset = 뱃지 높이.
     static let darkContextChipBadgeVerticalInset: CGFloat = 8
 
-    /// PrimaryButtonNode v2 그림자 y 오프셋(pt) — 음수면 아래쪽. §3.3.A = 6 → -6.
-    static let primaryButtonShadowOffsetY: CGFloat = 0
-    /// PrimaryButtonNode v2 그림자 blur(pt).
-    static let primaryButtonShadowBlurRadius: CGFloat = 0
-    /// PrimaryButtonNode v2 우측 화살표 원 반경(pt).
-    static let primaryButtonArrowRadius: CGFloat = 12
-    /// PrimaryButtonNode v2 우측 화살표 우측 마진(pt) — 배경 우측 끝에서 안쪽 거리.
-    static let primaryButtonArrowInsetX: CGFloat = 22
-    /// PrimaryButtonNode v2 우측 화살표 원 화이트 α — 살짝 반투명한 동그라미.
-    static let primaryButtonArrowCircleAlpha: CGFloat = 0.12
-    /// PrimaryButtonNode v2 우측 화살표 라벨 폰트 크기(pt).
-    static let primaryButtonArrowLabelFontSize: CGFloat = 14
+    // R8 — PrimaryButtonNode v2 시각 상수 6종(primaryButtonShadowOffsetY/ShadowBlurRadius/
+    // ArrowRadius/ArrowInsetX/ArrowCircleAlpha/ArrowLabelFontSize): 컴포넌트 삭제와 함께
+    // 참조 0 실증 후 삭제 (§C-1 — 일시정지 v3가 PixelDialog/PixelButton으로 대체).
 
     // MARK: - Tone Down Controls
     static let menuControlFillAlpha: CGFloat = 0.94
@@ -204,8 +186,8 @@ enum UILayout {
     static let authLocalFallbackStatusText: String = "로컬 플레이 가능"
     static let authAppleButtonText: String = "Apple로 연동"
     static let authAppleButtonBusyText: String = "연동 중"
-    static let authManageButtonText: String = "계정"
-    static let authManageButtonBusyText: String = "처리 중"
+    // R8 — authManageButtonText/BusyText 2종: 참조 0 실증 후 삭제 (§C-2-마 — v2 계정
+    // 버튼 잔여 카피, R5 AccountMenuOverlay v3 카피로 대체 완료).
     static let authSignOutSuccessText: String = "게스트로 돌아왔어요"
     static let authAccountDeleteSuccessText: String = "계정 삭제 완료"
     static let authActionCancelledText: String = "취소했어요"
@@ -228,7 +210,9 @@ enum UILayout {
     static let loginChoiceAppleCredentialText: String = "Apple 인증 정보를 다시 확인해 주세요"
 
     // MARK: - Overlay Action Button
-    static let overlayButtonDisabledAlpha: CGFloat = 0.48
+    /// R8 리네임 — 구 overlayButtonDisabledAlpha (값 byte-불변 0.48). ProfileNameEditor
+    /// 저장 버튼 비활성 α 현역 사용 — 실사용처 기준 명명 (GameViewController 1곳).
+    static let profileNameEditDisabledAlpha: CGFloat = 0.48
 
     // MARK: - Account Menu Overlay
     static let accountMenuMenuTitleText: String = "계정 관리"
@@ -252,10 +236,8 @@ enum UILayout {
     static let profileAvatarPhotoFilePrefix: String = "avatar_"
     static let profileAvatarPhotoFileExtension: String = ".jpg"
     static let profileAvatarFileNameSeparator: Character = "_"
-    static let profileAvatarFrameCornerRadius: CGFloat = 14
-    static let profileAvatarFrameLineWidth: CGFloat = 2
-    static let profileAvatarFrameFillAlpha: CGFloat = 0.82
-    static let profileAvatarFrameStrokeAlpha: CGFloat = 0.9
+    // R8 — profileAvatarFrame* 4종(CornerRadius/LineWidth/FillAlpha/StrokeAlpha):
+    // 참조 0 실증 후 삭제 (§C-2-마 — R5 프로필 v3 재구축의 잔여 토큰).
     static let profileAvatarContentInset: CGFloat = 8
     static let profileAvatarSummarySize = CGSize(width: 58, height: 58)
 
@@ -404,15 +386,9 @@ enum UILayout {
     /// 외곽 보더 SKShapeNode cornerRadius(pt).
     static let outerWallBorderCornerRadius: CGFloat = 18
 
-    // MARK: - Adaptive Layout (Sprint 7+ · 디바이스 대응 · iPhone SE ~ Pro Max)
-    /// 화면 하단 안전 마진 — safeArea.bottom 위에 추가로 띄울 여백.
-    /// SceneSafeArea.insets(for:).bottom + adaptiveBottomMargin = 노드 y 최소값.
-    static let adaptiveBottomMargin: CGFloat = 24
-    /// 화면 상단 안전 마진 — safeArea.top 아래에 추가로 띄울 여백.
-    static let adaptiveTopMargin: CGFloat = 16
-    /// 화면 좌우 안전 마진(노치/Dynamic Island 영역 회피).
-    /// Landscape에서 노치가 한쪽(또는 양쪽)을 침범 — 카드 spacing 계산의 입력값.
-    static let adaptiveHorizontalMargin: CGFloat = 20
+    // MARK: - Adaptive Layout (Sprint 7+ · 디바이스 대응)
+    // R8 — adaptiveBottomMargin/TopMargin/HorizontalMargin 3종: 참조 0 실증 후 삭제
+    // (§C-2-마 — safeArea 회피는 SceneSafeArea + 각 씬 layout이 v3ScreenEdgeInset으로 담당).
 
     // MARK: - Scoreboard 카피 (R5 — v2 레이아웃 수치 전부 삭제, 재사용 카피 텍스트만 잔존)
     /// 테이블 패널 헤더 제목 텍스트.

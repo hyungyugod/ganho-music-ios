@@ -63,6 +63,22 @@ extension ResultScene {
         }
     }
 
+    // MARK: - XP 파생 (기존 영속값에서만, 신규 저장 0. +Reveal(revealXP)도 호출 — internal)
+    // stats는 "이번 판 반영 후 값" 주입(기존 계약) — 직전 XP = totalScore - finalScore.
+    // R8 §B③ — +Reveal에서 이동 (300줄 위생 — 코드 이동만, 로직 0 변경).
+    func xpSnapshot() -> (progressStart: CGFloat, progressEnd: CGFloat,
+                          levelAfter: Int, didLevelUp: Bool) {
+        let xpAfter = stats.totalScore
+        let xpBefore = max(0, xpAfter - finalScore)
+        let levelBefore = MetaProgression.level(forXP: xpBefore)
+        let levelAfter = MetaProgression.level(forXP: xpAfter)
+        let didLevelUp = levelAfter > levelBefore
+        // 레벨업이면 새 구간 0부터 차오름 — 다중 레벨업도 최종 레벨 구간만 표시.
+        let progressStart = didLevelUp ? 0 : MetaProgression.levelProgress(forXP: xpBefore)
+        let progressEnd = MetaProgression.levelProgress(forXP: xpAfter)
+        return (progressStart, progressEnd, levelAfter, didLevelUp)
+    }
+
     private func buildButtons() {
         let retry = PixelButtonNode(title: UILayout.R5.resultRetryButtonText, variant: .primary,
                                     size: UILayout.R4.ctaButtonSize, haptics: haptics)

@@ -93,10 +93,8 @@ extension UILayout {
         static let profileChipFallbackText: String = "프로필"
 
         // MARK: PixelCharacterCardNode (§D 신규 컴포넌트)
-        /// 카드 내 24×24 포트레이트 표시 한 변 (×3 정수 배율 = 72pt).
-        static let cardPortraitSide: CGFloat = 72
-        /// 포트레이트 중심 y (카드 좌표).
-        static let cardPortraitOffsetY: CGFloat = 40
+        // R8 — 구 24×24 포트레이트 표시 토큰(cardPortraitSide 72/cardPortraitOffsetY 40)은
+        // 일러스트 교체(UILayout.R8.cardIllustration*)로 참조 0 실증 후 삭제.
         /// 이름 라벨 중심 y (카드 좌표).
         static let cardNameOffsetY: CGFloat = -28
         /// 칩 중심 y (카드 좌표).
