@@ -123,6 +123,22 @@ final class SkillBriefingScene: BaseMenuScene {
         quoteBlock.zPosition = PanelInnerZ.content
         panel.addChild(quoteBlock)
         layoutChips(in: panel)
+        addNearMissTip(to: panel)
+    }
+
+    /// R12 #11 — near-miss 기준 안내 팁 1줄 (칩 행 아래 caption). 실효과 = 콤보 타이머 연장
+    /// → "콤보가 이어집니다" 표현 ("점수" 표현 금지 — SPEC 기능 6). 김간호(.none)는 본 씬
+    /// 도달 불가 — 미노출 한계 수용 (백로그 1안 그대로).
+    private func addNearMissTip(to panel: PixelPanelNode) {
+        let tip = SKLabelNode(fontNamed: Typography.V3.caption.fontName)
+        tip.text = UILayout.R12.briefingTipText
+        tip.fontSize = Typography.V3.caption.size
+        tip.fontColor = Palette.textLo
+        tip.horizontalAlignmentMode = .center
+        tip.verticalAlignmentMode = .center
+        tip.position = CGPoint(x: 0, y: UILayout.R12.briefingTipOffsetY)
+        tip.zPosition = PanelInnerZ.content
+        panel.addChild(tip)
     }
 
     /// 인용문 블록 — 좌측 3px 액센트 바 + prose 줄간 1.45 (P2 ② lineHeightMultiplier 실사용 배선).

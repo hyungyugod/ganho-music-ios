@@ -111,6 +111,9 @@ extension GameScene {
             return
         }
         lastNearMissFeedbackAt = lastUpdateTime
+        // R12 [B③] — "아슬!" SFX (square 상행 글라이드 C6→G6, 80ms). 0.25s 쿨다운 게이트
+        // *내부* — 부채꼴 동시 통과 스팸 가드 자동 적용 (02 §6 동반 갱신).
+        synth.play(.nearMiss)
         // 기존 ToastLabelNode 재사용 (신규 텍스처 생성 금지) — 자가 소멸 노드라 좀비 0.
         ToastLabelNode.spawn(
             text: UILayout.R7.nearMissPopupText,

@@ -28,6 +28,7 @@ struct ResultReturnContext {
     /// 복귀 재생성용 runMeta — effectiveTarget(verdict 정합)은 보존, 1회성 표시 플래그
     /// (일일 클리어·신규 업적·R7 신규 해금)만 소거 (isNewGraduation: false 전례와 같은 정책).
     /// R7 §F5/F6 — 토스트·배너 재발화 0 보장 지점.
+    /// R12 #9 — comboBreaks/toiletsCollected는 1회성 연출이 아닌 판 통계 → *보존* (소거 비대상).
     var runMetaForReturn: RunMetaOutcome? {
         guard let meta = runMeta else { return nil }
         return RunMetaOutcome(
@@ -38,7 +39,9 @@ struct ResultReturnContext {
             isDailyFirstClear: false,
             newAchievements: [],
             newlyUnlockedCharacters: [],
-            totalStars: meta.totalStars
+            totalStars: meta.totalStars,
+            comboBreaks: meta.comboBreaks,
+            toiletsCollected: meta.toiletsCollected
         )
     }
 }

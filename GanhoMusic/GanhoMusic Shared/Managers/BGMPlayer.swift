@@ -31,6 +31,9 @@ final class BGMPlayer {
     /// 게임 미진입/gameOver 후/음원 부재 등 *원래 안 울리던* 상황은 false 유지.
     /// Spring `@Stateful`(혹은 scope=session 빈)의 짧은 변형 — 라이프사이클 페어를 잇는 일회용 메모.
     private var shouldResumeOnForeground: Bool = false
+    /// R12 [A④] — 설정 게이트 (이벤트 시점 조회만 — ChiptuneSynth.play 동형).
+    /// init의 음원 로드는 설정 *무관* 수행 — 재토글 즉시 복귀 (사전 렌더 보존 컨벤션 동형).
+    private let settings = SettingsRepository()
 
     // MARK: - Init
     /// bgm.m4a 로딩 시도 → 성공 시 카테고리 .playback + .mixWithOthers로 덮어쓰기 + 무한 루프 설정.
@@ -107,6 +110,8 @@ final class BGMPlayer {
     /// player가 있고 재생 중이 아니면 페이드 인으로 시작. 이미 재생 중이면 noop(중복 호출 안전).
     /// Phase 6-5 — volume 0에서 시작해 FeelTuning.bgmFadeInDuration(1.5s)에 걸쳐 1.0까지 보간.
     func play() {
+        // R12 [A④] — BGM 설정 off면 무음 return (인터럽션/포그라운드 resume() 경유 포함).
+        guard settings.isBGMEnabled else { return }
         guard let player = player else { return }
         if player.isPlaying { return }              // 6-4 중복 재생 가드 유지
 

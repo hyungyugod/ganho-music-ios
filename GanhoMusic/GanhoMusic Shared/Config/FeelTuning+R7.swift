@@ -4,6 +4,7 @@
 //
 //  R7 페이싱·콘텐츠 튜닝 (02_GAME_FEEL §8) — 웨이브 마커 3종·near-miss 보너스·콤보 게이지·
 //  리스크 가속 + 메타 보상 연출(F5/F6 토스트) 타이밍. R5 네임스페이스 컨벤션 답습.
+//  R12 #10 — 첫 압박 마커 10→5s retune (사용자 기승인·02 §8 동반 갱신).
 //
 
 import Foundation
@@ -12,9 +13,12 @@ import CoreGraphics
 extension FeelTuning {
     /// R7 페이싱 튜닝 토큰 네임스페이스. case 없는 enum — 인스턴스화 차단.
     enum R7 {
-        // MARK: 웨이브 마커 3종 (02 §8 — 10s / 25s / 38s)
-        /// ① 10s 첫 압박 — 발사 간격 보간 가속 시작점 (elapsed 초).
-        static let waveFirstPressureElapsed: TimeInterval = 10
+        // MARK: 웨이브 마커 3종 (02 §8 — 5s / 25s / 38s — R12 #10 첫 마커 10→5 retune)
+        /// ① 5s 첫 압박 — 발사 간격 보간 가속 시작점 (elapsed 초).
+        /// R12 #10 — 10 → 5 (−50%, ±20% 초과): 사용자 기승인 + 02 §8 동반 갱신 경로 수행.
+        /// 시작 간격·초반 밀도는 그대로 — *가속 시작 시점만* 앞당김 (easy 첫 5초 학습 창 보존,
+        /// 보간 구간 35s→40s로 늘어 중반 기울기는 오히려 완만 — 후반 종값 불변).
+        static let waveFirstPressureElapsed: TimeInterval = 5
         /// ② 25s 중반 피크 — 동시 음표 *실효 캡* +1 시작점 (elapsed 초).
         /// 스폰 틱당 발수 증가 아님 — SPEC §문서-코드 불일치 #3 해석 확정.
         static let waveMidPeakElapsed: TimeInterval = 25
@@ -24,8 +28,8 @@ extension FeelTuning {
         /// (= gameDuration 45 − 38) — 본 상수는 산정 근거 봉인용 (tensionWindow 주석이 참조).
         static let waveLastSpurtElapsed: TimeInterval = 38
 
-        /// ① 발사 간격 보간 *전용* pacing — elapsed < 10s 동안 0, 10s→45s 구간 0→1 선형.
-        /// `clamp((elapsed − 10) / (45 − 10))` 동치 — gameDuration 상수 참조 (하드코딩 45 금지).
+        /// ① 발사 간격 보간 *전용* pacing — elapsed < 5s 동안 0, 5s→45s 구간 0→1 선형 (R12 #10).
+        /// `clamp((elapsed − 5) / (45 − 5))` 동치 — gameDuration 상수 참조 (하드코딩 45 금지).
         /// 적용처는 EnemyNode(F)·ProfessorNode(청진기) *간격 산식 2곳뿐* — 투사체 속도 곡선
         /// (EnemyNode.fireF의 obs lerp)·플레이어 속도 곡선은 raw 진행률 유지
         /// (SPEC §F1 적용 제외 + 주의 3: progressProvider 공유 함정 — provider 자체 변형 금지).

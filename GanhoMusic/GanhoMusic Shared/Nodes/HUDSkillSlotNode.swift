@@ -117,7 +117,9 @@ final class HUDSkillSlotNode: SKNode {
             return  // 김간호: 항상 빈 슬롯 — configure에서 set한 상태 유지.
         }
 
-        // charmStudent + usedThisGame: SkillSystem이 progress=0.0 반환 → 1회 소진 시각.
+        // oncePerGame 소진(USED) 시각 — R12 #5: charmStudent 쿨다운제 전환으로 현재 도달
+        // 스킬 0 (oncePerGame 전부 false → 가드 자연 미통과). 분기는 미래 oncePerGame 스킬
+        // 대비 보존 — SkillSystem.usedThisGame 인프라와 쌍 (SPEC 기능 1-5 봉인).
         // Sprint 10 Phase J — dim 텍스트 .white → ganhoPixelHudWhite swap.
         if currentSkill.oncePerGame, progress <= 0 {
             // 1회 소진: ring 채움 0, value dim "USED".

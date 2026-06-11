@@ -108,7 +108,8 @@ extension UILayout {
         /// 콘텐츠(카드·패널) 중심의 midY 기준 y 오프셋.
         static let briefingContentCenterYOffset: CGFloat = 28
         /// 우측 브리핑 패널 크기 (PixelPanelNode size).
-        static let briefingPanelSize = CGSize(width: 432, height: 264)
+        /// R12 #11 — 높이 264→288 (+9%, ±20% 내 허용): near-miss 팁 1줄(-124) 하단 수납.
+        static let briefingPanelSize = CGSize(width: 432, height: 288)
         /// 우측 패널 중심 x — 화면 폭 비율.
         static let briefingPanelCenterXRatio: CGFloat = 0.65
         /// 패널 헤더 제목 텍스트 (03_UI §6-3 "작전 브리핑").

@@ -284,10 +284,14 @@ enum FeelTuning {
     static let comboPopupTextMilestone20: String = "x20 MAX"
     static let scorePopupTextComboSuffix: String = "COMBO"
 
-    // MARK: - Profile Name Editor — Keyboard Avoidance (신규)
-    /// 사용자 요청에 따라 BGM은 번들에 있어도 재생하지 않는다.
-    static let isBGMEnabled: Bool = false
+    // MARK: - BGM Master Switch (R12 [A] — 기본 활성화)
+    /// BGM 컴파일 타임 마스터 스위치. R12 [A] — bgm.m4a 번들 탑재와 함께 true 전환
+    /// (구 "번들에 있어도 재생하지 않는다" 정책 폐기 — 음악 게임 정체성의 마지막 빈칸).
+    /// 런타임 on/off는 SettingsRepository.isBGMEnabled(설정 토글)가 담당 — BGMPlayer.play() 게이트.
+    /// 게임 정체성 = 사용자 자작곡: bgm.m4a *파일 교체만으로* 곡 교체 가능 (코드에 BPM/길이 의존 0).
+    static let isBGMEnabled: Bool = true
 
+    // MARK: - Diploma Overlay (Phase 7-4 — 증서 시각. 구 오배치 MARK 정리 — R12 불일치 #2)
     /// 졸업장 배경(.ganhoYellowF) 반투명 alpha. 0.92 = 거의 불투명이지만 살짝 비침으로 *증서 종이* 톤.
     /// cutsceneBackgroundAlpha(어두운 톤)와 의도적으로 다른 값 — 증서의 *밝고 견고한* 인상.
     static let diplomaBackgroundAlpha: CGFloat = 0.92

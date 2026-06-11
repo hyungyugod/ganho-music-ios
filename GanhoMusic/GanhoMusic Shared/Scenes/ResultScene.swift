@@ -43,6 +43,9 @@ final class ResultScene: BaseMenuScene {
     var contextChip: PixelChipNode?
     var comboChip: PixelChipNode?
     var notesChip: PixelChipNode?
+    // R12 #9 — 통계 칩 2종 (runMeta 있을 때만 생성 — nil = 노드 미생성, 좀비 금지).
+    var breaksChip: PixelChipNode?
+    var toiletsChip: PixelChipNode?
     var recordChip: PixelChipNode?
     var levelUpChip: PixelChipNode?
     // R6 §F6 — 시퀀스 완료 후 정적 칩 2종 (해당 없으면 노드 미생성 — 좀비 금지).
@@ -171,13 +174,18 @@ final class ResultScene: BaseMenuScene {
                                             y: UILayout.R6.resultAchievementChipOffsetY)
     }
 
-    private func layoutMetaChips() {   // 콤보·수집 칩 행 중앙 정렬
-        guard let combo = comboChip, let notes = notesChip else { return }
+    private func layoutMetaChips() {   // 콤보·수집(+R12 끊김·변기) 칩 행 중앙 정렬 — 최대 4칩
+        // R12 #9 — 2칩 고정 산식 → 가변 행 일반화 (runMeta nil이면 기존 2칩과 좌표 동일).
+        let chips = [comboChip, notesChip, breaksChip, toiletsChip].compactMap { $0 }
+        guard !chips.isEmpty else { return }
         let gap = UILayout.R5.resultMetaChipGap
-        let total = combo.chipSize.width + gap + notes.chipSize.width
+        let total = chips.reduce(0) { $0 + $1.chipSize.width } + gap * CGFloat(chips.count - 1)
         let rowY = UILayout.R5.resultMetaChipRowOffsetY
-        combo.position = CGPoint(x: (-total / 2 + combo.chipSize.width / 2).rounded(), y: rowY)
-        notes.position = CGPoint(x: (total / 2 - notes.chipSize.width / 2).rounded(), y: rowY)
+        var cursorX = -total / 2
+        for chip in chips {
+            chip.position = CGPoint(x: (cursorX + chip.chipSize.width / 2).rounded(), y: rowY)
+            cursorX += chip.chipSize.width + gap
+        }
     }
 
     private func layoutButtons(scale: CGFloat) {   // 하단 버튼 행 — R4 bottomCTAAnchorY 패턴

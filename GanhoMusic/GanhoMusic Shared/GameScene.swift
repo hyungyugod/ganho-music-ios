@@ -121,6 +121,11 @@ class GameScene: SKScene {
     var halfScoreMilestoneShown: Bool = false
     /// 목표-10점(B) 마일스톤 1회 발화 가드. 새 GameScene 인스턴스에서 자동 false 리셋.
     var nearTargetMilestoneShown: Bool = false
+    /// R12 #7 — 목표 달성(C) 마일스톤 1회 발화 가드. halfScoreMilestoneShown 패턴 답습.
+    var goalAchievedMilestoneShown: Bool = false
+
+    /// R12 [B④] — 게임 종료 원인. endGame(cause:) 기본값 .death — 기존 호출처 무변경.
+    enum GameEndCause { case death, timeUp }
 
     /// Sprint 10 Phase H — 한 판 내 발화된 컷씬 ID Set (원본 game.js `state.cutscenesShown`와 byte-equal).
     /// 5종 컷씬 모두 *매 판 1회* 발화 정책 — UserDefaults 영구 스킵 X. 새 GameScene 인스턴스에서 자동 비어 시작.
@@ -148,14 +153,8 @@ class GameScene: SKScene {
     /// factory 기본 인자가 DailyChallengeSession에서 해석 — 명시 주입 가능 형태 유지 (테스트·부팅 분기).
     let dailyModifier: DailyModifier?
 
-    /// R6 §F1/F7 — 이번 판 실효 목표의 *단일 공급점*. 음표 러시면 ×1.3 ceil, 아니면 라이브 목표.
-    /// 마일스톤 배너·졸업 판정·RunSummary·ResultScene verdict가 전부 이 값 경유 (모순 0 계약).
-    var effectiveTargetScore: Int {
-        let base = GameplayTuning.targetScoreByDifficulty[difficulty]
-            ?? GameplayTuning.targetScoreByDifficultyFallback
-        guard dailyModifier == .noteRush else { return base }
-        return Int((Double(base) * MetaTuning.noteRushTargetMultiplier).rounded(.up))
-    }
+    // R12 — effectiveTargetScore(실효 목표 단일 공급점)는 +UpdatePipeline.swift로 이동:
+    // DEBUG env(GANHO_DEBUG_TARGET_SCORE) 오버라이드 동거 + 본체 300줄 위생 (코드 이동만).
 
     // MARK: - Init
     /// Phase 7-1 — characterID + difficulty 주입형 init. newGameScene factory가 호출.
@@ -255,7 +254,7 @@ class GameScene: SKScene {
         // 이번 프레임의 player/카메라/HUD 갱신은 건너뛴다.
         remainingTime = max(0, remainingTime - dt)
         if remainingTime <= 0 {
-            endGame()
+            endGame(cause: .timeUp)   // R12 [B④] — 시간 만료 종료 (성공 분기는 endGame이 판정)
             return
         }
 

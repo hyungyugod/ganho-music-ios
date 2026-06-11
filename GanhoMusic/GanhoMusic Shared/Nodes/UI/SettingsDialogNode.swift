@@ -99,6 +99,22 @@ final class SettingsDialogNode: SKNode {
     private func buildSettings() {
         addHeader(title: UILayout.R9.settingsTitleText)
 
+        // R12 [A④] — BGM 토글 (효과음/진동 동형 재생성 패턴). BGMPlayer.play() 게이트가 소비,
+        // 인게임 라이브 반영은 dismissPauseMenu 복귀 시 재평가 1곳 (SPEC 기능 9-5).
+        let bgmOn = settings.isBGMEnabled
+        let bgmButton = PixelButtonNode(
+            title: bgmOn ? UILayout.R12.settingsBGMOnText : UILayout.R12.settingsBGMOffText,
+            variant: bgmOn ? .secondary : .ghost,
+            size: UILayout.R9.settingsToggleButtonSize,
+            haptics: haptics
+        )
+        bgmButton.onTap = { [weak self] in
+            guard let self = self else { return }
+            self.settings.setBGMEnabled(!self.settings.isBGMEnabled)
+            self.reconfigure(mode: .settings)
+        }
+        layoutRow([bgmButton], y: UILayout.R12.settingsBGMRowY)
+
         // 효과음 토글 — 탭 시 값 반전 + 행 재생성 (불변 스타일 PixelButtonNode 정석).
         let sfxOn = settings.isSFXEnabled
         let sfxButton = PixelButtonNode(

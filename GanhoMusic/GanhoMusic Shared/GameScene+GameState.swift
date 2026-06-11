@@ -105,6 +105,14 @@ extension GameScene {
         runButton.isUserInteractionEnabled = pauseStoredRunInteractionEnabled
         lastUpdateTime = 0
         gameState = .playing
+        // R12 [A⑤] — 복귀 시 BGM 설정 재평가 (인게임 설정은 일시정지 메뉴 경유뿐 — 이 1곳으로
+        // 충분). OFF → 페이드 정지 / ON → play()의 isPlaying·설정·음원 부재 가드가 멱등 처리
+        // (AVAudioPlayer stop 후 play = 위치 이어재생 — 수용, SPEC 기능 9-5).
+        if SettingsRepository().isBGMEnabled {
+            bgm.play()
+        } else {
+            bgm.stop()
+        }
     }
 
     func exitToMainMenu() {
@@ -144,13 +152,20 @@ extension GameScene {
         SceneRouter.present(scene, on: view, route: .backward)
     }
 
-    func endGame() {
+    func endGame(cause: GameEndCause = .death) {
         if gameState == .gameOver { return }
         gameState = .gameOver
-        // R2 — 게임오버 햅틱 v2(transient 1.0 + continuous 0.5/0.3s) + 피격 voice(noise+square 하강).
-        // 피격 연출(히트스톱 램프/strong 셰이크/킥/deathBurst)은 호출 직전의 피격 피드백 함수가 담당.
-        haptics.gameOver()
-        synth.play(.hit)
+        // R12 [B④] — 시간 만료 *성공* 종료만 밝은 졸업 스팅어 + 마일스톤급 햅틱 (성공 판에
+        // 피격음 부조화 해소). .death·.timeUp 실패는 기존 분기 byte-동일.
+        if cause == .timeUp && scoreSystem.score >= effectiveTargetScore {
+            haptics.milestone()
+            synth.play(.graduationSting)
+        } else {
+            // R2 — 게임오버 햅틱 v2(transient 1.0 + continuous 0.5/0.3s) + 피격 voice(noise+square 하강).
+            // 피격 연출(히트스톱 램프/strong 셰이크/킥/deathBurst)은 호출 직전의 피격 피드백 함수가 담당.
+            haptics.gameOver()
+            synth.play(.hit)
+        }
         bgm.stop()
         hud.stopTensionBlink()
         tensionVignette?.removeFromParent()

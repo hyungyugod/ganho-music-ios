@@ -12,6 +12,9 @@ extension GameScene {
     func configureContactRouter() {
         contactRouter.onEnemyHit = { [weak self] in
             guard let self = self else { return }
+            // R12 P2-1 — 비-playing(.cutscene 동결 등) 중 치명 접촉 차단: 석조무사 접촉과
+            // 치명 접촉이 같은 물리 스텝 동시 발생 → 컷씬 중 endGame 진입 엣지 봉쇄 (R11 이관).
+            guard self.gameState == .playing else { return }
             if self.player.isInvulnerable { return }
             self.playBodyHitFeedback()
             self.endGame()
@@ -19,6 +22,9 @@ extension GameScene {
 
         contactRouter.onProjectileHitPlayer = { [weak self] node in
             guard let self = self else { return }
+            // R12 P2-1 — onEnemyHit과 동일 가드. enchanted A 수집 분기도 비-playing 중
+            // 차단됨 — 동결 중 점수 가산 차단은 의도된 강화 (SPEC 기능 7).
+            guard self.gameState == .playing else { return }
             if let projectile = node as? FProjectileNode, projectile.isEnchanted {
                 self.scoreSystem.recordCharmedNoteHit()
                 self.haptics.light()

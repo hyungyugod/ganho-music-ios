@@ -17,7 +17,7 @@ enum PlayerSkill {
     case none           // 김간호 — 스킬 없음 (정공법 정체성)
     case dashClimb      // 정간호 — 암벽등반 돌진
     case bookClubRally  // 건간호 — 북클럽 소집
-    case charmStudent   // 임간호 — 나는야 모범생 (게임당 1회)
+    case charmStudent   // 임간호 — 나는야 모범생 (쿨다운 20초 — R12 #5 게임당 1회→쿨다운제)
     case taiwanTrip     // 이간호 — 대만여행 (텔레포트)
 }
 
@@ -37,14 +37,14 @@ extension PlayerSkill {
     }
 
     /// 스킬 쿨다운(초). 발동 직후부터 카운트 다운.
-    /// .charmStudent는 oncePerGame이지만 시그니처 일관성 위해 `.infinity` 반환.
+    /// R12 #5 — .charmStudent도 쿨다운제(20초) — 구 `.infinity`(게임당 1회) 폐기.
     /// .none은 0 — 발동 자체가 없으므로 의미는 없으나 division-by-zero 회피 위해 1 반환.
     var cooldown: TimeInterval {
         switch self {
         case .none:           return 1  // division-by-zero 회피 sentinel (실제 발동 없음)
         case .dashClimb:      return GameplayTuning.dashClimbCooldown
         case .bookClubRally:  return GameplayTuning.bookClubRallyCooldown
-        case .charmStudent:   return .infinity  // 게임당 1회 — 진행률 영원 0
+        case .charmStudent:   return GameplayTuning.charmStudentCooldown  // R12 #5 — 20초
         case .taiwanTrip:     return GameplayTuning.taiwanTripCooldown
         }
     }
@@ -62,14 +62,15 @@ extension PlayerSkill {
         }
     }
 
-    /// 게임당 1회만 발동 가능한가? `.charmStudent`만 true.
-    /// SkillSystem.tryActivate에서 usedThisGame 가드와 함께 사용.
+    /// 게임당 1회만 발동 가능한가? R12 #5 — charmStudent 쿨다운제 전환으로 현재 true case 0.
+    /// 메커니즘(SkillSystem.usedThisGame 가드)은 미래 oncePerGame 스킬 대비 보존 — 제거가
+    /// 변경 표면이 더 큼 (SPEC 기능 1-5 봉인).
     var oncePerGame: Bool {
         switch self {
         case .none:           return false
         case .dashClimb:      return false
         case .bookClubRally:  return false
-        case .charmStudent:   return true
+        case .charmStudent:   return false  // R12 #5 — 쿨다운 20초로 전환
         case .taiwanTrip:     return false
         }
     }
@@ -82,7 +83,7 @@ extension PlayerSkill {
         case .none:           return ""
         case .dashClimb:      return "바라보는 방향으로 4타일 고속 돌진. 경로의 음표를 쓸어담고 주변 F를 지운다. 착지 시 충격파로 둘레 F까지 정화하며 잠시 무적. 쿨다운 22초."
         case .bookClubRally:  return "주변 8타일 안 음표·A를 넓게 끌어와 수집하고, 같은 범위의 F를 한 번에 터뜨려 안전지대를 만든다. 쿨다운 20초."
-        case .charmStudent:   return "수간호사를 4초간 매혹. F 대신 A 투척(수집 시 점수 2배). 발동 시 화면이 흔들린다. 게임당 1회."
+        case .charmStudent:   return "수간호사를 4초간 매혹. F 대신 A 투척(수집 시 점수 2배). 발동 시 화면이 흔들린다. 쿨다운 20초."
         case .taiwanTrip:     return "현재 위치의 반대 대각선 방향으로 순간이동. 출발·착지 양쪽 F를 지우고 착지 주변 음표를 흡수하며 1.6초 무적. 쿨다운 22초."
         }
     }
@@ -100,7 +101,7 @@ extension PlayerSkill {
     }
 
     /// Sprint 2 — 스킬 *발동 타입* 라벨. duration=0은 "즉발", 그 외는 "N초".
-    /// `.charmStudent`는 게임당 1회 + duration이 있는 매혹 시간 → "지속 \(duration)초" 톤이 어울리지만
+    /// `.charmStudent`는 duration이 있는 매혹 시간 → "지속 \(duration)초" 톤이 어울리지만
     /// SPEC §K4는 duration 0이 아니면 "\(duration)초" 표기를 요청 → 그대로 따른다.
     var castText: String {
         switch self {

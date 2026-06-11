@@ -196,7 +196,7 @@ final class ProfessorNode: SKSpriteNode, PixelPositionDeltaAnimating {
     }
 
     /// 현재 게임 진행률에 따른 청진기 발사 주기 (보간). 시작 3.2초 → 끝 2.1초.
-    /// R7 §F1-① — EnemyNode와 동일 pacing (10s까지 시작값 유지, 10s→45s 선형).
+    /// R7 §F1-① — EnemyNode와 동일 pacing (5s까지 시작값 유지, 5s→45s 선형 — R12 #10 retune).
     /// 이교수의 progressProvider 사용처는 간격 산식뿐 — 속도 곡선 부작용 0.
     private func currentThrowInterval() -> TimeInterval {
         let progress = FeelTuning.R7.pacedFireProgress(progressProvider())

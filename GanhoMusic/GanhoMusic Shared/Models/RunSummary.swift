@@ -54,4 +54,9 @@ struct RunMetaOutcome {
     let newlyUnlockedCharacters: [CharacterID]
     /// 기록 반영 후 총 별 (0...45) — 언락 진행 가시화.
     let totalStars: Int
+    /// R12 #9 — 결과창 통계 칩 "끊김 n회". RunSummary.comboBreaks 복사 (recordRun).
+    /// 1회성 연출 아님 — ResultReturnContext.runMetaForReturn이 *보존* (소거 비대상).
+    let comboBreaks: Int
+    /// R12 #9 — 결과창 통계 칩 "변기 n개". RunSummary.toiletsCollected 복사 — 보존 동일.
+    let toiletsCollected: Int
 }

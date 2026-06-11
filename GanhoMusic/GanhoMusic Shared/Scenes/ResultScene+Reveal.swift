@@ -121,9 +121,11 @@ extension ResultScene {
         scoreLabel.text = "\(finalScore)"
     }
 
-    private func revealMetaChips(animated: Bool) {   // 콤보·수집 칩 — 점수와 함께 fade-in 등장
+    private func revealMetaChips(animated: Bool) {   // 콤보·수집(+R12 통계 2종) 칩 — 점수와 함께 fade-in
         guard let combo = comboChip, let notes = notesChip, combo.parent == nil else { return }
-        for chip in [combo, notes] {
+        // R12 #9 — 끊김/변기 칩은 runMeta 있을 때만 생성됨 (compactMap — nil이면 기존 2칩 동일).
+        let chips = [combo, notes] + [breaksChip, toiletsChip].compactMap { $0 }
+        for chip in chips {
             contentNode.addChild(chip)
             if animated {
                 chip.alpha = 0

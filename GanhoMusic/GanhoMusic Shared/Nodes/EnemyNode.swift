@@ -39,6 +39,11 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
     private var patrolSpeed: CGFloat = GameplayTuning.nurseChiefPatrolSpeedDefault
     /// 현재 향하는 waypoint 인덱스. selectInitialWaypoint가 시작 인덱스를 결정.
     private var currentWaypointIndex: Int = 0
+    /// R12 #6 — 순회 방향 (+1 정방향 / −1 역방향). waypoint 도달 프레임에서만 반전 (코너 한정).
+    private var patrolDirection: Int = 1
+    /// R12 #6 — 마지막 반전 이후 누적 패트롤 경과 (초). flee 중에는 미누적
+    /// (SPEC §기능 2 — 반전 타이머는 flee 동안 진행 여부 무관, 단순 누적 허용).
+    private var patrolReversalElapsed: TimeInterval = 0
 
     /// 텔레그래프 상태 머신. idle → telegraph → (firing → idle). firing은 transient 1프레임.
     private enum ThrowState { case idle, telegraph, firing }
@@ -319,10 +324,12 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
         }
     }
 
-    // MARK: - Patrol (Sprint 10 Phase D)
+    // MARK: - Patrol (Sprint 10 Phase D / R12 #6 — 주기적 순회 방향 반전)
     /// 현재 waypoint를 향해 patrolSpeed로 이동. 도달 시(dist <= step) snap + 다음 waypoint로 진행.
     /// 빈 배열(apply 누락) → velocity=.zero 정지 (graceful fallback).
-    /// 4지점 사각 순환 — currentWaypointIndex = (idx + 1) % count → 무한 루프.
+    /// R12 #6 — 고정 순서 무한 순환(완전 예측 가능)에 12초 주기 방향 반전 추가:
+    /// 주기 경과 후 *첫 waypoint 도달 프레임*에서만 ±1 토글 — 세그먼트 중간 급반전 금지
+    /// (수간호사 접촉=즉사 → 코너 한정 반전이 공정). waypoint 좌표·속도·텔레그래프 diff 0.
     /// Sprint 10 Phase G — isFleeing 진입 가드. AIRFORCE 이스터에그 도주 중에는 patrol velocity 덮어쓰기 0
     /// (startFleeing이 부여한 단위벡터 × fleeSpeed velocity 유지).
     private func updatePatrol(dt: TimeInterval) {
@@ -331,6 +338,7 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
             physicsBody?.velocity = .zero
             return
         }
+        patrolReversalElapsed += dt
         let target = patrolWaypoints[currentWaypointIndex]
         let dx = target.x - position.x
         let dy = target.y - position.y
@@ -340,7 +348,20 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
             // 도달 — 정확히 snap 후 정지, 다음 waypoint 인덱스 진행.
             position = target
             physicsBody?.velocity = .zero
-            currentWaypointIndex = (currentWaypointIndex + 1) % patrolWaypoints.count
+            // R12 #6 — 반전 판정 (도달 프레임 한정). 2점 왕복(easy)은 반전해도 동일 경로 →
+            // waypoint 수 ≥ 3 기하 판정으로 자연 제외 (normal/hard만 — difficulty 분기 0).
+            if patrolWaypoints.count >= GameplayTuning.nurseChiefPatrolReversalMinWaypoints,
+               patrolReversalElapsed >= GameplayTuning.nurseChiefPatrolReversalInterval {
+                patrolReversalElapsed = 0
+                patrolDirection = -patrolDirection
+                #if DEBUG
+                // G12 검증용 발화 로그 — 릴리즈 미포함 ([NearMiss] 전례 동형).
+                print("[NursePatrol] 순회 방향 반전 → \(patrolDirection > 0 ? "정방향" : "역방향")")
+                #endif
+            }
+            let count = patrolWaypoints.count
+            // 음수 모듈러 보정 — patrolDirection = -1일 때도 0..<count 보장.
+            currentWaypointIndex = ((currentWaypointIndex + patrolDirection) % count + count) % count
         } else {
             let unitX = dx / dist
             let unitY = dy / dist
@@ -396,7 +417,8 @@ final class EnemyNode: SKSpriteNode, PixelCharacterAnimating {
 
     /// telegraph/firing → idle 전이. 텔레그래프 노드 제거 + 다음 throwTimer lerp 계산.
     /// progressProvider() 호출 — 게임 진행률 ↑ 시 throwTimer ↓ (긴박감 증가).
-    /// R7 §F1-① — 발사 *간격* 보간에만 pacing 적용: 10s까지 시작값 유지, 10s→45s에서 0→1 선형.
+    /// R7 §F1-① — 발사 *간격* 보간에만 pacing 적용: 5s까지 시작값 유지, 5s→45s에서 0→1 선형
+    /// (R12 #10 — 첫 압박 마커 10→5s, FeelTuning.R7.waveFirstPressureElapsed가 진실).
     /// 투사체 속도 곡선(fireF의 obsBase→obsMax lerp)은 raw 진행률 유지 — provider 공유 함정 회피
     /// (SPEC 주의 3: provider 자체를 바꾸면 속도 곡선까지 변형).
     private func enterIdle() {

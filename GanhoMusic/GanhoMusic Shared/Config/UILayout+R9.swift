@@ -25,17 +25,20 @@ extension UILayout {
         /// 3행 compact 버튼 시각 크기 (높이 26 ≤ 32 — 위계 강등). 터치는 44pt 자동 확장.
         static let profileCompactButtonSize = CGSize(width: 132, height: 26)
 
-        // MARK: #1 설정 다이얼로그 (SettingsDialogNode — 440×320 패널 좌표)
-        static let settingsPanelSize = CGSize(width: 440, height: 320)
+        // MARK: #1 설정 다이얼로그 (SettingsDialogNode — 440×372 패널 좌표)
+        /// R12 [A④] — BGM 토글 +1행: 높이 320→372 (+52 = 기존 행간 유지). BGM 행 y는
+        /// UILayout.R12.settingsBGMRowY (신규 수치는 R12 네임스페이스 — G2 게이트).
+        static let settingsPanelSize = CGSize(width: 440, height: 372)
         static let settingsTitleText: String = "설정"
         static let settingsCreditsTitleText: String = "크레딧"
-        /// 모드별 자체 헤더 y — PixelPanelNode 헤더 식(높이/2 − s16 − s8)과 동일 (320/2 − 24).
-        static let settingsHeaderY: CGFloat = 136
+        /// 모드별 자체 헤더 y — PixelPanelNode 헤더 식(높이/2 − s16 − s8)과 동일 (372/2 − 24).
+        static let settingsHeaderY: CGFloat = 162
         /// 토글/링크/닫기 행 중심 y — 행간 52pt ≥ 44pt 터치라 행 간 터치 겹침 0.
-        static let settingsSFXRowY: CGFloat = 64
-        static let settingsHapticsRowY: CGFloat = 12
-        static let settingsLinkRowY: CGFloat = -40
-        static let settingsCloseRowY: CGFloat = -92
+        /// R12 [A④] — BGM 행(+90) 삽입에 따른 일괄 −26 하향 (행간·터치 분리 불변).
+        static let settingsSFXRowY: CGFloat = 38
+        static let settingsHapticsRowY: CGFloat = -14
+        static let settingsLinkRowY: CGFloat = -66
+        static let settingsCloseRowY: CGFloat = -118
         static let settingsToggleButtonSize = CGSize(width: 240, height: 36)
         static let settingsPrivacyButtonSize = CGSize(width: 220, height: 36)
         static let settingsCreditsButtonSize = CGSize(width: 132, height: 36)

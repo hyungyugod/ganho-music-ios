@@ -21,9 +21,30 @@ private enum ForcedSergeantDebut {
     /// 단축 트리거 시간 (초). 카운트다운 직후 빠른 발화 — 컷씬·연출 캡처 대기 최소화.
     static let debutTime: Double = 2.0
 }
+
+/// R12 — env GANHO_DEBUG_TARGET_SCORE=정수: effectiveTargetScore 오버라이드 (G9 목표 달성
+/// 연출 라이브 재현 전용 — docs/debug-flags.md. GANHO_FORCE_SERGEANT 전례 동형:
+/// env+DEBUG 이중 격리·정적 1회 캐시·릴리즈 경로 무변경).
+private enum DebugTargetScoreOverride {
+    static let value: Int? = ProcessInfo.processInfo
+        .environment["GANHO_DEBUG_TARGET_SCORE"].flatMap { Int($0) }
+}
 #endif
 
 extension GameScene {
+
+    // MARK: - Effective Target (R6 §F1/F7 — R12에서 본체로부터 이동: 300줄 위생 + DEBUG 동거)
+    /// 이번 판 실효 목표의 *단일 공급점*. 음표 러시면 ×1.3 ceil, 아니면 라이브 목표.
+    /// 마일스톤 배너·졸업 판정·RunSummary·ResultScene verdict가 전부 이 값 경유 (모순 0 계약).
+    var effectiveTargetScore: Int {
+        #if DEBUG
+        if let forced = DebugTargetScoreOverride.value { return forced }
+        #endif
+        let base = GameplayTuning.targetScoreByDifficulty[difficulty]
+            ?? GameplayTuning.targetScoreByDifficultyFallback
+        guard dailyModifier == .noteRush else { return base }
+        return Int((Double(base) * MetaTuning.noteRushTargetMultiplier).rounded(.up))
+    }
 
     // MARK: - Pipeline Phases (R1)
 
@@ -237,5 +258,32 @@ extension GameScene {
             MilestoneBannerNode.spawn(text: FeelTuning.milestoneNearText, parent: cameraNode)
             effectDirector.milestoneConfetti()
         }
+        // C(목표 달성 — R12 #7): 실효 목표 도달 순간 — 배너+콘페티+골드 플래시+마일스톤 햅틱+팡파레.
+        // B와 같은 프레임 동시 발화 허용 — 기존 독립 if 전례 그대로 (자가 소멸 겹침 안전).
+        if !goalAchievedMilestoneShown, score >= target {
+            goalAchievedMilestoneShown = true
+            MilestoneBannerNode.spawn(text: UILayout.R12.goalAchievedText, parent: cameraNode)
+            effectDirector.milestoneConfetti()
+            spawnGoalAchievedFlash()
+            haptics.milestone()
+            synth.play(.goalFanfare)
+        }
+    }
+
+    /// R12 #7 — 목표 달성 골드 풀스크린 플래시. BombFlashNode 동형 패턴(텍스처 생성 0·자가
+    /// 소멸)을 인라인 1회 조립 — 멱등 Bool 게이트 *뒤*라 update 내 addChild 반복 0.
+    private func spawnGoalAchievedFlash() {
+        let flash = SKSpriteNode(color: .ganhoPixelHudYellow, size: size)
+        flash.name = "goalFlash"
+        flash.zPosition = ZOrder.hitFlashZPosition
+        flash.alpha = 0
+        flash.blendMode = .add
+        cameraNode.addChild(flash)
+        flash.run(.sequence([
+            .fadeAlpha(to: FeelTuning.R12.goalFlashPeakAlpha,
+                       duration: FeelTuning.R12.goalFlashFadeInDuration),
+            .fadeOut(withDuration: FeelTuning.R12.goalFlashFadeOutDuration),
+            .removeFromParent()
+        ]))
     }
 }

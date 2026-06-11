@@ -36,6 +36,12 @@ final class SettingsRepository {
                 as? Bool) ?? true
     }
 
+    /// R12 [A④] — 배경음악 활성 여부. 키 미존재 = true ("키 없음 = 켬" 규약 동형).
+    var isBGMEnabled: Bool {
+        return (defaults.object(forKey: StorageKeys.settingsBGMEnabledUserDefaultsKey)
+                as? Bool) ?? true
+    }
+
     // MARK: - Write
     func setSFXEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: StorageKeys.settingsSFXEnabledUserDefaultsKey)
@@ -43,5 +49,9 @@ final class SettingsRepository {
 
     func setHapticsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: StorageKeys.settingsHapticsEnabledUserDefaultsKey)
+    }
+
+    func setBGMEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: StorageKeys.settingsBGMEnabledUserDefaultsKey)
     }
 }

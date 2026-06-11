@@ -10,8 +10,8 @@
 
 import AVFoundation
 
-/// 칩튠 SFX 신스. 공유 인스턴스 — AVAudioEngine·사전 렌더 버퍼(21벌)는 기기 단위 자원이라
-/// 씬마다 재생성하지 않는다 (CloudSaveCoordinator.shared와 동일 Manager 컨벤션).
+/// 칩튠 SFX 신스. 공유 인스턴스 — AVAudioEngine·사전 렌더 버퍼(전 voice 17종 + 피치 변형)는
+/// 기기 단위 자원이라 씬마다 재생성하지 않는다 (CloudSaveCoordinator.shared와 동일 Manager 컨벤션).
 final class ChiptuneSynth {
 
     static let shared = ChiptuneSynth()
@@ -45,6 +45,14 @@ final class ChiptuneSynth {
         case scoreTick(step: Int)
         /// 박병장 데뷔 스팅어 — square 저음 G2→C3 (두움·빠암), 500ms (R10 U5 — 거물 등장).
         case sergeantDebut
+        /// 스킬 4종 공통 발동 기합 — square 상행 2음 C5→G5, 150ms (R12 [B①]).
+        case skillActivate
+        /// 목표 달성 팡파레 — triangle 아르페지오 4음 C5-E5-G5-C6, 360ms (R12 #7/[B②]).
+        case goalFanfare
+        /// near-miss "아슬!" — square 상행 글라이드 C6→G6, 80ms — 휙 스침 (R12 [B③]).
+        case nearMiss
+        /// 시간 만료 *성공* 종료 — triangle 상행 스팅어 3음 C5→G5→C6, 400ms (R12 [B④]).
+        case graduationSting
     }
 
     private enum Waveform {
@@ -108,7 +116,9 @@ final class ChiptuneSynth {
                                .hit, .uiTap, .countdownTick, .countdownGo,
                                .sceneTransition,
                                .resultStamp,   // R5 — 사전 렌더 누락 시 무음 (R3 컨벤션 동일)
-                               .sergeantDebut] // R10 — 데뷔 스팅어 (런타임 합성 0 게이트)
+                               .sergeantDebut, // R10 — 데뷔 스팅어 (런타임 합성 0 게이트)
+                               .skillActivate, .goalFanfare,
+                               .nearMiss, .graduationSting] // R12 [B] 4종 — init 사전 렌더 전용
         for semitone in 0...FeelTuning.sfxCollectPitchMaxSemitone {
             voices.append(.noteCollect(semitoneOffset: semitone))
         }
@@ -197,6 +207,41 @@ final class ChiptuneSynth {
                 (frequency(midi: FeelTuning.R10.sfxSergeantDebutMidiHigh),
                  FeelTuning.R10.sfxSergeantDebutLongToneDuration)
             ], waveform: .square)
+        case .skillActivate:
+            // R12 [B①] — square 상행 2음 C5→G5 (완전5도), 60+90 = 150ms. 기합 톤.
+            return renderTones([
+                (frequency(midi: FeelTuning.sfxMidiC5),
+                 FeelTuning.R12.sfxSkillActivateFirstToneDuration),
+                (frequency(midi: FeelTuning.sfxMidiG5),
+                 FeelTuning.R12.sfxSkillActivateSecondToneDuration)
+            ], waveform: .square)
+        case .goalFanfare:
+            // R12 #7/[B②] — triangle 아르페지오 4음 C5-E5-G5-C6, 음당 90ms (총 360ms) —
+            // comboMilestone(3음 180ms)보다 길고 화려.
+            let per = FeelTuning.R12.sfxGoalFanfareToneDuration
+            return renderTones([
+                (frequency(midi: FeelTuning.sfxMidiC5), per),
+                (frequency(midi: FeelTuning.sfxMidiE5), per),
+                (frequency(midi: FeelTuning.sfxMidiG5), per),
+                (frequency(midi: FeelTuning.sfxMidiC6), per)
+            ], waveform: .triangle)
+        case .nearMiss:
+            // R12 [B③] — square 상행 글라이드 C6→G6, 80ms. 고음 짧은 *휙 스침*.
+            return renderGlide(from: frequency(midi: FeelTuning.sfxMidiC6),
+                               to: frequency(midi: FeelTuning.sfxMidiG6),
+                               duration: FeelTuning.R12.sfxNearMissDuration,
+                               waveform: .square, noiseMix: 0)
+        case .graduationSting:
+            // R12 [B④] — triangle 상행 스팅어 3음 C5(80)→G5(120)→C6(200ms), 총 400ms.
+            // goalFanfare(4음 균등)와 구분 — 끝음을 길게 끄는 *졸업의 잔향*.
+            return renderTones([
+                (frequency(midi: FeelTuning.sfxMidiC5),
+                 FeelTuning.R12.sfxGraduationStingFirstToneDuration),
+                (frequency(midi: FeelTuning.sfxMidiG5),
+                 FeelTuning.R12.sfxGraduationStingSecondToneDuration),
+                (frequency(midi: FeelTuning.sfxMidiC6),
+                 FeelTuning.R12.sfxGraduationStingThirdToneDuration)
+            ], waveform: .triangle)
         }
     }
 

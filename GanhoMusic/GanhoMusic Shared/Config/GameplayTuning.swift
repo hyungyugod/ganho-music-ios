@@ -527,7 +527,10 @@ enum GameplayTuning {
     /// 2겹 충격파 바깥 링 반경 비율. 안쪽(radius) 대비 0.6배 안쪽 링 — "안전지대 폭발" 다층 톤.
     static let bookClubRallyOuterRingRatio: CGFloat = 0.6
 
-    // 임간호 — 나는야 모범생 (.charmStudent, 게임당 1회)
+    // 임간호 — 나는야 모범생 (.charmStudent, 쿨다운 20초 — R12 #5 게임당 1회→쿨다운제 전환)
+    /// 매혹 쿨다운 (초). R12 #5 — bookClubRally(20s)와 동급, "전역 효과"의 무게 유지
+    /// (백로그 권장 18~20 중 20 채택 — "아껴두다 못 쓰는 스킬"에서 "리듬에 넣는 스킬"로).
+    static let charmStudentCooldown: TimeInterval = 20
     /// 매혹 지속 시간 (초). 수간호사 발사 주기보다 길게 잡아 최소 1회 이상 A 투척을 체감하게 한다.
     static let charmStudentDuration: TimeInterval = 4.0
     /// 매혹된 노트 수집 시 보너스 점수. scorePerNoteCombo(2)의 2배 = 4점.
@@ -717,6 +720,13 @@ enum GameplayTuning {
     ]
     /// 패트롤 속도 default. apply 누락 시 EnemyNode 인스턴스 프로퍼티 graceful fallback.
     static let nurseChiefPatrolSpeedDefault: CGFloat = 80
+    /// R12 #6 — 패트롤 순회 방향 반전 주기 (초). 45초 판에서 2~3회 반전 — 완전 암기 차단과
+    /// 학습 가능성의 균형. 반전은 *waypoint 도달 프레임*에서만 — 세그먼트 중간 급반전 금지
+    /// (수간호사 접촉=즉사 → 코너 한정 반전이 공정. 텔레그래프 없는 급선회 배제).
+    static let nurseChiefPatrolReversalInterval: TimeInterval = 12
+    /// R12 #6 — 반전 적용 최소 waypoint 수. 2점 왕복(easy)은 반전해도 동일 경로 → 자연 제외
+    /// (normal/hard 4점만 적용 — difficulty 분기 대신 기하 판정).
+    static let nurseChiefPatrolReversalMinWaypoints: Int = 3
     /// 텔레그래프 지속 시간 (초). 원본 game.js L2728 (TELEGRAPH_DURATION = 0.4) byte-equal.
     static let nurseChiefTelegraphDuration: TimeInterval = 0.4
     /// 텔레그래프 깜빡임 1주기 (초). 원본 game.js L968 (120ms on/off) byte-equal.

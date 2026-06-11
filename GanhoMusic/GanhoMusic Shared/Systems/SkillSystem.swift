@@ -29,8 +29,9 @@ final class SkillSystem {
     /// 매혹/돌진/텔레포트의 지속 효과 만료를 update에서 감지.
     private(set) var durationRemaining: TimeInterval = 0
 
-    /// 게임당 1회 스킬(.charmStudent)의 사용 여부.
-    /// true가 되면 progress=0 영구 + tryActivate 차단.
+    /// 게임당 1회(oncePerGame) 스킬의 사용 여부. true가 되면 progress=0 영구 + tryActivate 차단.
+    /// R12 #5 — charmStudent 쿨다운제 전환으로 현재 true가 되는 스킬 0 (oncePerGame 전부 false).
+    /// 인프라는 미래 oncePerGame 스킬 대비 보존 — 제거가 변경 표면이 더 큼 (SPEC 기능 1-5 봉인).
     private(set) var usedThisGame: Bool = false
 
     /// R6 §F7 기합 충만 — 쿨다운 배율 (기본 1.0 = 기존 동작 byte-동일).
@@ -127,12 +128,14 @@ final class SkillSystem {
         }
 
         // R2 — 공통 발동 피드백: medium 셰이크 + 햅틱 0.8/1.0 (02 §3·§6 매핑).
+        // R12 [B①] — 스킬 4종 공통 기합 SFX (square 상행 2음 C5→G5, 150ms — 02 §6 동반 갱신).
         scene?.cameraDirector.shake(.medium)
         scene?.haptics.skillActivate()
+        scene?.synth.play(.skillActivate)
 
         // 발동 직후 쿨다운/지속시간 set. oncePerGame은 usedThisGame로 영구 차단.
         // R6 §F7 — 쿨다운 set에 cooldownScale 적용 (progress 분모와 양쪽 일관 — 기본 1.0 무변화).
-        // charmStudent(.infinity)는 × 0.5도 .infinity — oncePerGame 시맨틱 자연 보존.
+        // R12 #5 — charmStudent도 유한 쿨다운(20s) — 기합 충만 ×0.5 자동 적용 (의도된 동작).
         cooldownRemaining = activeSkill.cooldown * cooldownScale
         durationRemaining = activeSkill.duration
         if activeSkill.oncePerGame {
@@ -143,17 +146,15 @@ final class SkillSystem {
 
     // MARK: - Progress (HUD 폴링용)
     /// 0.0(쿨다운 시작 직후) ~ 1.0(사용 가능). 김간호는 항상 1.0(빈 슬롯).
-    /// charmStudent + usedThisGame=true는 영구 0.0.
+    /// R12 #5 — charmStudent 전용 case(usedThisGame 영구 0) 폐기 → 쿨다운 공통 분기 합류:
+    /// HUD 게이지가 다른 스킬과 동일하게 차오름 (cooldownScale 자동 적용 — 발동 set과 일관).
     /// HUDSkillSlotNode.update(progress:)에 매 프레임 1줄로 전달.
     var progress: CGFloat {
         switch activeSkill {
         case .none:
             // 김간호: 항상 *사용 가능* 슬롯이지만 시각적으로는 별도 처리(빈 슬롯).
             return 1.0
-        case .charmStudent:
-            // 1회 소진 시 영구 0. 미사용 시 1.0(쿨다운 무관).
-            return usedThisGame ? 0 : 1.0
-        case .dashClimb, .bookClubRally, .taiwanTrip:
+        case .dashClimb, .bookClubRally, .charmStudent, .taiwanTrip:
             if cooldownRemaining <= 0 { return 1.0 }
             // R6 §F7 — 진행률 분모에도 cooldownScale 적용 (발동 set과 일관 — HUD 게이지 정합).
             let total = activeSkill.cooldown * cooldownScale

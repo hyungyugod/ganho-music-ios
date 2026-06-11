@@ -176,7 +176,8 @@ class GameViewController: UIViewController {
                 dailyModifier: .goldenToilet, isDailyFirstClear: true,
                 newAchievements: [.firstGraduation, .combo10],
                 newlyUnlockedCharacters: [],   // R7 — 본 픽스처는 칩 전용 (배너 픽스처는 resultUnlock)
-                totalStars: 7
+                totalStars: 7,
+                comboBreaks: 2, toiletsCollected: 1   // R12 #9 — 통계 칩 식별 가능 표본값
             )
             return ResultScene.newResultScene(
                 score: 66, bestScore: 66, isNewBest: true,
@@ -193,7 +194,8 @@ class GameViewController: UIViewController {
                 dailyModifier: nil, isDailyFirstClear: false,
                 newAchievements: [.combo10, .firstGraduation],
                 newlyUnlockedCharacters: [.geon],
-                totalStars: 9
+                totalStars: 9,
+                comboBreaks: 0, toiletsCollected: 2   // R12 #9 — "끊김 0회" 풀콤보 표기 검증 표본
             )
             return ResultScene.newResultScene(
                 score: 84, bestScore: 84, isNewBest: true,

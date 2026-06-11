@@ -75,12 +75,14 @@ enum StorageKeys {
     /// 마이그레이션 멱등 가드 — Int (최초 1).
     static let metaMigrationVersionUserDefaultsKey: String = "meta.migrationVersion"
 
-    // MARK: - R9 Settings (신규 3키 — 기존 키 diff 0. 디바이스 레벨 — 계정 스코프 무관)
+    // MARK: - R9 Settings (신규 3키) + R12 BGM 1키 (기존 키 diff 0. 디바이스 레벨 — 계정 스코프 무관)
     /// 효과음 on/off — Bool. ⚠️ "키 없음 = 켬": bool(forKey:) 미존재 시 false 함정 회피를 위해
     /// SettingsRepository가 object(forKey:) as? Bool ?? true 패턴으로만 읽는다.
     static let settingsSFXEnabledUserDefaultsKey: String = "settings.sfxEnabled"
     /// 진동(햅틱) on/off — Bool. 읽기 규약은 settingsSFXEnabledUserDefaultsKey와 동일.
     static let settingsHapticsEnabledUserDefaultsKey: String = "settings.hapticsEnabled"
+    /// R12 [A④] — 배경음악 on/off — Bool. 읽기 규약 동일 ("키 없음 = 켬" — 신규 1키, 추가만).
+    static let settingsBGMEnabledUserDefaultsKey: String = "settings.bgmEnabled"
     /// 첫 판 조작 온보딩 힌트 1회 표시 플래그 — Bool (조작 지식은 기기 단위).
     static let onboardingControlsHintShownUserDefaultsKey: String = "onboarding.controlsHintShown"
 }

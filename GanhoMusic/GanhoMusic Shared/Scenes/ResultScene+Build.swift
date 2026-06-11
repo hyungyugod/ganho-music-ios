@@ -31,6 +31,15 @@ extension ResultScene {
                                   style: .info)
         notesChip = PixelChipNode(text: "\(UILayout.R5.resultNotesChipPrefix)\(notesCollected)",
                                   style: .info)
+        // R12 #9 — 통계 칩 2종 (runMeta 있을 때만). 0값도 표시 — "끊김 0회" = 풀콤보 자랑 정보.
+        if let runMeta = runMeta {
+            breaksChip = PixelChipNode(
+                text: "\(UILayout.R12.resultBreaksChipPrefix)\(runMeta.comboBreaks)\(UILayout.R12.resultBreaksChipSuffix)",
+                style: .info)
+            toiletsChip = PixelChipNode(
+                text: "\(UILayout.R12.resultToiletChipPrefix)\(runMeta.toiletsCollected)\(UILayout.R12.resultToiletChipSuffix)",
+                style: .info)
+        }
         configureCentered(levelLabel, size: Typography.V3.caption.size, color: Palette.textLo)
         let xp = xpSnapshot()
         // 레벨업이면 칭호는 슬라이드인 배지가 담당 — 캡션은 "Lv.{n}"만 (중복 표기 회피).

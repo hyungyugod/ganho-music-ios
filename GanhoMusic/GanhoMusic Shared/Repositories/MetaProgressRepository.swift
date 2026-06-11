@@ -194,7 +194,9 @@ final class MetaProgressRepository {
             isDailyFirstClear: isDailyFirstClear,
             newAchievements: newAchievements,
             newlyUnlockedCharacters: newlyUnlocked,
-            totalStars: totalStars
+            totalStars: totalStars,
+            comboBreaks: summary.comboBreaks,         // R12 #9 — 결과창 통계 칩 운반
+            toiletsCollected: summary.toiletsCollected
         )
     }
 
