@@ -25,6 +25,9 @@ final class ScoreboardScene: BaseMenuScene {
     let lastUpdatedKey: (CharacterID, Difficulty)?   // +Table 공유 — R4 분할 전례
     /// 뒤로 탭 시 복귀할 ResultScene 재생성 컨텍스트. nil이면 StartScene 폴백.
     private let returnContext: ResultReturnContext?
+    /// R9 U2 — true면 뒤로 = CharacterSelect 프로필 다이얼로그 재오픈 (returnContext보다 우선).
+    /// 프로필 [기록]/[업적] 진입 동선 복원 전용 — 기존 호출 3곳은 기본값 false로 무변경.
+    private let returnsToCharacterSelectProfile: Bool
     private var isTransitioning = false
     /// 현재 활성 탭. 전환 시 비활성 뷰 노드는 전부 제거 (좀비 0). factory가 initialTab으로 1회 set.
     fileprivate(set) var activeTab: Tab = .records
@@ -54,12 +57,14 @@ final class ScoreboardScene: BaseMenuScene {
     class func newScoreboardScene(
         lastUpdatedKey: (CharacterID, Difficulty)? = nil,
         returnContext: ResultReturnContext? = nil,
-        initialTab: Tab = .records
+        initialTab: Tab = .records,
+        returnsToCharacterSelectProfile: Bool = false
     ) -> ScoreboardScene {
         let scene = ScoreboardScene(
             size: CGSize(width: 1024, height: 768),
             lastUpdatedKey: lastUpdatedKey,
-            returnContext: returnContext
+            returnContext: returnContext,
+            returnsToCharacterSelectProfile: returnsToCharacterSelectProfile
         )
         scene.activeTab = initialTab
         scene.scaleMode = .resizeFill
@@ -70,10 +75,12 @@ final class ScoreboardScene: BaseMenuScene {
     private init(
         size: CGSize,
         lastUpdatedKey: (CharacterID, Difficulty)?,
-        returnContext: ResultReturnContext?
+        returnContext: ResultReturnContext?,
+        returnsToCharacterSelectProfile: Bool
     ) {
         self.lastUpdatedKey = lastUpdatedKey
         self.returnContext = returnContext
+        self.returnsToCharacterSelectProfile = returnsToCharacterSelectProfile
         let scope = AccountProgressScopeProvider.current(
             authProfile: AuthProfileRepository().current
         )
@@ -247,12 +254,16 @@ final class ScoreboardScene: BaseMenuScene {
         }
     }
 
-    // MARK: - Transition (뒤로 — returnContext 있으면 ResultScene 재생성, 없으면 StartScene)
+    // MARK: - Transition (뒤로 — ① 프로필 복귀 ② ResultScene 재생성 ③ StartScene 폴백)
     private func transitionBack() {
         guard !isTransitioning, let view = self.view else { return }
         isTransitioning = true
         let nextScene: SKScene
-        if let ctx = returnContext {
+        if returnsToCharacterSelectProfile {
+            // R9 U2 — 프로필 [기록]/[업적]에서 온 경우: 프로필 다이얼로그 자동 재오픈으로
+            // 동선 복원 (route .backward — 아래 공통 present가 담당).
+            nextScene = CharacterSelectScene.newCharacterSelectScene(openProfileOnEntry: true)
+        } else if let ctx = returnContext {
             nextScene = ResultScene.newResultScene(
                 score: ctx.finalScore,
                 bestScore: ctx.bestScore,

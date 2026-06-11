@@ -62,6 +62,10 @@ extension CharacterSelectScene {
             showProfileDetailOverlay(mode: .detail)
         case .choosePhoto:
             requestProfilePhotoPicker()
+        case .openRecords:
+            transitionToScoreboard(initialTab: .records)
+        case .openAchievements:
+            transitionToScoreboard(initialTab: .achievements)
         case .linkApple:
             hideProfileDetailOverlay()
             handleAccountAppleLinkTap()
@@ -107,6 +111,20 @@ extension CharacterSelectScene {
             object: nil,
             userInfo: [UILayout.profileAvatarScopeUserInfoKey: accountScope]
         )
+    }
+
+    /// R9 U2 — 프로필 [기록]/[업적] → Scoreboard 해당 탭 직행. 복귀 라우트 플래그로
+    /// 뒤로 = CharacterSelect 프로필 재오픈 (동선 복원). 오버레이는 떠나기 전 정리 —
+    /// 옵저버 해제는 기존 willMove(removeAccountObservers)가 담당 (주의사항 7).
+    private func transitionToScoreboard(initialTab: ScoreboardScene.Tab) {
+        guard !isTransitioning, let view = self.view else { return }
+        isTransitioning = true
+        hideProfileDetailOverlay()
+        let scene = ScoreboardScene.newScoreboardScene(
+            initialTab: initialTab,
+            returnsToCharacterSelectProfile: true
+        )
+        SceneRouter.present(scene, on: view, route: .forward)
     }
 
     // MARK: - Account Menu Overlay (보존 컴포넌트 재배선 — 내부 변경 0)
@@ -250,6 +268,11 @@ extension CharacterSelectScene {
             return UILayout.loginChoiceAppleConfigurationText
         case .appleCredentialRejected:
             return UILayout.loginChoiceAppleCredentialText
+        // R9 U1 — 신규 매핑 2종 전용 카피 (StartScene+Auth 중복본과 동기 수정).
+        case .appleCredentialAlreadyConsumed:
+            return UILayout.R9.authAppleCredentialConsumedText
+        case .networkUnavailable:
+            return UILayout.R9.authNetworkUnavailableText
         case .nonceGenerationFailed, .appleAuthorizationAlreadyInProgress,
              .appleCredentialMissing, .appleIdentityTokenMissing,
              .appleIdentityTokenInvalid, .appleAuthorizationCodeMissing,

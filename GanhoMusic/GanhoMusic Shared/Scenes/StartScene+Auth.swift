@@ -191,6 +191,11 @@ extension StartScene {
             return UILayout.loginChoiceAppleConfigurationText
         case .appleCredentialRejected:
             return UILayout.loginChoiceAppleCredentialText
+        // R9 U1 — 신규 매핑 2종 전용 카피 (CharacterSelectScene+Overlays 중복본과 동기 수정).
+        case .appleCredentialAlreadyConsumed:
+            return UILayout.R9.authAppleCredentialConsumedText
+        case .networkUnavailable:
+            return UILayout.R9.authNetworkUnavailableText
         case .nonceGenerationFailed, .appleAuthorizationAlreadyInProgress,
              .appleCredentialMissing, .appleIdentityTokenMissing,
              .appleIdentityTokenInvalid, .appleAuthorizationCodeMissing,

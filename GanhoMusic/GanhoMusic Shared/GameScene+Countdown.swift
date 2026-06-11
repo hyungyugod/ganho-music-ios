@@ -69,5 +69,30 @@ extension GameScene {
         if FeelTuning.isBGMEnabled {
             bgm.play()
         }
+        presentControlsHintIfNeeded()   // R9 #3 — 첫 판 1회 조작 온보딩 (말미 발화)
+    }
+
+    /// R9 #3 — 첫 판 조작 온보딩. 플래그 false → 힌트 attach + *즉시* true 저장
+    /// (멱등 — 같은 판 재진입·크래시 후에도 1회 원칙). 힌트는 ~3s 후 자동 소멸.
+    /// bool(forKey:) 미존재 = false = "아직 안 봄" — shown 플래그 방향이라 기본값 함정 비저촉.
+    func presentControlsHintIfNeeded() {
+        let defaults = UserDefaults.standard
+        var shouldShow = !defaults.bool(
+            forKey: StorageKeys.onboardingControlsHintShownUserDefaultsKey
+        )
+        #if DEBUG
+        // 스크린샷 게이트 재현 수단 — 플래그 무시 강제 표시 (GANHO_SKIP_CUTSCENE 전례 동형).
+        if ProcessInfo.processInfo.environment["GANHO_FORCE_CONTROLS_HINT"] == "1" {
+            shouldShow = true
+        }
+        #endif
+        guard shouldShow else { return }
+        defaults.set(true, forKey: StorageKeys.onboardingControlsHintShownUserDefaultsKey)
+        let hint = ControlsHintNode(
+            dpadPosition: dpad.position,
+            skillButtonPosition: skillButton.position,
+            controlScale: DeviceLayoutProfile.resolve(for: self).ingameControlScale
+        )
+        cameraNode.addChild(hint)
     }
 }

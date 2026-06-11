@@ -56,6 +56,8 @@ final class ChiptuneSynth {
     private var buffers: [Voice: AVAudioPCMBuffer] = [:]
     private let format: AVAudioFormat?
     private var isAvailable = false
+    /// R9 #1 — 설정 게이트 (이벤트 시점 조회만 — update 매 프레임 경로 아님).
+    private let settings = SettingsRepository()
 
     // MARK: - Init (전체 사전 렌더 — 시작 시 1회)
     private init() {
@@ -82,6 +84,9 @@ final class ChiptuneSynth {
 
     // MARK: - Play
     func play(_ voice: Voice) {
+        // R9 #1 — 효과음 off면 무음 return (사전 렌더·엔진은 불변 — 재토글 즉시 복귀).
+        // 부수 효과 인지: PixelButtonNode 내장 uiTap도 무음 — 의도된 동작.
+        guard settings.isSFXEnabled else { return }
         guard let buffer = buffers[voice] else { return }
         if !engine.isRunning {
             // 인터럽션 등으로 정지된 엔진 재시동 시도 — 실패 시 무음 noop.

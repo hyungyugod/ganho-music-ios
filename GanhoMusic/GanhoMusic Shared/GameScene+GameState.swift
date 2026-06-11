@@ -75,6 +75,16 @@ extension GameScene {
                                 y: UILayout.R8.pauseButtonRowY)
         dialog.contentNode.addChild(exit)
 
+        // R9 #1 진입점 ② — [설정] ghost 와이드 1개, 패널 중앙부 빈 공간 (제목 아래~버튼 행 위).
+        // 기존 pausePanelSize·pauseButtonRowY 불변. 제시는 +AppLifecycle 소유.
+        let settings = PixelButtonNode(title: UILayout.R9.settingsTitleText,
+                                       variant: .ghost,
+                                       size: UILayout.R9.pauseSettingsButtonSize,
+                                       haptics: haptics)
+        settings.onTap = { [weak self] in self?.presentInGameSettingsDialog() }
+        settings.position = CGPoint(x: 0, y: UILayout.R9.pauseSettingsRowY)
+        dialog.contentNode.addChild(settings)
+
         pauseDialog = dialog
         dialog.present(in: cameraNode, screenSize: size)
     }

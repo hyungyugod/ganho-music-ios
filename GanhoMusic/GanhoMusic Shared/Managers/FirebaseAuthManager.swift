@@ -279,7 +279,14 @@ final class FirebaseAuthManager: NSObject {
                 return result.user
             } catch {
                 guard shouldFallbackToSignIn(afterLinkError: error) else { throw error }
-                let result = try await Auth.auth().signIn(with: credential)
+                // R9 U1 — credentialAlreadyInUse는 link() 시점에 서버가 원본 credential을
+                // 이미 소비한 상태: 그대로 signIn() 재사용 시 missingOrInvalidNonce(17094) 거절
+                // (재로그인 유저 100% 실패 경로). Firebase 공식 패턴 — userInfo에 동봉된
+                // 갱신 credential로 signIn. 미동봉이면 기존 동작 보존 (graceful 폴백).
+                let fallbackCredential = (error as NSError)
+                    .userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential
+                    ?? credential
+                let result = try await Auth.auth().signIn(with: fallbackCredential)
                 return result.user
             }
         }
@@ -365,7 +372,14 @@ final class FirebaseAuthManager: NSObject {
             try? await Task.sleep(nanoseconds: timeoutNanoseconds)
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                self?.finishAppleAuthorization(
+                guard let self = self else { return }
+                // R9 U1 — 시트 동반 철회: 타임아웃 후에도 시트가 남아 뒤늦은 인증 완료가
+                // continuation nil no-op으로 버려지던 유령 시트 해소. cancel()이 비동기로
+                // didCompleteWithError(.canceled)를 발화해도 finishAppleAuthorization의
+                // continuation nil 가드가 이중 resume을 차단. finish가 컨트롤러 참조를
+                // nil로 비우므로 반드시 finish *이전*에 호출 (불변식: resume 정확히 1회).
+                self.appleAuthorizationController?.cancel()
+                self.finishAppleAuthorization(
                     with: .failure(AuthError.appleAuthorizationTimedOut)
                 )
             }
@@ -471,6 +485,11 @@ private enum AuthErrorMapper {
              .accountExistsWithDifferentCredential,
              .providerAlreadyLinked:
             return .appleCredentialRejected
+        // R9 U1 — 미매핑이던 2종 보강: nil 합류("잠시 후 다시 시도")가 아닌 전용 카피로.
+        case .missingOrInvalidNonce:
+            return .appleCredentialAlreadyConsumed
+        case .networkError:
+            return .networkUnavailable
         // AuthErrorCode — ObjC non-frozen enum: 컴파일러가 exhaustive 보장 불가,
         // 구조적 필수 default (R8 감사 분류 ②).
         default:

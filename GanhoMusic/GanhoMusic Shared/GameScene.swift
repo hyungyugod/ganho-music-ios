@@ -64,6 +64,8 @@ class GameScene: SKScene {
     let pauseButton = PauseButtonNode()   // Sprint 3 — 우상단 일시정지 시각 placeholder
     /// R8 — 일시정지 v3 다이얼로그 (구 pauseOverlay/PrimaryButtonNode 2개 대체). nil = 비표시.
     var pauseDialog: PixelDialogNode?
+    /// R9 #1 — 인게임 설정 다이얼로그 (일시정지 [설정] 경유 — +AppLifecycle 소유). nil = 비표시.
+    var settingsDialog: SettingsDialogNode?
     var pauseStoredDPadInteractionEnabled: Bool = true
     var pauseStoredSkillInteractionEnabled: Bool = true
     var pauseStoredRunInteractionEnabled: Bool = true
@@ -80,19 +82,16 @@ class GameScene: SKScene {
     let haptics = HapticsManager()              // Phase 6-1 / R2 — CoreHaptics v2 + UIImpact 폴백
     let synth   = ChiptuneSynth.shared          // R2 — 칩튠 SFX 신스 (구 AudioManager 시스템 사운드 전폐)
     let bgm     = BGMPlayer()                   // Phase 6-4 — 자작 BGM 무한 루프 (음원 부재 시 noop)
-    // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드. true가 되면 재발동 안 함.
-    // 새 GameScene 인스턴스에서 자동 false로 리셋됨.
+    // Phase 4-3 — AIRFORCE 이스터에그 1회 한정 가드 (재발동 차단). 새 인스턴스에서 자동 false 리셋.
     var airforceTriggered: Bool = false
 
-    // Phase 6-10 — 한 판 내 이미 발화된 콤보 마일스톤 추적. 멱등성 보장.
+    // Phase 6-10 — 한 판 내 이미 발화된 콤보 마일스톤 추적. 멱등성 보장 (idempotency-key).
     // GameScene 인스턴스는 한 판 = 1개 → 새 게임 시작 시 빈 Set로 자동 리셋.
-    // Spring 비유: idempotency-key — 같은 마일스톤 key는 한 트랜잭션 내 1회만 처리.
     var triggeredComboMilestones: Set<Int> = []
 
     // Phase 6-12 — 콤보 끊김 발화 추적. 같은 콤보 값 끊김은 한 판 1회만 발화 (멱등).
     // 6-11 triggeredComboMilestones와 완전 분리 — 환호와 실망은 독립 가드.
-    // lastComboValue: 직전 프레임의 콤보값 추적 — 0으로 떨어진 *순간*을 감지하는 폴링 기준점.
-    // 첫 프레임에는 0 시작이라 임계값(10) 가드로 노이즈 차단.
+    // lastComboValue: 직전 프레임 콤보값 — 0 강하 *순간* 감지 폴링 기준점 (첫 프레임은 임계 10 가드).
     var lastComboValue: Int = 0   // R8 분할 — +UpdatePipeline 소비 (private→internal)
     var maxComboThisRun: Int = 0
     var triggeredComboBreaks: Set<Int> = []
@@ -212,6 +211,7 @@ class GameScene: SKScene {
         setupHUDSkillSlot()  // Phase 9-5 — HUDSkillSlotNode를 SkillButton 위에
         setupPauseButton()   // Sprint 3 — PauseButtonNode를 cameraNode 우상단에 (시각 placeholder)
         setupDailyModifier() // R6 §F7 — 모디파이어 배선 (속도/쿨다운/배율/비네트/HUD 표식). nil이면 noop
+        setupAppLifecycleObserver() // R9 #2 — 백그라운드 자동 일시정지 (해제는 willMove 쌍)
         #if DEBUG
         setupFrameStats()    // R1 — DEBUG 전용 진단 라벨 (릴리즈 빌드 코드·노드 0)
         #endif

@@ -159,6 +159,11 @@ enum ZOrder {
     /// HitFlash(200)·컷씬(300) 위. 기본 Layer.overlay(200)를 오버라이드.
     static let pauseDialogZPosition: CGFloat = 420
 
+    // MARK: - R9 인게임 설정 다이얼로그
+    /// 일시정지 [설정] 경유 SettingsDialogNode zPosition.
+    /// pauseDialog(420) 초과 — 일시정지 딤/버튼 위 + profileDetailOverlay(540) 미만.
+    static let settingsDialogZPosition: CGFloat = 430
+
     // MARK: - R2 게임필 (juice)
     /// 인게임 파티클 이미터 zPosition (worldNode 소속 — collectBurst/comboAura/deathBurst/
     /// toiletSplash/skillSignature). sparkle(30)과 동급 — Player/Enemy(5) 위, HUD(100) 아래.

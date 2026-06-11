@@ -52,7 +52,10 @@ enum StorageKeys {
     static let authNonceLength: Int = 32
     static let authNonceCharacterSet: String = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
     static let authAppleProviderID: String = "apple.com"
-    static let authAppleRequestTimeout: TimeInterval = 12.0
+    /// Apple 인증 시트 타임아웃 (초) — UserDefaults 키가 아니라 Auth 정책 수치 상수.
+    /// R9 U1: 12→60 — 최초 연동 동선(이메일 선택·암호 입력)이 12s를 쉽게 초과해
+    /// "인증 완료했는데 튕김"을 유발하던 구조 해소 (타임아웃 발화 시 시트 동반 철회).
+    static let authAppleRequestTimeout: TimeInterval = 60.0
     static let nanosecondsPerSecond: UInt64 = 1_000_000_000
     static let profileNicknameMinLength: Int = 1
     static let profileNicknameMaxLength: Int = 12
@@ -71,4 +74,13 @@ enum StorageKeys {
     static let metaCountersUserDefaultsKey: String = "meta.counters"
     /// 마이그레이션 멱등 가드 — Int (최초 1).
     static let metaMigrationVersionUserDefaultsKey: String = "meta.migrationVersion"
+
+    // MARK: - R9 Settings (신규 3키 — 기존 키 diff 0. 디바이스 레벨 — 계정 스코프 무관)
+    /// 효과음 on/off — Bool. ⚠️ "키 없음 = 켬": bool(forKey:) 미존재 시 false 함정 회피를 위해
+    /// SettingsRepository가 object(forKey:) as? Bool ?? true 패턴으로만 읽는다.
+    static let settingsSFXEnabledUserDefaultsKey: String = "settings.sfxEnabled"
+    /// 진동(햅틱) on/off — Bool. 읽기 규약은 settingsSFXEnabledUserDefaultsKey와 동일.
+    static let settingsHapticsEnabledUserDefaultsKey: String = "settings.hapticsEnabled"
+    /// 첫 판 조작 온보딩 힌트 1회 표시 플래그 — Bool (조작 지식은 기기 단위).
+    static let onboardingControlsHintShownUserDefaultsKey: String = "onboarding.controlsHintShown"
 }

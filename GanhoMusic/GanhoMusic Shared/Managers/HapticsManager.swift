@@ -24,6 +24,10 @@ final class HapticsManager {
     // MARK: - CoreHaptics (R2)
     private var coreEngine: CHHapticEngine?
 
+    /// R9 #1 — 설정 게이트 (이벤트 시점 조회만). 공개 발화 경로 전부 차단:
+    /// 이벤트 API → playTransients → playPattern 진입 guard / legacy 3종 → 개별 guard.
+    private let settings = SettingsRepository()
+
     // MARK: - Init
     init() {
         lightGenerator  = UIImpactFeedbackGenerator(style: .light)
@@ -115,17 +119,21 @@ final class HapticsManager {
     }
 
     // MARK: - Legacy Triggers (미매핑 이벤트 — 카운트다운 틱·tension 초당 틱 등 기존 강도 등가 유지)
+    // R9 #1 — 씬이 직접 부르는 경로라 playPattern 게이트 비포섭: 개별 guard 필수.
     func light() {
+        guard settings.isHapticsEnabled else { return }
         lightGenerator.impactOccurred()
         lightGenerator.prepare()
     }
 
     func medium() {
+        guard settings.isHapticsEnabled else { return }
         mediumGenerator.impactOccurred()
         mediumGenerator.prepare()
     }
 
     func heavy() {
+        guard settings.isHapticsEnabled else { return }
         heavyGenerator.impactOccurred()
         heavyGenerator.prepare()
     }
@@ -151,6 +159,8 @@ final class HapticsManager {
 
     /// 패턴 재생 — 엔진 부재/오류 시 폴백 1회. 어떤 단계도 크래시 없이 graceful.
     private func playPattern(events: [CHHapticEvent], fallback: () -> Void) {
+        // R9 #1 — 햅틱 off면 CoreHaptics·폴백 모두 발화 0 (이벤트 API 전 경로 포섭).
+        guard settings.isHapticsEnabled else { return }
         guard let engine = coreEngine else {
             fallback()
             return

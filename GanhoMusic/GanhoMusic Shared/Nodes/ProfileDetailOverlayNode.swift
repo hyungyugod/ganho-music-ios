@@ -18,6 +18,9 @@ enum ProfileDetailAction {
     case chooseAvatar
     case selectAvatar(CharacterID)
     case choosePhoto
+    /// R9 U2 — Scoreboard 기록/업적 탭 직행 (복귀 시 프로필 재오픈 라우트).
+    case openRecords
+    case openAchievements
     case linkApple
     case signOut
     case requestDeleteConfirmation

@@ -13,11 +13,14 @@ import UIKit
 extension ProfileDetailOverlayNode {
 
     // MARK: - Modes (카피는 기존 UILayout 텍스트 상수 재사용 — R4 §E-9 패턴)
+    /// R9 U2+U3 — 버튼 3행 재구성: 1행 프로필 편집(기존) / 2행 [기록][업적]+[닫기](주 위계) /
+    /// 3행 계정 compact(위계 강등 — 탈퇴 primary 폐지, 전부 ghost).
     func configureDetail(snapshot: CharacterHomeSnapshot) {
         titleLabel.text = UILayout.profileDetailTitleText
         bodyLabel.text = snapshot.profileDetailIdentityText
         addMetricRow(snapshot: snapshot)
 
+        // 1행 — 이름/아바타/사진 (기존 유지).
         layoutButtonRow([
             makeButton(text: UILayout.profileDetailEditNameText,
                        size: UILayout.R5.profileWideButtonSize,
@@ -30,19 +33,31 @@ extension ProfileDetailOverlayNode {
                        action: .choosePhoto, variant: .secondary)
         ], y: UILayout.R5.profileFirstButtonRowY)
 
+        // 3행 — 계정 compact (연동 상태별). 회원탈퇴 primary 금지 — ghost로 강등.
+        // ⚠️ 등록 순서: 2행보다 *먼저* 등록 — action(at:)이 reversed() 순회라 44pt 터치
+        // 확장이 겹치는 행간 띠에서 2행(주 위계, 후순 등록)이 우선 판정된다.
         let accountButton = snapshot.isAppleLinked
             ? makeButton(text: UILayout.accountMenuSignOutText,
-                         size: UILayout.R5.profileButtonSize,
-                         action: .signOut, variant: .secondary)
+                         size: UILayout.R9.profileCompactButtonSize,
+                         action: .signOut, variant: .ghost)
             : makeButton(text: UILayout.authAppleButtonText,
-                         size: UILayout.R5.profileWideButtonSize,
-                         action: .linkApple, variant: .secondary)
+                         size: UILayout.R9.profileCompactButtonSize,
+                         action: .linkApple, variant: .ghost)
         layoutButtonRow([
             accountButton,
-            // 탈퇴 = primary(coral 면) — destructive 위계 유지.
             makeButton(text: UILayout.accountMenuDeleteText,
+                       size: UILayout.R9.profileCompactButtonSize,
+                       action: .requestDeleteConfirmation, variant: .ghost)
+        ], y: UILayout.R9.profileThirdButtonRowY)
+
+        // 2행 — [기록][업적] 주 위계 + [닫기] (마지막 등록 = 터치 우선).
+        layoutButtonRow([
+            makeButton(text: UILayout.R6.scoreboardRecordsTabText,
                        size: UILayout.R5.profileButtonSize,
-                       action: .requestDeleteConfirmation, variant: .primary),
+                       action: .openRecords, variant: .secondary),
+            makeButton(text: UILayout.R6.scoreboardAchievementsTabText,
+                       size: UILayout.R5.profileButtonSize,
+                       action: .openAchievements, variant: .secondary),
             makeButton(text: UILayout.profileDetailCloseText,
                        size: UILayout.R5.profileButtonSize,
                        action: .close, variant: .ghost)

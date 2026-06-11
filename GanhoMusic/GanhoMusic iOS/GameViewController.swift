@@ -7,12 +7,15 @@ import UIKit
 import SpriteKit
 import GameplayKit
 import PhotosUI
+import SafariServices
 
 class GameViewController: UIViewController {
 
     // MARK: - Properties
     private var profilePhotoPickerObserver: NSObjectProtocol?
     private var profileNameEditObserver: NSObjectProtocol?
+    /// R9 #4 — 설정 다이얼로그 정책 링크 → SFSafariViewController 옵저버.
+    private var externalLinkObserver: NSObjectProtocol?
     private var profileNameEditorController: ProfileNameEditorViewController?
     private var activeProfileNameEditRequest: ProfileNameEditRequest?
     private var pendingProfileNameEditRequests: [ProfileNameEditRequest] = []
@@ -24,6 +27,7 @@ class GameViewController: UIViewController {
         super.viewDidLoad()
         observeProfilePhotoPickerRequests()
         observeProfileNameEditRequests()
+        observeExternalLinkRequests()   // R9 #4
 
         // self.view 가 SKView 가 아니면 즉시 알리고 안전하게 종료한다.
         // (강제 언래핑 `as!` 는 swift-rules.md §3 위반이라 사용하지 않음)
@@ -81,6 +85,30 @@ class GameViewController: UIViewController {
         if let observer = profileNameEditObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = externalLinkObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    // MARK: - External Link (R9 #4 — 정책 링크 → 인앱 Safari. Info.plist 권한 키 불요)
+    private func observeExternalLinkRequests() {
+        guard externalLinkObserver == nil else { return }
+        externalLinkObserver = NotificationCenter.default.addObserver(
+            forName: .ganhoExternalLinkRequested,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleExternalLinkRequested(notification)
+        }
+    }
+
+    private func handleExternalLinkRequested(_ notification: Notification) {
+        // photo picker 전례 동형 — 모달 경합 차단.
+        guard presentedViewController == nil else { return }
+        guard let url = notification.userInfo?[UILayout.R9.externalLinkURLUserInfoKey] as? URL else {
+            return
+        }
+        present(SFSafariViewController(url: url), animated: true)
     }
 
     // MARK: - DEBUG Boot Scene (R4 §F-8 — 스크린샷 자동화 전용)
@@ -99,6 +127,12 @@ class GameViewController: UIViewController {
         }
         if name == "startLogin" {
             return StartScene.newStartScene(openLoginChoiceOnEntry: true)
+        }
+        // R9 #1/#4 — 설정 다이얼로그 직행 (simctl 터치 주입 불가 우회 — startLogin 전례).
+        if name == "startSettings" {
+            let scene = StartScene.newStartScene()
+            scene.shouldOpenSettingsOnEntry = true
+            return scene
         }
         // R5 — ResultScene은 파라미터 주입 씬: 스크린샷용 샘플 파라미터 직행 (기능 10).
         // 수치는 DEBUG 전용 표본 픽스처 — 릴리즈 경로 0 변화 (#if DEBUG 격리).

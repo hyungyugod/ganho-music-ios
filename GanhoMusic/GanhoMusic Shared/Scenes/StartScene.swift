@@ -29,6 +29,11 @@ final class StartScene: BaseMenuScene {
     private var dailyChip: PixelChipNode?
     /// 로그인 다이얼로그 — 표시 중에만 존재 (PixelDialogNode 딤이 배후 터치 흡수).
     var loginDialog: LoginChoiceDialogNode?
+    /// R9 #1 — 우상단 설정 버튼·설정 다이얼로그 (셋업/제시는 +Settings 확장 소유).
+    var settingsButton: PixelButtonNode?
+    var settingsDialog: SettingsDialogNode?
+    /// R9 #4 — DEBUG 부팅 분기(startSettings)용 즉시 오픈 플래그.
+    var shouldOpenSettingsOnEntry = false
 
     // MARK: Auth State (v2 무변경 이식)
     var currentAuthProfile: AuthProfileSnapshot?
@@ -56,6 +61,7 @@ final class StartScene: BaseMenuScene {
         setupLogo()
         setupHero()
         setupTapToStart()
+        setupSettingsButton()         // R9 #1 — 우상단 설정 (+Settings 확장)
         refreshDailyChallengeChip()   // R6 §F7 — 진입 시 1회 계산 (오늘 모디파이어·남은 시간·✓)
         layoutAll()
         let appearNodes = [logoLabel, heroSprite, tapToStartLabel].compactMap { $0 }
@@ -73,12 +79,14 @@ final class StartScene: BaseMenuScene {
         rebuildNightShiftBackdrop()
         layoutAll()
         loginDialog?.updateLayout(in: self)
+        settingsDialog?.updateLayout(in: self)
     }
 
     private func layoutAll() {
         // R8 §C-2-사 — 칩 먼저, 로고 나중: layoutLogo의 칩-하단 min-클램프가 확정 좌표를 읽는다.
         layoutProfileChip()
         layoutDailyChip()
+        layoutSettingsButton()
         layoutLogo()
         layoutHero()
         layoutTapToStart()
@@ -288,7 +296,7 @@ final class StartScene: BaseMenuScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isTransitioning else { return }
         // 다이얼로그 노출 중에는 딤(PixelDialogNode)이 터치를 흡수 — 방어적 이중 가드.
-        guard loginDialog == nil else { return }
+        guard loginDialog == nil, settingsDialog == nil else { return }
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         if let dailyFrame = chipHitFrame(dailyChip), dailyFrame.contains(location) {
