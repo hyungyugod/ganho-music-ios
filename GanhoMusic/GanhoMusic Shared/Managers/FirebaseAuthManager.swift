@@ -175,7 +175,7 @@ final class FirebaseAuthManager: NSObject {
         do {
             try await CloudProgressRepository().saveProfile(profile: snapshot)
         } catch {
-            logger.warning("Profile cloud sync deferred after local save: \(error.localizedDescription, privacy: .public)")
+            logger.warning("Profile cloud sync deferred after local save: \(error.localizedDescription, privacy: .private)")
         }
         return .success
     }
@@ -196,7 +196,7 @@ final class FirebaseAuthManager: NSObject {
         do {
             try await changeRequest.commitChanges()
         } catch {
-            logger.warning("Firebase displayName update deferred: \(error.localizedDescription, privacy: .public)")
+            logger.warning("Firebase displayName update deferred: \(error.localizedDescription, privacy: .private)")
         }
     }
 

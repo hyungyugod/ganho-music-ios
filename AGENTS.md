@@ -30,7 +30,7 @@ xcodebuild -project GanhoMusic/GanhoMusic.xcodeproj -scheme "GanhoMusic iOS" \
   -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build 2>&1 | tail -40
 ```
 
-- 타겟: iPhone 전용, iOS 16.0+, Landscape 전용
+- 타겟: iPhone·iPad 유니버설 (TARGETED_DEVICE_FAMILY "1,2"), iOS 16.0+, Landscape 전용
 - 테스트 타겟 없음 (R6에서 마이그레이션 테스트 1파일 신설 예정)
 
 ## 핵심 규칙 (위반 시 P0/P1)

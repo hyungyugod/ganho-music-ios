@@ -79,10 +79,10 @@ extension UILayout {
         static let pauseSettingsRowY: CGFloat = 8
 
         // MARK: #4 정책 링크
-        /// ⚠️ 정책 호스팅 URL 미확정 — 빈 문자열이면 SettingsDialogNode가 정책 행 자체를
-        /// 생성하지 않는다 (graceful 조건부 미생성 — 좀비 아님).
-        /// App Store 심사 전 실제 URL 기입 필수 — 출시 체크리스트 항목.
-        static let privacyPolicyURLString: String = ""
+        /// 정책 호스팅 URL — R13 기입 완료 (노션 게시·공개 URL 비로그인 HTTP 200 확인, 2026-06-12).
+        /// 빈 문자열이면 SettingsDialogNode가 정책 행 자체를 생성하지 않는다
+        /// (graceful 조건부 미생성 가드 — 릴리즈 코드로 계속 존재).
+        static let privacyPolicyURLString: String = "https://weak-curler-42e.notion.site/Privacy-Policy-37de5a0eed53816cbd1ee2cdc2c76e7d"
         /// .ganhoExternalLinkRequested userInfo 키 (값: URL).
         static let externalLinkURLUserInfoKey: String = "ganhoExternalLinkURL"
 
