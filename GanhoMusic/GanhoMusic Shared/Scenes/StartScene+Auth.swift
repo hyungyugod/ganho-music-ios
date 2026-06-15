@@ -107,6 +107,12 @@ extension StartScene {
         dialog.onCancel = { [weak self] in self?.hideLoginDialog() }
         dialog.setMode(mode, statusText: statusText)
         loginDialog = dialog
+        // R14 P2-1 — iPad에서만 주변 메뉴 UI와 동일 스케일(menuCompactScale)로 확대.
+        // 노드 전체 setScale → 자식(패널·버튼·딤·히트영역) 동반 스케일, 중앙 기준 확대.
+        // iPhone 경로는 setScale 자체를 호출하지 않아 좌표·크기 byte-equal 무회귀.
+        if DeviceLayoutProfile.resolve(for: self) == .padLandscape {
+            dialog.setScale(menuCompactScale())
+        }
         dialog.present(in: self)
     }
 

@@ -74,6 +74,9 @@ class BaseMenuScene: SKScene {
     }
 
     // MARK: - Layout
+    /// 콘텐츠 **위치 산정**용 inset — clamped safe area(`maxContentHeight` 밴드 클램프 반영).
+    /// iPad에서 남는 세로를 상하 균등 분배(콘텐츠 밴드 세로 중앙)하므로 *위치*는 이 clamped 값을 쓴다.
+    /// (스케일 산정은 raw 가용 세로를 쓰는 `menuCompactScale()`와 역할이 다르다 — 아래 참조.)
     func menuSafeInsets() -> UIEdgeInsets {
         let profile = DeviceLayoutProfile.resolve(for: self)
         // iPhone: menuMaxContentHeight = .greatestFiniteMagnitude → extraV=0 → 기존 동작 byte-equal.
@@ -85,6 +88,10 @@ class BaseMenuScene: SKScene {
         )
     }
 
+    /// 콘텐츠 **스케일 산정**용 — iPad는 raw safe area(`SceneSafeArea.insets`, 노치 회피만)에
+    /// 비례. 밴드 클램프된 `menuSafeInsets()`(clamped)를 스케일에 쓰면 콘텐츠가 한 번 더 줄어드는
+    /// **이중 축소(double-shrink)** 가 생기므로, 스케일은 원본 가용 세로(raw)를 기준으로 정한다.
+    /// (위치는 clamped를 쓰는 `menuSafeInsets()` 참조 — 스케일/위치 inset 출처가 의도적으로 이원화됨.)
     func menuCompactScale() -> CGFloat {
         let profile = DeviceLayoutProfile.resolve(for: self)
         if profile == .padLandscape {
