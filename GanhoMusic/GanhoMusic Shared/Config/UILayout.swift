@@ -51,7 +51,8 @@ enum UILayout {
     static let ipadIngameHUDScale: CGFloat = 1.08
     static let ipadIngameControlScale: CGFloat = 1.15
     static let ipadIngameTopButtonScale: CGFloat = 1.12
-    static let ipadCameraScaleFloor: CGFloat = 0.62
+    // 13" 가로 cover 보장(fitScale 0.484를 floor가 끌어올리지 않게 0.484보다 낮은 안전망 값).
+    static let ipadCameraScaleFloor: CGFloat = 0.45
     static let ipadCameraScaleCeiling: CGFloat = 1.0
     static let ingameHUDReadableAlpha: CGFloat = 0.92
     static let ingameControlReadableAlpha: CGFloat = 0.78
