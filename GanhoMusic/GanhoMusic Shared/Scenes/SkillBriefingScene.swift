@@ -253,17 +253,16 @@ final class SkillBriefingScene: BaseMenuScene {
         let scale = menuCompactScale()
         let contentY = (frame.midY + UILayout.R4.briefingContentCenterYOffset * scale).rounded()
 
-        characterCard?.setScale(scale)
-        characterCard?.position = CGPoint(
-            x: (frame.minX + frame.width * UILayout.R4.briefingCardCenterXRatio).rounded(),
-            y: contentY
+        // S4 — 카드·패널 페어를 콘텐츠 폭 중앙 기준으로 재유도(중점 = safe-center). iPhone은 항등.
+        let columns = contentColumnPair(
+            leftRatio: UILayout.R4.briefingCardCenterXRatio,
+            rightRatio: UILayout.R4.briefingPanelCenterXRatio
         )
+        characterCard?.setScale(scale)
+        characterCard?.position = CGPoint(x: columns.left.rounded(), y: contentY)
 
         briefingPanel?.setScale(scale)
-        briefingPanel?.position = CGPoint(
-            x: (frame.minX + frame.width * UILayout.R4.briefingPanelCenterXRatio).rounded(),
-            y: contentY
-        )
+        briefingPanel?.position = CGPoint(x: columns.right.rounded(), y: contentY)
 
         backButton?.setScale(scale)
         backButton?.position = CGPoint(
@@ -273,9 +272,12 @@ final class SkillBriefingScene: BaseMenuScene {
                 - UILayout.R4.backButtonSize.height * scale / 2).rounded()
         )
 
+        // S4 — next 버튼: iPad는 콘텐츠 폭 중앙(쏠림 해소), iPhone은 기존 패널 중심(0.65) = byte-equal.
+        let isPad = DeviceLayoutProfile.resolve(for: self) == .padLandscape
+        let nextRatio = isPad ? UILayout.contentCenterRatio : UILayout.R4.briefingPanelCenterXRatio
         nextButton?.setScale(scale)
         nextButton?.position = CGPoint(
-            x: (frame.minX + frame.width * UILayout.R4.briefingPanelCenterXRatio).rounded(),
+            x: contentColumnX(ratio: nextRatio).rounded(),
             y: (frame.minY + safe.bottom + UILayout.R4.ctaBottomInset * scale).rounded()
         )
     }

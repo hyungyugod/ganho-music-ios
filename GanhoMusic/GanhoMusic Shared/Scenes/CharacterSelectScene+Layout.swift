@@ -173,9 +173,20 @@ extension CharacterSelectScene {
         }
     }
 
+    /// S4 — 프리뷰(좌)·캐러셀(우) 컬럼 중심 페어. 중점이 콘텐츠 폭 중앙에 오도록 보정 (iPad).
+    /// iPhone은 항등 — preview=frame.width*0.21, carousel=frame.width*0.71 (byte-equal).
+    private func columnCenters() -> (preview: CGFloat, carousel: CGFloat) {
+        let pair = contentColumnPair(
+            leftRatio: UILayout.R4.selectPreviewCenterXRatio,
+            rightRatio: UILayout.R4.selectCarouselCenterXRatio
+        )
+        return (pair.left, pair.right)
+    }
+
     private func layoutPreview() {
         let scale = menuCompactScale()
-        let centerX = (frame.minX + frame.width * UILayout.R4.selectPreviewCenterXRatio).rounded()
+        // S4 — 컬럼 중심 x를 콘텐츠 폭 기준 재유도. iPhone은 항등(byte-equal), iPad는 좌우 대칭.
+        let centerX = columnCenters().preview.rounded()
         let centerY = (frame.midY + UILayout.R4.selectPreviewCenterYOffset * scale).rounded()
         previewGlow?.setScale(scale)
         previewSprite?.setScale(scale)
@@ -194,10 +205,24 @@ extension CharacterSelectScene {
 
     private func layoutCarousel() {
         let scale = menuCompactScale()
-        let clipLeftX = frame.minX + frame.width * UILayout.R4.selectCarouselClipLeftRatio
-        let clipWidth = frame.maxX - clipLeftX
+        let isPad = DeviceLayoutProfile.resolve(for: self) == .padLandscape
         let centerY = (frame.midY + UILayout.R4.selectCarouselCenterYOffset * scale).rounded()
-        carouselCrop.position = CGPoint(x: (clipLeftX + clipWidth / 2).rounded(), y: centerY)
+        let cropCenterX: CGFloat
+        let clipWidth: CGFloat
+        if isPad {
+            // S4 — 캐러셀 중심을 preview와의 페어 중점이 콘텐츠 중앙에 오도록 보정한 위치로,
+            // 클립은 그 중심 기준 콘텐츠 우끝까지 좌우 대칭 폭으로 둔다.
+            let carouselCenterX = columnCenters().carousel
+            let contentRightEdge = frame.maxX - menuSafeInsets().right
+            clipWidth = max(0, 2 * (contentRightEdge - carouselCenterX))
+            cropCenterX = carouselCenterX
+        } else {
+            // iPhone — 기존 산식 byte-equal: clip 좌경계=frame.width*0.42, 우경계=frame.maxX.
+            let clipLeftX = frame.minX + frame.width * UILayout.R4.selectCarouselClipLeftRatio
+            clipWidth = max(0, frame.maxX - clipLeftX)
+            cropCenterX = clipLeftX + clipWidth / 2
+        }
+        carouselCrop.position = CGPoint(x: cropCenterX.rounded(), y: centerY)
         // 마스크 — 클립 영역 사각 1장. didChangeSize마다 크기 재설정.
         let maskHeight = UILayout.R4.characterCardSize.height * scale * Palette.glowScale
             + UILayout.Space.s48
@@ -211,7 +236,14 @@ extension CharacterSelectScene {
 
     /// 카드 x = (idx − currentIndex) × step — 중앙 1 + 양옆 반쯤 (클립 경계 걸침).
     func positionCarouselCards(animated: Bool) {
-        let step = (frame.width * UILayout.R4.selectCarouselStepRatio
+        // S4 — 스텝 기준 폭: iPhone=화면 폭(항등 byte-equal), iPad=콘텐츠 가용 폭(좁은 클립에 맞춰
+        // 양옆 카드가 콘텐츠 폭 안에 머물도록). 둘 다 frame/size/safe로 결정 — standalone 호출 안전.
+        let isPad = DeviceLayoutProfile.resolve(for: self) == .padLandscape
+        let safe = menuSafeInsets()
+        let stepBaseWidth = isPad
+            ? max(0, size.width - safe.left - safe.right)
+            : frame.width
+        let step = (stepBaseWidth * UILayout.R4.selectCarouselStepRatio
                     / menuCompactScale()).rounded()
         for (index, card) in carouselCards.enumerated() {
             let targetX = CGFloat(index - currentIndex) * step
@@ -232,8 +264,11 @@ extension CharacterSelectScene {
     private func layoutFooter() {
         let safe = menuSafeInsets()
         let scale = menuCompactScale()
-        let centerX = (frame.minX + frame.width
-                       * UILayout.R4.selectCarouselCenterXRatio).rounded()
+        // S4 — 진단의 "주요 버튼 ~21% 우측 쏠림" 해소: iPad는 콘텐츠 폭 중앙(safe-center, ratio 0.5),
+        // iPhone은 기존 carousel 중심(0.71) 그대로 = byte-equal. contentColumnX 항등 경로 활용.
+        let isPad = DeviceLayoutProfile.resolve(for: self) == .padLandscape
+        let footerRatio = isPad ? UILayout.contentCenterRatio : UILayout.R4.selectCarouselCenterXRatio
+        let centerX = contentColumnX(ratio: footerRatio).rounded()
         let buttonY = (frame.minY + safe.bottom
                        + UILayout.R4.ctaBottomInset * scale).rounded()
         startButton?.setScale(scale)

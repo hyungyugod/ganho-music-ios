@@ -25,18 +25,33 @@ enum SceneSafeArea {
         return scene.view?.safeAreaInsets ?? .zero
     }
 
-    /// 실제 safe area에 가상 콘텐츠 폭 제한을 더한다.
-    /// iPad 넓은 화면에서 메뉴/결과/기록 화면 요소가 좌우 끝으로 흩어지지 않도록 한다.
-    static func contentInsets(for scene: SKScene, maxContentWidth: CGFloat) -> UIEdgeInsets {
+    /// 실제 safe area에 가상 콘텐츠 폭·세로 제한을 더한다.
+    /// iPad 넓은 화면에서 메뉴/결과/기록 화면 요소가 좌우 끝으로 흩어지지 않도록 가로를 클램프하고,
+    /// 세로(`maxContentHeight`)가 유한값이면 남는 세로를 상하 균등 분배해 콘텐츠 밴드를 화면 세로
+    /// 중앙에 둔다 (Guideline 4 대응 — A안 S3).
+    /// - maxContentHeight: 기본 `.greatestFiniteMagnitude` → 세로 클램프 무효(기존 호출부 무회귀).
+    ///   iPad만 유한값 주입 — iPhone 경로는 항상 기본값이라 extraV=0, byte-equal.
+    static func contentInsets(
+        for scene: SKScene,
+        maxContentWidth: CGFloat,
+        maxContentHeight: CGFloat = .greatestFiniteMagnitude
+    ) -> UIEdgeInsets {
         let base = insets(for: scene)
         guard maxContentWidth > 0 else { return base }
 
         let safeContentWidth = max(0, scene.size.width - base.left - base.right)
         let extraHorizontal = max(0, (safeContentWidth - maxContentWidth) / 2)
+
+        var extraVertical: CGFloat = 0
+        if maxContentHeight.isFinite, maxContentHeight > 0 {
+            let safeContentHeight = max(0, scene.size.height - base.top - base.bottom)
+            extraVertical = max(0, (safeContentHeight - maxContentHeight) / 2)
+        }
+
         return UIEdgeInsets(
-            top: base.top,
+            top: base.top + extraVertical,
             left: base.left + extraHorizontal,
-            bottom: base.bottom,
+            bottom: base.bottom + extraVertical,
             right: base.right + extraHorizontal
         )
     }

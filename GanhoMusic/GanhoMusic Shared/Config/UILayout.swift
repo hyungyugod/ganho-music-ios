@@ -24,6 +24,30 @@ enum UILayout {
     static let compactNarrowLayoutScale: CGFloat = 0.92
     static let ipadMenuLayoutScale: CGFloat = 1.08
     static let ipadMenuMaxContentWidth: CGFloat = 1060
+
+    // MARK: - iPad 종횡비 인식 적응형 (Guideline 4 대응 — A안)
+    // iPad(idiom == .pad)에서만 소비되는 적응형 메트릭. iPhone 경로는 종횡비를 보지 않으므로
+    // 본 상수 미참조 (무회귀). 모든 신규 적응형 수치는 여기 도메인 상수로 — 매직넘버 0.
+    //
+    /// iPhone 디자인 기준 종횡비 (932/430 ≈ 2.167). 종횡비 분기의 기준점.
+    /// 가로 전용 — aspect = width/height 는 항상 ≥ 1.
+    static let referenceAspect: CGFloat = 932.0 / 430.0
+    /// iPad 메뉴 스케일 산식의 분모(pt) — `floor × (safeH / referenceContentHeight)`.
+    /// 645로 보정: Air 11"(safeH≈776) → ~1.30, Pro 13"(safeH≈988) → ceiling(1.5) 클램프.
+    /// 402(iPhone safeH)는 분모가 너무 작아 모든 iPad가 ceiling에 붙어 비례감이 사라진다 —
+    /// 645는 11"~13" 구간을 floor(1.08)~ceiling(1.5) 사이로 자연스럽게 분포시킨다 (특정 기기 분기 0).
+    static let referenceContentHeight: CGFloat = 645
+    /// iPad 메뉴 스케일 하한 — 현 균일값(1.08)과 동일. 축소 금지(회귀 방지) → ipadMenuLayoutScale 재사용.
+    static let ipadMenuScaleFloor: CGFloat = ipadMenuLayoutScale
+    /// iPad 메뉴 스케일 상한 — 가독·터치 영역 붕괴 방지. Pro 13"(1.33:1)에서도 이 안에서 자연 증가.
+    static let ipadMenuScaleCeiling: CGFloat = 1.5
+    /// iPad 콘텐츠 밴드 세로 최대 높이(pt). 안전영역 세로가 이보다 크면 남는 세로를 상하 균등 분배해
+    /// 콘텐츠 밴드를 화면 세로 중앙에 둔다. iPhone은 .greatestFiniteMagnitude(클램프 무효 = 기존).
+    /// 메뉴 콘텐츠가 세로 ~720pt 이내에 균형 배치되도록 — 13" 세로(~960safe)에서도 상하 dead space 대칭.
+    static let ipadMenuMaxContentHeight: CGFloat = 720
+    /// 화면폭 비율 공간의 정중앙 기준(0.5). 2컬럼 재유도(contentColumnX)·iPad 버튼 중앙 정렬의
+    /// "중앙" 의미 상수 — 매직넘버 0.5 리터럴 대체.
+    static let contentCenterRatio: CGFloat = 0.5
     static let ipadIngameHUDScale: CGFloat = 1.08
     static let ipadIngameControlScale: CGFloat = 1.15
     static let ipadIngameTopButtonScale: CGFloat = 1.12
