@@ -20,7 +20,9 @@ extension GameScene {
     /// R11 U7 — 각도 게이트(요구 6) + 노름 보존(요구 7): 의도적 꺾기는 무지연 즉답,
     /// 스냅 콘 경계 고주파 지터 흡수(R10 스무딩의 원래 목적)는 보존.
     func updateMovementInput(dt: TimeInterval) {
-        let target = dpad.currentDirection
+        // [#9] target 소스만 토글로 선택 — ON이면 축스냅 미적용 raw 아날로그(곡선/임의각),
+        // OFF이면 기존 축스냅 채널(회귀 안전 경로). 이하 스무딩·게이트·재정규화·수렴스냅은 무변경.
+        let target = FeelTuning.analogMovementEnabled ? dpad.analogMoveDirection : dpad.currentDirection
         guard isZeroVector(target) == false else {
             resetMovementInput()   // 요구 4 — 입력 해제는 즉시 정지 (기존 경로 보존)
             return

@@ -243,7 +243,9 @@ class GameScene: SKScene {
         // R2 — 게임오버 연출 구간(지연 전환 0.9s): 셰이크/킥/deathBurst가 보이도록
         // 카메라만 계속 갱신. 게임플레이 파이프라인은 진행하지 않는다.
         if gameState == .gameOver {
-            cameraDirector.update(dt: dt)
+            // 변경 1 — 카메라 dt 클램프를 거치도록 단일 경로(updateCameraFollow)로 라우팅.
+            // (was: cameraDirector.update(dt: dt) — gameOver 중엔 점수/스폰 없어 밸런스 무관.)
+            updateCameraFollow(dt: dt)
             return
         }
 

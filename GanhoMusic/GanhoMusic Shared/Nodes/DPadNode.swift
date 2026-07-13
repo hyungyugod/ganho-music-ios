@@ -30,6 +30,12 @@ final class DPadNode: SKNode {
     /// 지금 누르고 있는 방향 벡터. 안 누르면 .zero, 누르면 즉시 최대 속도용 단위 벡터를 가진다.
     private(set) var currentDirection: CGVector = .zero
 
+    /// [#9] 이동 전용 raw 아날로그 방향 벡터. currentDirection과 달리 축스냅
+    /// (axisCorrectedUnitVector) 미경유 — 축보정 *이전* 원시 unit을 normalizedGameplayVector로
+    /// 정규화한 단위 벡터(크기 1) 또는 .zero. 곡선/임의각 이동 전용 채널이다.
+    /// dash 조준·facing·스킬은 currentDirection을 그대로 읽으므로 밸런스/행동 불변.
+    private(set) var analogMoveDirection: CGVector = .zero
+
     // MARK: - Callbacks
     /// 방향 입력이 비-제로로 갱신된 직후 발화된다. 정지 시 마지막 facing은 유지한다.
     var onDirectionChanged: ((Direction) -> Void)?
@@ -125,6 +131,7 @@ final class DPadNode: SKNode {
 
     func resetDirection() {
         currentDirection = .zero
+        analogMoveDirection = .zero   // [#9] raw 아날로그 채널을 currentDirection과 동일 지점에서 동기 리셋
         updateThumb(position: .zero)
         applyPressedState(for: nil)
     }
@@ -134,6 +141,7 @@ final class DPadNode: SKNode {
         let distance = hypot(location.x, location.y)
         guard distance >= GameplayTuning.dpadAnalogDeadzoneRadius else {
             currentDirection = .zero
+            analogMoveDirection = .zero   // [#9] 데드존 안 — raw 아날로그 채널 동기 리셋
             updateThumb(position: .zero)
             applyPressedState(for: nil)
             return
@@ -143,6 +151,9 @@ final class DPadNode: SKNode {
         let unit = CGVector(dx: location.x / distance, dy: location.y / distance)
         let correctedUnit = axisCorrectedUnitVector(from: unit)
         currentDirection = normalizedGameplayVector(from: correctedUnit)
+        // [#9] 축보정 *이전* 원시 unit(location/distance 방향)을 정규화한 raw 아날로그 방향 —
+        // axisCorrectedUnitVector 미경유(dominance 스냅 없음). 크기는 항상 1(비제로) 또는 정확히 0.
+        analogMoveDirection = normalizedGameplayVector(from: unit)
         updateThumb(
             position: CGPoint(
                 x: unit.dx * clampedDistance,

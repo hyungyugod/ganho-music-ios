@@ -60,6 +60,35 @@ extension FeelTuning {
     static let sergeantZoomPulseDuration: TimeInterval = 0.5
     /// 줌 펄스 SKAction 키 — withKey 멱등(같은 키 재호출 시 자동 교체).
     static let cameraZoomPulseActionKey: String = "cameraZoomPulse"
+    /// 카메라에 전달하는 dt 상한 (초). 30fps보다 긴 프레임(로딩·GC 히치)에서도 카메라 이동
+    /// 스텝을 이 값으로 캡해 스크롤 스파이크 점프를 막는다. 전역 dt·lastUpdateTime은 벽시계로
+    /// 유지(콤보 절대 타임스탬프 보호) — 오직 카메라 계층에만 적용한다.
+    static let cameraMaxDeltaTime: TimeInterval = 1.0 / 30.0
+    /// 셰이크 랜덤 오프셋 재추첨 최소 간격 (초). 60Hz에서는 매 프레임 = 기존과 동일, 120Hz에서는
+    /// 한 프레임 걸러 홀드 → 진동 주파수를 프레임레이트와 무관하게 60Hz 기준으로 고정한다.
+    static let cameraShakeSampleInterval: TimeInterval = 1.0 / 60.0
+
+    // MARK: Camera v2 — 2차 세트 (프록시·데드존·픽셀스냅)
+    // 스크롤 부드러움 개선 — DPad 4방향 헤딩 양자화 방향 꺾임·과반응·배경 shimmer 완화.
+    // 게임 밸런스·판정·속도·hitbox 무변경 — 순수 카메라 계층. 표 값은 요청 명세 확정치(임의 변경 금지).
+    // 세 토글 모두 false면 파이프라인은 1차 세트와 동일 결과(회귀 안전 경로).
+    /// [#6] 프록시 스무딩 on/off. true면 원시 타깃을 exp 스무딩한 중간 타깃으로 추적.
+    static let cameraProxySmoothingEnabled: Bool = true
+    /// [#6] 프록시 지수보간 rate (τ≈0.05s, ≤60ms 예산 — 과다감쇠 floaty 방지). exp 형태(프레임독립).
+    static let cameraProxyLerpRate: Double = 20.0
+    /// [#7] 데드존 on/off. true면 base 오차가 데드존 안인 축의 타깃을 base로 치환(미세 과반응 억제).
+    static let cameraDeadzoneEnabled: Bool = true
+    /// [#7] 데드존 half-extent(뷰포트 비율, 축별). 작게 유지(급이동 이탈 lurch 방지).
+    static let cameraDeadzoneViewportFraction: CGFloat = 0.05
+    /// [#5] device-pixel 스냅 토글. 기본 OFF(실기기 A/B 전용, 저속 계단현상 위험).
+    static let cameraPixelSnapEnabled: Bool = false
+    /// [#5] device-scale 취득 실패 시 폴백 배율(매직넘버 회피용 `?? 2` 대체). 비레티나 방어값.
+    static let cameraPixelSnapFallbackScale: CGFloat = 2.0
+    /// [#9] 이동 전용 raw 아날로그 방향 채널 on/off. true면 updateMovementInput이 DPad의
+    /// 축스냅 미적용 analogMoveDirection을 target으로 사용 — 곡선/대각선/임의각 이동으로 스크롤
+    /// 계단을 근본 완화한다. OFF면 기존 8방향/축스냅 채널(currentDirection)로 복귀(회귀 안전 경로).
+    /// dash 조준·facing·이동 속도 크기·밸런스는 채널과 무관하게 불변(GameplayTuning 미접촉).
+    static let analogMovementEnabled: Bool = true
 
     // MARK: Particles (02 §4)
     /// 동시 활성 이미터 상한 (02 §1 예산). 초과 시 우선순위 낮은 것부터 스킵.

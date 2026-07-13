@@ -12,6 +12,8 @@ import SpriteKit
 // MARK: - Camera Follow
 extension GameScene {
     func updateCameraFollow(dt: TimeInterval) {
-        cameraDirector.update(dt: dt)
+        // 변경 1 — 카메라 계층만 dt 상한 캡 (단일 클램프 지점). 히치 시 스크롤 스파이크 방어.
+        // 전역 dt·lastUpdateTime은 GameScene.update가 벽시계로 유지(콤보 절대 타임스탬프 보호).
+        cameraDirector.update(dt: min(dt, FeelTuning.cameraMaxDeltaTime))
     }
 }

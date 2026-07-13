@@ -66,6 +66,10 @@ class GameViewController: UIViewController {
 
         skView.ignoresSiblingOrder = true
         skView.isMultipleTouchEnabled = true
+        // 변경 2 — ProMotion(120Hz) 렌더 허용. maximumFramesPerSecond가 ProMotion=120·일반=60을
+        // 기기별 자동 반환 → 비-ProMotion 기기는 자동 60fps 폴백(회귀 0, 하드코딩 fps 없음).
+        // iPhone은 Info.plist의 CADisableMinimumFrameDurationOnPhone=true도 함께 있어야 120Hz 발효.
+        skView.preferredFramesPerSecond = UIScreen.main.maximumFramesPerSecond
 
         #if DEBUG
         skView.showsFPS = true
